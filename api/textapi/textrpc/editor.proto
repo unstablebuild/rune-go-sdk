@@ -1,0 +1,224 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/textapi/textrpc";
+
+package text;
+
+import "term/termrpc/term.proto";
+
+message URI {
+	string uri = 1;
+}
+
+message EditRequest {
+	URI resource_name = 1;
+	repeated term.CellRow buffer = 2;
+	bool read_only = 3;
+	bool recovered = 4;
+}
+
+message EditResponse {
+}
+
+message EditorEvent {
+  enum Type {
+	TypeOpen = 0;
+	TypeClose = 1;
+	TypeFlush = 2;
+	TypeEdit = 3;
+	TypeScroll = 5;
+	TypeCreate = 12;
+	TypeChange = 13;
+	TypeFocus = 6;
+	TypeUnfocus = 7;
+	TypeCursor = 8;
+	TypeSelection = 9;
+	TypeRename = 10;
+	TypeRemove = 11;
+	TypeHidden = 14;
+	TypeVisible = 15;
+  }
+
+  Type type = 1;
+  URI resource_name = 2;
+
+  term.Coordinates start = 4;
+  term.Coordinates end = 5;
+  term.Coordinates from = 6;
+  term.Coordinates to = 7;
+  string content = 8;
+}
+
+message SubscribeEventRequest {
+	repeated EditorEvent.Type type = 1;
+	bool unsubscribe = 3;
+}
+
+message SetLocationListRequest {
+	message Location {
+		term.Coordinates from = 1;
+		term.Coordinates to = 2;
+		term.Attributes attr = 3;
+		string msg = 4;
+	}
+    URI resource_name = 1;
+	string list_id = 2;
+	repeated Location locations = 3;
+	uint32 priority = 4;
+}
+
+message SetLocationListResponse {}
+
+message EditCellRequest {
+	URI resource_name = 1;
+	term.Coordinates start = 2;
+	term.Coordinates end = 3;
+	string str = 4;
+}
+
+message EditCellResponse {
+	term.Coordinates from = 1;
+	term.Coordinates to = 2;
+	string old = 3;
+}
+
+message RawCellsRequest {
+    URI resource_name = 1;
+}
+
+message RawCellsResponse {
+	repeated term.CellRow rows = 1;
+}
+
+message MoveToLocationRequest {
+    URI resource_name = 1;
+	string list_id = 2;
+}
+
+message MoveToLocationResponse {
+}
+
+message SetCursorRequest {
+	term.Coordinates pos = 1;
+    URI resource_name = 2;
+}
+
+message SetCursorResponse {
+}
+
+message CursorRequest {
+    URI resource_name = 1;
+}
+
+message CursorResponse {
+	term.Coordinates pos = 1;
+}
+
+message EditorRequest {
+	URI resource_name = 1;
+}
+
+message EditorResponse {
+}
+
+message SetDefaultAttributesRequest {
+    URI resource_name = 1;
+	term.Attributes attributes = 2;
+}
+
+message SetDefaultAttributesResponse {
+}
+
+service Editor {
+	rpc Edit(EditRequest) returns (EditResponse);
+	rpc SetCursor(SetCursorRequest) returns (SetCursorResponse);
+	rpc Cursor(CursorRequest) returns (CursorResponse);
+	rpc Editor(EditorRequest) returns (EditorResponse);
+
+	// locations
+	rpc SetLocationList(SetLocationListRequest) returns (SetLocationListResponse);
+	rpc MoveToNextLocation(MoveToLocationRequest) returns (MoveToLocationResponse);
+	rpc MoveToPrevLocation(MoveToLocationRequest) returns (MoveToLocationResponse);
+
+
+	// Editor
+	rpc EditCell(EditCellRequest) returns (EditCellResponse);
+
+	// View
+	rpc RawCells(RawCellsRequest) returns (RawCellsResponse);
+
+	rpc SetDefaultAttributes(SetDefaultAttributesRequest) returns (SetDefaultAttributesResponse);
+
+	// streams
+	rpc SubscribeEvent(stream SubscribeEventRequest) returns (stream EditorEvent);
+	rpc SubscribeCommand(stream ClientCommandMessage) returns (stream ServerCommandMessage);
+}
+
+message SubscribeCommandRequest {
+	CommandManual command = 1;
+}
+
+message CommandManual {
+	string name = 1;
+    string summary = 2;
+    string synopsis = 3;
+	repeated CommandManual commands = 4;
+}
+
+message SubscribeCommandResponse {}
+
+
+message ClientCommandMessage {
+	enum MessageType {
+		Handle = 0;
+		CompleteValue = 1;
+		CompleteDone = 2;
+		Request = 3;
+	}
+	MessageType type = 1;
+	HandleCommandResponse handle = 2;
+	CompleteCommandValue complete_value = 3;
+	CompleteCommandDone complete_done = 4;
+	SubscribeCommandRequest request = 5;
+}
+
+message ServerCommandMessage {
+	enum MessageType {
+		Handle = 0;
+		Complete = 1;
+		Response = 2;
+	}
+	MessageType type = 1;
+	HandleCommandRequest handle = 2;
+	CompleteCommandRequest complete = 3;
+	SubscribeCommandResponse response = 4;
+}
+
+message HandleCommandRequest {
+	string name = 1;
+	repeated string args = 2;
+	URI resource_name = 3;
+	term.Coordinates cursor_content = 4;
+	term.Coordinates cursor_window = 5;
+	uint64 window_id = 6;
+}
+
+message HandleCommandResponse {
+	string error = 1;
+}
+
+message CompleteCommandRequest {
+	int64 id = 1;
+	string name = 2;
+	repeated string args = 3;
+}
+
+message CompleteCommandValue {
+	int64 id = 1;
+	string value = 2;
+}
+
+message CompleteCommandDone {
+	int64 id = 1;
+	string error = 2;
+}

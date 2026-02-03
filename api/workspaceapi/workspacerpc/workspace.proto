@@ -1,0 +1,400 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/workspaceapi/workspacerpc";
+
+package workspace;
+
+import "google/protobuf/timestamp.proto";
+
+message OpenRequest {
+	string filename = 1;
+	int32 mode = 2;
+	bool O_RDONLY = 3;
+	bool O_WRONLY = 4;
+	bool O_APPEND = 6;
+	bool O_CREATE = 7;
+	bool O_EXCL = 8;
+	bool O_SYNC = 9; 
+	bool O_TRUNC = 10;
+	string root = 11;
+}
+
+message OpenResponse {
+	bool is_exist_err = 2;
+	bool is_not_exist_err = 3;
+	bool is_permission_err = 4;
+	string filename = 5;
+	uint32 fd = 6;
+}
+
+message RemoveRequest {
+	string filename = 1;
+	string root = 2;
+}
+
+message RemoveResponse {
+	bool is_exist_err = 1;
+	bool is_not_exist_err = 2;
+	bool is_permission_err = 3;
+}
+
+message RenameRequest {
+	string filename = 1;
+	string newfilename = 2;
+	string root = 3;
+}
+
+message RenameResponse {
+	bool is_exist_err = 1;
+	bool is_not_exist_err = 2;
+	bool is_permission_err = 3;
+}
+
+message StatRequest {
+	string filename = 1;
+	bool lstat = 2;
+	string root = 3;
+}
+
+message StatResponse {
+	string name = 1;
+	int64 size = 2;
+	int32 mode = 3;
+	google.protobuf.Timestamp mod_time = 4;
+	bool is_dir = 5;
+	bool is_exist_err = 6;
+	bool is_not_exist_err = 7;
+	bool is_permission_err = 8;
+}
+
+
+message SyncRequest {
+	string filename = 1;
+	uint32 fd = 2;
+	string root = 3;
+}
+
+message SyncResponse {
+}
+
+message TruncateRequest {
+	string filename = 1;
+	uint32 fd = 2;
+	int64 size = 3;
+	string root = 4;
+}
+
+message TruncateResponse {
+}
+
+message CloseFileRequest {
+	string filename = 1;
+	uint32 fd = 2;
+	string root = 3;
+}
+
+message CloseFileResponse {
+}
+
+message SeekRequest {
+	string filename = 1;
+	uint32 fd = 2;
+	int64 offset = 3;
+	int64 whence = 4;
+	string root = 5;
+}
+
+message SeekResponse {
+	int64 new_offset = 1;
+}
+
+message ReadRequest {
+	string filename = 1;
+	uint32 fd = 2;
+	int64 n = 3;
+	int64 offset = 4;
+	string root = 5;
+}
+
+message ReadResponse {
+	int64 n = 1;
+	bytes data = 2;
+	bool is_eof = 3;
+}
+
+message WriteRequest {
+	string filename = 1;
+	uint32 fd = 2;
+	bytes data = 3;
+	string root = 4;
+}
+
+message WriteResponse {
+	int64 n = 1;
+}
+
+
+message ReadLinkRequest {
+	string filename = 1;
+	string root = 2;
+}
+
+message ReadLinkResponse {
+	string filename = 1;
+}
+
+message StartCommandRequest {
+	string name = 1;
+	string dir = 15;
+	repeated string args = 2;
+	repeated string env = 3;
+	bool stdin = 4;
+	bool stdout = 5;
+	bool stderr = 6;
+	uint32 stdin_fd = 7;
+	uint32 stdout_fd = 8;
+	uint32 stderr_fd = 9;
+	string stdin_name = 10;
+	string stdout_name = 11;
+	string stderr_name = 12;
+	bool setsid = 13;
+	bool setctty = 14;
+}
+
+message SignalRequest {
+	int64 pid = 1;
+	int32 sig = 2;
+}
+
+message SignalResponse {
+}
+
+message URIRequest {
+	string path = 1;
+	string root = 2;
+}
+
+message URIResponse {
+	string uri = 1;
+}
+
+message RegisterSchemeRequest {
+	string proxy_id = 1;
+	string scheme = 2;
+}
+
+message RegisterSchemeResponse {
+}
+
+message InitializeProxyRequest {
+	string uri = 1;
+	string config_json = 2;
+}
+
+message InitializeProxyResponse {
+	string token_id = 1;
+}
+
+message NewPtyRequest {
+}
+
+message NewPtyResponse {
+	string master = 1;
+	uint32 master_fd = 2;
+	string slave = 3;
+	uint32 slave_fd = 4;
+}
+
+message SetPtySizeRequest {
+	string master = 1;
+	uint32 master_fd = 2;
+	string slave = 3;
+	uint32 slave_fd = 4;
+	int32 height = 5;
+	int32 width = 6;
+}
+
+message SetPtySizeResponse {
+}
+
+message ReadDirRequest {
+	string dir = 1;
+	string root = 2;
+}
+
+message DirEntry {
+	string name = 1;
+	bool is_dir = 2;
+	int32 mode = 3;
+}
+
+message ReadDirResponse {
+	bool is_exist_err = 2;
+	bool is_not_exist_err = 3;
+	bool is_permission_err = 4;
+	repeated DirEntry path = 1;
+}
+
+message CommandPayload {
+	message Done {
+		string exit_error = 1;
+	}
+	message Started {
+		int64 pid = 1;
+	}
+	message IO {
+		enum Type {
+			TypeStdin = 0;
+			TypeStdout = 1;
+			TypeStderr = 2;
+		}
+		bytes data = 1;
+		Type type = 2;
+	}
+	enum Type {
+		TypeStart = 0;
+		TypeDone = 1;
+		TypeStarted = 2;
+		TypeIO = 3;
+		TypeError = 4;
+	}
+	Type type = 1;
+	StartCommandRequest start = 2;
+	Done done = 3;
+	Started started = 4;
+	IO io = 5;
+	string error = 6;
+}
+
+message MkdirAllRequest {
+	string path = 1;
+	int32 mode = 2;
+	string root = 3;
+}
+
+message MkdirAllResponse {
+	bool is_exist_err = 2;
+	bool is_not_exist_err = 3;
+	bool is_permission_err = 4;
+}
+
+enum Event {
+	Create = 0;
+	Remove = 1;
+	Write  = 2;
+	Rename = 3;
+}
+
+message WatchRequest {
+	string path = 1;
+	repeated Event events = 2;
+	string root = 3;
+}
+
+message WatchResponse {
+	int64 id = 1;
+}
+
+message WatchData {
+	Event event = 1;
+	string uri = 2;
+	bool is_dir = 4;
+}
+
+message WatchMessage {
+	enum Type {
+		TypeResponse = 0;
+		TypeData = 1;
+	}
+	Type type = 1;
+	WatchResponse response = 2;
+	WatchData data = 3;
+}
+
+message StopWatchRequest {
+	int64 id = 1;
+	string root = 2;
+}
+
+message StopWatchResponse {}
+
+message RootRequest {
+}
+
+message RootResponse {
+	string path = 1;
+}
+
+message SymlinkRequest {
+	string target = 1;
+	string link = 2;
+	string root = 3;
+}
+
+message SymlinkResponse {
+}
+
+message TempFileRequest {
+	string dir = 1;
+	string prefix = 2;
+	string root = 3;
+}
+
+message TempFileResponse {
+	string filename = 1;
+	uint32 fd = 2;
+}
+
+message JoinRequest {
+	repeated string elem = 1;
+}
+
+message JoinResponse {
+	string filename = 1;
+}
+
+service Terminal {
+	rpc NewPty(NewPtyRequest) returns (NewPtyResponse);
+	rpc SetPtySize(SetPtySizeRequest) returns (SetPtySizeResponse);
+}
+
+service Scheme {
+	rpc URI(URIRequest) returns (URIResponse);
+	rpc Open(OpenRequest) returns (OpenResponse);
+	rpc Remove(RemoveRequest) returns (RemoveResponse);
+	rpc Rename(RenameRequest) returns (RenameResponse);
+	rpc Stat(StatRequest) returns (StatResponse);
+	rpc ReadLink(ReadLinkRequest) returns (ReadLinkResponse);
+	rpc ReadDir(ReadDirRequest) returns (ReadDirResponse);
+	rpc MkdirAll(MkdirAllRequest) returns (MkdirAllResponse);
+	rpc Watch(WatchRequest) returns (stream WatchMessage) {};
+	rpc StopWatch(StopWatchRequest) returns (StopWatchResponse);
+	rpc Root(RootRequest) returns (RootResponse);
+	rpc Symlink(SymlinkRequest) returns (SymlinkResponse);
+	rpc TempFile(TempFileRequest) returns (TempFileResponse);
+	rpc Join(JoinRequest) returns (JoinResponse);
+}
+
+service Executor {
+	rpc StartCommand(stream CommandPayload) returns (stream CommandPayload) {};
+	rpc Signal(SignalRequest) returns (SignalResponse);
+}
+
+service Files {
+	rpc Sync(SyncRequest) returns (SyncResponse);
+	rpc Truncate(TruncateRequest) returns (TruncateResponse);
+	rpc Seek(SeekRequest) returns (SeekResponse);
+	rpc Close(CloseFileRequest) returns (CloseFileResponse);
+	rpc Read(ReadRequest) returns (ReadResponse);
+	rpc ReadAt(ReadRequest) returns (ReadResponse);
+	rpc Write(WriteRequest) returns (WriteResponse);
+	rpc Stat(StatRequest) returns (StatResponse);
+}
+
+service ProxyScheme {
+	rpc InitializeProxy(InitializeProxyRequest) returns (InitializeProxyResponse);
+}
+
+service Manager {
+	rpc RegisterScheme(RegisterSchemeRequest) returns (RegisterSchemeResponse);
+}

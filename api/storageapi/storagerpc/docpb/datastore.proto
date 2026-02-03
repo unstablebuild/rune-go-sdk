@@ -1,0 +1,72 @@
+syntax = "proto3";
+option go_package = "/docpb";
+
+package proto;
+
+message CreateDocumentRequest {
+	string id = 1;
+	bytes data = 2;
+}
+
+message SetDocumentRequest {
+	string id = 1;
+	bytes data = 2;
+}
+
+message UpdateDocumentRequest {
+	string id = 1;
+
+	message Field {
+		repeated string field_path = 1;
+		bytes data = 2;
+	}
+
+	repeated Field updates = 2;
+	repeated Field preconditions = 3;
+}
+
+message GetDocumentRequest {
+	string id = 1;
+}
+
+message DeleteDocumentRequest {
+	string id = 1;
+}
+
+message ListDocumentRequest {
+	message Filter {
+		repeated string field_path = 1;
+		bytes data = 2;
+		string operation = 3;
+	}
+
+	repeated Filter filters = 1;
+}
+
+message DocumentResponse {
+}
+
+message GetDocumentResponse {
+	bytes data = 1;
+	bool not_found = 2;
+}
+message ListDocumentResponse {
+	bytes data = 1;
+	string error = 2;
+}
+message CreateDocumentResponse {
+	bool already_exists = 1;
+}
+message UpdateDocumentResponse {
+	bool not_found = 1;
+	bool precondition_failed = 2;
+}
+
+service DocumentStore {
+	rpc Create(CreateDocumentRequest) returns (CreateDocumentResponse);
+	rpc Set(SetDocumentRequest) returns (DocumentResponse);
+	rpc Update(UpdateDocumentRequest) returns (UpdateDocumentResponse);
+	rpc Get(GetDocumentRequest) returns (GetDocumentResponse);
+	rpc Delete(DeleteDocumentRequest) returns (DocumentResponse);
+	rpc List(ListDocumentRequest) returns (stream ListDocumentResponse);
+}

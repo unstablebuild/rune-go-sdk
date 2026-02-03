@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc";
+
+import "term/termrpc/term.proto";
+import "handler/handlerrpc/handler.proto";
+
+package browser;
+
+message OpenResourceRequest {
+    string resource = 1;
+}
+
+message OpenResourceResponse {
+	string uri = 1;
+}
+
+message NotifyRequest {
+	string msg = 1;
+	uint32 level = 2;
+}
+
+message NotifyResponse {
+	string id = 1;
+}
+
+message UpdateNotificationProgressRequest{
+	string id = 1;
+	string msg = 2;
+	int64 progress = 3;
+	int64 total = 4;
+}
+
+message UpdateNotificationProgressResponse{
+}
+
+message Mapping {
+	term.Event from = 1;
+	term.Event to = 2;
+}
+
+enum Orientation {
+	Default = 0;
+	Top = 1;
+	Bottom = 2;
+	Left = 3;
+	Right = 4;
+}
+
+message SplitRequest {
+	string uri = 1;
+	Orientation orientation = 2;
+	uint64 window_id = 3;
+}
+
+message BarRequest {
+	enum Frame {
+		Default = 0;
+		Always = 1;
+		Never = 2;
+	}
+	Orientation orientation = 1;
+	uint32 size = 2;
+	Frame frame = 3;
+}
+
+message FloatingWindowRequest {
+	term.Coordinates offset = 1;
+	uint32 alignment = 2;
+}
+
+message TabRequest {
+    string resource_id = 1;
+    string resource_name = 2;
+    string resource_icon = 3;
+}
+
+message FocusRequest {
+}
+
+message FocusResponse {
+	uint64 window_id = 1;
+}
+
+message PublishRequest {
+	term.Event ev = 1;
+}
+
+message PublishResponse {
+}
+
+service ResourceOpener {
+	rpc Open(OpenResourceRequest) returns (OpenResourceResponse);
+}
+
+service Notifications {
+	rpc Notify(NotifyRequest) returns (NotifyResponse);
+	rpc NotifyOnce(NotifyRequest) returns (NotifyResponse);
+	rpc UpdateNotificationProgress(UpdateNotificationProgressRequest) returns (UpdateNotificationProgressResponse);
+}
+
+service EventPublisher {
+	rpc Publish(PublishRequest) returns (PublishResponse);
+}
+
+service WindowManager {
+	rpc Focus(FocusRequest) returns (FocusResponse);
+	rpc Split(stream SplitWindowMessage) returns (stream handler.ServerMessage) {};
+	rpc Bar(stream BarMessage) returns (stream handler.ServerMessage) {};
+	rpc Floating(stream FloatingWindowMessage) returns (stream handler.ServerMessage) {};
+	rpc Tab(stream TabMessage) returns (stream handler.ServerMessage);
+	rpc SetContent(stream WindowSetContentMessage) returns (stream handler.ServerMessage) {};
+	rpc CloseWindow(WindowCloseRequest) returns (WindowCloseResponse);
+}
+
+message WindowCloseRequest {
+	uint64 window_id = 1;
+}
+
+message WindowCloseResponse {
+}
+
+message WindowSetContentRequest {
+	uint64 window_id = 1;
+	string uri = 2;
+}
+
+message DimensionsRequest {}
+message DimensionsResponse {
+	uint32 width = 1;
+	uint32 height = 2;
+}
+
+service Floating {
+	rpc Dimensions(DimensionsRequest) returns (DimensionsResponse);
+}
+
+message FloatingWindowMessage {
+	handler.MessageType type = 1;
+	handler.DrawStreamResponse draw = 2;
+	handler.HandleStreamResponse handle = 3;
+	handler.CloseStreamResponse close = 5;
+	handler.CursorStreamResponse cursor = 6;
+	handler.SelectionStreamResponse selection = 7;
+	handler.DimensionsStreamResponse dimensions = 8;
+
+	FloatingWindowRequest request = 10;
+}
+
+message SplitWindowMessage {
+	handler.MessageType type = 1;
+	handler.DrawStreamResponse draw = 2;
+	handler.HandleStreamResponse handle = 3;
+	handler.CloseStreamResponse close = 5;
+	handler.CursorStreamResponse cursor = 6;
+	handler.SelectionStreamResponse selection = 7;
+	handler.DimensionsStreamResponse dimensions = 8;
+
+	SplitRequest request = 10;
+}
+
+message BarMessage {
+	handler.MessageType type = 1;
+	handler.DrawStreamResponse draw = 2;
+	handler.HandleStreamResponse handle = 3;
+	handler.CloseStreamResponse close = 5;
+	handler.CursorStreamResponse cursor = 6;
+	handler.SelectionStreamResponse selection = 7;
+	handler.DimensionsStreamResponse dimensions = 8;
+
+	BarRequest request = 10;
+}
+
+message WindowSetContentMessage {
+	handler.MessageType type = 1;
+	handler.DrawStreamResponse draw = 2;
+	handler.HandleStreamResponse handle = 3;
+	handler.CloseStreamResponse close = 5;
+	handler.CursorStreamResponse cursor = 6;
+	handler.SelectionStreamResponse selection = 7;
+	handler.DimensionsStreamResponse dimensions = 8;
+
+	WindowSetContentRequest request = 10;
+}
+
+message TabMessage {
+	handler.MessageType type = 1;
+	handler.DrawStreamResponse draw = 2;
+	handler.HandleStreamResponse handle = 3;
+	handler.CloseStreamResponse close = 5;
+	handler.CursorStreamResponse cursor = 6;
+	handler.SelectionStreamResponse selection = 7;
+	handler.DimensionsStreamResponse dimensions = 8;
+
+	TabRequest request = 10;
+}
