@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/term/termrpc";
+
+package term;
+
+message Attributes {
+	uint64 Foreground = 2;
+	uint64 Background = 3;
+	int64  Attrs = 4;
+}
+
+message Cell {
+	uint32 Character = 1;
+	uint64 Foreground = 2;
+	uint64 Background = 3;
+	repeated uint32 Combining = 4;
+	uint32 Width = 5;
+	int64  Attrs = 6;
+	uint32 Bytes = 7;
+}
+
+message CellRow {
+    repeated Cell cells = 1 ;
+}
+
+message Event {
+  enum Type {
+	TypeKey = 0;
+	TypeNone = 1;
+	TypeMouse = 2;
+	TypeInterrupt = 3;
+	TypePasteStart = 4;
+	TypePasteEnd = 5;
+	TypeFocus = 6;
+	TypeUnfocus = 7;
+	TypeResize = 8;
+	TypeError = 9;
+	TypeRaw = 10;
+  }
+
+  enum Mod {
+	None = 0;
+	Alt = 4;
+	Shift = 0x10;
+	Meta = 0x12;
+	Ctrl = 0x11;
+	CtrlShift = 0x91;
+	CtrlAlt = 0x92;
+	CtrlMeta = 0x93;
+	CtrlShiftAlt= 0x95;
+	CtrlShiftMeta = 0x94;
+	CtrlAltMeta = 0x97;
+	ShiftMeta = 0x81;
+	AltMeta = 0x82;
+	AltShiftMeta = 0x83;
+	AltShift = 0x71;
+  }
+
+  enum Key {
+	Null = 0;
+	F2 = 1;
+	F3 = 2;
+	F4 = 3;
+	F5 = 4;
+	F6 = 5;
+	F7 = 6;
+	F8 = 7;
+	F9 = 8;
+	F10 = 9;
+	F11 = 10;
+	F12 = 11;
+	Insert = 12;
+	Delete = 13;
+	Home = 14;
+	End = 15;
+	Pgup = 16;
+	Pgdn = 17;
+	ArrowUp = 18;
+	ArrowDown = 19;
+	ArrowLeft = 20;
+	ArrowRight = 21;
+	MouseLeft = 22;
+	MouseMiddle = 23;
+	MouseRight = 24;
+	MouseRelease = 25;
+	MouseWheelUp = 26;
+	MouseWheelDown = 27;
+	F1 = 28;
+	Backspace = 38;
+	Tab = 40;
+	Enter = 45;
+	Esc = 60;
+	Space = 72;
+	// Backspace2 = 73;
+  }
+
+  Type type = 1;
+  Mod mod = 2;
+  Key key = 3;
+  uint32 Char = 4;
+  int32 mouseX = 5;
+  int32 mouseY = 6;
+  bytes raw = 7;
+}
+
+message Key {
+	string id = 1;
+	string description = 2;
+	uint32 Char = 3;
+	Event.Mod mod = 4;
+	Event.Key key = 5;
+}
+
+message Coordinates {
+	int32 X = 1;
+	int32 Y = 2;
+}

@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/handler/handlerrpc";
+
+import "term/termrpc/term.proto";
+
+package handler;
+
+message InstallResourceResponse {
+	uint64 window_id = 1;
+}
+
+message ServerMessage {
+	MessageType type = 1;
+	DrawStreamRequest draw = 2;
+	HandleStreamRequest handle = 3;
+	CloseStreamRequest close = 4;
+	CursorStreamRequest cursor = 5;
+	SelectionStreamRequest selection = 6;
+	DimensionsStreamRequest dimensions = 7;
+	ResizeStreamRequest resize = 8;
+
+	InstallResourceResponse response = 9;
+}
+
+enum MessageType {
+	Draw = 0;
+	Handle = 1;
+	Close = 2;
+	Cursor = 3;
+	Selection = 4;
+	Dimensions = 5;
+	Resize = 6;
+
+	Request = 7;
+	Response = 9;
+}
+
+message DrawStreamRequest {
+	int32 width = 1;
+	int32 height = 2;
+}
+
+message DrawStreamResponse {
+	message Cursor {
+		term.Coordinates position = 1;
+		bool show = 2;
+		int32 style = 3;
+	}
+
+	message Selection {
+		string text = 1;
+		bool ok = 2;
+	}
+
+	repeated term.CellRow rows = 1;
+	Cursor cursor = 2;
+	Selection selection = 3;
+}
+
+message HandleStreamRequest {
+	term.Event event = 1;
+}
+
+message HandleStreamResponse {
+	bool handled = 1;
+	bool quit = 2;
+    term.Event request = 3;
+}
+
+message CursorStreamRequest {}
+
+message CursorStreamResponse {
+	term.Coordinates position = 1;
+	bool show = 2;
+	int32 style = 3;
+}
+
+message SelectionStreamRequest {}
+
+message SelectionStreamResponse {
+	string text = 1;
+	bool ok = 2;
+}
+
+message DimensionsStreamRequest {}
+
+message DimensionsStreamResponse {
+	int32 width = 1;
+	int32 height = 2;
+}
+
+message ResizeStreamRequest {
+	int32 width = 1;
+	int32 height = 2;
+}
+
+message CloseStreamRequest {
+}
+
+message CloseStreamResponse {}

@@ -1,0 +1,31 @@
+repos:
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+        exclude: .drone.yml
+    -   id: end-of-file-fixer
+
+-   repo: https://github.com/golangci/golangci-lint
+    rev: v2.5.0
+    hooks:
+    -   id: golangci-lint-full
+
+-   repo: local
+    hooks:
+    -   id: validate_generate
+        language: system
+        files: (\.pb.go$|\.proto$)
+        name: validate_generate
+        # if make generate changes any files, then pre-commit
+        # automatically fails
+        entry: make generate
+
+-   repo: local
+    hooks:
+    -   id: validate_license
+        language: system
+        files: \.go
+        name: validate_license
+        entry: make license

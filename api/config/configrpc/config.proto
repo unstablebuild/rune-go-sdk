@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/config/configrpc";
+
+package config;
+
+message GetRequest {
+}
+
+message GetResponse {
+	string data = 1;
+}
+
+service Config {
+	rpc Get(GetRequest) returns (GetResponse);
+}
