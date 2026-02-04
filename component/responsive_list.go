@@ -40,8 +40,8 @@ type ResponsiveList struct {
 	offset      int
 
 	// cannot be used directly here otherwise we would need to somehow
-	// override ListNode to also set true this ReponsiveList's
-	// returned ListNode, to set dirty ot SetValue
+	// override ListNode to also set true this ResponsiveList's
+	// returned ListNode, to set dirty on SetValue
 	// dirty bool
 }
 

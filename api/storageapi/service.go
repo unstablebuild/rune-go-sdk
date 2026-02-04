@@ -41,7 +41,7 @@ const (
 
 // Service is the interface that encapsulates a document store service.
 //
-// The following rules must be followed in order to guarantee compatiblity
+// The following rules must be followed in order to guarantee compatibility
 // across implementations:
 //
 //   - Document structures  must not contain embedded public fields.
@@ -115,7 +115,7 @@ type DroppableService interface {
 	Drop(context.Context) error
 }
 
-// Iterator is used to collect the the results obtained by List.
+// Iterator is used to collect the results obtained by List.
 //
 // HasNext is used to check how many results are left in the iterator.
 // When HasNext returns false, a call to NextTo will panic.

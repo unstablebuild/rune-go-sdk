@@ -24,7 +24,7 @@ type grid struct {
 	matrix        [][]tui.Component
 }
 
-// Grid renders matrix as an equaly sized grid of components.
+// Grid renders matrix as an equally sized grid of components.
 // Note that each []tui.Component in matrix is treated as a row.
 func Grid(matrix [][]tui.Component) tui.Component {
 	return &grid{matrix: matrix}

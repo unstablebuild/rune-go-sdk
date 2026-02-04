@@ -46,7 +46,7 @@ var _ WithAttributes = String{}
 var _ Floating = String{}
 var _ fmt.Stringer = String{}
 
-// NewStringWithConfig converts a string into a static tui.Compontent with
+// NewStringWithConfig converts a string into a static tui.Component with
 // background/foreground attributes, content alignment and a frame,
 // all configurable through cfg. The returned component is significantly
 // slower to Draw and Resize than the component returned by String.

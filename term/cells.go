@@ -32,7 +32,7 @@ func CellsToString(cells [][]Cell) string {
 }
 
 // CellsToStringBuilder copies the string representation of the given cell matrix
-// to th supplied builder.
+// to the supplied builder.
 //
 // Caller is responsible for resetting builder prior to this call if necessary.
 func CellsToStringBuilder(builder *strings.Builder, cells [][]Cell) {

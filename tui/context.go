@@ -21,7 +21,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
 
-// ContextWithIteration returns a new Context that holds locker.
+// ContextWithIteration returns a new Context that holds the iteration number i as a payload.
 func ContextWithIteration(ctx context.Context, i int64) context.Context {
 	return term.ContextWithPayload(ctx, []byte(strconv.FormatInt(i, 10)))
 }

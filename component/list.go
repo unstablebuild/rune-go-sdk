@@ -203,7 +203,7 @@ func (l *List) SeekEnd() (ok bool) {
 }
 
 // SeekStart shifts the contents of this list such that the first element
-// is drawn at the top f the list.
+// is drawn at the top of the list.
 func (l *List) SeekStart() (ok bool) {
 	if l.offset.value != 0 {
 		ok = true

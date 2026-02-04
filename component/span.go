@@ -23,7 +23,7 @@ import (
 
 // SpanConfig represents the configuration of a Span.
 //
-// Padding can be configured as an absolute number of cells (PadHorizontal/PadVerical)
+// Padding can be configured as an absolute number of cells (PadHorizontal/PadVertical)
 // or as a percentage of the available space (PadHorizontalPerc/PadVerticalPerc).
 // Either PadHorizontal/PadVertical or PadHorizontalPerc/PadVerticalPerc should be set;
 // If both are set, then Horizontal/Vertical take precedence.

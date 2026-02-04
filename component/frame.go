@@ -194,20 +194,10 @@ func FrameCharSetStackTailHighlight() FrameCharSet {
 }
 
 // Frame is a Component that simply draws a border around a nested component.
-// By default the frame adds some padding around the component by using
-// the following cells:
-//
-// f.HorizontalTop =  '─'
-// f.HorizontalBottom =  '─'
-// f.VerticalLeft =  '│'
-// f.VerticalRight =  '│'
-// f.TopLeft =  '┌'
-// f.TopRight =  '┐'
-// f.BottomLeft =  '└'
-// f.BottomRight =  '┘'
+// By default, uses FrameCharSetDefault() for the border characters.
 //
 // Note that this component can achieve other effects (highlight, frame)
-// by setting the rigth cell characters and/or attributes.
+// by setting the right cell characters and/or attributes.
 type Frame struct {
 	FrameCharSet
 	term.Attributes

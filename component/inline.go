@@ -21,8 +21,7 @@ import (
 // Inline renders the given slice of components next to each other,
 // occupying the maximum height of all the components but respecting
 // each component's width. If there's overflow, then the overflowing
-// components will be truncated, at the opposite side of Alignment,
-// will be truncated.
+// components will be truncated at the opposite side of the Alignment.
 func Inline(components []Floating, alignment Alignment) Floating {
 	comps := make([]*Virtual[Floating], len(components))
 	for i := range comps {

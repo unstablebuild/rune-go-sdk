@@ -129,7 +129,7 @@ func (l *FocusList) SetFocus(node ListNode) {
 		l.focusIdx++
 	}
 
-	panic("could not finde ListNode in FocusList")
+	panic("could not find ListNode in FocusList")
 }
 
 // Reset resets the contents of this FocusList.
@@ -251,7 +251,7 @@ func (l *FocusList) IterateVisible(fn func(tui.Component)) {
 	}
 }
 
-// Resize satisfies tui.Compontent
+// Resize satisfies tui.Component
 func (l *FocusList) Resize(width, height int) {
 	l.height, l.width = height, width
 	l.list.Resize(width, height)

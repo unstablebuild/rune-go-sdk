@@ -134,7 +134,7 @@ func BuildCrashReport(pkg, version string, panicValue any) (
 	return
 }
 
-// Report contains informatin about a suspected or confirmed bug.
+// Report contains information about a suspected or confirmed bug.
 type Report struct {
 	Package   string
 	Version   string

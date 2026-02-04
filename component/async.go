@@ -27,7 +27,7 @@ import (
 // a placeholder until it returns and the returned component is installed.
 //
 // Note that if Async's type parameter is an uknown flavor of tui.Component,
-// it will panic. Only Reponsive, Floating, WithAttributes are allowed.
+// it will panic. Only Responsive, Floating, WithAttributes are allowed.
 // This design choice might feel un-ergonomic at first, but it's better to
 // panic at the constructor than when SetAttr/Dimensions/Height panics at
 // runtime because the underlying component doesn't implement them.

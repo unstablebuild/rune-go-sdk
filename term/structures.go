@@ -54,7 +54,7 @@ type Cell struct {
 	// builtin 'rune', then Width() returns > 1 and Cell.Combining
 	// contains the rest of data.
 	Ch rune
-	// Combining are the remaining data that does not fin in Ch.
+	// Combining are the remaining data that does not fit in Ch.
 	Combining []rune
 	// Width returns the monospace width of this Cell.
 	Width uint8
