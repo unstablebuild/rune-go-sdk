@@ -17,7 +17,7 @@ GOMOCKS=$(wildcard **/**/*_gomock.go) $(wildcard **/*_gomock.go)
 RELEASE_FILES=$(wildcard release/*)
 
 .PHONY: debug clean test coverage generate \
-	format license assert_license
+	format license assert_license license_replace
 
 default: .git/hooks/pre-commit $(EXAMPLES) $(EXECS)
 
@@ -45,6 +45,9 @@ generate:
 
 license:
 	@ bluectl license LICENSE `find . -name \*.go | grep -v gomock | grep -v .pb.go | xargs`
+
+license_replace:
+	@ bluectl license -f LICENSE `find . -name \*.go | grep -v gomock | grep -v .pb.go | xargs`
 
 assert_license:
 	@ bluectl license -d LICENSE `find . -name \*.go | grep -v gomock | grep -v .pb.go | xargs`
