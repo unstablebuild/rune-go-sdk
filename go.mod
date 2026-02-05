@@ -13,6 +13,7 @@ require (
 	golang.org/x/oauth2 v0.34.0
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
+	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -28,4 +29,5 @@ require (
 	golang.org/x/term v0.37.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

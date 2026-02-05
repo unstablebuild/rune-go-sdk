@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
-	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/doctoml"
+	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal/doctoml"
 	"go.uber.org/goleak"
 )
 

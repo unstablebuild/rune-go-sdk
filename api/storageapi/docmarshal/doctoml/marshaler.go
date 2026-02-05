@@ -18,7 +18,7 @@ import (
 	"bytes"
 
 	"github.com/BurntSushi/toml"
-	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/docmarshal"
+	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal"
 )
 
 // Marshaler returns a TOML Marshaler.

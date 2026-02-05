@@ -11,8 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package storageapi
+package storagestub
 
 import (
 	"errors"
@@ -22,6 +21,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal"
 )
 
@@ -36,9 +36,9 @@ func UpdateUpdatedAtField(marshaler docmarshal.Marshaler, doc any) any {
 // If lowerCase is false DefaultUpdatedAtField is used, otherwise LowerUpdatedAtField is used.
 // If doc is not a map, a struct or a pointer to a struct, this method panics.
 func UpdateDefaultUpdatedAtField(doc any, now time.Time, lowerCase bool) any {
-	updatedAtField := DefaultUpdatedAtField
+	updatedAtField := storageapi.DefaultUpdatedAtField
 	if lowerCase {
-		updatedAtField = LowerUpdatedAtField
+		updatedAtField = storageapi.LowerUpdatedAtField
 	}
 	m, ok := doc.(map[string]any)
 	if ok {
@@ -97,12 +97,12 @@ func DerefUpdateValue(data reflect.Value) (any, error) {
 // If lowerCase is false DefaultUpdatedAtField is used, otherwise LowerUpdatedAtField is used.
 // If doc is not a map, a struct or a pointer to a struct, this method panics.
 func UpdateDefaultCreatedAtField(doc any, now time.Time, lowerCase bool) any {
-	updatedAtField := DefaultUpdatedAtField
-	createdAtField := DefaultCreatedAtField
+	updatedAtField := storageapi.DefaultUpdatedAtField
+	createdAtField := storageapi.DefaultCreatedAtField
 	m, ok := doc.(map[string]any)
 	if lowerCase {
-		updatedAtField = LowerUpdatedAtField
-		createdAtField = LowerCreatedAtField
+		updatedAtField = storageapi.LowerUpdatedAtField
+		createdAtField = storageapi.LowerCreatedAtField
 	}
 	if ok {
 		setMapField(m, updatedAtField, now)
@@ -110,14 +110,14 @@ func UpdateDefaultCreatedAtField(doc any, now time.Time, lowerCase bool) any {
 	} else if reflect.ValueOf(doc).Kind() == reflect.Struct {
 		dst := cloneReflectValue(doc)
 		now := time.Now()
-		reflectSetTimeField(dst, DefaultCreatedAtField, now)
-		reflectSetTimeField(dst, DefaultUpdatedAtField, now)
+		reflectSetTimeField(dst, storageapi.DefaultCreatedAtField, now)
+		reflectSetTimeField(dst, storageapi.DefaultUpdatedAtField, now)
 		doc = dst.Elem().Interface()
 	} else {
 		dst := reflect.ValueOf(doc)
 		now := time.Now()
-		reflectSetTimeField(dst, DefaultCreatedAtField, now)
-		reflectSetTimeField(dst, DefaultUpdatedAtField, now)
+		reflectSetTimeField(dst, storageapi.DefaultCreatedAtField, now)
+		reflectSetTimeField(dst, storageapi.DefaultUpdatedAtField, now)
 		doc = dst.Elem().Interface()
 	}
 	return doc
@@ -196,13 +196,13 @@ func (l *ListIterator) Close() error {
 
 // Extend extends this iterator if and only if the data chunk's
 // structure satisfies all filters.
-func (l *ListIterator) Extend(filters []Filter, v []byte) {
+func (l *ListIterator) Extend(filters []storageapi.Filter, v []byte) {
 	var proto map[string]any
 	// if bogus data is inserted into the DB oob,
 	// then we ignore it here, rather than failing a list operation
 	err := decode(l.marshaler, &proto, v)
 	if err != nil {
-		slog.Warn("failed to add value to iterator", "reason", "decode", "error", err)
+		slog.Warn("failed to add value to iterator: decode", "error", err)
 		return
 	}
 	if !MatchesAllFilters(l.marshaler, proto, filters) {
@@ -215,13 +215,13 @@ func (l *ListIterator) Extend(filters []Filter, v []byte) {
 }
 
 // UpdateProto updates proto with the given slice of updates.
-func UpdateProto(m docmarshal.Marshaler, updates []Update,
-	proto map[string]any, preconds ...Precondition) error {
+func UpdateProto(m docmarshal.Marshaler, updates []storageapi.Update,
+	proto map[string]any, preconds ...storageapi.Precondition) error {
 	lowerCase := m.DefaultLowerCase()
 
-	updatedAtField := DefaultUpdatedAtField
+	updatedAtField := storageapi.DefaultUpdatedAtField
 	if lowerCase {
-		updatedAtField = LowerUpdatedAtField
+		updatedAtField = storageapi.LowerUpdatedAtField
 	}
 
 	for _, cond := range preconds {
@@ -237,8 +237,8 @@ func UpdateProto(m docmarshal.Marshaler, updates []Update,
 			}
 		}
 
-		if !precondField(proto, Precondition{FieldPath: fieldPath, Value: cond.Value}) {
-			return ErrPreconditionFailed
+		if !precondField(proto, storageapi.Precondition{FieldPath: fieldPath, Value: cond.Value}) {
+			return storageapi.ErrPreconditionFailed
 		}
 	}
 
@@ -258,10 +258,10 @@ func UpdateProto(m docmarshal.Marshaler, updates []Update,
 			}
 		}
 
-		updateField(proto, Update{FieldPath: fieldPath, Value: update.Value})
+		updateField(proto, storageapi.Update{FieldPath: fieldPath, Value: update.Value})
 	}
 
-	updateField(proto, Update{
+	updateField(proto, storageapi.Update{
 		FieldPath: []string{updatedAtField},
 		Value:     time.Now(),
 	})
@@ -322,7 +322,7 @@ func setMapField(m map[string]any, key string, value any) map[string]any {
 	return ret
 }
 
-func precondField(proto map[string]any, cond Precondition) bool {
+func precondField(proto map[string]any, cond storageapi.Precondition) bool {
 	if len(cond.FieldPath) == 1 {
 		return proto[cond.FieldPath[0]] == cond.Value
 	}
@@ -341,7 +341,7 @@ func precondField(proto map[string]any, cond Precondition) bool {
 	return precondField(m, cond)
 }
 
-func updateField(proto map[string]any, update Update) {
+func updateField(proto map[string]any, update storageapi.Update) {
 	if len(update.FieldPath) == 1 {
 		proto[update.FieldPath[0]] = update.Value
 		return
@@ -373,24 +373,24 @@ func (f *filterAsserter) Errorf(_ string, _ ...any) {
 	*f.res = false
 }
 
-func doMatchFilter(value any, f Filter) bool {
+func doMatchFilter(value any, f storageapi.Filter) bool {
 	matches := true
 	t := filterAsserter{res: &matches}
 
 	switch f.Op {
-	case OpEqual:
+	case storageapi.OpEqual:
 		assert.EqualValues(&t, value, f.Value)
-	case OpGreaterThan:
+	case storageapi.OpGreaterThan:
 		assert.Greater(&t, value, f.Value)
-	case OpLessThan:
+	case storageapi.OpLessThan:
 		assert.Less(&t, value, f.Value)
-	case OpGreaterThanEqual:
+	case storageapi.OpGreaterThanEqual:
 		assert.EqualValues(&t, value, f.Value)
 		if !matches {
 			matches = true
 			assert.GreaterOrEqual(&t, value, f.Value)
 		}
-	case OpLessThanEqual:
+	case storageapi.OpLessThanEqual:
 		assert.EqualValues(&t, value, f.Value)
 		if !matches {
 			matches = true
@@ -404,7 +404,7 @@ func doMatchFilter(value any, f Filter) bool {
 }
 
 // MatchFilter returns true if proto satisfies the filter condition of f.
-func MatchFilter(proto map[string]any, f Filter) bool {
+func MatchFilter(proto map[string]any, f storageapi.Filter) bool {
 	if len(f.FieldPath) == 1 {
 		return doMatchFilter(proto[f.FieldPath[0]], f)
 	}
@@ -422,7 +422,7 @@ func MatchFilter(proto map[string]any, f Filter) bool {
 // MatchesAllFilters returns true if proto satisfies all of the give filters.
 func MatchesAllFilters(
 	m docmarshal.Marshaler, proto map[string]any,
-	filters []Filter,
+	filters []storageapi.Filter,
 ) bool {
 	for _, f := range filters {
 		if m.DefaultLowerCase() {

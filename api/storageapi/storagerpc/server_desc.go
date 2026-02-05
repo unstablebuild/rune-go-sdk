@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/docmarshal"
+	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/docpb"
 	"google.golang.org/grpc"
 )
