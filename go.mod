@@ -4,6 +4,7 @@ go 1.25.6
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/atotto/clipboard v0.1.4
 	github.com/ernestrc/go-multierror v1.1.2
 	github.com/rivo/uniseg v0.4.7
 	github.com/stretchr/testify v1.11.1
