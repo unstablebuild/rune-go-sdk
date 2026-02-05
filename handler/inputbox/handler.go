@@ -15,6 +15,7 @@
 package inputbox
 
 import (
+	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/handler"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/tcell/v3"
@@ -22,24 +23,29 @@ import (
 
 // Handler implements a multi-line text input handler with wrapping.
 type Handler struct {
-	text     []rune
-	cursor   int
-	voffset  int
-	width    int
-	height   int
-	attrs    term.Attributes
-	selected bool
+	text        []rune
+	cursor      int
+	voffset     int
+	width       int
+	height      int
+	attrs       term.Attributes
+	selected    bool
+	placeholder *component.ResponsiveString
 }
 
 var _ handler.WithAttributesResponsive = (*Handler)(nil)
 
 // New creates and initializes a new input box with default attributes.
-func New() *Handler {
-	return &Handler{
+func New(opts ...Option) *Handler {
+	ret := &Handler{
 		text:   make([]rune, 0, 64),
 		cursor: 0,
 		attrs:  term.Attributes{},
 	}
+	for _, o := range opts {
+		o(ret)
+	}
+	return ret
 }
 
 // SetAttr satisfies WithAttributes.
@@ -66,6 +72,9 @@ func (ib *Handler) Clear() {
 func (ib *Handler) Resize(width, height int) {
 	ib.width = width
 	ib.height = height
+	if ib.placeholder != nil {
+		ib.placeholder.Resize(width, height)
+	}
 	ib.updateVoffset()
 }
 
@@ -93,6 +102,11 @@ func (ib *Handler) Height(width int) int {
 // Draw satisfies tui.Component.
 func (ib *Handler) Draw(w term.Writer) {
 	if ib.height == 0 || ib.width == 0 {
+		return
+	}
+
+	if len(ib.text) == 0 && ib.placeholder != nil {
+		ib.placeholder.Draw(w)
 		return
 	}
 

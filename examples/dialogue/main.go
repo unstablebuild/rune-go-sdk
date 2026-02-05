@@ -23,6 +23,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/handler/inputbox"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
+	"github.com/unstablebuild/tcell/v3"
 )
 
 // ChatDemo demonstrates a simple chat-like interface using InputBox
@@ -36,7 +37,10 @@ type ChatDemo struct {
 }
 
 func NewChatDemo() *ChatDemo {
-	inputBox := inputbox.New()
+	inputBox := inputbox.New(
+		inputbox.WithPlaceholder("Type a message..."),
+		inputbox.WithAttributes(term.Attributes{Fg: tcell.ColorYellow}),
+	)
 
 	cd := &ChatDemo{
 		input: &handler.Virtual[*inputbox.Handler]{
@@ -109,6 +113,7 @@ func (cd *ChatDemo) Handle(ev term.Event) (exit, handled bool) {
 
 		cd.inputHeight = cd.input.C.Height(cd.width)
 		cd.Resize(cd.width, cd.height)
+		cd.input.C.Clear()
 		return false, true
 	}
 

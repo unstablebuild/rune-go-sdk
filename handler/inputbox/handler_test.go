@@ -223,6 +223,43 @@ func TestHandlerInsertInMiddle(t *testing.T) {
 	handlertest.RunHandlerSequence(t, ib, 5, 2, cases)
 }
 
+func TestHandlerPlaceholder(t *testing.T) {
+	t.Run("placeholder shown when empty", func(t *testing.T) {
+		ib := New(WithPlaceholder("Enter text..."))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "", Expected: "▐nter text...  "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 15, 1, cases)
+	})
+
+	t.Run("placeholder hidden when typing", func(t *testing.T) {
+		ib := New(WithPlaceholder("Enter text..."))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "", Expected: "▐nter text...       "},
+			{InputSequence: "h", Expected: "h▐                  "},
+			{InputSequence: "ello", Expected: "hello▐              "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("placeholder shown after clear", func(t *testing.T) {
+		ib := New(WithPlaceholder("Enter text..."))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "hello", Expected: "hello▐              "},
+			{InputSequence: "<c-u>", Expected: "▐nter text...       "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("placeholder wraps", func(t *testing.T) {
+		ib := New(WithPlaceholder("Enter your message here"))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "", Expected: "▐nter\n your\n mess\nage  \nhere "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 5, 5, cases)
+	})
+}
+
 // setText is a test helper that types text into the input box
 func setText(ib *Handler, s string) {
 	for _, ch := range s {
