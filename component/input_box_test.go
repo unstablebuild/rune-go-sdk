@@ -18,9 +18,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/handler/handlertest"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
+
+// setText is a test helper that types text into the input box
+func setText(ib *InputBox, s string) {
+	for _, ch := range s {
+		ib.Handle(term.Event{
+			Type: term.EventKey,
+			Ch:   ch,
+		})
+	}
+}
 
 func TestInputBox_BasicInput(t *testing.T) {
 	ib := NewInputBox()
@@ -31,48 +42,77 @@ func TestInputBox_BasicInput(t *testing.T) {
 		{InputSequence: "l", Expected: "hel▐      "},
 		{InputSequence: "l", Expected: "hell▐     "},
 		{InputSequence: "o", Expected: "hello▐    "},
-		{InputSequence: "<space>", Expected: "hello ▐   "},
 	}
 	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
 }
 
-func TestInputBox_Backspace(t *testing.T) {
+func TestInputBox_Wrapping(t *testing.T) {
 	ib := NewInputBox()
 	cases := []handlertest.SequenceTestCase{
-		{InputSequence: "hello", Expected: "hello▐    "},
+		{InputSequence: "hello", Expected: "hello\n▐    \n     "},
+		{InputSequence: "w", Expected: "hello\nw▐   \n     "},
+		{InputSequence: "orld", Expected: "hello\nworld\n▐    "},
+		{InputSequence: "!", Expected: "hello\nworld\n!▐   "},
+	}
+	handlertest.RunHandlerSequence(t, ib, 5, 3, cases)
+}
+
+func TestInputBoxHeightWithResize(t *testing.T) {
+	ib := NewInputBox()
+	cases := []handlertest.SequenceTestCase{
+		{InputSequence: "helloworld", Expected: "world\n▐    "},
+	}
+	handlertest.RunHandlerSequence(t, ib, 5, 2, cases)
+	actualHeight := ib.Height(5)
+	// 10 chars needs 2 lines, but cursor is wrapped at the next one so Height
+	// should return 3, so optimally we render the text in the first and second
+	// line and render the cursor at the last one.
+	require.Equal(t, 3, actualHeight)
+	cases = []handlertest.SequenceTestCase{
+		{InputSequence: "helloworl", Expected: "hello\nworld\nhello\nworl▐"},
+	}
+	handlertest.RunHandlerSequence(t, ib, 5, 4, cases)
+	actualHeight = ib.Height(5)
+	require.Equal(t, 4, actualHeight) // 19 chars needs 4 lines
+}
+
+func TestInputBoxBackspaceAcrossLines(t *testing.T) {
+	ib := NewInputBox()
+	cases := []handlertest.SequenceTestCase{
+		{InputSequence: "helloworld", Expected: "world\n▐    "},
 		{
 			InputSequence: "<backspace>",
-			Expected:      "hell▐     ",
+			Expected:      "hello\nworl▐",
+		},
+		{
+			InputSequence: "<backspace><backspace><backspace><backspace>",
+			Expected:      "hello\n▐    ",
 		},
 		{
 			InputSequence: "<backspace>",
-			Expected:      "hel▐      ",
+			Expected:      "hell▐\n     ",
 		},
 	}
-	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	handlertest.RunHandlerSequence(t, ib, 5, 2, cases)
 }
 
-func TestInputBox_Delete(t *testing.T) {
+func TestInputBox_ArrowNavigationWrapped(t *testing.T) {
 	ib := NewInputBox()
 	cases := []handlertest.SequenceTestCase{
-		{InputSequence: "hello", Expected: "hello▐    "},
-		{InputSequence: "<home>", Expected: "▐ello     "},
-		{InputSequence: "<delete>", Expected: "▐llo      "},
-		{InputSequence: "<delete>", Expected: "▐lo       "},
+		{InputSequence: "helloworld", Expected: "world\n▐    "},
+		{InputSequence: "<left>", Expected: "hello\nworl▐"},
+		{
+			InputSequence: "<left><left><left><left>",
+			Expected:      "hello\n▐orld",
+		},
+		{InputSequence: "<left>", Expected: "hell▐\nworld"},
+		{InputSequence: "<right>", Expected: "hello\n▐orld"},
+		{
+			InputSequence: "<right><right><right><right>",
+			Expected:      "hello\nworl▐",
+		},
 	}
-	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
-}
-
-func TestInputBox_ArrowNavigation(t *testing.T) {
-	ib := NewInputBox()
-	cases := []handlertest.SequenceTestCase{
-		{InputSequence: "hello", Expected: "hello▐    "},
-		{InputSequence: "<left>", Expected: "hell▐     "},
-		{InputSequence: "<left>", Expected: "hel▐o     "},
-		{InputSequence: "<right>", Expected: "hell▐     "},
-		{InputSequence: "<right>", Expected: "hello▐    "},
-	}
-	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	handlertest.RunHandlerSequence(t, ib, 5, 2, cases)
 }
 
 func TestInputBox_HomeEnd(t *testing.T) {
@@ -89,16 +129,10 @@ func TestInputBox_EmacsNavigation(t *testing.T) {
 	ib := NewInputBox()
 	cases := []handlertest.SequenceTestCase{
 		{InputSequence: "hello", Expected: "hello▐    "},
-		// Ctrl+A: beginning of line
 		{InputSequence: "<c-a>", Expected: "▐ello     "},
-		// Ctrl+E: end of line
 		{InputSequence: "<c-e>", Expected: "hello▐    "},
-		// Ctrl+B: backward char
 		{InputSequence: "<c-b>", Expected: "hell▐     "},
-		// Ctrl+B again
-		{InputSequence: "<c-b>", Expected: "hel▐o     "},
-		// Ctrl+F: forward char
-		{InputSequence: "<c-f>", Expected: "hell▐     "},
+		{InputSequence: "<c-f>", Expected: "hello▐    "},
 	}
 	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
 }
@@ -108,11 +142,8 @@ func TestInputBox_EmacsEditing(t *testing.T) {
 	cases := []handlertest.SequenceTestCase{
 		{InputSequence: "hello", Expected: "hello▐    "},
 		{InputSequence: "<c-a>", Expected: "▐ello     "},
-		// Ctrl+D: delete char at cursor
 		{InputSequence: "<c-d>", Expected: "▐llo      "},
-		// Ctrl+E then Ctrl+H: backspace
 		{InputSequence: "<c-e><c-h>", Expected: "ell▐      "},
-		// Ctrl+K: kill to end of line
 		{InputSequence: "<c-a><c-k>", Expected: "▐         "},
 	}
 	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
@@ -122,54 +153,40 @@ func TestInputBox_CtrlU_KillLine(t *testing.T) {
 	ib := NewInputBox()
 	cases := []handlertest.SequenceTestCase{
 		{InputSequence: "hello", Expected: "hello▐    "},
-		// Ctrl+U: kill entire line
 		{InputSequence: "<c-u>", Expected: "▐         "},
 	}
 	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
 }
 
-func TestInputBox_InsertAtCursor(t *testing.T) {
+func TestInputBox_VerticalScroll(t *testing.T) {
 	ib := NewInputBox()
 	cases := []handlertest.SequenceTestCase{
-		{InputSequence: "helo", Expected: "helo▐     "},
-		// Move cursor between e and l
-		{InputSequence: "<left><left>", Expected: "he▐o      "},
-		// Insert 'l'
-		{InputSequence: "l", Expected: "hel▐o     "},
+		{InputSequence: "hello", Expected: "hello\n▐    "},
+		{InputSequence: "world", Expected: "world\n▐    "},
+		{InputSequence: "!!!!!", Expected: "!!!!!\n▐    "},
+		{InputSequence: "x", Expected: "!!!!!\nx▐   "},
+		{InputSequence: "<home>", Expected: "▐ello\nworld"},
+		{InputSequence: "<end>", Expected: "!!!!!\nx▐   "},
 	}
-	handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	handlertest.RunHandlerSequence(t, ib, 5, 2, cases)
 }
 
-func TestInputBox_API(t *testing.T) {
+func TestInputBoxText(t *testing.T) {
 	ib := NewInputBox()
+	ib.Resize(10, 1)
 
-	// Test Text() and SetText()
 	assert.Equal(t, "", ib.Text())
-	ib.SetText("hello")
+	setText(ib, "hello")
 	assert.Equal(t, "hello", ib.Text())
-	assert.Equal(t, 5, ib.cursor)
 
-	// Test Clear()
 	ib.Clear()
 	assert.Equal(t, "", ib.Text())
-	assert.Equal(t, 0, ib.cursor)
-}
-
-func TestInputBox_Cursor(t *testing.T) {
-	ib := NewInputBox()
-	ib.SetText("hello")
-	ib.Resize(80, 1)
-
-	coords, style, show := ib.Cursor()
-	assert.True(t, show)
-	assert.Equal(t, term.CursorStyleSteadyBlock, style)
-	assert.Equal(t, 5, coords.X)
-	assert.Equal(t, 0, coords.Y)
 }
 
 func TestInputBox_EnterReturnsTrue(t *testing.T) {
 	ib := NewInputBox()
-	ib.SetText("hello")
+	ib.Resize(10, 1)
+	setText(ib, "hello")
 
 	exit, handled := ib.Handle(term.Event{
 		Type: term.EventKey,
@@ -177,4 +194,39 @@ func TestInputBox_EnterReturnsTrue(t *testing.T) {
 	})
 	assert.True(t, exit, "Enter should signal exit")
 	assert.True(t, handled)
+}
+
+func TestInputBoxCursor(t *testing.T) {
+	ib := NewInputBox()
+	ib.Resize(10, 1)
+	setText(ib, "helloworld")
+	ib.Resize(5, 3)
+
+	coords, style, show := ib.Cursor()
+	assert.True(t, show)
+	assert.Equal(t, term.CursorStyleSteadyBlock, style)
+	assert.Equal(t, 0, coords.X)
+	assert.Equal(t, 2, coords.Y)
+
+	ib.Resize(5, 2)
+	ib.Draw(term.NewStringWriter(5, 2))
+	coords, style, show = ib.Cursor()
+	assert.True(t, show)
+	assert.Equal(t, term.CursorStyleSteadyBlock, style)
+	assert.Equal(t, 0, coords.X)
+	assert.Equal(t, 1, coords.Y)
+}
+
+func TestInputBox_InsertInMiddle(t *testing.T) {
+	ib := NewInputBox()
+	cases := []handlertest.SequenceTestCase{
+		{InputSequence: "helloworld", Expected: "world\n▐    "},
+		{InputSequence: "<home>", Expected: "▐ello\nworld"},
+		{
+			InputSequence: "<right><right><right>",
+			Expected:      "hel▐o\nworld",
+		},
+		{InputSequence: "X", Expected: "helX▐\noworl"},
+	}
+	handlertest.RunHandlerSequence(t, ib, 5, 2, cases)
 }

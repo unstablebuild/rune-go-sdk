@@ -22,7 +22,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/handler"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // ChatDemo demonstrates a simple chat-like interface using InputBox
@@ -32,13 +31,11 @@ type ChatDemo struct {
 	container     *component.Container
 	rows          []*component.Row
 	width, height int
+	inputHeight   int
 }
 
 func NewChatDemo() *ChatDemo {
-	inputBox := component.NewInputBoxWithAttrs(term.Attributes{
-		Fg: tcell.ColorWhite,
-		Bg: tcell.ColorBlack,
-	})
+	inputBox := component.NewInputBox()
 
 	cd := &ChatDemo{
 		input: &handler.Virtual[*component.InputBox]{
@@ -75,12 +72,13 @@ func (cd *ChatDemo) Resize(width, height int) {
 	cd.width = width
 	cd.height = height
 
-	// Resize container for messages (all but bottom line)
-	cd.container.Resize(width, height-1)
+	inputHeight := min(height, cd.input.C.Height(width))
+	messagesHeight := max(0, height-inputHeight)
 
-	// Resize and position input box at bottom
-	cd.input.Resize(width, 1)
-	cd.input.Move(term.Coordinates{X: 0, Y: height - 1})
+	cd.container.Resize(width, messagesHeight)
+
+	cd.input.Resize(width, inputHeight)
+	cd.input.Move(term.Coordinates{X: 0, Y: messagesHeight})
 }
 
 func (cd *ChatDemo) Draw(w term.Writer) {
@@ -94,7 +92,7 @@ func (cd *ChatDemo) Handle(ev term.Event) (exit, handled bool) {
 		if text == "" {
 			return
 		}
-		
+
 		// Add new message
 		msg := fmt.Sprintf("You: %s", text)
 		cd.messages = append(cd.messages, msg)
@@ -110,14 +108,22 @@ func (cd *ChatDemo) Handle(ev term.Event) (exit, handled bool) {
 		)
 		cd.rows = append(cd.rows, row)
 
-		// Re-layout with new message
-		cd.container.Resize(cd.width, cd.height-1)
-
-		cd.input.C.Clear()
+		cd.inputHeight = cd.input.C.Height(cd.width)
+		cd.Resize(cd.width, cd.height)
 		return false, true
 	}
 
-	return cd.input.Handle(ev)
+	exit, handled = cd.input.Handle(ev)
+	if !handled || exit {
+		return
+	}
+
+	newHeight := cd.input.C.Height(cd.width)
+	if newHeight != cd.inputHeight {
+		cd.inputHeight = newHeight
+		cd.Resize(cd.width, cd.height)
+	}
+	return
 }
 
 func (cd *ChatDemo) Cursor() (

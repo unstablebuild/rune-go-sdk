@@ -20,20 +20,20 @@ import (
 	"github.com/unstablebuild/tcell/v3"
 )
 
-// InputBox implements a simple single-line text input handler suitable
-// for chat-like TUI interfaces.
+// InputBox implements a multi-line text input handler with wrapping.
 type InputBox struct {
-	text     []rune // the input text
-	cursor   int    // cursor position (index in text)
-	width    int    // available width for rendering
-	height   int    // available height for rendering
+	text     []rune
+	cursor   int
+	voffset  int
+	width    int
+	height   int
 	attrs    term.Attributes
-	selected bool // whether all text is selected (Ctrl+A)
+	selected bool
 }
 
-// Compile-time assertion that InputBox implements tui.Handler
 var _ tui.Handler = (*InputBox)(nil)
 var _ WithAttributes = (*InputBox)(nil)
+var _ Responsive = (*InputBox)(nil)
 
 // NewInputBox creates and initializes a new InputBox with default attributes.
 func NewInputBox() *InputBox {
@@ -41,15 +41,6 @@ func NewInputBox() *InputBox {
 		text:   make([]rune, 0, 64),
 		cursor: 0,
 		attrs:  term.Attributes{},
-	}
-}
-
-// NewInputBoxWithAttrs creates a new InputBox with custom attributes.
-func NewInputBoxWithAttrs(attrs term.Attributes) *InputBox {
-	return &InputBox{
-		text:   make([]rune, 0, 64),
-		cursor: 0,
-		attrs:  attrs,
 	}
 }
 
@@ -65,56 +56,126 @@ func (ib *InputBox) Text() string {
 	return string(ib.text)
 }
 
-// SetText sets the text content and moves cursor to the end.
-func (ib *InputBox) SetText(s string) {
-	ib.text = []rune(s)
-	ib.cursor = len(ib.text)
-	ib.selected = false
-}
-
 // Clear resets the input box to empty state.
 func (ib *InputBox) Clear() {
 	ib.text = ib.text[:0]
 	ib.cursor = 0
 	ib.selected = false
+	ib.updateVoffset()
 }
 
 // Resize satisfies tui.Component
 func (ib *InputBox) Resize(width, height int) {
 	ib.width = width
 	ib.height = height
+	ib.updateVoffset()
+}
+
+// Height satisfies Responsive. Returns the number of lines needed to
+// display all text content and cursor given the specified width.
+func (ib *InputBox) Height(width int) int {
+	if width <= 0 {
+		return 0
+	}
+
+	if len(ib.text) == 0 {
+		return 1 // at least 1 line for empty input/cursor
+	}
+
+	// Calculate lines based on text length
+	textLines := (len(ib.text) + width - 1) / width
+
+	// When text fills lines exactly and cursor is at end, it wraps to next line
+	if len(ib.text)%width == 0 && ib.cursor == len(ib.text) {
+		return textLines + 1
+	}
+
+	return textLines
+}
+
+// updateVoffset adjusts the vertical offset to keep the cursor visible
+// and show as much text as possible.
+func (ib *InputBox) updateVoffset() {
+	if ib.width <= 0 || ib.height <= 0 {
+		return
+	}
+
+	// Calculate which line the cursor is on
+	cursorLine := ib.cursor / ib.width
+
+	// Calculate total lines needed (text + cursor position)
+	totalLines := cursorLine + 1
+	if len(ib.text) > 0 {
+		textLines := (len(ib.text) + ib.width - 1) / ib.width
+		if textLines > totalLines {
+			totalLines = textLines
+		}
+	}
+
+	// If all content fits, show from top
+	if totalLines <= ib.height {
+		ib.voffset = 0
+		return
+	}
+
+	// Adjust voffset to keep cursor visible
+	if cursorLine < ib.voffset {
+		ib.voffset = cursorLine
+	} else if cursorLine >= ib.voffset+ib.height {
+		ib.voffset = cursorLine - ib.height + 1
+	}
+
+	// Additionally, don't scroll past the text content
+	// If the first visible line has no text, scroll up to show text
+	if ib.voffset > 0 && ib.voffset*ib.width >= len(ib.text) {
+		// First visible line is beyond text, scroll up to last text line
+		if len(ib.text) > 0 {
+			ib.voffset = (len(ib.text) - 1) / ib.width
+		} else {
+			ib.voffset = 0
+		}
+		// Ensure cursor is still visible
+		if cursorLine >= ib.voffset+ib.height {
+			ib.voffset = cursorLine - ib.height + 1
+		}
+	}
 }
 
 // Draw satisfies tui.Component
 func (ib *InputBox) Draw(w term.Writer) {
-	if ib.height == 0 {
+	if ib.height == 0 || ib.width == 0 {
 		return
 	}
 
-	// Draw the text
-	for i, ch := range ib.text {
-		if i >= ib.width {
-			break
-		}
+	// Calculate starting index in text for visible area
+	startIdx := ib.voffset * ib.width
+	endIdx := startIdx + ib.height*ib.width
+	if endIdx > len(ib.text) {
+		endIdx = len(ib.text)
+	}
+
+	// Draw visible text
+	y := 0
+	x := 0
+	for i := startIdx; i < endIdx; i++ {
 		attrs := ib.attrs
 		// Highlight selected text
 		if ib.selected {
 			attrs.Attrs |= tcell.AttrReverse
 		}
-		w.SetCell(term.Coordinates{X: i, Y: 0}, term.Cell{
-			Ch:         ch,
+		w.SetCell(term.Coordinates{X: x, Y: y}, term.Cell{
+			Ch:         ib.text[i],
 			Attributes: attrs,
 			Width:      1,
 		})
-	}
-
-	// Fill remaining space with blanks
-	for i := len(ib.text); i < ib.width; i++ {
-		w.SetCell(term.Coordinates{X: i, Y: 0}, term.Cell{
-			Ch:         ' ',
-			Attributes: ib.attrs,
-			Width:      1,
-		})
+		x++
+		if x >= ib.width {
+			x = 0
+			y++
+			if y >= ib.height {
+				break
+			}
+		}
 	}
 }
 
@@ -129,13 +190,16 @@ func (ib *InputBox) Handle(ev term.Event) (exit, handled bool) {
 		ib.Clear()
 	}
 
+	switch ev.Key {
+	case term.KeyEnter:
+		return true, true
+	case term.KeyEsc:
+		return true, true
+	}
+
+	defer ib.updateVoffset()
+
 	switch {
-	case ev.Key == term.KeyEnter:
-		return true, true
-
-	case ev.Key == term.KeyEsc:
-		return true, true
-
 	case ev.Key == term.KeyBackspace:
 		if ib.selected {
 			ib.Clear()
@@ -260,12 +324,11 @@ func (ib *InputBox) Handle(ev term.Event) (exit, handled bool) {
 
 // Cursor satisfies tui.Handler
 func (ib *InputBox) Cursor() (term.Coordinates, term.CursorStyle, bool) {
-	// Show cursor at current position
-	x := ib.cursor
-	if x >= ib.width {
-		x = ib.width - 1
-	}
-	return term.Coordinates{X: x, Y: 0}, term.CursorStyleSteadyBlock, true
+	cursorLine := ib.cursor / ib.width
+	cursorCol := ib.cursor % ib.width
+	cursorY := cursorLine - ib.voffset
+	return term.Coordinates{X: cursorCol, Y: cursorY},
+		term.CursorStyleSteadyBlock, true
 }
 
 // Selection satisfies tui.Handler
