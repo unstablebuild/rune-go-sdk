@@ -38,8 +38,11 @@ type ChatDemo struct {
 
 func NewChatDemo() *ChatDemo {
 	inputBox := inputbox.New(
-		inputbox.WithPlaceholder("Type a message..."),
-		inputbox.WithAttributes(term.Attributes{Fg: tcell.ColorYellow}),
+		inputbox.WithPlaceholderText("Type a message..."),
+		inputbox.WithAttributes(term.Attributes{
+			Bg: tcell.ColorGray,
+			Fg: tcell.ColorYellow,
+		}),
 	)
 
 	cd := &ChatDemo{

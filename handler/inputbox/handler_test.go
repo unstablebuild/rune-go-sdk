@@ -19,8 +19,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/handler/handlertest"
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"github.com/unstablebuild/tcell/v3"
 )
 
 func TestHandler(t *testing.T) {
@@ -225,7 +227,7 @@ func TestHandlerInsertInMiddle(t *testing.T) {
 
 func TestHandlerPlaceholder(t *testing.T) {
 	t.Run("placeholder shown when empty", func(t *testing.T) {
-		ib := New(WithPlaceholder("Enter text..."))
+		ib := New(WithPlaceholderText("Enter text..."))
 		cases := []handlertest.SequenceTestCase{
 			{InputSequence: "", Expected: "▐nter text...  "},
 		}
@@ -233,7 +235,7 @@ func TestHandlerPlaceholder(t *testing.T) {
 	})
 
 	t.Run("placeholder hidden when typing", func(t *testing.T) {
-		ib := New(WithPlaceholder("Enter text..."))
+		ib := New(WithPlaceholderText("Enter text..."))
 		cases := []handlertest.SequenceTestCase{
 			{InputSequence: "", Expected: "▐nter text...       "},
 			{InputSequence: "h", Expected: "h▐                  "},
@@ -243,7 +245,7 @@ func TestHandlerPlaceholder(t *testing.T) {
 	})
 
 	t.Run("placeholder shown after clear", func(t *testing.T) {
-		ib := New(WithPlaceholder("Enter text..."))
+		ib := New(WithPlaceholderText("Enter text..."))
 		cases := []handlertest.SequenceTestCase{
 			{InputSequence: "hello", Expected: "hello▐              "},
 			{InputSequence: "<c-u>", Expected: "▐nter text...       "},
@@ -252,11 +254,116 @@ func TestHandlerPlaceholder(t *testing.T) {
 	})
 
 	t.Run("placeholder wraps", func(t *testing.T) {
-		ib := New(WithPlaceholder("Enter your message here"))
+		ib := New(WithPlaceholderText("Enter your message here"))
 		cases := []handlertest.SequenceTestCase{
 			{InputSequence: "", Expected: "▐nter\n your\n mess\nage  \nhere "},
 		}
 		handlertest.RunHandlerSequence(t, ib, 5, 5, cases)
+	})
+
+	t.Run("placeholder with custom config", func(t *testing.T) {
+		ib := New(WithPlaceholder("Test", component.StringResponsiveConfig{
+			StringConfig: component.StringConfig{
+				Attributes: term.Attributes{
+					Fg: tcell.ColorBlue,
+				},
+			},
+		}))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "", Expected: "▐est      "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+}
+
+func TestHandlerBackground(t *testing.T) {
+
+	t.Run("background fills entire area with WithAttributes", func(t *testing.T) {
+		ib := New(WithAttributes(term.Attributes{
+			Fg: tcell.ColorWhite,
+			Bg: tcell.ColorBlue,
+		}))
+		width, height := 10, 3
+		ib.Resize(width, height)
+		w := term.NewStringWriter(width, height)
+		ib.Draw(w)
+
+		cells := w.Cells()
+		for y := range height {
+			for x := range width {
+				idx := y*width + x
+				assert.Equal(t, tcell.ColorBlue, cells[idx].Bg,
+					"cell at (%d, %d) should have blue background", x, y)
+			}
+		}
+	})
+
+	t.Run("background fills entire area with SetAttr", func(t *testing.T) {
+		ib := New()
+		ib.SetAttr(term.Attributes{
+			Fg: tcell.ColorYellow,
+			Bg: tcell.ColorRed,
+		})
+		width, height := 5, 2
+		ib.Resize(width, height)
+		w := term.NewStringWriter(width, height)
+		ib.Draw(w)
+
+		cells := w.Cells()
+		for y := range height {
+			for x := range width {
+				idx := y*width + x
+				assert.Equal(t, tcell.ColorRed, cells[idx].Bg,
+					"cell at (%d, %d) should have red background", x, y)
+			}
+		}
+	})
+
+	t.Run("background with text content", func(t *testing.T) {
+		ib := New(WithAttributes(term.Attributes{
+			Fg: tcell.ColorWhite,
+			Bg: tcell.ColorGreen,
+		}))
+		width, height := 10, 2
+		ib.Resize(width, height)
+		setText(ib, "hello")
+		w := term.NewStringWriter(width, height)
+		ib.Draw(w)
+
+		cells := w.Cells()
+		for y := range height {
+			for x := range width {
+				idx := y*width + x
+				assert.Equal(t, tcell.ColorGreen, cells[idx].Bg,
+					"cell at (%d, %d) should have green background", x, y)
+			}
+		}
+
+		// First 5 cells on first line should have text
+		for x := range 5 {
+			assert.NotEqual(t, rune(0), cells[x].Ch,
+				"cell at (%d, 0) should have text", x)
+		}
+	})
+
+	t.Run("background with placeholder", func(t *testing.T) {
+		ib := New(
+			WithAttributes(term.Attributes{
+				Fg: tcell.ColorWhite,
+				Bg: tcell.ColorPurple,
+			}),
+			WithPlaceholderText("placeholder"),
+		)
+		width, height := 15, 1
+		ib.Resize(width, height)
+		w := term.NewStringWriter(width, height)
+		ib.Draw(w)
+
+		cells := w.Cells()
+		for x := range width {
+			assert.Equal(t, tcell.ColorPurple, cells[x].Bg,
+				"cell at (%d, 0) should have purple background", x)
+		}
 	})
 }
 

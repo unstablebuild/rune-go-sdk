@@ -38,9 +38,7 @@ var _ handler.WithAttributesResponsive = (*Handler)(nil)
 // New creates and initializes a new input box with default attributes.
 func New(opts ...Option) *Handler {
 	ret := &Handler{
-		text:   make([]rune, 0, 64),
-		cursor: 0,
-		attrs:  term.Attributes{},
+		text: make([]rune, 0, 64),
 	}
 	for _, o := range opts {
 		o(ret)
@@ -52,6 +50,7 @@ func New(opts ...Option) *Handler {
 func (ib *Handler) SetAttr(attr term.Attributes) (ret term.Attributes) {
 	ret = ib.attrs
 	ib.attrs = attr
+	ib.updatePlaceholderBackground()
 	return
 }
 
@@ -74,6 +73,7 @@ func (ib *Handler) Resize(width, height int) {
 	ib.height = height
 	if ib.placeholder != nil {
 		ib.placeholder.Resize(width, height)
+		ib.updatePlaceholderBackground()
 	}
 	ib.updateVoffset()
 }
@@ -103,6 +103,12 @@ func (ib *Handler) Height(width int) int {
 func (ib *Handler) Draw(w term.Writer) {
 	if ib.height == 0 || ib.width == 0 {
 		return
+	}
+
+	for y := range ib.height {
+		for x := range ib.width {
+			w.UnionAttributes(term.Coordinates{X: x, Y: y}, ib.attrs)
+		}
 	}
 
 	if len(ib.text) == 0 && ib.placeholder != nil {
@@ -330,5 +336,11 @@ func (ib *Handler) updateVoffset() {
 		if cursorLine >= ib.voffset+ib.height {
 			ib.voffset = cursorLine - ib.height + 1
 		}
+	}
+}
+
+func (ib *Handler) updatePlaceholderBackground() {
+	if ib.placeholder != nil {
+		_ = ib.placeholder.SetAttr(term.Attributes{Bg: ib.attrs.Bg})
 	}
 }

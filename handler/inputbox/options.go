@@ -31,7 +31,15 @@ func WithAttributes(attr term.Attributes) Option {
 }
 
 // WithPlaceholder adds a placeholder when there's no text in the input box.
-func WithPlaceholder(text string) Option {
+// The placeholder uses the provided StringResponsiveConfig for styling.
+func WithPlaceholder(text string, cfg component.StringResponsiveConfig) Option {
+	return func(h *Handler) {
+		h.placeholder = component.NewResponsiveString(text, cfg)
+	}
+}
+
+// WithPlaceholderText adds a placeholder with default gray styling.
+func WithPlaceholderText(text string) Option {
 	cfg := component.StringResponsiveConfig{
 		NoSplitWords: true,
 		StringConfig: component.StringConfig{
@@ -40,7 +48,5 @@ func WithPlaceholder(text string) Option {
 			},
 		},
 	}
-	return func(h *Handler) {
-		h.placeholder = component.NewResponsiveString(text, cfg)
-	}
+	return WithPlaceholder(text, cfg)
 }
