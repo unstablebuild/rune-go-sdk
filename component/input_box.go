@@ -21,8 +21,7 @@ import (
 )
 
 // InputBox implements a simple single-line text input handler suitable
-// for chat-like TUI interfaces. It supports basic text editing operations
-// including character input, backspace, delete, cursor movement, and text selection.
+// for chat-like TUI interfaces.
 type InputBox struct {
 	text     []rune // the input text
 	cursor   int    // cursor position (index in text)
@@ -34,6 +33,7 @@ type InputBox struct {
 
 // Compile-time assertion that InputBox implements tui.Handler
 var _ tui.Handler = (*InputBox)(nil)
+var _ WithAttributes = (*InputBox)(nil)
 
 // NewInputBox creates and initializes a new InputBox with default attributes.
 func NewInputBox() *InputBox {
@@ -51,6 +51,13 @@ func NewInputBoxWithAttrs(attrs term.Attributes) *InputBox {
 		cursor: 0,
 		attrs:  attrs,
 	}
+}
+
+// SetAttr satisfies WithAttributes.
+func (ib *InputBox) SetAttr(attr term.Attributes) (ret term.Attributes) {
+	ret = ib.attrs
+	ib.attrs = attr
+	return
 }
 
 // Text returns the current text content of the input box.
@@ -124,7 +131,7 @@ func (ib *InputBox) Handle(ev term.Event) (exit, handled bool) {
 
 	switch {
 	case ev.Key == term.KeyEnter:
-		return false, true
+		return true, true
 
 	case ev.Key == term.KeyEsc:
 		return true, true
@@ -170,15 +177,75 @@ func (ib *InputBox) Handle(ev term.Event) (exit, handled bool) {
 		ib.selected = false
 		return false, true
 
+	// Emacs-style cursor movement
 	case ev.Ch == 'a' && ev.Mod == term.ModCtrl:
-		// Ctrl+A: select all
-		ib.selected = true
+		// Ctrl+A: beginning of line
+		ib.cursor = 0
+		ib.selected = false
+		return false, true
+
+	case ev.Ch == 'e' && ev.Mod == term.ModCtrl:
+		// Ctrl+E: end of line
+		ib.cursor = len(ib.text)
+		ib.selected = false
+		return false, true
+
+	case ev.Ch == 'b' && ev.Mod == term.ModCtrl:
+		// Ctrl+B: backward char
+		ib.selected = false
+		if ib.cursor > 0 {
+			ib.cursor--
+		}
+		return false, true
+
+	case ev.Ch == 'f' && ev.Mod == term.ModCtrl:
+		// Ctrl+F: forward char
+		ib.selected = false
+		if ib.cursor < len(ib.text) {
+			ib.cursor++
+		}
+		return false, true
+
+	case ev.Ch == 'd' && ev.Mod == term.ModCtrl:
+		// Ctrl+D: delete char at cursor
+		if ib.selected {
+			ib.Clear()
+		} else if ib.cursor < len(ib.text) {
+			ib.text = append(
+				ib.text[:ib.cursor],
+				ib.text[ib.cursor+1:]...,
+			)
+		}
+		return false, true
+
+	case ev.Ch == 'h' && ev.Mod == term.ModCtrl:
+		// Ctrl+H: backspace
+		if ib.selected {
+			ib.Clear()
+		} else if ib.cursor > 0 {
+			ib.text = append(
+				ib.text[:ib.cursor-1],
+				ib.text[ib.cursor:]...,
+			)
+			ib.cursor--
+		}
+		return false, true
+
+	case ev.Ch == 'k' && ev.Mod == term.ModCtrl:
+		// Ctrl+K: kill to end of line
+		if ib.cursor < len(ib.text) {
+			ib.text = ib.text[:ib.cursor]
+		}
 		return false, true
 
 	case ev.Ch == 'u' && ev.Mod == term.ModCtrl:
-		// Ctrl+U: clear line (common in terminals)
+		// Ctrl+U: kill entire line
 		ib.Clear()
 		return false, true
+
+	case ev.Key == term.KeySpace:
+		ev.Ch = ' '
+		fallthrough
 
 	case ev.Ch != 0 && ev.Ch >= 32: // printable character
 		ib.selected = false
