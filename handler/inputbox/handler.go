@@ -162,6 +162,44 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 	defer ib.updateVoffset()
 
 	switch {
+	case ev.Key == term.KeyArrowLeft &&
+		ev.Mod == term.ModCtrl,
+		ev.Key == term.KeyArrowLeft &&
+			ev.Mod == term.ModAlt:
+		ib.selected = false
+		ib.moveWordLeft()
+		return false, true
+
+	case ev.Key == term.KeyArrowRight &&
+		ev.Mod == term.ModCtrl,
+		ev.Key == term.KeyArrowRight &&
+			ev.Mod == term.ModAlt:
+		ib.selected = false
+		ib.moveWordRight()
+		return false, true
+
+	case ev.Key == term.KeyBackspace &&
+		ev.Mod == term.ModCtrl,
+		ev.Key == term.KeyBackspace &&
+			ev.Mod == term.ModAlt:
+		if ib.selected {
+			ib.Clear()
+		} else {
+			ib.deleteWordBackward()
+		}
+		return false, true
+
+	case ev.Key == term.KeyDelete &&
+		ev.Mod == term.ModCtrl,
+		ev.Key == term.KeyDelete &&
+			ev.Mod == term.ModAlt:
+		if ib.selected {
+			ib.Clear()
+		} else {
+			ib.deleteWordForward()
+		}
+		return false, true
+
 	case ev.Key == term.KeyBackspace:
 		if ib.selected {
 			ib.Clear()
@@ -269,6 +307,32 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 		ib.Clear()
 		return false, true
 
+	case ev.Ch == 'b' && ev.Mod == term.ModAlt:
+		// <alt-b> backward word
+		ib.selected = false
+		ib.moveWordLeft()
+		return false, true
+
+	case ev.Ch == 'f' && ev.Mod == term.ModAlt:
+		// <alt-f> forward word
+		ib.selected = false
+		ib.moveWordRight()
+		return false, true
+
+	case ev.Ch == 'd' && ev.Mod == term.ModAlt:
+		// <alt-d> delete word forward
+		if ib.selected {
+			ib.Clear()
+		} else {
+			ib.deleteWordForward()
+		}
+		return false, true
+
+	case ev.Ch == 't' && ev.Mod == term.ModCtrl:
+		// <ctrl-t> transpose characters
+		ib.transpose()
+		return false, true
+
 	case ev.Key == term.KeySpace:
 		ev.Ch = ' '
 		fallthrough
@@ -298,6 +362,64 @@ func (ib *Handler) Selection() (string, bool) {
 		return string(ib.text), true
 	}
 	return "", false
+}
+
+func isWordChar(r rune) bool {
+	return r == '_' ||
+		(r >= 'a' && r <= 'z') ||
+		(r >= 'A' && r <= 'Z') ||
+		(r >= '0' && r <= '9')
+}
+
+func (ib *Handler) moveWordLeft() {
+	for ib.cursor > 0 && !isWordChar(ib.text[ib.cursor-1]) {
+		ib.cursor--
+	}
+	for ib.cursor > 0 && isWordChar(ib.text[ib.cursor-1]) {
+		ib.cursor--
+	}
+}
+
+func (ib *Handler) moveWordRight() {
+	n := len(ib.text)
+	for ib.cursor < n && !isWordChar(ib.text[ib.cursor]) {
+		ib.cursor++
+	}
+	for ib.cursor < n && isWordChar(ib.text[ib.cursor]) {
+		ib.cursor++
+	}
+}
+
+func (ib *Handler) deleteWordBackward() {
+	start := ib.cursor
+	for start > 0 && !isWordChar(ib.text[start-1]) {
+		start--
+	}
+	for start > 0 && isWordChar(ib.text[start-1]) {
+		start--
+	}
+	ib.text = append(ib.text[:start], ib.text[ib.cursor:]...)
+	ib.cursor = start
+}
+
+func (ib *Handler) deleteWordForward() {
+	end := ib.cursor
+	n := len(ib.text)
+	for end < n && !isWordChar(ib.text[end]) {
+		end++
+	}
+	for end < n && isWordChar(ib.text[end]) {
+		end++
+	}
+	ib.text = append(ib.text[:ib.cursor], ib.text[end:]...)
+}
+
+func (ib *Handler) transpose() {
+	if ib.cursor < 2 {
+		return
+	}
+	ib.text[ib.cursor-2], ib.text[ib.cursor-1] =
+		ib.text[ib.cursor-1], ib.text[ib.cursor-2]
 }
 
 // updateVoffset adjusts the vertical offset to keep the cursor visible

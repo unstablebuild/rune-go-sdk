@@ -367,6 +367,297 @@ func TestHandlerBackground(t *testing.T) {
 	})
 }
 
+func TestHandlerWordMovement(t *testing.T) {
+	t.Run("ctrl+left and ctrl+right", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "hello<space>world",
+				Expected:      "hello world▐        ",
+			},
+			{
+				InputSequence: "<ctrl-left>",
+				Expected:      "hello ▐orld         ",
+			},
+			{
+				InputSequence: "<ctrl-left>",
+				Expected:      "▐ello world         ",
+			},
+			{
+				InputSequence: "<ctrl-right>",
+				Expected:      "hello▐world         ",
+			},
+			{
+				InputSequence: "<ctrl-right>",
+				Expected:      "hello world▐        ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("alt+left and alt+right", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "foo<space>bar",
+				Expected:      "foo bar▐            ",
+			},
+			{
+				InputSequence: "<alt-left>",
+				Expected:      "foo ▐ar             ",
+			},
+			{
+				InputSequence: "<alt-left>",
+				Expected:      "▐oo bar             ",
+			},
+			{
+				InputSequence: "<alt-right>",
+				Expected:      "foo▐bar             ",
+			},
+			{
+				InputSequence: "<alt-right>",
+				Expected:      "foo bar▐            ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("alt+b and alt+f", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "one<space>two",
+				Expected:      "one two▐            ",
+			},
+			{
+				InputSequence: "<a-b>",
+				Expected:      "one ▐wo             ",
+			},
+			{
+				InputSequence: "<a-b>",
+				Expected:      "▐ne two             ",
+			},
+			{
+				InputSequence: "<a-f>",
+				Expected:      "one▐two             ",
+			},
+			{
+				InputSequence: "<a-f>",
+				Expected:      "one two▐            ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("word movement with multiple spaces", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "a<space><space>b",
+				Expected:      "a  b▐               ",
+			},
+			{
+				InputSequence: "<ctrl-left>",
+				Expected:      "a  ▐                ",
+			},
+			{
+				InputSequence: "<ctrl-left>",
+				Expected:      "▐  b                ",
+			},
+			{
+				InputSequence: "<ctrl-right>",
+				Expected:      "a▐ b                ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+}
+
+func TestHandlerWordDeletion(t *testing.T) {
+	t.Run("ctrl+backspace", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "hello<space>world",
+				Expected:      "hello world▐        ",
+			},
+			{
+				InputSequence: "<ctrl-backspace>",
+				Expected:      "hello ▐             ",
+			},
+			{
+				InputSequence: "<ctrl-backspace>",
+				Expected:      "▐                   ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("alt+backspace", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "foo<space>bar",
+				Expected:      "foo bar▐            ",
+			},
+			{
+				InputSequence: "<alt-backspace>",
+				Expected:      "foo ▐               ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("ctrl+delete", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "hello<space>world",
+				Expected:      "hello world▐        ",
+			},
+			{
+				InputSequence: "<home>",
+				Expected:      "▐ello world         ",
+			},
+			{
+				// deletes "hello", leaves " world";
+				// cursor at 0 covers the space
+				InputSequence: "<ctrl-delete>",
+				Expected:      "▐world              ",
+			},
+			{
+				// deletes " world" (space then word)
+				InputSequence: "<ctrl-delete>",
+				Expected:      "▐                   ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("alt+delete", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "one<space>two",
+				Expected:      "one two▐            ",
+			},
+			{
+				InputSequence: "<home>",
+				Expected:      "▐ne two             ",
+			},
+			{
+				// deletes "one", cursor covers the space
+				InputSequence: "<alt-delete>",
+				Expected:      "▐two                ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("alt+d delete word forward", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "abc<space>def",
+				Expected:      "abc def▐            ",
+			},
+			{
+				InputSequence: "<home>",
+				Expected:      "▐bc def             ",
+			},
+			{
+				// deletes "abc", cursor covers the space
+				InputSequence: "<a-d>",
+				Expected:      "▐def                ",
+			},
+			{
+				// deletes " def" (space then word)
+				InputSequence: "<a-d>",
+				Expected:      "▐                   ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("word deletion in middle", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "one<space>two<space>three",
+				Expected:      "one two three▐      ",
+			},
+			{
+				InputSequence: "<ctrl-left>",
+				Expected:      "one two ▐hree       ",
+			},
+			{
+				InputSequence: "<ctrl-backspace>",
+				Expected:      "one ▐hree           ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+}
+
+func TestHandlerTranspose(t *testing.T) {
+	t.Run("basic transpose", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "abc",
+				Expected:      "abc▐      ",
+			},
+			{
+				InputSequence: "<c-t>",
+				Expected:      "acb▐      ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+
+	t.Run("transpose at beginning does nothing", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "ab",
+				Expected:      "ab▐       ",
+			},
+			{
+				InputSequence: "<home>",
+				Expected:      "▐b        ",
+			},
+			{
+				InputSequence: "<c-t>",
+				Expected:      "▐b        ",
+			},
+			{
+				InputSequence: "<right>",
+				Expected:      "a▐        ",
+			},
+			{
+				InputSequence: "<c-t>",
+				Expected:      "a▐        ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+
+	t.Run("transpose with two chars", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "ab",
+				Expected:      "ab▐       ",
+			},
+			{
+				InputSequence: "<c-t>",
+				Expected:      "ba▐       ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+}
+
 // setText is a test helper that types text into the input box
 func setText(ib *Handler, s string) {
 	for _, ch := range s {
