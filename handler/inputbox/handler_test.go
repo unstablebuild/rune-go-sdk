@@ -658,6 +658,240 @@ func TestHandlerTranspose(t *testing.T) {
 	})
 }
 
+func TestHandlerShiftArrowSelection(t *testing.T) {
+	t.Run("shift+left selects chars backward", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+
+		sendKeys(t, ib, "<shift-left><shift-left>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "lo", sel)
+	})
+
+	t.Run("shift+right selects chars forward", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+		sendKeys(t, ib, "<home>")
+
+		sendKeys(t, ib, "<shift-right><shift-right><shift-right>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "hel", sel)
+	})
+
+	t.Run("shift+home selects to start", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+
+		sendKeys(t, ib, "<shift-home>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "hello", sel)
+	})
+
+	t.Run("shift+end selects to end", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+		sendKeys(t, ib, "<home>")
+
+		sendKeys(t, ib, "<shift-end>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "hello", sel)
+	})
+
+	t.Run("shift+ctrl+left selects word backward", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+		sendKey(ib, ' ')
+		setText(ib, "world")
+
+		sendKeys(t, ib, "<ctrl-shift-left>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "world", sel)
+	})
+
+	t.Run("shift+ctrl+right selects word forward", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+		sendKey(ib, ' ')
+		setText(ib, "world")
+		sendKeys(t, ib, "<home>")
+
+		sendKeys(t, ib, "<ctrl-shift-right>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "hello", sel)
+	})
+
+	t.Run("shift+alt+left selects word backward", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "foo")
+		sendKey(ib, ' ')
+		setText(ib, "bar")
+
+		sendKeys(t, ib, "<alt-shift-left>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "bar", sel)
+	})
+
+	t.Run("shift+alt+right selects word forward", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "foo")
+		sendKey(ib, ' ')
+		setText(ib, "bar")
+		sendKeys(t, ib, "<home>")
+
+		sendKeys(t, ib, "<alt-shift-right>")
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "foo", sel)
+	})
+
+	t.Run("plain arrow clears selection", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+
+		sendKeys(t, ib, "<shift-left><shift-left>")
+		_, ok := ib.Selection()
+		assert.True(t, ok)
+
+		sendKeys(t, ib, "<right>")
+		_, ok = ib.Selection()
+		assert.False(t, ok)
+	})
+
+	t.Run("typing replaces selection", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+
+		// select "lo"
+		sendKeys(t, ib, "<shift-left><shift-left>")
+		sel, ok := ib.Selection()
+		require.True(t, ok)
+		require.Equal(t, "lo", sel)
+
+		// type "p" to replace
+		setText(ib, "p")
+		assert.Equal(t, "help", ib.Text())
+	})
+
+	t.Run("backspace deletes selection", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+
+		sendKeys(t, ib, "<shift-left><shift-left><shift-left>")
+		sel, ok := ib.Selection()
+		require.True(t, ok)
+		require.Equal(t, "llo", sel)
+
+		sendKeys(t, ib, "<backspace>")
+		assert.Equal(t, "he", ib.Text())
+		_, ok = ib.Selection()
+		assert.False(t, ok)
+	})
+
+	t.Run("delete deletes selection", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+		sendKeys(t, ib, "<home>")
+
+		sendKeys(t, ib, "<shift-right><shift-right>")
+		sel, ok := ib.Selection()
+		require.True(t, ok)
+		require.Equal(t, "he", sel)
+
+		sendKeys(t, ib, "<delete>")
+		assert.Equal(t, "llo", ib.Text())
+	})
+
+	t.Run("extend and shrink selection", func(t *testing.T) {
+		ib := New()
+		ib.Resize(20, 1)
+		setText(ib, "abcdef")
+
+		// select "ef" backward
+		sendKeys(t, ib, "<shift-left><shift-left>")
+		sel, ok := ib.Selection()
+		require.True(t, ok)
+		assert.Equal(t, "ef", sel)
+
+		// extend to "def"
+		sendKeys(t, ib, "<shift-left>")
+		sel, ok = ib.Selection()
+		require.True(t, ok)
+		assert.Equal(t, "def", sel)
+
+		// shrink back to "ef"
+		sendKeys(t, ib, "<shift-right>")
+		sel, ok = ib.Selection()
+		require.True(t, ok)
+		assert.Equal(t, "ef", sel)
+	})
+
+	t.Run("selection visible in draw", func(t *testing.T) {
+		ib := New()
+		width := 10
+		ib.Resize(width, 1)
+		setText(ib, "hello")
+		sendKeys(t, ib, "<shift-left><shift-left>")
+
+		w := term.NewStringWriter(width, 1)
+		ib.Draw(w)
+
+		cells := w.Cells()
+		// "hel" (indices 0-2) should NOT be reversed
+		for i := range 3 {
+			assert.Equal(
+				t, tcell.AttrNone, cells[i].Attrs,
+				"cell %d should not be reversed", i,
+			)
+		}
+		// "lo" (indices 3-4) should be reversed
+		for i := 3; i < 5; i++ {
+			assert.Equal(
+				t, tcell.AttrReverse, cells[i].Attrs,
+				"cell %d should be reversed", i,
+			)
+		}
+	})
+}
+
+// sendKeys parses a key sequence string and sends the events to the handler.
+func sendKeys(t *testing.T, ib *Handler, seq string) {
+	t.Helper()
+	keys, err := term.ParseKeys(seq)
+	require.NoError(t, err)
+	for _, k := range keys {
+		ib.Handle(term.Event{
+			Type: term.EventKey,
+			Ch:   k.Ch,
+			Mod:  k.Mod,
+			Key:  k.Key,
+		})
+	}
+}
+
+// sendKey sends a single character event to the handler.
+func sendKey(ib *Handler, ch rune) {
+	ib.Handle(term.Event{Type: term.EventKey, Ch: ch})
+}
+
 // setText is a test helper that types text into the input box
 func setText(ib *Handler, s string) {
 	for _, ch := range s {

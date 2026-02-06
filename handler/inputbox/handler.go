@@ -21,7 +21,9 @@ import (
 	"github.com/unstablebuild/tcell/v3"
 )
 
-// Handler implements a multi-line text input handler with wrapping.
+// Handler implements a multi-line text input handler with wrapping,
+// text selection and, word-wise cursor movement. Note that text selection is
+// limited by your terminal's ability to handle shift+arrow keys.
 type Handler struct {
 	text        []rune
 	cursor      int
@@ -29,7 +31,7 @@ type Handler struct {
 	width       int
 	height      int
 	attrs       term.Attributes
-	selected    bool
+	selAnchor   int // -1 means no selection
 	placeholder *component.ResponsiveString
 }
 
@@ -38,7 +40,8 @@ var _ handler.WithAttributesResponsive = (*Handler)(nil)
 // New creates and initializes a new input box with default attributes.
 func New(opts ...Option) *Handler {
 	ret := &Handler{
-		text: make([]rune, 0, 64),
+		text:      make([]rune, 0, 64),
+		selAnchor: -1,
 	}
 	for _, o := range opts {
 		o(ret)
@@ -63,7 +66,7 @@ func (ib *Handler) Text() string {
 func (ib *Handler) Clear() {
 	ib.text = ib.text[:0]
 	ib.cursor = 0
-	ib.selected = false
+	ib.selAnchor = -1
 	ib.updateVoffset()
 }
 
@@ -119,10 +122,12 @@ func (ib *Handler) Draw(w term.Writer) {
 	startIdx := ib.voffset * ib.width
 	endIdx := min(startIdx+ib.height*ib.width, len(ib.text))
 
+	selStart, selEnd := ib.selectionRange()
+
 	var x, y int
 	for i := startIdx; i < endIdx; i++ {
 		attrs := ib.attrs
-		if ib.selected {
+		if i >= selStart && i < selEnd {
 			attrs.Attrs |= tcell.AttrReverse
 		}
 		w.SetCell(term.Coordinates{X: x, Y: y}, term.Cell{
@@ -148,8 +153,9 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 		return false, false
 	}
 
-	if ib.selected && ev.Ch != 0 {
-		ib.Clear()
+	if ib.hasSelection() && ev.Ch != 0 &&
+		ev.Mod != term.ModCtrl && ev.Mod != term.ModAlt {
+		ib.deleteSelection()
 	}
 
 	switch ev.Key {
@@ -162,11 +168,29 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 	defer ib.updateVoffset()
 
 	switch {
+	// shift+ctrl/alt word selection
+	case ev.Key == term.KeyArrowLeft &&
+		ev.Mod == term.ModCtrlShift,
+		ev.Key == term.KeyArrowLeft &&
+			ev.Mod == term.ModAltShift:
+		ib.startSelection()
+		ib.moveWordLeft()
+		return false, true
+
+	case ev.Key == term.KeyArrowRight &&
+		ev.Mod == term.ModCtrlShift,
+		ev.Key == term.KeyArrowRight &&
+			ev.Mod == term.ModAltShift:
+		ib.startSelection()
+		ib.moveWordRight()
+		return false, true
+
+	// ctrl/alt word movement
 	case ev.Key == term.KeyArrowLeft &&
 		ev.Mod == term.ModCtrl,
 		ev.Key == term.KeyArrowLeft &&
 			ev.Mod == term.ModAlt:
-		ib.selected = false
+		ib.clearSelection()
 		ib.moveWordLeft()
 		return false, true
 
@@ -174,16 +198,17 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 		ev.Mod == term.ModCtrl,
 		ev.Key == term.KeyArrowRight &&
 			ev.Mod == term.ModAlt:
-		ib.selected = false
+		ib.clearSelection()
 		ib.moveWordRight()
 		return false, true
 
+	// word deletion
 	case ev.Key == term.KeyBackspace &&
 		ev.Mod == term.ModCtrl,
 		ev.Key == term.KeyBackspace &&
 			ev.Mod == term.ModAlt:
-		if ib.selected {
-			ib.Clear()
+		if ib.hasSelection() {
+			ib.deleteSelection()
 		} else {
 			ib.deleteWordBackward()
 		}
@@ -193,70 +218,106 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 		ev.Mod == term.ModCtrl,
 		ev.Key == term.KeyDelete &&
 			ev.Mod == term.ModAlt:
-		if ib.selected {
-			ib.Clear()
+		if ib.hasSelection() {
+			ib.deleteSelection()
 		} else {
 			ib.deleteWordForward()
 		}
 		return false, true
 
+	// shift+arrow char selection
+	case ev.Key == term.KeyArrowLeft &&
+		ev.Mod == term.ModShift:
+		ib.startSelection()
+		if ib.cursor > 0 {
+			ib.cursor--
+		}
+		return false, true
+
+	case ev.Key == term.KeyArrowRight &&
+		ev.Mod == term.ModShift:
+		ib.startSelection()
+		if ib.cursor < len(ib.text) {
+			ib.cursor++
+		}
+		return false, true
+
+	// shift+home/end selection
+	case ev.Key == term.KeyHome &&
+		ev.Mod == term.ModShift:
+		ib.startSelection()
+		ib.cursor = 0
+		return false, true
+
+	case ev.Key == term.KeyEnd &&
+		ev.Mod == term.ModShift:
+		ib.startSelection()
+		ib.cursor = len(ib.text)
+		return false, true
+
 	case ev.Key == term.KeyBackspace:
-		if ib.selected {
-			ib.Clear()
+		if ib.hasSelection() {
+			ib.deleteSelection()
 		} else if ib.cursor > 0 {
-			ib.text = append(ib.text[:ib.cursor-1], ib.text[ib.cursor:]...)
+			ib.text = append(
+				ib.text[:ib.cursor-1],
+				ib.text[ib.cursor:]...,
+			)
 			ib.cursor--
 		}
 		return false, true
 
 	case ev.Key == term.KeyDelete:
-		if ib.selected {
-			ib.Clear()
+		if ib.hasSelection() {
+			ib.deleteSelection()
 		} else if ib.cursor < len(ib.text) {
-			ib.text = append(ib.text[:ib.cursor], ib.text[ib.cursor+1:]...)
+			ib.text = append(
+				ib.text[:ib.cursor],
+				ib.text[ib.cursor+1:]...,
+			)
 		}
 		return false, true
 
 	case ev.Key == term.KeyArrowLeft:
-		ib.selected = false
+		ib.clearSelection()
 		if ib.cursor > 0 {
 			ib.cursor--
 		}
 		return false, true
 
 	case ev.Key == term.KeyArrowRight:
-		ib.selected = false
+		ib.clearSelection()
 		if ib.cursor < len(ib.text) {
 			ib.cursor++
 		}
 		return false, true
 
 	case ev.Key == term.KeyHome:
+		ib.clearSelection()
 		ib.cursor = 0
-		ib.selected = false
 		return false, true
 
 	case ev.Key == term.KeyEnd:
+		ib.clearSelection()
 		ib.cursor = len(ib.text)
-		ib.selected = false
 		return false, true
 
 	// emacs-style cursor movement
 	case ev.Ch == 'a' && ev.Mod == term.ModCtrl:
 		// <ctrl-a> beginning of line
+		ib.clearSelection()
 		ib.cursor = 0
-		ib.selected = false
 		return false, true
 
 	case ev.Ch == 'e' && ev.Mod == term.ModCtrl:
 		// <ctrl-e> end of line
+		ib.clearSelection()
 		ib.cursor = len(ib.text)
-		ib.selected = false
 		return false, true
 
 	case ev.Ch == 'b' && ev.Mod == term.ModCtrl:
 		// <ctrl+b> backward char
-		ib.selected = false
+		ib.clearSelection()
 		if ib.cursor > 0 {
 			ib.cursor--
 		}
@@ -264,7 +325,7 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 
 	case ev.Ch == 'f' && ev.Mod == term.ModCtrl:
 		// <ctrl-f> forward char
-		ib.selected = false
+		ib.clearSelection()
 		if ib.cursor < len(ib.text) {
 			ib.cursor++
 		}
@@ -272,8 +333,8 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 
 	case ev.Ch == 'd' && ev.Mod == term.ModCtrl:
 		// <ctrl-d> delete char at cursor
-		if ib.selected {
-			ib.Clear()
+		if ib.hasSelection() {
+			ib.deleteSelection()
 		} else if ib.cursor < len(ib.text) {
 			ib.text = append(
 				ib.text[:ib.cursor],
@@ -284,8 +345,8 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 
 	case ev.Ch == 'h' && ev.Mod == term.ModCtrl:
 		// <ctrl-h> backspace
-		if ib.selected {
-			ib.Clear()
+		if ib.hasSelection() {
+			ib.deleteSelection()
 		} else if ib.cursor > 0 {
 			ib.text = append(
 				ib.text[:ib.cursor-1],
@@ -297,6 +358,7 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 
 	case ev.Ch == 'k' && ev.Mod == term.ModCtrl:
 		// <ctrl-k> kill to end of line
+		ib.clearSelection()
 		if ib.cursor < len(ib.text) {
 			ib.text = ib.text[:ib.cursor]
 		}
@@ -309,20 +371,20 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 
 	case ev.Ch == 'b' && ev.Mod == term.ModAlt:
 		// <alt-b> backward word
-		ib.selected = false
+		ib.clearSelection()
 		ib.moveWordLeft()
 		return false, true
 
 	case ev.Ch == 'f' && ev.Mod == term.ModAlt:
 		// <alt-f> forward word
-		ib.selected = false
+		ib.clearSelection()
 		ib.moveWordRight()
 		return false, true
 
 	case ev.Ch == 'd' && ev.Mod == term.ModAlt:
 		// <alt-d> delete word forward
-		if ib.selected {
-			ib.Clear()
+		if ib.hasSelection() {
+			ib.deleteSelection()
 		} else {
 			ib.deleteWordForward()
 		}
@@ -330,6 +392,7 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 
 	case ev.Ch == 't' && ev.Mod == term.ModCtrl:
 		// <ctrl-t> transpose characters
+		ib.clearSelection()
 		ib.transpose()
 		return false, true
 
@@ -338,8 +401,11 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 		fallthrough
 
 	case ev.Ch != 0:
-		ib.selected = false
-		ib.text = append(ib.text[:ib.cursor], append([]rune{ev.Ch}, ib.text[ib.cursor:]...)...)
+		ib.clearSelection()
+		ib.text = append(
+			ib.text[:ib.cursor],
+			append([]rune{ev.Ch}, ib.text[ib.cursor:]...)...,
+		)
 		ib.cursor++
 		return false, true
 	}
@@ -358,10 +424,47 @@ func (ib *Handler) Cursor() (term.Coordinates, term.CursorStyle, bool) {
 
 // Selection satisfies tui.Handler
 func (ib *Handler) Selection() (string, bool) {
-	if ib.selected && len(ib.text) > 0 {
-		return string(ib.text), true
+	if !ib.hasSelection() {
+		return "", false
 	}
-	return "", false
+	start, end := ib.selectionRange()
+	return string(ib.text[start:end]), true
+}
+
+func (ib *Handler) hasSelection() bool {
+	return ib.selAnchor >= 0 && ib.selAnchor != ib.cursor
+}
+
+func (ib *Handler) selectionRange() (int, int) {
+	if ib.selAnchor < 0 {
+		return 0, 0
+	}
+	if ib.selAnchor < ib.cursor {
+		return ib.selAnchor, ib.cursor
+	}
+	return ib.cursor, ib.selAnchor
+}
+
+func (ib *Handler) clearSelection() {
+	ib.selAnchor = -1
+}
+
+// startSelection sets the anchor to the current cursor position
+// if no selection is active yet.
+func (ib *Handler) startSelection() {
+	if ib.selAnchor < 0 {
+		ib.selAnchor = ib.cursor
+	}
+}
+
+func (ib *Handler) deleteSelection() {
+	if !ib.hasSelection() {
+		return
+	}
+	start, end := ib.selectionRange()
+	ib.text = append(ib.text[:start], ib.text[end:]...)
+	ib.cursor = start
+	ib.selAnchor = -1
 }
 
 func isWordChar(r rune) bool {
