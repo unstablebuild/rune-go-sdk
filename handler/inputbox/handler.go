@@ -396,11 +396,11 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 		ib.transpose()
 		return false, true
 
-	case ev.Key == term.KeySpace:
+	case ev.Key == term.KeySpace && ev.Mod == 0:
 		ev.Ch = ' '
 		fallthrough
 
-	case ev.Ch != 0:
+	case ev.Ch != 0 && ev.Mod == 0:
 		ib.clearSelection()
 		ib.text = append(
 			ib.text[:ib.cursor],

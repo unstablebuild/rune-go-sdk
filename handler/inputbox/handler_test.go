@@ -39,6 +39,15 @@ func TestHandler(t *testing.T) {
 		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
 	})
 
+	t.Run("basic input + unknown modifier does nothing", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "<m-c>", Expected: "▐         "},
+			{InputSequence: "<m-space>", Expected: "▐         "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+
 	t.Run("input wraps", func(t *testing.T) {
 		ib := New()
 		cases := []handlertest.SequenceTestCase{
