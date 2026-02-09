@@ -28,6 +28,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal/doctoml"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc"
+	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
+	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi/textrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
@@ -106,6 +108,12 @@ func (w *Workspace) RegisterCommand(
 	cmd textapi.CommandManual, h textapi.CommandHandler,
 ) error {
 	return w.editorClient(context.Background()).SubscribeCommand(cmd, h)
+}
+
+// Searcher returns the workspace's syntax searcher, which can be used
+// to perform AST-level searches across workspace files.
+func (w *Workspace) Searcher(ctx context.Context) syntaxapi.Searcher {
+	return syntaxrpc.NewClient(ctx, w.conn)
 }
 
 // Storage returns the workspace's storage facility, which can be used to

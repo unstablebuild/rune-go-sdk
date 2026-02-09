@@ -42,6 +42,8 @@ const (
 	PermissionCommands Permission = "permcmd"
 	// PermissionStorage requests access to persistent storage.
 	PermissionStorage Permission = "permstore"
+	// PermissionSyntaxTree requests access to AST-level search.
+	PermissionSyntaxTree Permission = "permsyntax"
 	// PermissionConfig requests access to read the loaded workspace configuration.
 	PermissionConfig Permission = "permcfg"
 )
@@ -71,6 +73,7 @@ func AllPermissions() Permissions {
 		PermissionEditor:                nil,
 		PermissionCommands:              nil,
 		PermissionStorage:               nil,
+		PermissionSyntaxTree:            nil,
 		PermissionConfig:                nil,
 	}
 }
