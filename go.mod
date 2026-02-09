@@ -8,7 +8,7 @@ require (
 	github.com/ernestrc/go-multierror v1.1.2
 	github.com/rivo/uniseg v0.4.7
 	github.com/stretchr/testify v1.11.1
-	github.com/unstablebuild/tcell/v3 v3.6.1
+	github.com/unstablebuild/tcell/v3 v3.6.2
 	go.uber.org/goleak v1.3.0
 	golang.org/x/oauth2 v0.34.0
 	google.golang.org/grpc v1.78.0
