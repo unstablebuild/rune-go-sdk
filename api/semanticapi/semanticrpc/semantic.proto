@@ -1,0 +1,1117 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc";
+
+package semantic;
+
+// --- Fundamental types ---
+
+message Position {
+  uint32 line = 1;
+  uint32 character = 2;
+}
+
+message Range {
+  Position start = 1;
+  Position end = 2;
+}
+
+message Location {
+  string uri = 1;
+  Range range = 2;
+}
+
+message TextEdit {
+  Range range = 1;
+  string new_text = 2;
+}
+
+message AnnotatedTextEdit {
+  Range range = 1;
+  string new_text = 2;
+  string annotation_id = 3;
+}
+
+message InsertReplaceEdit {
+  string new_text = 1;
+  Range insert = 2;
+  Range replace = 3;
+}
+
+message MarkedString {
+  string language = 1;
+  string value = 2;
+  bool is_raw = 3;
+}
+
+message LocationLink {
+  Range origin_selection_range = 1;
+  bool has_origin_selection_range = 2;
+  string target_uri = 3;
+  Range target_range = 4;
+  Range target_selection_range = 5;
+}
+
+message TextDocumentIdentifier {
+  string uri = 1;
+}
+
+message VersionedTextDocumentIdentifier {
+  string uri = 1;
+  int32 version = 2;
+}
+
+message TextDocumentItem {
+  string uri = 1;
+  string language_id = 2;
+  int32 version = 3;
+  string text = 4;
+}
+
+message MarkupContent {
+  uint32 kind = 1;
+  string value = 2;
+}
+
+// --- Compound types ---
+
+message CompletionItem {
+  string label = 1;
+  int32 kind = 2;
+  string detail = 3;
+  MarkupContent documentation = 4;
+  string insert_text = 5;
+  int32 insert_text_format = 6;
+  TextEdit text_edit = 7;
+  repeated int32 tags = 8;
+  string documentation_string = 9;
+  InsertReplaceEdit text_edit_ir = 10;
+}
+
+message CompletionResult {
+  bool is_incomplete = 1;
+  repeated CompletionItem items = 2;
+}
+
+message Hover {
+  MarkupContent contents = 1;
+  Range range = 2;
+  bool has_range = 3;
+  MarkedString contents_marked = 4;
+  repeated MarkedString contents_marked_array = 5;
+}
+
+message ParameterInformation {
+  string label = 1;
+  MarkupContent documentation = 2;
+  uint32 label_offset_start = 3;
+  uint32 label_offset_end = 4;
+  bool has_label_offsets = 5;
+}
+
+message SignatureInformation {
+  string label = 1;
+  MarkupContent documentation = 2;
+  repeated ParameterInformation parameters = 3;
+}
+
+message SignatureHelp {
+  repeated SignatureInformation signatures = 1;
+  uint32 active_signature = 2;
+  uint32 active_parameter = 3;
+}
+
+message DiagnosticRelatedInformation {
+  Location location = 1;
+  string message = 2;
+}
+
+message Diagnostic {
+  Range range = 1;
+  int32 severity = 2;
+  string code = 3;
+  string source = 4;
+  string message = 5;
+  string code_description_href = 6;
+  repeated int32 tags = 7;
+  repeated DiagnosticRelatedInformation related_information = 8;
+  bytes data = 9;
+  int32 code_int = 10;
+  bool code_is_int = 11;
+}
+
+message DocumentHighlight {
+  Range range = 1;
+  int32 kind = 2;
+}
+
+message DocumentSymbol {
+  string name = 1;
+  string detail = 2;
+  int32 kind = 3;
+  Range range = 4;
+  Range selection_range = 5;
+  repeated DocumentSymbol children = 6;
+}
+
+message SymbolInformation {
+  string name = 1;
+  int32 kind = 2;
+  Location location = 3;
+}
+
+message Command {
+  string title = 1;
+  string command = 2;
+  repeated string arguments = 3;
+}
+
+message CodeAction {
+  string title = 1;
+  string kind = 2;
+  repeated Diagnostic diagnostics = 3;
+  WorkspaceEdit edit = 4;
+  Command command = 5;
+}
+
+message CodeLens {
+  Range range = 1;
+  Command command = 2;
+}
+
+message TextEditList {
+  repeated TextEdit edits = 1;
+}
+
+message TextDocumentEdit {
+  VersionedTextDocumentIdentifier text_document = 1;
+  repeated TextEdit edits = 2;
+  repeated AnnotatedTextEdit annotated_edits = 3;
+  bool use_annotated = 4;
+}
+
+message CreateFileOptions {
+  bool overwrite = 1;
+  bool ignore_if_exists = 2;
+}
+
+message CreateFile {
+  string kind = 1;
+  string uri = 2;
+  CreateFileOptions options = 3;
+  string annotation_id = 4;
+}
+
+message RenameFileOptions {
+  bool overwrite = 1;
+  bool ignore_if_exists = 2;
+}
+
+message RenameFileOp {
+  string kind = 1;
+  string old_uri = 2;
+  string new_uri = 3;
+  RenameFileOptions options = 4;
+  string annotation_id = 5;
+}
+
+message DeleteFileOptions {
+  bool recursive = 1;
+  bool ignore_if_not_exists = 2;
+}
+
+message DeleteFile {
+  string kind = 1;
+  string uri = 2;
+  DeleteFileOptions options = 3;
+  string annotation_id = 4;
+}
+
+message DocumentChange {
+  TextDocumentEdit text_document_edit = 1;
+  CreateFile create_file = 2;
+  RenameFileOp rename_file = 3;
+  DeleteFile delete_file = 4;
+}
+
+message WorkspaceEdit {
+  map<string, TextEditList> changes = 1;
+  repeated DocumentChange document_changes = 2;
+}
+
+message FoldingRange {
+  uint32 start_line = 1;
+  uint32 start_character = 2;
+  uint32 end_line = 3;
+  uint32 end_character = 4;
+  string kind = 5;
+}
+
+message SelectionRange {
+  Range range = 1;
+  SelectionRange parent = 2;
+}
+
+message SemanticTokens {
+  string result_id = 1;
+  repeated uint32 data = 2;
+}
+
+message CallHierarchyItem {
+  string name = 1;
+  int32 kind = 2;
+  string uri = 3;
+  Range range = 4;
+  Range selection_range = 5;
+}
+
+message CallHierarchyIncomingCall {
+  CallHierarchyItem from = 1;
+  repeated Range from_ranges = 2;
+}
+
+message CallHierarchyOutgoingCall {
+  CallHierarchyItem to = 1;
+  repeated Range from_ranges = 2;
+}
+
+message RelatedDocumentDiagnostics {
+  map<string, DiagnosticList> related_documents = 1;
+}
+
+message DiagnosticList {
+  repeated Diagnostic diagnostics = 1;
+}
+
+message DocumentDiagnosticReport {
+  string kind = 1;
+  string result_id = 2;
+  repeated Diagnostic items = 3;
+  map<string, DiagnosticList> related_documents = 4;
+}
+
+message ServerCapabilities {
+  bool completion_provider = 1;
+  bool hover_provider = 2;
+  bool signature_help_provider = 3;
+  bool declaration_provider = 4;
+  bool definition_provider = 5;
+  bool type_definition_provider = 6;
+  bool implementation_provider = 7;
+  bool references_provider = 8;
+  bool document_highlight_provider = 9;
+  bool document_symbol_provider = 10;
+  bool code_action_provider = 11;
+  bool code_lens_provider = 12;
+  bool document_formatting_provider = 13;
+  bool rename_provider = 14;
+  bool folding_range_provider = 15;
+  bool selection_range_provider = 16;
+  bool semantic_tokens_provider = 17;
+  bool diagnostic_provider = 18;
+  bool workspace_symbol_provider = 19;
+  bool execute_command_provider = 20;
+  bool call_hierarchy_provider = 21;
+  bool document_color_provider = 22;
+  bool document_link_provider = 23;
+  bool document_on_type_formatting_provider = 24;
+  bool linked_editing_range_provider = 25;
+  bool moniker_provider = 26;
+  bool type_hierarchy_provider = 27;
+  bool inlay_hint_provider = 28;
+  bool inline_value_provider = 29;
+  // Option sub-fields (flat representation of nested option structs)
+  repeated string completion_trigger_characters = 30;
+  bool completion_resolve_provider = 31;
+  repeated string signature_help_trigger_characters = 32;
+  repeated string signature_help_retrigger_characters = 33;
+  repeated string code_action_kinds = 34;
+  bool code_action_resolve_provider = 35;
+  bool code_lens_resolve_provider = 36;
+  bool rename_prepare_provider = 37;
+  repeated string execute_command_commands = 38;
+  repeated string semantic_tokens_token_types = 39;
+  repeated string semantic_tokens_token_modifiers = 40;
+  bool semantic_tokens_full = 41;
+  bool semantic_tokens_range = 42;
+  string diagnostic_identifier = 43;
+  bool diagnostic_inter_file_dependencies = 44;
+  bool diagnostic_workspace_diagnostics = 45;
+  bool document_link_resolve_provider = 46;
+  string on_type_formatting_first_trigger_character = 47;
+  repeated string on_type_formatting_more_trigger_characters = 48;
+  bool inlay_hint_resolve_provider = 49;
+  bool document_range_formatting_provider = 50;
+}
+
+message TextDocumentContentChangeEvent {
+  Range range = 1;
+  bool has_range = 2;
+  string text = 3;
+}
+
+message PrepareRenameResult {
+  Range range = 1;
+  string placeholder = 2;
+}
+
+// --- New compound types ---
+
+message Color {
+  double red = 1;
+  double green = 2;
+  double blue = 3;
+  double alpha = 4;
+}
+
+message ColorInformation {
+  Range range = 1;
+  Color color = 2;
+}
+
+message ColorPresentation {
+  string label = 1;
+  TextEdit text_edit = 2;
+  repeated TextEdit additional_text_edits = 3;
+}
+
+message DocumentLink {
+  Range range = 1;
+  string target = 2;
+  string tooltip = 3;
+}
+
+message LinkedEditingRanges {
+  repeated Range ranges = 1;
+  string word_pattern = 2;
+}
+
+message Moniker {
+  string scheme = 1;
+  string identifier = 2;
+  string unique = 3;
+  string kind = 4;
+}
+
+message WorkspaceFolder {
+  string uri = 1;
+  string name = 2;
+}
+
+message FileEvent {
+  string uri = 1;
+  int32 type = 2;
+}
+
+message FileCreate {
+  string uri = 1;
+}
+
+message FileRename {
+  string old_uri = 1;
+  string new_uri = 2;
+}
+
+message FileDelete {
+  string uri = 1;
+}
+
+message SemanticTokensDelta {
+  string result_id = 1;
+  repeated SemanticTokensEdit edits = 2;
+}
+
+message SemanticTokensEdit {
+  uint32 start = 1;
+  uint32 delete_count = 2;
+  repeated uint32 data = 3;
+}
+
+message TypeHierarchyItem {
+  string name = 1;
+  int32 kind = 2;
+  repeated int32 tags = 3;
+  string detail = 4;
+  string uri = 5;
+  Range range = 6;
+  Range selection_range = 7;
+}
+
+message InlayHint {
+  Position position = 1;
+  string label = 2;
+  int32 kind = 3;
+  repeated TextEdit text_edits = 4;
+  string tooltip = 5;
+  bool padding_left = 6;
+  bool padding_right = 7;
+  repeated InlayHintLabelPart label_parts = 8;
+  MarkupContent tooltip_markup = 9;
+}
+
+message InlayHintLabelPart {
+  string value = 1;
+  string tooltip = 2;
+  Location location = 3;
+  Command command = 4;
+  MarkupContent tooltip_markup = 5;
+}
+
+message InlineValue {
+  Range range = 1;
+  string text = 2;
+  string variable_name = 3;
+  string expression = 4;
+}
+
+message ShowDocumentResult {
+  bool success = 1;
+}
+
+// --- Request / Response messages ---
+
+message InitializeRequest {
+  string root_uri = 1;
+  int32 process_id = 2;
+  bool has_process_id = 3;
+  bytes capabilities = 4;
+  repeated WorkspaceFolder workspace_folders = 5;
+  string trace = 6;
+}
+
+message InitializeResponse {
+  ServerCapabilities capabilities = 1;
+}
+
+message InitializedRequest {}
+message InitializedResponse {}
+
+message ShutdownRequest {}
+message ShutdownResponse {}
+
+message ExitRequest {}
+message ExitResponse {}
+
+message DidOpenRequest {
+  TextDocumentItem text_document = 1;
+}
+
+message DidOpenResponse {}
+
+message DidChangeRequest {
+  VersionedTextDocumentIdentifier text_document = 1;
+  repeated TextDocumentContentChangeEvent content_changes = 2;
+}
+
+message DidChangeResponse {}
+
+message DidCloseRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message DidCloseResponse {}
+
+message DidSaveRequest {
+  TextDocumentIdentifier text_document = 1;
+  string text = 2;
+}
+
+message DidSaveResponse {}
+
+message CompletionRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+  int32 context_trigger_kind = 3;
+  string context_trigger_character = 4;
+}
+
+message CompletionResponse {
+  CompletionResult result = 1;
+}
+
+message HoverRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message HoverResponse {
+  Hover result = 1;
+  bool has_result = 2;
+}
+
+message SignatureHelpRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message SignatureHelpResponse {
+  SignatureHelp result = 1;
+  bool has_result = 2;
+}
+
+message DefinitionRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message DefinitionResponse {
+  repeated Location locations = 1;
+  Location location = 2;
+  repeated LocationLink location_links = 3;
+}
+
+message DeclarationRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message DeclarationResponse {
+  repeated Location locations = 1;
+  Location location = 2;
+  repeated LocationLink location_links = 3;
+}
+
+message TypeDefinitionRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message TypeDefinitionResponse {
+  repeated Location locations = 1;
+  Location location = 2;
+  repeated LocationLink location_links = 3;
+}
+
+message ImplementationRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message ImplementationResponse {
+  repeated Location locations = 1;
+  Location location = 2;
+  repeated LocationLink location_links = 3;
+}
+
+message ReferencesRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+  bool include_declaration = 3;
+}
+
+message ReferencesResponse {
+  repeated Location locations = 1;
+}
+
+message DocumentHighlightRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message DocumentHighlightResponse {
+  repeated DocumentHighlight highlights = 1;
+}
+
+message DocumentSymbolRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message DocumentSymbolResponse {
+  repeated DocumentSymbol symbols = 1;
+  repeated SymbolInformation symbol_information = 2;
+}
+
+message CodeActionRequest {
+  TextDocumentIdentifier text_document = 1;
+  Range range = 2;
+  repeated Diagnostic diagnostics = 3;
+}
+
+message CodeActionResultItem {
+  CodeAction code_action = 1;
+  Command command = 2;
+}
+
+message CodeActionResponse {
+  repeated CodeAction actions = 1;
+  repeated CodeActionResultItem items = 2;
+}
+
+message CodeLensRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message CodeLensResponse {
+  repeated CodeLens lenses = 1;
+}
+
+message FormattingRequest {
+  TextDocumentIdentifier text_document = 1;
+  uint32 tab_size = 2;
+  bool insert_spaces = 3;
+}
+
+message FormattingResponse {
+  repeated TextEdit edits = 1;
+}
+
+message RangeFormattingRequest {
+  TextDocumentIdentifier text_document = 1;
+  Range range = 2;
+  uint32 tab_size = 3;
+  bool insert_spaces = 4;
+}
+
+message RangeFormattingResponse {
+  repeated TextEdit edits = 1;
+}
+
+message RenameRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+  string new_name = 3;
+}
+
+message RenameResponse {
+  WorkspaceEdit result = 1;
+  bool has_result = 2;
+}
+
+message PrepareRenameRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message PrepareRenameResponse {
+  PrepareRenameResult result = 1;
+  bool has_result = 2;
+}
+
+message FoldingRangeRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message FoldingRangeResponse {
+  repeated FoldingRange ranges = 1;
+}
+
+message SelectionRangeRequest {
+  TextDocumentIdentifier text_document = 1;
+  repeated Position positions = 2;
+}
+
+message SelectionRangeResponse {
+  repeated SelectionRange ranges = 1;
+}
+
+message SemanticTokensFullRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message SemanticTokensFullResponse {
+  SemanticTokens result = 1;
+  bool has_result = 2;
+}
+
+message SemanticTokensRangeRequest {
+  TextDocumentIdentifier text_document = 1;
+  Range range = 2;
+}
+
+message SemanticTokensRangeResponse {
+  SemanticTokens result = 1;
+  bool has_result = 2;
+}
+
+message DiagnosticRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message DiagnosticResponse {
+  DocumentDiagnosticReport report = 1;
+}
+
+message WorkspaceSymbolRequest {
+  string query = 1;
+}
+
+message WorkspaceSymbolResponse {
+  repeated SymbolInformation symbols = 1;
+}
+
+message ExecuteCommandRequest {
+  string command = 1;
+  repeated string arguments = 2;
+}
+
+message ExecuteCommandResponse {
+  string result = 1;
+}
+
+message PrepareCallHierarchyRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message PrepareCallHierarchyResponse {
+  repeated CallHierarchyItem items = 1;
+}
+
+message CallHierarchyIncomingCallsRequest {
+  CallHierarchyItem item = 1;
+}
+
+message CallHierarchyIncomingCallsResponse {
+  repeated CallHierarchyIncomingCall calls = 1;
+}
+
+message CallHierarchyOutgoingCallsRequest {
+  CallHierarchyItem item = 1;
+}
+
+message CallHierarchyOutgoingCallsResponse {
+  repeated CallHierarchyOutgoingCall calls = 1;
+}
+
+// --- New Request / Response messages ---
+
+message CompletionResolveRequest {
+  CompletionItem item = 1;
+}
+
+message CompletionResolveResponse {
+  CompletionItem item = 1;
+}
+
+message CodeLensResolveRequest {
+  CodeLens lens = 1;
+}
+
+message CodeLensResolveResponse {
+  CodeLens lens = 1;
+}
+
+message DocumentColorRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message DocumentColorResponse {
+  repeated ColorInformation colors = 1;
+}
+
+message ColorPresentationRequest {
+  TextDocumentIdentifier text_document = 1;
+  Color color = 2;
+  Range range = 3;
+}
+
+message ColorPresentationResponse {
+  repeated ColorPresentation presentations = 1;
+}
+
+message DocumentLinkRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message DocumentLinkResponse {
+  repeated DocumentLink links = 1;
+}
+
+message DocumentLinkResolveRequest {
+  DocumentLink link = 1;
+}
+
+message DocumentLinkResolveResponse {
+  DocumentLink link = 1;
+}
+
+message OnTypeFormattingRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+  string character = 3;
+  uint32 tab_size = 4;
+  bool insert_spaces = 5;
+}
+
+message OnTypeFormattingResponse {
+  repeated TextEdit edits = 1;
+}
+
+message LinkedEditingRangeRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message LinkedEditingRangeResponse {
+  LinkedEditingRanges result = 1;
+  bool has_result = 2;
+}
+
+message MonikerRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message MonikerResponse {
+  repeated Moniker monikers = 1;
+}
+
+message WillSaveRequest {
+  TextDocumentIdentifier text_document = 1;
+  int32 reason = 2;
+}
+
+message WillSaveResponse {}
+
+message WillSaveWaitUntilRequest {
+  TextDocumentIdentifier text_document = 1;
+  int32 reason = 2;
+}
+
+message WillSaveWaitUntilResponse {
+  repeated TextEdit edits = 1;
+}
+
+message SemanticTokensFullDeltaRequest {
+  TextDocumentIdentifier text_document = 1;
+  string previous_result_id = 2;
+}
+
+message SemanticTokensFullDeltaResponse {
+  SemanticTokensDelta result = 1;
+  bool has_result = 2;
+}
+
+message PrepareTypeHierarchyRequest {
+  TextDocumentIdentifier text_document = 1;
+  Position position = 2;
+}
+
+message PrepareTypeHierarchyResponse {
+  repeated TypeHierarchyItem items = 1;
+}
+
+message TypeHierarchySupertypesRequest {
+  TypeHierarchyItem item = 1;
+}
+
+message TypeHierarchySupertypesResponse {
+  repeated TypeHierarchyItem items = 1;
+}
+
+message TypeHierarchySubtypesRequest {
+  TypeHierarchyItem item = 1;
+}
+
+message TypeHierarchySubtypesResponse {
+  repeated TypeHierarchyItem items = 1;
+}
+
+message InlayHintRequest {
+  TextDocumentIdentifier text_document = 1;
+  Range range = 2;
+}
+
+message InlayHintResponse {
+  repeated InlayHint hints = 1;
+}
+
+message InlayHintResolveRequest {
+  InlayHint hint = 1;
+}
+
+message InlayHintResolveResponse {
+  InlayHint hint = 1;
+}
+
+message InlineValueRequest {
+  TextDocumentIdentifier text_document = 1;
+  Range range = 2;
+}
+
+message InlineValueResponse {
+  repeated InlineValue values = 1;
+}
+
+message WillCreateFilesRequest {
+  repeated FileCreate files = 1;
+}
+
+message WillCreateFilesResponse {
+  WorkspaceEdit result = 1;
+  bool has_result = 2;
+}
+
+message WillRenameFilesRequest {
+  repeated FileRename files = 1;
+}
+
+message WillRenameFilesResponse {
+  WorkspaceEdit result = 1;
+  bool has_result = 2;
+}
+
+message WillDeleteFilesRequest {
+  repeated FileDelete files = 1;
+}
+
+message WillDeleteFilesResponse {
+  WorkspaceEdit result = 1;
+  bool has_result = 2;
+}
+
+message DidChangeConfigurationRequest {
+  bytes settings = 1;
+}
+
+message DidChangeConfigurationResponse {}
+
+message DidChangeWatchedFilesRequest {
+  repeated FileEvent changes = 1;
+}
+
+message DidChangeWatchedFilesResponse {}
+
+message DidChangeWorkspaceFoldersRequest {
+  repeated WorkspaceFolder added = 1;
+  repeated WorkspaceFolder removed = 2;
+}
+
+message DidChangeWorkspaceFoldersResponse {}
+
+message WorkDoneProgressCancelRequest {
+  string token = 1;
+}
+
+message WorkDoneProgressCancelResponse {}
+
+message SetTraceRequest {
+  string value = 1;
+}
+
+message SetTraceResponse {}
+
+message DidCreateFilesRequest {
+  repeated FileCreate files = 1;
+}
+
+message DidCreateFilesResponse {}
+
+message DidRenameFilesRequest {
+  repeated FileRename files = 1;
+}
+
+message DidRenameFilesResponse {}
+
+message DidDeleteFilesRequest {
+  repeated FileDelete files = 1;
+}
+
+message DidDeleteFilesResponse {}
+
+// --- Service ---
+
+service LSP {
+  // Lifecycle
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+  rpc Initialized(InitializedRequest) returns (InitializedResponse);
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+  rpc Exit(ExitRequest) returns (ExitResponse);
+
+  // Document Sync
+  rpc DidOpen(DidOpenRequest) returns (DidOpenResponse);
+  rpc DidChange(DidChangeRequest) returns (DidChangeResponse);
+  rpc DidClose(DidCloseRequest) returns (DidCloseResponse);
+  rpc DidSave(DidSaveRequest) returns (DidSaveResponse);
+
+  // Language Features
+  rpc Completion(CompletionRequest) returns (CompletionResponse);
+  rpc Hover(HoverRequest) returns (HoverResponse);
+  rpc SignatureHelp(SignatureHelpRequest) returns (SignatureHelpResponse);
+  rpc Definition(DefinitionRequest) returns (DefinitionResponse);
+  rpc Declaration(DeclarationRequest) returns (DeclarationResponse);
+  rpc TypeDefinition(TypeDefinitionRequest) returns (TypeDefinitionResponse);
+  rpc Implementation(ImplementationRequest) returns (ImplementationResponse);
+  rpc References(ReferencesRequest) returns (ReferencesResponse);
+  rpc DocumentHighlight(DocumentHighlightRequest) returns (DocumentHighlightResponse);
+  rpc DocumentSymbol(DocumentSymbolRequest) returns (DocumentSymbolResponse);
+  rpc CodeAction(CodeActionRequest) returns (CodeActionResponse);
+  rpc CodeLens(CodeLensRequest) returns (CodeLensResponse);
+  rpc Formatting(FormattingRequest) returns (FormattingResponse);
+  rpc RangeFormatting(RangeFormattingRequest) returns (RangeFormattingResponse);
+  rpc Rename(RenameRequest) returns (RenameResponse);
+  rpc PrepareRename(PrepareRenameRequest) returns (PrepareRenameResponse);
+  rpc FoldingRange(FoldingRangeRequest) returns (FoldingRangeResponse);
+  rpc SelectionRange(SelectionRangeRequest) returns (SelectionRangeResponse);
+
+  // Semantic Tokens
+  rpc SemanticTokensFull(SemanticTokensFullRequest) returns (SemanticTokensFullResponse);
+  rpc SemanticTokensRange(SemanticTokensRangeRequest) returns (SemanticTokensRangeResponse);
+
+  // Diagnostics
+  rpc Diagnostic(DiagnosticRequest) returns (DiagnosticResponse);
+
+  // Workspace
+  rpc WorkspaceSymbol(WorkspaceSymbolRequest) returns (WorkspaceSymbolResponse);
+  rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse);
+
+  // Call Hierarchy
+  rpc PrepareCallHierarchy(PrepareCallHierarchyRequest) returns (PrepareCallHierarchyResponse);
+  rpc CallHierarchyIncomingCalls(CallHierarchyIncomingCallsRequest) returns (CallHierarchyIncomingCallsResponse);
+  rpc CallHierarchyOutgoingCalls(CallHierarchyOutgoingCallsRequest) returns (CallHierarchyOutgoingCallsResponse);
+
+  // Resolve methods
+  rpc CompletionResolve(CompletionResolveRequest) returns (CompletionResolveResponse);
+  rpc CodeLensResolve(CodeLensResolveRequest) returns (CodeLensResolveResponse);
+  rpc DocumentLinkResolve(DocumentLinkResolveRequest) returns (DocumentLinkResolveResponse);
+  rpc InlayHintResolve(InlayHintResolveRequest) returns (InlayHintResolveResponse);
+
+  // Document Color
+  rpc DocumentColor(DocumentColorRequest) returns (DocumentColorResponse);
+  rpc ColorPresentation(ColorPresentationRequest) returns (ColorPresentationResponse);
+
+  // Document Link
+  rpc DocumentLink(DocumentLinkRequest) returns (DocumentLinkResponse);
+
+  // On Type Formatting
+  rpc OnTypeFormatting(OnTypeFormattingRequest) returns (OnTypeFormattingResponse);
+
+  // Linked Editing
+  rpc LinkedEditingRange(LinkedEditingRangeRequest) returns (LinkedEditingRangeResponse);
+
+  // Moniker
+  rpc Moniker(MonikerRequest) returns (MonikerResponse);
+
+  // Will Save
+  rpc WillSave(WillSaveRequest) returns (WillSaveResponse);
+  rpc WillSaveWaitUntil(WillSaveWaitUntilRequest) returns (WillSaveWaitUntilResponse);
+
+  // Semantic Tokens Delta
+  rpc SemanticTokensFullDelta(SemanticTokensFullDeltaRequest) returns (SemanticTokensFullDeltaResponse);
+
+  // Type Hierarchy
+  rpc PrepareTypeHierarchy(PrepareTypeHierarchyRequest) returns (PrepareTypeHierarchyResponse);
+  rpc TypeHierarchySupertypes(TypeHierarchySupertypesRequest) returns (TypeHierarchySupertypesResponse);
+  rpc TypeHierarchySubtypes(TypeHierarchySubtypesRequest) returns (TypeHierarchySubtypesResponse);
+
+  // Inlay Hint
+  rpc InlayHint(InlayHintRequest) returns (InlayHintResponse);
+
+  // Inline Value
+  rpc InlineValue(InlineValueRequest) returns (InlineValueResponse);
+
+  // Workspace File Operations
+  rpc WillCreateFiles(WillCreateFilesRequest) returns (WillCreateFilesResponse);
+  rpc WillRenameFiles(WillRenameFilesRequest) returns (WillRenameFilesResponse);
+  rpc WillDeleteFiles(WillDeleteFilesRequest) returns (WillDeleteFilesResponse);
+
+  // Notifications
+  rpc DidChangeConfiguration(DidChangeConfigurationRequest) returns (DidChangeConfigurationResponse);
+  rpc DidChangeWatchedFiles(DidChangeWatchedFilesRequest) returns (DidChangeWatchedFilesResponse);
+  rpc DidChangeWorkspaceFolders(DidChangeWorkspaceFoldersRequest) returns (DidChangeWorkspaceFoldersResponse);
+  rpc WorkDoneProgressCancel(WorkDoneProgressCancelRequest) returns (WorkDoneProgressCancelResponse);
+  rpc SetTrace(SetTraceRequest) returns (SetTraceResponse);
+  rpc DidCreateFiles(DidCreateFilesRequest) returns (DidCreateFilesResponse);
+  rpc DidRenameFiles(DidRenameFilesRequest) returns (DidRenameFilesResponse);
+  rpc DidDeleteFiles(DidDeleteFilesRequest) returns (DidDeleteFilesResponse);
+}

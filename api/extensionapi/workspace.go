@@ -25,6 +25,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/config"
 	"github.com/unstablebuild/rune-go-sdk/api/config/configrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
+	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal/doctoml"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc"
@@ -99,6 +101,12 @@ func (w *Workspace) Terminal(ctx context.Context) workspaceapi.Terminal {
 // of a resource.
 func (w *Workspace) Editor(ctx context.Context) textapi.Editor {
 	return textrpc.NewClient(ctx, w.conn)
+}
+
+// LSP returns the workspace's LSP client, which can be used to interact
+// with language servers.
+func (w *Workspace) LSP(ctx context.Context) semanticapi.LSP {
+	return semanticrpc.NewClient(ctx, w.conn)
 }
 
 // RegisterCommand registers a new command which is to be dispatched to the

@@ -28,6 +28,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/docpb"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi/textrpc"
@@ -37,6 +38,265 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/term/termrpc"
 	"google.golang.org/grpc"
 )
+
+func TestLSPHover(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "hover", testFile, "0", "5",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "func main()")
+}
+
+func TestLSPDefinition(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "definition", testFile, "0", "5",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "file:///src/main.go")
+	require.Contains(t, out, "10:5-10:15")
+}
+
+func TestLSPReferences(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "references", testFile, "0", "5",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "file:///src/main.go")
+	require.Contains(t, out, "file:///src/util.go")
+}
+
+func TestLSPReferencesDecl(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "references", "-d",
+		testFile, "0", "5",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "file:///src/main.go")
+}
+
+func TestLSPSymbols(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "symbols", testFile,
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "main")
+	require.Contains(t, out, "Function")
+	require.Contains(t, out, "x")
+	require.Contains(t, out, "Variable")
+}
+
+func TestLSPWorkspaceSymbols(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run(
+		"lsp", "workspace-symbols", "My",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "MyFunc")
+	require.Contains(t, out, "Function")
+	require.Contains(t, out, "file:///src/main.go")
+}
+
+func TestLSPDiagnostics(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "diagnostics", testFile,
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "Error")
+	require.Contains(t, out, "undefined variable")
+	require.Contains(t, out, "test")
+	require.Contains(t, out, "E001")
+}
+
+func TestLSPRename(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "rename",
+		testFile, "5", "5", "newName",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "file:///src/main.go")
+	require.Contains(t, out, "2 edits")
+}
+
+func TestLSPCodeActions(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"lsp", "code-actions", testFile, "5", "5",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "Extract variable")
+	require.Contains(t, out, "refactor.extract")
+	require.Contains(t, out, "Organize imports")
+}
+
+func TestLSPHoverFormat(t *testing.T) {
+	tests := []struct {
+		name   string
+		format string
+		check  func(t *testing.T, out string)
+	}{
+		{
+			name:   "t",
+			format: "table",
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "CONTENTS")
+				require.Contains(t, out, "func main()")
+			},
+		},
+		{
+			name:   "g",
+			format: "{{.Contents}}",
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "func main()")
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			defer env.cleanup()
+			testFile := filepath.Join(
+				env.datadir, "test.go",
+			)
+			out, err := env.run(
+				"lsp", "hover",
+				"-F", tt.format,
+				testFile, "0", "5",
+			)
+			require.NoError(t, err)
+			tt.check(t, out)
+		})
+	}
+}
+
+func TestLSPDefinitionFormat(t *testing.T) {
+	tests := []struct {
+		name   string
+		format string
+		check  func(t *testing.T, out string)
+	}{
+		{
+			name:   "t",
+			format: "table",
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "URI")
+				require.Contains(
+					t, out, "file:///src/main.go",
+				)
+			},
+		},
+		{
+			name:   "g",
+			format: "{{.URI}}",
+			check: func(t *testing.T, out string) {
+				require.Contains(
+					t, out, "file:///src/main.go",
+				)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			defer env.cleanup()
+			testFile := filepath.Join(
+				env.datadir, "test.go",
+			)
+			out, err := env.run(
+				"lsp", "definition",
+				"-F", tt.format,
+				testFile, "0", "5",
+			)
+			require.NoError(t, err)
+			tt.check(t, out)
+		})
+	}
+}
+
+func TestLSPSymbolsFormat(t *testing.T) {
+	tests := []struct {
+		name   string
+		format string
+		check  func(t *testing.T, out string)
+	}{
+		{
+			name:   "t",
+			format: "table",
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "NAME")
+				require.Contains(t, out, "main")
+			},
+		},
+		{
+			name:   "g",
+			format: "{{.Name}} {{.Kind}}",
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "main Function")
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			defer env.cleanup()
+			testFile := filepath.Join(
+				env.datadir, "test.go",
+			)
+			out, err := env.run(
+				"lsp", "symbols",
+				"-F", tt.format,
+				testFile,
+			)
+			require.NoError(t, err)
+			tt.check(t, out)
+		})
+	}
+}
+
+func TestLSPPositionErr(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	_, err := env.run(
+		"lsp", "hover", testFile, "abc", "0",
+	)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid line")
+}
+
+func TestLSPColumnErr(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	_, err := env.run(
+		"lsp", "hover", testFile, "0", "abc",
+	)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid column")
+}
 
 func TestDatadir(t *testing.T) {
 	env := newTestEnv(t)
@@ -1387,6 +1647,70 @@ func TestJSON(t *testing.T) {
 			raw: true,
 		},
 		{
+			name: "lsp_hover/ok",
+			args: []string{
+				"lsp", "hover",
+				"-F", "json",
+				"/tmp/test.go", "0", "5",
+			},
+		},
+		{
+			name: "lsp_def/ok",
+			args: []string{
+				"lsp", "definition",
+				"-F", "json",
+				"/tmp/test.go", "0", "5",
+			},
+			raw: true,
+		},
+		{
+			name: "lsp_wsyms/ok",
+			args: []string{
+				"lsp", "workspace-symbols",
+				"-F", "json",
+				"My",
+			},
+			raw: true,
+		},
+		{
+			name: "lsp_diag/ok",
+			args: []string{
+				"lsp", "diagnostics",
+				"-F", "json",
+				"/tmp/test.go",
+			},
+			raw: true,
+		},
+		{
+			name: "lsp_rename/ok",
+			args: []string{
+				"lsp", "rename",
+				"-F", "json",
+				"/tmp/test.go",
+				"5", "5", "newName",
+			},
+			raw: true,
+		},
+		{
+			name: "lsp_hover/err",
+			args: []string{
+				"lsp", "hover",
+				"-F", "json",
+				"/tmp/test.go", "abc", "0",
+			},
+			wantErr: true,
+		},
+		{
+			name: "lsp_rename/err",
+			args: []string{
+				"lsp", "rename",
+				"-F", "json",
+				"/tmp/test.go",
+				"abc", "0", "name",
+			},
+			wantErr: true,
+		},
+		{
 			name: "signal/ok",
 			args: []string{
 				"signal", "-F", "json",
@@ -2013,6 +2337,229 @@ func (m *mockSyntax) QueryNode(
 	})
 }
 
+type mockLSP struct {
+	semanticrpc.UnimplementedLSPServer
+}
+
+func (m *mockLSP) Hover(
+	_ context.Context,
+	req *semanticrpc.HoverRequest,
+) (*semanticrpc.HoverResponse, error) {
+	return &semanticrpc.HoverResponse{
+		HasResult: true,
+		Result: &semanticrpc.Hover{
+			Contents: &semanticrpc.MarkupContent{
+				Kind:  1,
+				Value: "func main()",
+			},
+		},
+	}, nil
+}
+
+func (m *mockLSP) Definition(
+	_ context.Context,
+	req *semanticrpc.DefinitionRequest,
+) (*semanticrpc.DefinitionResponse, error) {
+	return &semanticrpc.DefinitionResponse{
+		Locations: []*semanticrpc.Location{{
+			Uri: "file:///src/main.go",
+			Range: &semanticrpc.Range{
+				Start: &semanticrpc.Position{
+					Line: 10, Character: 5,
+				},
+				End: &semanticrpc.Position{
+					Line: 10, Character: 15,
+				},
+			},
+		}},
+	}, nil
+}
+
+func (m *mockLSP) References(
+	_ context.Context,
+	req *semanticrpc.ReferencesRequest,
+) (*semanticrpc.ReferencesResponse, error) {
+	return &semanticrpc.ReferencesResponse{
+		Locations: []*semanticrpc.Location{
+			{
+				Uri: "file:///src/main.go",
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 10, Character: 5,
+					},
+					End: &semanticrpc.Position{
+						Line: 10, Character: 15,
+					},
+				},
+			},
+			{
+				Uri: "file:///src/util.go",
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 20, Character: 3,
+					},
+					End: &semanticrpc.Position{
+						Line: 20, Character: 13,
+					},
+				},
+			},
+		},
+	}, nil
+}
+
+func (m *mockLSP) DocumentSymbol(
+	_ context.Context,
+	req *semanticrpc.DocumentSymbolRequest,
+) (*semanticrpc.DocumentSymbolResponse, error) {
+	return &semanticrpc.DocumentSymbolResponse{
+		Symbols: []*semanticrpc.DocumentSymbol{{
+			Name: "main",
+			Kind: 12,
+			Range: &semanticrpc.Range{
+				Start: &semanticrpc.Position{
+					Line: 5, Character: 0,
+				},
+				End: &semanticrpc.Position{
+					Line: 10, Character: 1,
+				},
+			},
+			SelectionRange: &semanticrpc.Range{
+				Start: &semanticrpc.Position{
+					Line: 5, Character: 5,
+				},
+				End: &semanticrpc.Position{
+					Line: 5, Character: 9,
+				},
+			},
+			Children: []*semanticrpc.DocumentSymbol{{
+				Name: "x",
+				Kind: 13,
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 6, Character: 1,
+					},
+					End: &semanticrpc.Position{
+						Line: 6, Character: 10,
+					},
+				},
+				SelectionRange: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 6, Character: 1,
+					},
+					End: &semanticrpc.Position{
+						Line: 6, Character: 2,
+					},
+				},
+			}},
+		}},
+	}, nil
+}
+
+func (m *mockLSP) WorkspaceSymbol(
+	_ context.Context,
+	req *semanticrpc.WorkspaceSymbolRequest,
+) (*semanticrpc.WorkspaceSymbolResponse, error) {
+	return &semanticrpc.WorkspaceSymbolResponse{
+		Symbols: []*semanticrpc.SymbolInformation{{
+			Name: "MyFunc",
+			Kind: 12,
+			Location: &semanticrpc.Location{
+				Uri: "file:///src/main.go",
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 5, Character: 0,
+					},
+					End: &semanticrpc.Position{
+						Line: 5, Character: 10,
+					},
+				},
+			},
+		}},
+	}, nil
+}
+
+func (m *mockLSP) Diagnostic(
+	_ context.Context,
+	req *semanticrpc.DiagnosticRequest,
+) (*semanticrpc.DiagnosticResponse, error) {
+	return &semanticrpc.DiagnosticResponse{
+		Report: &semanticrpc.DocumentDiagnosticReport{
+			Kind: "full",
+			Items: []*semanticrpc.Diagnostic{{
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 3, Character: 10,
+					},
+					End: &semanticrpc.Position{
+						Line: 3, Character: 15,
+					},
+				},
+				Severity: 1,
+				Code:     "E001",
+				Source:   "test",
+				Message:  "undefined variable",
+			}},
+		},
+	}, nil
+}
+
+func (m *mockLSP) Rename(
+	_ context.Context,
+	req *semanticrpc.RenameRequest,
+) (*semanticrpc.RenameResponse, error) {
+	return &semanticrpc.RenameResponse{
+		HasResult: true,
+		Result: &semanticrpc.WorkspaceEdit{
+			Changes: map[string]*semanticrpc.TextEditList{
+				"file:///src/main.go": {
+					Edits: []*semanticrpc.TextEdit{
+						{
+							Range: &semanticrpc.Range{
+								Start: &semanticrpc.Position{
+									Line: 5, Character: 5,
+								},
+								End: &semanticrpc.Position{
+									Line: 5, Character: 9,
+								},
+							},
+							NewText: req.GetNewName(),
+						},
+						{
+							Range: &semanticrpc.Range{
+								Start: &semanticrpc.Position{
+									Line: 20, Character: 3,
+								},
+								End: &semanticrpc.Position{
+									Line: 20, Character: 7,
+								},
+							},
+							NewText: req.GetNewName(),
+						},
+					},
+				},
+			},
+		},
+	}, nil
+}
+
+func (m *mockLSP) CodeAction(
+	_ context.Context,
+	req *semanticrpc.CodeActionRequest,
+) (*semanticrpc.CodeActionResponse, error) {
+	return &semanticrpc.CodeActionResponse{
+		Actions: []*semanticrpc.CodeAction{
+			{
+				Title: "Extract variable",
+				Kind:  "refactor.extract",
+			},
+			{
+				Title: "Organize imports",
+				Kind:  "source.organizeImports",
+			},
+		},
+	}, nil
+}
+
 type testEnv struct {
 	t        *testing.T
 	srv      *grpc.Server
@@ -2027,6 +2574,7 @@ type testEnv struct {
 	syntax   *mockSyntax
 	executor *mockExecutor
 	terminal *mockTerminal
+	lsp      *mockLSP
 	cleanup  func()
 }
 
@@ -2052,6 +2600,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	syn := &mockSyntax{}
 	exec := &mockExecutor{startPid: 12345}
 	term := newMockTerminal()
+	lspMock := &mockLSP{}
 
 	browserrpc.RegisterNotificationsServer(
 		srv, notif,
@@ -2066,6 +2615,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	syntaxrpc.RegisterSyntaxServer(srv, syn)
 	workspacerpc.RegisterExecutorServer(srv, exec)
 	workspacerpc.RegisterTerminalServer(srv, term)
+	semanticrpc.RegisterLSPServer(srv, lspMock)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -2084,6 +2634,7 @@ func newTestEnv(t *testing.T) *testEnv {
 			srv.Stop()
 			term.cleanup()
 		},
+		lsp: lspMock,
 	}
 }
 

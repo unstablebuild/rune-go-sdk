@@ -46,6 +46,8 @@ const (
 	PermissionSyntaxTree Permission = "permsyntax"
 	// PermissionConfig requests access to read the loaded workspace configuration.
 	PermissionConfig Permission = "permcfg"
+	// PermissionLSP requests access to the Language Server Protocol.
+	PermissionLSP Permission = "permlsp"
 )
 
 // Permissions is a set of Permission.
@@ -75,5 +77,6 @@ func AllPermissions() Permissions {
 		PermissionStorage:               nil,
 		PermissionSyntaxTree:            nil,
 		PermissionConfig:                nil,
+		PermissionLSP:                   nil,
 	}
 }
