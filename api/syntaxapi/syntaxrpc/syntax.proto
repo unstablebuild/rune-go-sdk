@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpc";
+
+package syntax;
+
+import "term/termrpc/term.proto";
+
+message SearchRequest {
+    string query = 1;
+    repeated string capture_names = 2;
+}
+
+message SearchResponse {
+    string uri = 1;
+    string text = 2;
+    term.Coordinates position = 3;
+}
+
+service Syntax {
+    rpc Search(SearchRequest) returns (stream SearchResponse);
+}
