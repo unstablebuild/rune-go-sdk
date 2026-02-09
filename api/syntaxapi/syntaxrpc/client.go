@@ -81,9 +81,11 @@ func (it *rpcIterator) Next(_ context.Context) (syntaxapi.Result, bool) {
 	}
 
 	result := syntaxapi.Result{
-		File:     uri,
-		Text:     resp.GetText(),
-		Position: resp.GetPosition().ToModel(),
+		File:        uri,
+		Text:        resp.GetText(),
+		From:        resp.GetFrom().ToModel(),
+		To:          resp.GetTo().ToModel(),
+		CaptureName: resp.GetCaptureName(),
 	}
 	return result, true
 }

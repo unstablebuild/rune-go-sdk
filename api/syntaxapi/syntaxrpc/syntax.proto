@@ -14,7 +14,10 @@ message SearchRequest {
 message SearchResponse {
     string uri = 1;
     string text = 2;
-    term.Coordinates position = 3;
+    reserved 3;
+    term.Coordinates from = 4;
+    term.Coordinates to = 5;
+    string capture_name = 6;
 }
 
 service Syntax {

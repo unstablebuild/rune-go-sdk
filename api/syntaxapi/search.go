@@ -22,9 +22,11 @@ import (
 
 // Result represents a single search match.
 type Result struct {
-	File     workspaceapi.URI
-	Text     string
-	Position term.Coordinates
+	File        workspaceapi.URI
+	Text        string
+	From        term.Coordinates
+	To          term.Coordinates
+	CaptureName string
 }
 
 // Searcher provides AST-level search capabilities.

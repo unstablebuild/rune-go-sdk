@@ -78,7 +78,9 @@ type SearchResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uri           string                 `protobuf:"bytes,1,opt,name=uri,proto3" json:"uri,omitempty"`
 	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
-	Position      *termrpc.Coordinates   `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	From          *termrpc.Coordinates   `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`
+	To            *termrpc.Coordinates   `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`
+	CaptureName   string                 `protobuf:"bytes,6,opt,name=capture_name,json=captureName,proto3" json:"capture_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -127,11 +129,25 @@ func (x *SearchResponse) GetText() string {
 	return ""
 }
 
-func (x *SearchResponse) GetPosition() *termrpc.Coordinates {
+func (x *SearchResponse) GetFrom() *termrpc.Coordinates {
 	if x != nil {
-		return x.Position
+		return x.From
 	}
 	return nil
+}
+
+func (x *SearchResponse) GetTo() *termrpc.Coordinates {
+	if x != nil {
+		return x.To
+	}
+	return nil
+}
+
+func (x *SearchResponse) GetCaptureName() string {
+	if x != nil {
+		return x.CaptureName
+	}
+	return ""
 }
 
 var File_syntaxrpc_syntax_proto protoreflect.FileDescriptor
@@ -141,11 +157,13 @@ const file_syntaxrpc_syntax_proto_rawDesc = "" +
 	"\x16syntaxrpc/syntax.proto\x12\x06syntax\x1a\x17term/termrpc/term.proto\"J\n" +
 	"\rSearchRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12#\n" +
-	"\rcapture_names\x18\x02 \x03(\tR\fcaptureNames\"e\n" +
+	"\rcapture_names\x18\x02 \x03(\tR\fcaptureNames\"\xa9\x01\n" +
 	"\x0eSearchResponse\x12\x10\n" +
 	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\x12-\n" +
-	"\bposition\x18\x03 \x01(\v2\x11.term.CoordinatesR\bposition2C\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12%\n" +
+	"\x04from\x18\x04 \x01(\v2\x11.term.CoordinatesR\x04from\x12!\n" +
+	"\x02to\x18\x05 \x01(\v2\x11.term.CoordinatesR\x02to\x12!\n" +
+	"\fcapture_name\x18\x06 \x01(\tR\vcaptureNameJ\x04\b\x03\x10\x042C\n" +
 	"\x06Syntax\x129\n" +
 	"\x06Search\x12\x15.syntax.SearchRequest\x1a\x16.syntax.SearchResponse0\x01B>Z<github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpcb\x06proto3"
 
@@ -168,14 +186,15 @@ var file_syntaxrpc_syntax_proto_goTypes = []any{
 	(*termrpc.Coordinates)(nil), // 2: term.Coordinates
 }
 var file_syntaxrpc_syntax_proto_depIdxs = []int32{
-	2, // 0: syntax.SearchResponse.position:type_name -> term.Coordinates
-	0, // 1: syntax.Syntax.Search:input_type -> syntax.SearchRequest
-	1, // 2: syntax.Syntax.Search:output_type -> syntax.SearchResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: syntax.SearchResponse.from:type_name -> term.Coordinates
+	2, // 1: syntax.SearchResponse.to:type_name -> term.Coordinates
+	0, // 2: syntax.Syntax.Search:input_type -> syntax.SearchRequest
+	1, // 3: syntax.Syntax.Search:output_type -> syntax.SearchResponse
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_syntaxrpc_syntax_proto_init() }
