@@ -15,13 +15,17 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/extensionapi"
+	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"golang.org/x/oauth2"
 )
 
@@ -78,6 +82,29 @@ func (a *app) getWorkspace() (
 	}
 	a.workspace = w
 	return w, nil
+}
+
+func looksLikeURI(s string) bool {
+	return strings.Contains(s, "://")
+}
+
+func (a *app) resolveURIArg(
+	ctx context.Context, arg string,
+) (workspaceapi.URI, error) {
+	if looksLikeURI(arg) {
+		return workspaceapi.ParseURI(arg)
+	}
+	absPath, err := filepath.Abs(arg)
+	if err != nil {
+		return workspaceapi.URI{}, fmt.Errorf(
+			"resolve path: %w", err,
+		)
+	}
+	w, err := a.getWorkspace()
+	if err != nil {
+		return workspaceapi.URI{}, err
+	}
+	return w.FileSystem(ctx).URI(absPath)
 }
 
 func newRootCmd() *cobra.Command {

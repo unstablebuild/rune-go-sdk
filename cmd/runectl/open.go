@@ -17,7 +17,6 @@ package main
 import (
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
-	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 )
 
 func newOpenCmd(a *app) *cobra.Command {
@@ -29,11 +28,11 @@ func newOpenCmd(a *app) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			w, err := a.getWorkspace()
+			parsed, err := a.resolveURIArg(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}
-			parsed, err := workspaceapi.ParseURI(args[0])
+			w, err := a.getWorkspace()
 			if err != nil {
 				return err
 			}

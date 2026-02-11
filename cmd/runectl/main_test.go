@@ -63,6 +63,16 @@ func TestOpen(t *testing.T) {
 	require.Contains(t, out, "file:///tmp/test.txt")
 }
 
+func TestOpenWithPath(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run(
+		"open", "/tmp/test.txt",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "file:///tmp/test.txt")
+}
+
 func TestNotify(t *testing.T) {
 	env := newTestEnv(t)
 	defer env.cleanup()
@@ -101,6 +111,17 @@ func TestWMSplit(t *testing.T) {
 	require.Equal(t, "200\n", out)
 }
 
+func TestWMSplitWithPath(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run(
+		"wm", "split", "-o", "right", "42",
+		"/tmp/test.txt",
+	)
+	require.NoError(t, err)
+	require.Equal(t, "200\n", out)
+}
+
 func TestWMSetContent(t *testing.T) {
 	env := newTestEnv(t)
 	defer env.cleanup()
@@ -112,11 +133,32 @@ func TestWMSetContent(t *testing.T) {
 	require.Equal(t, "OK\n", out)
 }
 
+func TestWMSetContentWithPath(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run(
+		"wm", "set-content", "42",
+		"/tmp/test.txt",
+	)
+	require.NoError(t, err)
+	require.Equal(t, "OK\n", out)
+}
+
 func TestEditorPrint(t *testing.T) {
 	env := newTestEnv(t)
 	defer env.cleanup()
 	out, err := env.run(
 		"editor", "print", "file:///tmp/test.txt",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "hello world")
+}
+
+func TestEditorPrintWithPath(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run(
+		"editor", "print", "/tmp/test.txt",
 	)
 	require.NoError(t, err)
 	require.Contains(t, out, "hello world")
@@ -288,6 +330,110 @@ func TestMissingEnvVars(t *testing.T) {
 	require.ErrorIs(t, err, errNotInRune)
 }
 
+func TestLooksLikeURI(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  string
+		want bool
+	}{
+		{
+			name: "file_uri",
+			arg:  "file:///tmp/test.txt",
+			want: true,
+		},
+		{
+			name: "http_uri",
+			arg:  "http://example.com/path",
+			want: true,
+		},
+		{
+			name: "https_uri",
+			arg:  "https://example.com/path",
+			want: true,
+		},
+		{
+			name: "custom_scheme",
+			arg:  "rune://workspace/file.txt",
+			want: true,
+		},
+		{
+			name: "absolute_path",
+			arg:  "/tmp/test.txt",
+			want: false,
+		},
+		{
+			name: "relative_path",
+			arg:  "./test.txt",
+			want: false,
+		},
+		{
+			name: "relative_path_no_dot",
+			arg:  "test.txt",
+			want: false,
+		},
+		{
+			name: "windows_path",
+			arg:  "C:\\Users\\test.txt",
+			want: false,
+		},
+		{
+			name: "empty_string",
+			arg:  "",
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := looksLikeURI(tt.arg)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestResolveURIArgWithURI(t *testing.T) {
+	tests := []struct {
+		name    string
+		arg     string
+		wantURI string
+		wantErr bool
+	}{
+		{
+			name:    "file_uri",
+			arg:     "file:///tmp/test.txt",
+			wantURI: "file:///tmp/test.txt",
+		},
+		{
+			name:    "rune_uri",
+			arg:     "rune://workspace/src/main.go",
+			wantURI: "rune://workspace/src/main.go",
+		},
+		{
+			name:    "uri_with_query",
+			arg:     "file:///tmp/test.txt?line=10",
+			wantURI: "file:///tmp/test.txt?line=10",
+		},
+		{
+			name:    "invalid_uri",
+			arg:     "://invalid",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &app{}
+			got, err := a.resolveURIArg(
+				context.Background(), tt.arg,
+			)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantURI, got.String())
+		})
+	}
+}
+
 func TestSyntaxSearch(t *testing.T) {
 	env := newTestEnv(t)
 	defer env.cleanup()
@@ -347,6 +493,22 @@ func TestSyntaxQuery(t *testing.T) {
 	)
 }
 
+func TestSyntaxQueryWithURI(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testURI := "file://" + filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"syntax", "query",
+		testURI, "(package_clause) @pkg",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "package main")
+	require.Contains(t,
+		env.syntax.lastQueryURI,
+		"test.go",
+	)
+}
+
 func TestSyntaxQueryWithCapture(t *testing.T) {
 	env := newTestEnv(t)
 	defer env.cleanup()
@@ -378,6 +540,22 @@ func TestSyntaxQueryNode(t *testing.T) {
 		"test.go",
 	)
 	require.Equal(t, uint32(2), env.syntax.lastNodeTypes)
+}
+
+func TestSyntaxQueryNodeWithURI(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testURI := "file://" + filepath.Join(env.datadir, "test.go")
+	out, err := env.run(
+		"syntax", "querynode",
+		testURI, "namespace",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, "main")
+	require.Contains(t,
+		env.syntax.lastQueryURI,
+		"test.go",
+	)
 }
 
 func TestSyntaxSearchNodeCombined(t *testing.T) {

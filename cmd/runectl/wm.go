@@ -21,7 +21,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
-	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
@@ -34,13 +33,13 @@ func (w windowID) WindowID() uint64 { return uint64(w) }
 func resolveHandler(
 	ctx context.Context,
 	a *app,
-	uri string,
+	uriOrPath string,
 ) (browserapi.Handler, error) {
-	w, err := a.getWorkspace()
+	parsed, err := a.resolveURIArg(ctx, uriOrPath)
 	if err != nil {
 		return nil, err
 	}
-	parsed, err := workspaceapi.ParseURI(uri)
+	w, err := a.getWorkspace()
 	if err != nil {
 		return nil, err
 	}

@@ -22,19 +22,18 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
-	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/tcell/v3"
 )
 
 func getEditorHandler(
-	ctx context.Context, a *app, uri string,
+	ctx context.Context, a *app, uriOrPath string,
 ) (textapi.Handler, error) {
-	w, err := a.getWorkspace()
+	parsed, err := a.resolveURIArg(ctx, uriOrPath)
 	if err != nil {
 		return nil, err
 	}
-	parsed, err := workspaceapi.ParseURI(uri)
+	w, err := a.getWorkspace()
 	if err != nil {
 		return nil, err
 	}

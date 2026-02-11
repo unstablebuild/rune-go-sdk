@@ -17,12 +17,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
-	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 )
 
@@ -115,22 +113,6 @@ func parseNodeType(s string) (syntaxapi.NodeCaptureName, error) {
 		result |= nodeType
 	}
 	return result, nil
-}
-
-func (a *app) pathToURI(
-	ctx context.Context, path string,
-) (workspaceapi.URI, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return workspaceapi.URI{}, fmt.Errorf(
-			"resolve path: %w", err,
-		)
-	}
-	w, err := a.getWorkspace()
-	if err != nil {
-		return workspaceapi.URI{}, err
-	}
-	return w.FileSystem(ctx).URI(absPath)
 }
 
 func newSyntaxCmd(a *app) *cobra.Command {
@@ -231,7 +213,7 @@ func newSyntaxQueryCmd(a *app) *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.pathToURI(cmd.Context(), args[0])
+			uri, err := a.resolveURIArg(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}
@@ -273,7 +255,7 @@ Node types: scope|namespace|reference|func|var|method|type`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.pathToURI(cmd.Context(), args[0])
+			uri, err := a.resolveURIArg(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}
