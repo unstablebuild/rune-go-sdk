@@ -15,14 +15,13 @@
 package main
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/extensionapi"
-	"github.com/unstablebuild/rune-go-sdk/cli"
 	"golang.org/x/oauth2"
 )
 
@@ -32,9 +31,8 @@ var errNotInRune = errors.New( //nolint:staticcheck
 )
 
 func main() {
-	root := newRootCLI()
-	if err := cli.Run(context.Background(), root); err != nil {
-		fmt.Fprintf(os.Stderr, "runectrl: %s\n", err)
+	if err := newRootCmd().Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "runectl: %s\n", err)
 		os.Exit(1)
 	}
 }
@@ -72,7 +70,7 @@ func (a *app) getWorkspace() (
 		cfg.Certificate = data
 	}
 	meta := extensionapi.Metadata{
-		ExtensionID: "runectrl",
+		ExtensionID: "runectl",
 	}
 	w, err := extensionapi.NewWorkspace(cfg, meta)
 	if err != nil {
@@ -82,49 +80,29 @@ func (a *app) getWorkspace() (
 	return w, nil
 }
 
-type rootCLI struct {
-	app  *app
-	fs   *cli.FlagSet
-	cmds map[string]cli.CLI
-}
-
-func newRootCLI() *rootCLI {
+func newRootCmd() *cobra.Command {
 	a := &app{}
-	fs := cli.NewFlagSet("runectrl")
-	cmds := map[string]cli.CLI{
-		"datadir": newDatadirCLI(a),
-		"uri":     newURICLI(a),
-		"open":    newOpenCLI(a),
-		"notify":  newNotifyCLI(a),
-		"wm":      newWMCLI(a),
-		"storage": newStorageCLI(a),
-		"editor":  newEditorCLI(a),
-		"syntax":  newSyntaxCLI(a),
-	}
-	return &rootCLI{app: a, fs: fs, cmds: cmds}
-}
 
-func (r *rootCLI) Run(
-	ctx context.Context, args []string,
-) error {
-	return cli.ParseAndRunCommand(
-		ctx, r, r.fs, r.cmds, args,
+	cmd := &cobra.Command{
+		Use:   "runectl",
+		Short: "CLI for the Rune IDE",
+		CompletionOptions: cobra.CompletionOptions{
+			HiddenDefaultCmd: false,
+		},
+		SilenceUsage:  true,
+		SilenceErrors: true,
+	}
+
+	cmd.AddCommand(
+		newDatadirCmd(a),
+		newURICmd(a),
+		newOpenCmd(a),
+		newNotifyCmd(a),
+		newWMCmd(a),
+		newStorageCmd(a),
+		newEditorCmd(a),
+		newSyntaxCmd(a),
 	)
-}
 
-func (r *rootCLI) Man() cli.Manual {
-	var subMan []cli.Manual
-	for _, cmd := range []string{
-		"datadir", "uri", "open", "notify",
-		"wm", "storage", "editor", "syntax",
-	} {
-		subMan = append(subMan, r.cmds[cmd].Man())
-	}
-	return cli.Manual{
-		Name:     "runectrl",
-		Summary:  "CLI for Rune workspace APIs",
-		Synopsis: "<command>",
-		Commands: subMan,
-		Options:  *r.fs,
-	}
+	return cmd
 }

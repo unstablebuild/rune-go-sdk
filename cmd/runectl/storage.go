@@ -18,427 +18,278 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
-	"github.com/unstablebuild/rune-go-sdk/cli"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 )
 
-type storageCLI struct {
-	app  *app
-	fs   *cli.FlagSet
-	cmds map[string]cli.CLI
-}
-
-func newStorageCLI(a *app) *storageCLI {
-	c := &storageCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl storage")
-	c.cmds = map[string]cli.CLI{
-		"create": newStorageCreateCLI(a),
-		"set":    newStorageSetCLI(a),
-		"get":    newStorageGetCLI(a),
-		"update": newStorageUpdateCLI(a),
-		"delete": newStorageDeleteCLI(a),
-		"list":   newStorageListCLI(a),
+func newStorageCmd(a *app) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "storage",
+		Short: "Document storage commands",
 	}
-	return c
-}
 
-func (c *storageCLI) Run(
-	ctx context.Context, args []string,
-) error {
-	return cli.ParseAndRunCommand(
-		ctx, c, c.fs, c.cmds, args,
+	cmd.AddCommand(
+		newStorageCreateCmd(a),
+		newStorageSetCmd(a),
+		newStorageGetCmd(a),
+		newStorageUpdateCmd(a),
+		newStorageDeleteCmd(a),
+		newStorageListCmd(a),
 	)
+
+	return cmd
 }
 
-func (c *storageCLI) Man() cli.Manual {
-	var subMan []cli.Manual
-	for _, name := range []string{
-		"create", "set", "get",
-		"update", "delete", "list",
-	} {
-		subMan = append(subMan, c.cmds[name].Man())
+func newStorageCreateCmd(a *app) *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "create <id> <json-doc>",
+		Short: "Create a document",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			var doc map[string]any
+			if err := json.Unmarshal(
+				[]byte(args[1]), &doc,
+			); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			err = w.Storage(cmd.Context()).Create(cmd.Context(), args[0], doc)
+			if err != nil {
+				return err
+			}
+			return printOK(format)
+		},
 	}
-	return cli.Manual{
-		Name:     "storage",
-		Summary:  "Document storage commands",
-		Synopsis: "<command>",
-		Commands: subMan,
-		Options:  *c.fs,
-	}
-}
 
-type storageCreateCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
-
-func newStorageCreateCLI(a *app) *storageCreateCLI {
-	c := &storageCreateCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl storage create")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
+
+	return cmd
 }
 
-func (c *storageCreateCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 2, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	var doc map[string]any
-	if err := json.Unmarshal(
-		[]byte(rargs[1]), &doc,
-	); err != nil {
-		return fmt.Errorf("invalid JSON: %w", err)
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	err = w.Storage(ctx).Create(ctx, rargs[0], doc)
-	if err != nil {
-		return err
-	}
-	return printOK(c.format)
-}
+func newStorageSetCmd(a *app) *cobra.Command {
+	var format string
 
-func (c *storageCreateCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name: "create",
-		Summary: "Create a document",
-		Synopsis: "[options] <id> <json-doc>",
-		Options: *c.fs,
+	cmd := &cobra.Command{
+		Use:   "set <id> <json-doc>",
+		Short: "Create or update a document",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			var doc map[string]any
+			if err := json.Unmarshal(
+				[]byte(args[1]), &doc,
+			); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			err = w.Storage(cmd.Context()).Set(cmd.Context(), args[0], doc)
+			if err != nil {
+				return err
+			}
+			return printOK(format)
+		},
 	}
-}
 
-type storageSetCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
-
-func newStorageSetCLI(a *app) *storageSetCLI {
-	c := &storageSetCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl storage set")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
+
+	return cmd
 }
 
-func (c *storageSetCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 2, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	var doc map[string]any
-	if err := json.Unmarshal(
-		[]byte(rargs[1]), &doc,
-	); err != nil {
-		return fmt.Errorf("invalid JSON: %w", err)
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	err = w.Storage(ctx).Set(ctx, rargs[0], doc)
-	if err != nil {
-		return err
-	}
-	return printOK(c.format)
-}
+func newStorageGetCmd(a *app) *cobra.Command {
+	var format string
 
-func (c *storageSetCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "set",
-		Summary:  "Create or update a document",
-		Synopsis: "[options] <id> <json-doc>",
-		Options:  *c.fs,
+	cmd := &cobra.Command{
+		Use:   "get <id>",
+		Short: "Get a document",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			if format == "table" {
+				return fmt.Errorf(
+					"table format not supported" +
+						" for storage get",
+				)
+			}
+			var doc map[string]any
+			err = w.Storage(cmd.Context()).Get(cmd.Context(), args[0], &doc)
+			if err != nil {
+				return err
+			}
+			f := format
+			if f == "" {
+				f = "json"
+			}
+			it := iterator.FromSlice([]map[string]any{doc})
+			return printIterator(cmd.Context(), f, it, nil)
+		},
 	}
-}
 
-type storageGetCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
-
-func newStorageGetCLI(a *app) *storageGetCLI {
-	c := &storageGetCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl storage get")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
+
+	return cmd
 }
 
-func (c *storageGetCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 1, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	if c.format == "table" {
-		return fmt.Errorf(
-			"table format not supported" +
-				" for storage get",
-		)
-	}
-	var doc map[string]any
-	err = w.Storage(ctx).Get(ctx, rargs[0], &doc)
-	if err != nil {
-		return err
-	}
-	format := c.format
-	if format == "" {
-		format = "json"
-	}
-	it := iterator.FromSlice([]map[string]any{doc})
-	return printIterator(ctx, format, it, nil)
-}
+func newStorageUpdateCmd(a *app) *cobra.Command {
+	var format string
+	var precond string
 
-func (c *storageGetCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "get",
-		Summary:  "Get a document",
-		Synopsis: "[options] <id>",
-		Options:  *c.fs,
+	cmd := &cobra.Command{
+		Use:   "update <id> <field.path> <value> [<field.path> <value> ...]",
+		Short: "Update document fields",
+		Args:  cobra.MinimumNArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			if len(args) < 3 || (len(args)-1)%2 != 0 {
+				return fmt.Errorf(
+					"usage: storage update [options] <id>" +
+						" <field.path> <value>" +
+						" [<field.path> <value> ...]",
+				)
+			}
+			id := args[0]
+			updates, err := parseUpdateArgs(args[1:])
+			if err != nil {
+				return err
+			}
+			var preconds []storageapi.Precondition
+			if precond != "" {
+				preconds, err = parsePreconditions(precond)
+				if err != nil {
+					return err
+				}
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			err = w.Storage(cmd.Context()).Update(
+				cmd.Context(), id, updates, preconds...,
+			)
+			if err != nil {
+				return err
+			}
+			return printOK(format)
+		},
 	}
-}
 
-type storageUpdateCLI struct {
-	app     *app
-	fs      *cli.FlagSet
-	format  string
-	precond string
-}
-
-func newStorageUpdateCLI(a *app) *storageUpdateCLI {
-	c := &storageUpdateCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl storage update")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	c.fs.StringVar(
-		&c.precond, "p", "",
+	cmd.Flags().StringVarP(
+		&precond, "preconditions", "p", "",
 		"JSON preconditions",
 	)
-	return c
+
+	return cmd
 }
 
-func (c *storageUpdateCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	_, rest, ok, err := cli.ParseUsage(
-		c, c.fs, 0, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	if len(rest) < 3 || len(rest)%2 == 0 {
-		return fmt.Errorf(
-			"usage: storage update [options] <id>" +
-				" <field.path> <value>" +
-				" [<field.path> <value> ...]",
-		)
-	}
-	id := rest[0]
-	updates, err := parseUpdateArgs(rest[1:])
-	if err != nil {
-		return err
-	}
-	var preconds []storageapi.Precondition
-	if c.precond != "" {
-		preconds, err = parsePreconditions(c.precond)
-		if err != nil {
-			return err
-		}
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	err = w.Storage(ctx).Update(
-		ctx, id, updates, preconds...,
-	)
-	if err != nil {
-		return err
-	}
-	return printOK(c.format)
-}
+func newStorageDeleteCmd(a *app) *cobra.Command {
+	var format string
 
-func (c *storageUpdateCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name: "update",
-		Summary: "Update document fields",
-		Synopsis: "[options] <id> <field.path>" +
-			" <value> [<field.path> <value> ...]",
-		Options: *c.fs,
+	cmd := &cobra.Command{
+		Use:   "delete <id>",
+		Short: "Delete a document",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			err = w.Storage(cmd.Context()).Delete(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			return printOK(format)
+		},
 	}
-}
 
-type storageDeleteCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
-
-func newStorageDeleteCLI(a *app) *storageDeleteCLI {
-	c := &storageDeleteCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl storage delete")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
+
+	return cmd
 }
 
-func (c *storageDeleteCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 1, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	err = w.Storage(ctx).Delete(ctx, rargs[0])
-	if err != nil {
-		return err
-	}
-	return printOK(c.format)
-}
+func newStorageListCmd(a *app) *cobra.Command {
+	var format string
+	var filters []string
 
-func (c *storageDeleteCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "delete",
-		Summary:  "Delete a document",
-		Synopsis: "[options] <id>",
-		Options:  *c.fs,
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List documents",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			if format == "table" {
+				return fmt.Errorf(
+					"table format not supported" +
+						" for storage list",
+				)
+			}
+			parsedFilters, err := parseFilters(filters)
+			if err != nil {
+				return err
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			sit, err := w.Storage(cmd.Context()).List(cmd.Context(), parsedFilters)
+			if err != nil {
+				return err
+			}
+			defer func() { _ = sit.Close() }()
+
+			it := storageIterToGeneric(cmd.Context(), sit)
+			defer func() { _ = it.Close() }()
+
+			f := format
+			if f == "" {
+				f = "json"
+			}
+			return printIterator(cmd.Context(), f, it, nil)
+		},
 	}
-}
 
-type storageListCLI struct {
-	app     *app
-	fs      *cli.FlagSet
-	format  string
-	filters multiFlag
-}
-
-func newStorageListCLI(a *app) *storageListCLI {
-	c := &storageListCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl storage list")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	c.fs.Var(
-		&c.filters, "f",
+	cmd.Flags().StringArrayVarP(
+		&filters, "filter", "f", nil,
 		"JSON filter (repeatable)",
 	)
-	return c
-}
 
-func (c *storageListCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	_, _, ok, err := cli.ParseUsage(
-		c, c.fs, 0, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	if c.format == "table" {
-		return fmt.Errorf(
-			"table format not supported" +
-				" for storage list",
-		)
-	}
-	filters, err := parseFilters(c.filters)
-	if err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	sit, err := w.Storage(ctx).List(ctx, filters)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = sit.Close() }()
-
-	it := storageIterToGeneric(ctx, sit)
-	defer func() { _ = it.Close() }()
-
-	format := c.format
-	if format == "" {
-		format = "json"
-	}
-	return printIterator(ctx, format, it, nil)
-}
-
-func (c *storageListCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "list",
-		Summary:  "List documents",
-		Synopsis: "[options]",
-		Options:  *c.fs,
-	}
-}
-
-type multiFlag []string
-
-func (m *multiFlag) String() string { return "" }
-func (m *multiFlag) Set(v string) error {
-	*m = append(*m, v)
-	return nil
+	return cmd
 }
 
 func parseUpdateArgs(
@@ -455,13 +306,11 @@ func parseUpdateArgs(
 	)
 	for i := 0; i < len(args); i += 2 {
 		path := strings.Split(args[i], ".")
-		for _, p := range path {
-			if p == "" {
-				return nil, fmt.Errorf(
-					"empty segment in field path %q",
-					args[i],
-				)
-			}
+		if slices.Contains(path, "") {
+			return nil, fmt.Errorf(
+				"empty segment in field path %q",
+				args[i],
+			)
 		}
 		var value any
 		if err := json.Unmarshal(

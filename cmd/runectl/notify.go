@@ -15,62 +15,43 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
-	"github.com/unstablebuild/rune-go-sdk/cli"
 )
 
-type notifyCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
+func newNotifyCmd(a *app) *cobra.Command {
+	var format string
 
-func newNotifyCLI(a *app) *notifyCLI {
-	c := &notifyCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl notify")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd := &cobra.Command{
+		Use:   "notify <level> <message>",
+		Short: "Send a notification (level: error|warn|info|success)",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			level, err := parseNotificationLevel(args[0])
+			if err != nil {
+				return err
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			_, err = w.Notifications(cmd.Context()).Notify(level, args[1])
+			if err != nil {
+				return err
+			}
+			return printOK(format)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
-}
 
-func (c *notifyCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(c, c.fs, 2, args)
-	if !ok || err != nil {
-		return err
-	}
-	level, err := parseNotificationLevel(rargs[0])
-	if err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	_, err = w.Notifications(ctx).Notify(level, rargs[1])
-	if err != nil {
-		return err
-	}
-	return printOK(c.format)
-}
-
-func (c *notifyCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name: "notify",
-		Summary: "Send a notification",
-		Synopsis: "[options] <level> <message>" +
-			" (level: error|warn|info|success)",
-		Options: *c.fs,
-	}
+	return cmd
 }
 
 func parseNotificationLevel(

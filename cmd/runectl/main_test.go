@@ -1616,16 +1616,15 @@ func (e *testEnv) run(
 ) (string, error) {
 	e.t.Helper()
 
-	root := newRootCLI()
+	root := newRootCmd()
+	root.SetArgs(args)
 
 	old := os.Stdout
 	r, ww, err := os.Pipe()
 	require.NoError(e.t, err)
 	os.Stdout = ww
 
-	runErr := root.Run(
-		context.Background(), args,
-	)
+	runErr := root.ExecuteContext(context.Background())
 
 	_ = ww.Close()
 	os.Stdout = old

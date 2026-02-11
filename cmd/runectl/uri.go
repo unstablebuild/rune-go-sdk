@@ -15,55 +15,36 @@
 package main
 
 import (
-	"context"
-
-	"github.com/unstablebuild/rune-go-sdk/cli"
+	"github.com/spf13/cobra"
 )
 
-type uriCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
+func newURICmd(a *app) *cobra.Command {
+	var format string
 
-func newURICLI(a *app) *uriCLI {
-	c := &uriCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl uri")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd := &cobra.Command{
+		Use:   "uri <path>",
+		Short: "Resolve a path to a workspace URI",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			uri, err := w.FileSystem(cmd.Context()).URI(args[0])
+			if err != nil {
+				return err
+			}
+			return printString(
+				format, uri.String(), []string{"URI"},
+			)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
-}
 
-func (c *uriCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(c, c.fs, 1, args)
-	if !ok || err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	uri, err := w.FileSystem(ctx).URI(rargs[0])
-	if err != nil {
-		return err
-	}
-	return printString(
-		c.format, uri.String(), []string{"URI"},
-	)
-}
-
-func (c *uriCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "uri",
-		Summary:  "Resolve a path to a workspace URI",
-		Synopsis: "[options] <path>",
-		Options:  *c.fs,
-	}
+	return cmd
 }

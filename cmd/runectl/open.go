@@ -15,67 +15,46 @@
 package main
 
 import (
-	"context"
-
+	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
-	"github.com/unstablebuild/rune-go-sdk/cli"
 )
 
-type openCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
+func newOpenCmd(a *app) *cobra.Command {
+	var format string
 
-func newOpenCLI(a *app) *openCLI {
-	c := &openCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl open")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd := &cobra.Command{
+		Use:   "open <uri>",
+		Short: "Open a resource",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			parsed, err := workspaceapi.ParseURI(args[0])
+			if err != nil {
+				return err
+			}
+			h, err := w.ResourceOpener(cmd.Context()).Open(parsed)
+			if err != nil {
+				return err
+			}
+			uri := args[0]
+			if tok, ok := h.(browserrpc.Token); ok {
+				uri = tok.URI
+			}
+			return printString(
+				format, uri, []string{"Resource"},
+			)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
-}
 
-func (c *openCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 1, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	parsed, err := workspaceapi.ParseURI(rargs[0])
-	if err != nil {
-		return err
-	}
-	h, err := w.ResourceOpener(ctx).Open(parsed)
-	if err != nil {
-		return err
-	}
-	uri := rargs[0]
-	if tok, ok := h.(browserrpc.Token); ok {
-		uri = tok.URI
-	}
-	return printString(
-		c.format, uri, []string{"Resource"},
-	)
-}
-
-func (c *openCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "open",
-		Summary:  "Open a resource",
-		Synopsis: "[options] <uri>",
-		Options:  *c.fs,
-	}
+	return cmd
 }

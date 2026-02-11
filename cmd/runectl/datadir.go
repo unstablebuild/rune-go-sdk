@@ -15,51 +15,32 @@
 package main
 
 import (
-	"context"
-
-	"github.com/unstablebuild/rune-go-sdk/cli"
+	"github.com/spf13/cobra"
 )
 
-type datadirCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
+func newDatadirCmd(a *app) *cobra.Command {
+	var format string
 
-func newDatadirCLI(a *app) *datadirCLI {
-	c := &datadirCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl datadir")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd := &cobra.Command{
+		Use:   "datadir",
+		Short: "Print the extension data directory",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			return printString(
+				format, w.DataDir(cmd.Context()), []string{"DataDir"},
+			)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
-}
 
-func (c *datadirCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	_, _, ok, err := cli.ParseUsage(c, c.fs, 0, args)
-	if !ok || err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	return printString(
-		c.format, w.DataDir(ctx), []string{"DataDir"},
-	)
-}
-
-func (c *datadirCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "datadir",
-		Summary:  "Print the extension data directory",
-		Synopsis: "[options]",
-		Options:  *c.fs,
-	}
+	return cmd
 }

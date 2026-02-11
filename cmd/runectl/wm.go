@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
-	"github.com/unstablebuild/rune-go-sdk/cli"
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
@@ -79,254 +79,6 @@ func parseOrientation(
 	}
 }
 
-type wmCLI struct {
-	app  *app
-	fs   *cli.FlagSet
-	cmds map[string]cli.CLI
-}
-
-func newWMCLI(a *app) *wmCLI {
-	c := &wmCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl wm")
-	c.cmds = map[string]cli.CLI{
-		"focus":       newWMFocusCLI(a),
-		"split":       newWMSplitCLI(a),
-		"floating":    newWMFloatingCLI(a),
-		"set-content": newWMSetContentCLI(a),
-		"close":       newWMCloseCLI(a),
-	}
-	return c
-}
-
-func (c *wmCLI) Run(
-	ctx context.Context, args []string,
-) error {
-	return cli.ParseAndRunCommand(
-		ctx, c, c.fs, c.cmds, args,
-	)
-}
-
-func (c *wmCLI) Man() cli.Manual {
-	var subMan []cli.Manual
-	for _, name := range []string{
-		"focus", "split", "floating",
-		"set-content", "close",
-	} {
-		subMan = append(subMan, c.cmds[name].Man())
-	}
-	return cli.Manual{
-		Name:     "wm",
-		Summary:  "Window manager commands",
-		Synopsis: "<command>",
-		Commands: subMan,
-		Options:  *c.fs,
-	}
-}
-
-type wmFocusCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
-
-func newWMFocusCLI(a *app) *wmFocusCLI {
-	c := &wmFocusCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl wm focus")
-	c.fs.StringVar(
-		&c.format, "F", "",
-		"Output format: table, json, or Go template",
-	)
-	return c
-}
-
-func (c *wmFocusCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	_, _, ok, err := cli.ParseUsage(c, c.fs, 0, args)
-	if !ok || err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	win, err := w.WindowManager(ctx).Focus()
-	if err != nil {
-		return err
-	}
-	return printResult(
-		ctx, c.format, win.WindowID(),
-		func(v uint64) { fmt.Println(v) },
-		[]string{"WindowID"},
-	)
-}
-
-func (c *wmFocusCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "focus",
-		Summary:  "Get the focused window ID",
-		Synopsis: "[options]",
-		Options:  *c.fs,
-	}
-}
-
-type wmSplitCLI struct {
-	app         *app
-	fs          *cli.FlagSet
-	format      string
-	orientation string
-}
-
-func newWMSplitCLI(a *app) *wmSplitCLI {
-	c := &wmSplitCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl wm split")
-	c.fs.StringVar(
-		&c.format, "F", "",
-		"Output format: table, json, or Go template",
-	)
-	c.fs.StringVar(
-		&c.orientation, "o", "default",
-		"Orientation: default|top|bottom|left|right",
-	)
-	return c
-}
-
-func (c *wmSplitCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 2, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	orient, err := parseOrientation(c.orientation)
-	if err != nil {
-		return err
-	}
-	wid, err := parseWindowID(rargs[0])
-	if err != nil {
-		return err
-	}
-	h, err := resolveHandler(ctx, c.app, rargs[1])
-	if err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	win, err := w.WindowManager(ctx).Split(
-		orient, wid, h,
-	)
-	if err != nil {
-		return err
-	}
-	return printResult(
-		ctx, c.format, win.WindowID(),
-		func(v uint64) { fmt.Println(v) },
-		[]string{"WindowID"},
-	)
-}
-
-func (c *wmSplitCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name: "split",
-		Summary: "Split a window",
-		Synopsis: "[options] <window-id>" +
-			" <handler-uri>",
-		Options: *c.fs,
-	}
-}
-
-type wmFloatingCLI struct {
-	app     *app
-	fs      *cli.FlagSet
-	format  string
-	align   string
-	offsetX int
-	offsetY int
-}
-
-func newWMFloatingCLI(a *app) *wmFloatingCLI {
-	c := &wmFloatingCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl wm floating")
-	c.fs.StringVar(
-		&c.format, "F", "",
-		"Output format: table, json, or Go template",
-	)
-	c.fs.StringVar(
-		&c.align, "a", "",
-		"Alignment: default|left|right|"+
-			"top|bottom|centered",
-	)
-	c.fs.IntVar(&c.offsetX, "x", 0, "X offset")
-	c.fs.IntVar(&c.offsetY, "y", 0, "Y offset")
-	return c
-}
-
-func (c *wmFloatingCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 1, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	h, err := resolveHandler(ctx, c.app, rargs[0])
-	if err != nil {
-		return err
-	}
-	fh, ok := h.(browserapi.Floating)
-	if !ok {
-		return fmt.Errorf(
-			"handler does not implement Floating",
-		)
-	}
-	alignment, err := parseAlignment(c.align)
-	if err != nil {
-		return err
-	}
-	cfg := browserapi.FloatingConfig{
-		Alignment: alignment,
-		Offset: term.Coordinates{
-			X: c.offsetX, Y: c.offsetY,
-		},
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	win, err := w.WindowManager(ctx).Floating(fh, cfg)
-	if err != nil {
-		return err
-	}
-	return printResult(
-		ctx, c.format, win.WindowID(),
-		func(v uint64) { fmt.Println(v) },
-		[]string{"WindowID"},
-	)
-}
-
-func (c *wmFloatingCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "floating",
-		Summary:  "Create a floating window",
-		Synopsis: "[options] <handler-uri>",
-		Options:  *c.fs,
-	}
-}
-
 func parseAlignment(
 	s string,
 ) (component.Alignment, error) {
@@ -350,111 +102,236 @@ func parseAlignment(
 	}
 }
 
-type wmSetContentCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
+func newWMCmd(a *app) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "wm",
+		Short: "Window manager commands",
+	}
+
+	cmd.AddCommand(
+		newWMFocusCmd(a),
+		newWMSplitCmd(a),
+		newWMFloatingCmd(a),
+		newWMSetContentCmd(a),
+		newWMCloseCmd(a),
+	)
+
+	return cmd
 }
 
-func newWMSetContentCLI(a *app) *wmSetContentCLI {
-	c := &wmSetContentCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl wm set-content")
-	c.fs.StringVar(
-		&c.format, "F", "",
+func newWMFocusCmd(a *app) *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "focus",
+		Short: "Get the focused window ID",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			win, err := w.WindowManager(cmd.Context()).Focus()
+			if err != nil {
+				return err
+			}
+			return printResult(
+				cmd.Context(), format, win.WindowID(),
+				func(v uint64) { fmt.Println(v) },
+				[]string{"WindowID"},
+			)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
+
+	return cmd
 }
 
-func (c *wmSetContentCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 2, args,
-	)
-	if !ok || err != nil {
-		return err
-	}
-	wid, err := parseWindowID(rargs[0])
-	if err != nil {
-		return err
-	}
-	h, err := resolveHandler(ctx, c.app, rargs[1])
-	if err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	err = w.WindowManager(ctx).SetWindowContent(wid, h)
-	if err != nil {
-		return err
-	}
-	return printOK(c.format)
-}
+func newWMSplitCmd(a *app) *cobra.Command {
+	var format string
+	var orientation string
 
-func (c *wmSetContentCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name: "set-content",
-		Summary: "Set window content",
-		Synopsis: "[options] <window-id>" +
-			" <handler-uri>",
-		Options: *c.fs,
+	cmd := &cobra.Command{
+		Use:   "split <window-id> <handler-uri>",
+		Short: "Split a window",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			orient, err := parseOrientation(orientation)
+			if err != nil {
+				return err
+			}
+			wid, err := parseWindowID(args[0])
+			if err != nil {
+				return err
+			}
+			h, err := resolveHandler(cmd.Context(), a, args[1])
+			if err != nil {
+				return err
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			win, err := w.WindowManager(cmd.Context()).Split(
+				orient, wid, h,
+			)
+			if err != nil {
+				return err
+			}
+			return printResult(
+				cmd.Context(), format, win.WindowID(),
+				func(v uint64) { fmt.Println(v) },
+				[]string{"WindowID"},
+			)
+		},
 	}
-}
 
-type wmCloseCLI struct {
-	app    *app
-	fs     *cli.FlagSet
-	format string
-}
-
-func newWMCloseCLI(a *app) *wmCloseCLI {
-	c := &wmCloseCLI{app: a}
-	c.fs = cli.NewFlagSet("runectrl wm close")
-	c.fs.StringVar(
-		&c.format, "F", "",
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	return c
-}
-
-func (c *wmCloseCLI) Run(
-	ctx context.Context, args []string,
-) (retErr error) {
-	defer func() {
-		retErr = formatError(c.format, retErr)
-	}()
-	rargs, _, ok, err := cli.ParseUsage(
-		c, c.fs, 1, args,
+	cmd.Flags().StringVarP(
+		&orientation, "orientation", "o", "default",
+		"Orientation: default|top|bottom|left|right",
 	)
-	if !ok || err != nil {
-		return err
-	}
-	wid, err := parseWindowID(rargs[0])
-	if err != nil {
-		return err
-	}
-	w, err := c.app.getWorkspace()
-	if err != nil {
-		return err
-	}
-	err = w.WindowManager(ctx).CloseWindow(wid)
-	if err != nil {
-		return err
-	}
-	return printOK(c.format)
+
+	return cmd
 }
 
-func (c *wmCloseCLI) Man() cli.Manual {
-	return cli.Manual{
-		Name:     "close",
-		Summary:  "Close a window",
-		Synopsis: "[options] <window-id>",
-		Options:  *c.fs,
+func newWMFloatingCmd(a *app) *cobra.Command {
+	var format string
+	var align string
+	var offsetX int
+	var offsetY int
+
+	cmd := &cobra.Command{
+		Use:   "floating <handler-uri>",
+		Short: "Create a floating window",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			h, err := resolveHandler(cmd.Context(), a, args[0])
+			if err != nil {
+				return err
+			}
+			fh, ok := h.(browserapi.Floating)
+			if !ok {
+				return fmt.Errorf(
+					"handler does not implement Floating",
+				)
+			}
+			alignment, err := parseAlignment(align)
+			if err != nil {
+				return err
+			}
+			cfg := browserapi.FloatingConfig{
+				Alignment: alignment,
+				Offset: term.Coordinates{
+					X: offsetX, Y: offsetY,
+				},
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			win, err := w.WindowManager(cmd.Context()).Floating(fh, cfg)
+			if err != nil {
+				return err
+			}
+			return printResult(
+				cmd.Context(), format, win.WindowID(),
+				func(v uint64) { fmt.Println(v) },
+				[]string{"WindowID"},
+			)
+		},
 	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
+		"Output format: table, json, or Go template",
+	)
+	cmd.Flags().StringVarP(
+		&align, "alignment", "a", "",
+		"Alignment: default|left|right|top|bottom|centered",
+	)
+	cmd.Flags().IntVarP(&offsetX, "offset-x", "x", 0, "X offset")
+	cmd.Flags().IntVarP(&offsetY, "offset-y", "y", 0, "Y offset")
+
+	return cmd
+}
+
+func newWMSetContentCmd(a *app) *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "set-content <window-id> <handler-uri>",
+		Short: "Set window content",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			wid, err := parseWindowID(args[0])
+			if err != nil {
+				return err
+			}
+			h, err := resolveHandler(cmd.Context(), a, args[1])
+			if err != nil {
+				return err
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			err = w.WindowManager(cmd.Context()).SetWindowContent(wid, h)
+			if err != nil {
+				return err
+			}
+			return printOK(format)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
+		"Output format: table, json, or Go template",
+	)
+
+	return cmd
+}
+
+func newWMCloseCmd(a *app) *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "close <window-id>",
+		Short: "Close a window",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			wid, err := parseWindowID(args[0])
+			if err != nil {
+				return err
+			}
+			w, err := a.getWorkspace()
+			if err != nil {
+				return err
+			}
+			err = w.WindowManager(cmd.Context()).CloseWindow(wid)
+			if err != nil {
+				return err
+			}
+			return printOK(format)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
+		"Output format: table, json, or Go template",
+	)
+
+	return cmd
 }
