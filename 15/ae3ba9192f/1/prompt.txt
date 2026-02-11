@@ -256,3 +256,202 @@ Skip if `gopls` not found (same approach as `semanticrpc/e2e_test.go:newE2EEnv`)
 
 
 If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/atzarisurinachcorominas/.REDACTED.jsonl
+
+---
+
+The test files (_test.go) should have mock, helpers and setup functions at the bottom and tests at the top.
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me go through the conversation chronologically:
+
+1. The user provided a detailed plan for creating an `idelsp/` package at the repository root. This is a multi-language LSP server manager for the Rune IDE Go SDK.
+
+2. I read reference files to understand existing patterns:
+   - `api/semanticapi/lsp.go` - LSP interface with 76 methods (not 95 as plan stated)
+   - `api/semanticapi/types.go` - All the semantic types
+   - `api/textapi/event.go` - EventHandler interface and EventType constants
+   - `api/workspaceapi/workspace.go` - FileSystem, Executor, Cmd, ProcessWatcher interfaces
+   - `api/browserapi/browser.go` - Notifications interface with NotificationLevel
+   - `retry/retry.go` - Strategy, Retry, CombinedStrategy, LimitStrategy, ExponentialStrategy
+   - `iterator/iterator.go` and `iterator/utils.go` - Iterator interface, FromSlice, ToSlice
+   - `api/workspaceapi/uri.go` - URI type and ParseURI
+   - `api/workspaceapi/watcher.go` - ChanProcessWatcher, MultiProcessWatcher
+   - `api/semanticapi/semanticrpc/e2e_test.go` - rpcConn, jsonrpcMessage, conversion helpers, goplsLSP implementation
+
+3. I created files in this order:
+   - `idelsp/language.go` - PkgManager interface, langConfig, language registry
+   - `idelsp/jsonrpc.go` - rpcConn extracted from e2e_test.go
+   - `idelsp/server.go` - langServer lifecycle
+   - `idelsp/manager.go` - Manager struct with Handle, ensureServer, crash recovery
+   - `idelsp/lsp.go` - All LSP method implementations
+   - `idelsp/convert.go` - LSP↔semanticapi conversion types and helpers
+   - `idelsp/manager_test.go` - Unit tests with mock JSON-RPC server
+   - `idelsp/e2e_test.go` - E2E tests with real gopls
+   - `idelsp/testdata/` - Copied from semanticrpc/testdata/
+
+4. Key errors and fixes:
+   - `stringscutprefix` lint: Changed HasPrefix+TrimPrefix to CutPrefix in jsonrpc.go
+   - `os.Signal` vs `syscall.Signal`: mockExecutor.Signal needed syscall.Signal
+   - `TextDocumentPositionParams` embedding: The semanticapi types don't use embedding, they have TextDocument and Position fields directly
+   - Test timeout (pipe deadlock): The mock executor wasn't properly connecting pipes. Fixed by having serveMockLSP read directly from cmd.Stdin and write to cmd.Stdout
+   - Test timeout (close deadlock): mockLSPServer needed to close stdout when done serving, added `defer output.Close()`
+   - E2E close deadlock: rpcConn.close() needed to also close stdout reader to unblock readLoop. Added `stdout` field to rpcConn and close it in close()
+
+5. User feedback: "The test files (_test.go) should have mock, helpers and setup functions at the bottom and tests at the top."
+
+6. I reorganized both test files to put TestManager/TestE2E at the top, then helpers, then mocks at the bottom.
+
+Now let me capture all the important details for the summary.
+
+Important types from the codebase:
+- `semanticapi.LSP` interface has 76 methods (not 95 as plan said)
+- Param types like HoverParams have direct TextDocument and Position fields, NOT TextDocumentPositionParams embedding
+- `workspaceapi.Executor.Signal` takes `syscall.Signal` not `os.Signal`
+- `workspaceapi.Cmd` has Path, Dir, Args, Env, Stdin (io.Reader), Stdout (io.Writer), Stderr (io.Writer), Watcher (ProcessWatcher)
+
+Current state: Both test files have been rewritten with the correct ordering. Tests should still pass but haven't been re-run after the reorder.
+
+Summary:
+1. Primary Request and Intent:
+   The user asked to implement a detailed plan for an `idelsp/` package — a multi-language LSP server manager for the Rune IDE Go SDK. The package implements `semanticapi.LSP` (routing calls to per-language LSP servers) and `textapi.EventHandler` (receiving file events and mapping them to LSP notifications). It manages discovery via `PkgManager`, process start via `workspaceapi.Executor`, JSON-RPC 2.0 over stdio, crash recovery with retries, and user notifications via `browserapi.Notifications`.
+
+   After implementation was complete, the user gave feedback: **"The test files (_test.go) should have mock, helpers and setup functions at the bottom and tests at the top."** I then reordered both test files accordingly.
+
+2. Key Technical Concepts:
+   - JSON-RPC 2.0 protocol over stdio (Content-Length headers, request/response/notification)
+   - Language Server Protocol (LSP) lifecycle: initialize, initialized, shutdown, exit
+   - Go `io.Pipe()` for connecting rpcConn to LSP server processes
+   - `workspaceapi.Executor` for starting processes, `ProcessWatcher` for crash detection
+   - `retry.CombinedStrategy` with `LimitStrategy` + `ExponentialStrategy` for crash recovery
+   - `iterator.Iterator[T]` generic interface for `PkgManager.LibDir` results
+   - `semanticapi.LSP` — 76-method interface covering LSP document/workspace operations
+   - `textapi.EventHandler` — `Handle(ctx, Event) bool` interface for file events
+   - Extension-to-language mapping for Go, Python, TypeScript, Rust, C/C++
+   - LSP method routing: document requests→owning server, workspace requests→fan-out/broadcast
+   - Type conversion between raw LSP JSON and `semanticapi` Go types
+
+3. Files and Code Sections:
+
+   - **`idelsp/language.go`** (created)
+     - Defines `PkgManager` interface, `langConfig` struct, hardcoded language registry, `langForExt` helper
+     - Languages: Go (gopls serve), Python (pyright-langserver --stdio), TypeScript (typescript-language-server --stdio), Rust (rust-analyzer), C/C++ (clangd)
+     - `extToLang` map built in `init()` for O(1) extension lookup
+
+   - **`idelsp/jsonrpc.go`** (created)
+     - Extracted and hardened from `semanticrpc/e2e_test.go` lines 346-513
+     - `RPCError` type implementing `error` interface
+     - `jsonrpcMessage` struct with JSONRPC, ID, Method, Params, Result, Error fields
+     - `rpcConn` struct with mutex, stdin (WriteCloser), stdout (ReadCloser), pending map, done channel
+     - `newRPCConn(stdin, stdout)` — creates conn and starts readLoop goroutine
+     - `readLoop(r)` — parses Content-Length headers, dispatches responses to pending channels, silently ignores server-initiated notifications
+     - `call(ctx, method, params, result)` — sends request, waits for response
+     - `notify(ctx, method, params)` — fire-and-forget notification
+     - `close()` — closes both stdin AND stdout, waits for readLoop to exit via `<-c.done`
+     - Uses `strings.CutPrefix` instead of `HasPrefix+TrimPrefix` (lint fix)
+
+   - **`idelsp/convert.go`** (created)
+     - LSP-specific types: `lspPosition`, `lspRange`, `lspTextEdit`, `lspMarkupContent`, `lspCompletionItem`, `lspCompletionList`, `lspSignatureHelp`, `lspSignatureInformation`, `lspParameterInformation`, `lspTextDocumentEdit`, `lspWorkspaceEdit`, `lspCodeAction`, `lspCommand`
+     - Conversion functions: `lspTextEditToSemantic`, `lspMarkupToSemantic`, `lspWorkspaceEditToSemantic` (merges both Changes and DocumentChanges), `lspCompletionItemToSemantic` (handles Documentation as MarkupContent or string), `lspSignatureHelpToSemantic` (handles parameter label as string or [start,end] tuple)
+
+   - **`idelsp/server.go`** (created)
+     - `langServer` struct: mu, cfg, binPath, conn (*rpcConn), pid, watcher, rootURI, executor, alive
+     - `newLangServer(cfg, binPath, executor, rootURI)` constructor
+     - `start(ctx)` — creates io.Pipe pairs, builds workspaceapi.Cmd with Stdin/Stdout/Watcher, calls executor.Start, creates rpcConn, calls initialize+initialized
+     - `initialize(ctx)` — sends LSP initialize with full capabilities map (completion, hover, signatureHelp, definition, references, documentSymbol, formatting, rename, codeAction, foldingRange, selectionRange, documentHighlight, callHierarchy, semanticTokens, workspace symbol)
+     - `stop(ctx)` — sends shutdown+exit, calls conn.close()
+     - `call(ctx, method, params, result)` — checks alive, delegates to conn.call
+     - `notify(ctx, method, params)` — checks alive, delegates to conn.notify
+
+   - **`idelsp/manager.go`** (created)
+     - `ErrNoServer` sentinel error
+     - `Config` struct: RootURI, FileSystem, Executor, Notifications, PkgManager, MaxRetries
+     - `Manager` struct: mu, cfg, servers map[string]*langServer, fileToLang map[string]string, ctx, cancel
+     - Compile-time assertions: `var _ semanticapi.LSP = (*Manager)(nil)`, `var _ textapi.EventHandler = (*Manager)(nil)`
+     - `New(cfg)` — defaults MaxRetries to 3, creates background context
+     - `Close()` — cancels context, stops all servers with 5s timeout
+     - `Handle(ctx, ev)` — implements EventHandler, maps EventTypeOpen→DidOpen (with ensureServer), EventTypeClose→DidClose, EventTypeEdit→DidChange, EventTypeFlush→DidSave, EventTypeCreate→DidCreateFiles, EventTypeChange→DidChangeWatchedFiles, EventTypeRemove→DidDeleteFiles, EventTypeRename→DidRenameFiles
+     - `ensureServer(ctx, ext)` — looks up langForExt, checks cache, calls findBinary, starts langServer, spawns watchServer goroutine
+     - `findBinary(ctx, lang)` — uses PkgManager.LibDir, iterates dirs, checks FileSystem.Stat for executable
+     - `watchServer(lang, srv)` — monitors ProcessWatcher channel, on crash uses retry.Retry with CombinedStrategy(LimitStrategy(maxRetries), ExponentialStrategy(500ms, 5s)), re-opens tracked files on recovery
+     - `reopenFiles(ctx, langID, srv)` — re-sends DidOpen for all files tracked for that language
+     - `serverForURI(uri)` — looks up fileToLang then servers map
+     - `allServers()` — returns snapshot of all servers
+     - `broadcastNotify(ctx, method, params)` — sends to all servers
+
+   - **`idelsp/lsp.go`** (created, ~1387 lines)
+     - All 76 `semanticapi.LSP` methods implemented on `*Manager`
+     - **Lifecycle**: Initialize (stores rootURI, returns full capabilities), Initialized (no-op), Shutdown (calls all servers), Exit (notifies all)
+     - **Document notifications**: DidOpen, DidChange, DidClose, DidSave, WillSave → route to owning server via serverForURI
+     - **Document requests**: Completion (with lspCompletionList conversion), Hover (null check), SignatureHelp (with lspSignatureHelp conversion), Definition/Declaration/TypeDefinition/Implementation (via locationRequest helper that handles single Location or []Location), References (manual param construction for context.includeDeclaration), DocumentHighlight, DocumentSymbol, CodeAction (manual diagnostics mapping), CodeLens, Formatting/RangeFormatting (manual options mapping), Rename (via lspWorkspaceEdit conversion), PrepareRename, FoldingRange, SelectionRange, SemanticTokensFull/Range/FullDelta, Diagnostic (fallback to empty report), PrepareCallHierarchy
+     - **Item-based requests**: CallHierarchyIncoming/OutgoingCalls (route via Item.URI), TypeHierarchySupertypes/Subtypes (route via Item.URI)
+     - **Resolve methods**: CompletionResolve, CodeLensResolve, DocumentLinkResolve, InlayHintResolve → return item unchanged
+     - **Optional features**: DocumentColor, ColorPresentation, DocumentLink, OnTypeFormatting, LinkedEditingRange, Moniker, WillSaveWaitUntil, InlayHint, InlineValue → route to server, return nil on error
+     - **Workspace-wide requests**: WorkspaceSymbol (fan out parallel, merge results), ExecuteCommand (broadcast, return first non-empty)
+     - **Workspace notifications**: DidChangeConfiguration, DidChangeWatchedFiles, DidChangeWorkspaceFolders, WorkDoneProgressCancel, SetTrace, DidCreateFiles, DidRenameFiles, DidDeleteFiles → broadcastNotify
+     - **File operation requests**: WillCreateFiles, WillRenameFiles, WillDeleteFiles → fanOutWorkspaceEdit (call all, merge Changes maps)
+     - Helper: `isNull(raw)` — checks `nil` or `"null"`
+
+   - **`idelsp/manager_test.go`** (created, reordered)
+     - Structure: Tests at top, helpers in middle, mocks at bottom
+     - `TestManager` table-driven with 11 subtests: HandleOpen, HandleClose, HandleEdit, HandleFlush, Hover, Definition, References, WorkspaceSymbol, UnknownExtension, Close, Completion
+     - Helpers: `newTestManager(t)`, `openGoFile(t, ctx, mgr, uri, content)`, `readHeaders(br)`
+     - Mocks: `mockPkgManager` (returns canned dirs), `mockFileSystem` (file existence map), `mockNotifications` (records messages), `mockExecutor` (wires cmd.Stdin/Stdout to mockLSPServer), `mockLSPServer` (handles initialize, shutdown, hover, definition, references, workspace/symbol, completion)
+     - Key pattern: mockExecutor.Start uses `cmd.Stdout.(*io.PipeWriter)` type assertion to pass to serveMockLSP which closes it on exit
+
+   - **`idelsp/e2e_test.go`** (created, reordered)
+     - Structure: TestE2E at top, helpers in middle, "mocks" (real implementations) at bottom
+     - Uses real gopls binary, skips if not found
+     - Copies testdata/ to temp dir, opens main.go and util.go, waits 3s for indexing
+     - 5 subtests: Hover, Definition, References, DocumentSymbol, WorkspaceSymbol
+     - Real implementations: `realPkgManager`, `realExecutor` (wraps exec.Command), `realFileSystem` (wraps os package)
+
+   - **`idelsp/testdata/`** (copied from `api/semanticapi/semanticrpc/testdata/`)
+     - `go.mod` — `module example.com/testproject`, go 1.22
+     - `main.go` — Greeter struct, Greet method, Add function, main function
+     - `util.go` — Multiply and Max functions
+
+   - **Reference files read** (not modified):
+     - `api/semanticapi/lsp.go` — 76-method LSP interface
+     - `api/semanticapi/types.go` — All semantic types; notably params have direct TextDocument/Position fields (no embedding)
+     - `api/textapi/event.go` — EventType enum (Open, Close, Flush, Create, Change, Remove, Rename, Edit, Scroll, Hidden, Visible, Focus, Unfocus, Cursor, Selection), Event struct (Type, URI, Resource, Start/End/From/To Coordinates, Content), EventHandler interface
+     - `api/workspaceapi/workspace.go` — Cmd struct (Stdin io.Reader, Stdout io.Writer), Executor interface (Signal takes syscall.Signal)
+     - `api/browserapi/browser.go` — Notifications interface (Notify, NotifyOnce, UpdateNotificationProgress), NotificationLevel (LevelError, LevelWarn, LevelInfo, LevelSuccess)
+     - `retry/retry.go` — Strategy type, Retry function, CombinedStrategy, LimitStrategy, ExponentialStrategy
+     - `api/workspaceapi/watcher.go` — ChanProcessWatcher helper
+     - `api/semanticapi/semanticrpc/e2e_test.go` — Full reference for rpcConn, conversion helpers, goplsLSP method patterns
+
+4. Errors and Fixes:
+   - **`stringscutprefix` lint warning** in jsonrpc.go: `HasPrefix + TrimPrefix can be simplified to CutPrefix`. Fixed by using `strings.CutPrefix`.
+   - **`os.Signal` vs `syscall.Signal`**: mockExecutor.Signal used `os.Signal` but `workspaceapi.Executor` requires `syscall.Signal`. Fixed by changing to `syscall.Signal` and adding `"syscall"` import.
+   - **`TextDocumentPositionParams` struct literal error**: semanticapi param types (HoverParams, DefinitionParams, ReferenceParams, CompletionParams) have direct `TextDocument` and `Position` fields, NOT an embedded `TextDocumentPositionParams`. Fixed all 4 occurrences in test file.
+   - **Test timeout (pipe deadlock in mock executor)**: Initial approach created separate pipes in `newMockLSPServer()` and used io.Copy goroutines to bridge. This caused deadlock. Fixed by having `serveMockLSP` read directly from `cmd.Stdin` and write to `cmd.Stdout` (which are io.Pipe ends created by langServer.start).
+   - **Test timeout (mock server not closing stdout)**: mockLSPServer.serve didn't close the output writer when done, so rpcConn.readLoop stayed blocked forever. Fixed by adding `defer output.Close()` and changing parameter type to `io.WriteCloser`. mockExecutor.Start uses `cmd.Stdout.(*io.PipeWriter)` type assertion.
+   - **E2E test timeout (rpcConn.close deadlock)**: When using real gopls, closing stdin didn't cause stdout pipe to close (unlike OS pipes, io.Pipe write end isn't auto-closed when process exits). Fixed by adding `stdout io.ReadCloser` field to rpcConn and closing it in `close()`: `_ = c.stdout.Close()`.
+   - **User feedback on file ordering**: User said test files should have tests at top, mocks/helpers/setup at bottom. Both `manager_test.go` and `e2e_test.go` were rewritten with correct ordering.
+
+5. Problem Solving:
+   - All compilation errors resolved (undefined types, interface mismatches)
+   - All lint issues resolved (0 issues from `make lint`)
+   - All pipe deadlock issues resolved in both unit and e2e tests
+   - All 16 tests pass (11 unit + 5 e2e) with race detector enabled
+   - Pre-existing test failure in `api/semanticapi/semanticrpc` confirmed unrelated to this work
+
+6. All User Messages:
+   - First message: "Implement the following plan: [detailed plan for idelsp/ package]" with link to plan transcript file
+   - Second message: "The test files (_test.go) should have mock, helpers and setup functions at the bottom and tests at the top."
+
+7. Pending Tasks:
+   - Run tests after the file reordering to verify they still pass (reordering shouldn't break anything but wasn't verified)
+
+8. Current Work:
+   I had just finished rewriting both `idelsp/manager_test.go` and `idelsp/e2e_test.go` to move tests to the top and mocks/helpers/setup to the bottom, per the user's feedback: "The test files (_test.go) should have mock, helpers and setup functions at the bottom and tests at the top."
+
+9. Optional Next Step:
+   Run `go test -v -race -timeout 120s ./idelsp/` to verify the reordered test files still compile and pass. The reordering was purely structural (moving code blocks within the same file) so tests should pass, but verification is prudent.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/atzarisurinachcorominas/.REDACTED.jsonl
+Please continue the conversation from where we left it off without asking the user any further questions. Continue with the last task that you were asked to work on.

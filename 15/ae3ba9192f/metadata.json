@@ -8,14 +8,7 @@
     "cmd/runectl/lsp.go",
     "cmd/runectl/main.go",
     "cmd/runectl/main_test.go",
-    "idelsp/convert.go",
-    "idelsp/e2e_test.go",
-    "idelsp/jsonrpc.go",
-    "idelsp/language.go",
-    "idelsp/lsp.go",
-    "idelsp/manager.go",
-    "idelsp/manager_test.go",
-    "idelsp/server.go"
+    "idelsp/manager_test.go"
   ],
   "sessions": [
     {
@@ -34,10 +27,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 155,
-    "cache_creation_tokens": 565948,
-    "cache_read_tokens": 14371822,
-    "output_tokens": 28389,
-    "api_call_count": 145
+    "input_tokens": 81,
+    "cache_creation_tokens": 501271,
+    "cache_read_tokens": 6732542,
+    "output_tokens": 15032,
+    "api_call_count": 69
   }
 }

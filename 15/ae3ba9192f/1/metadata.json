@@ -3,34 +3,30 @@
   "checkpoint_id": "15ae3ba9192f",
   "session_id": "d8712591-d355-4c68-80bf-1f52e33048bd",
   "strategy": "manual-commit",
-  "created_at": "2026-02-11T19:52:32.127476Z",
+  "created_at": "2026-02-11T21:18:04.843845Z",
   "branch": "semanticapi",
   "checkpoints_count": 1,
   "files_touched": [
-    "idelsp/convert.go",
-    "idelsp/e2e_test.go",
-    "idelsp/jsonrpc.go",
-    "idelsp/language.go",
-    "idelsp/lsp.go",
-    "idelsp/manager.go",
-    "idelsp/manager_test.go",
-    "idelsp/server.go"
+    "idelsp/manager_test.go"
   ],
   "agent": "Claude Code",
+  "transcript_identifier_at_start": "4d0de2a2-fb2c-42bf-a322-1d8458b7f596",
+  "checkpoint_transcript_start": 633,
+  "transcript_lines_at_start": 633,
   "token_usage": {
-    "input_tokens": 84,
-    "cache_creation_tokens": 239068,
-    "cache_read_tokens": 8058661,
-    "output_tokens": 18707,
-    "api_call_count": 82
+    "input_tokens": 10,
+    "cache_creation_tokens": 174391,
+    "cache_read_tokens": 419381,
+    "output_tokens": 5350,
+    "api_call_count": 6
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-11T19:52:32.000481Z",
-    "agent_lines": 3567,
-    "human_added": 69,
+    "calculated_at": "2026-02-11T21:18:04.674293Z",
+    "agent_lines": 334,
+    "human_added": 159,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 3636,
-    "agent_percentage": 98.10231023102311
+    "total_committed": 493,
+    "agent_percentage": 67.74847870182555
   }
 }
