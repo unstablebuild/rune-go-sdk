@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "b2724d64e02c",
+  "strategy": "manual-commit",
+  "branch": "search-funcs",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "api/syntaxapi/search.go",
+    "api/syntaxapi/syntaxrpc/client.go",
+    "api/syntaxapi/syntaxrpc/server.go",
+    "api/syntaxapi/syntaxrpc/server_test.go",
+    "api/syntaxapi/syntaxrpc/syntax.proto"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b2/724d64e02c/0/metadata.json",
+      "transcript": "/b2/724d64e02c/0/full.jsonl",
+      "context": "/b2/724d64e02c/0/context.md",
+      "content_hash": "/b2/724d64e02c/0/content_hash.txt",
+      "prompt": "/b2/724d64e02c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 454,
+    "cache_creation_tokens": 89040,
+    "cache_read_tokens": 2907770,
+    "output_tokens": 13214,
+    "api_call_count": 56
+  }
+}

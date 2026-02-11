@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "b2724d64e02c",
+  "session_id": "cb08981b-f386-45a4-a4a2-42c570cd2a91",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T13:45:26.767146Z",
+  "branch": "search-funcs",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "api/syntaxapi/search.go",
+    "api/syntaxapi/syntaxrpc/client.go",
+    "api/syntaxapi/syntaxrpc/server.go",
+    "api/syntaxapi/syntaxrpc/server_test.go",
+    "api/syntaxapi/syntaxrpc/syntax.proto"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "7c9487d3-d177-4e7b-8c13-0ee5da84506d",
+  "token_usage": {
+    "input_tokens": 454,
+    "cache_creation_tokens": 89040,
+    "cache_read_tokens": 2907770,
+    "output_tokens": 13214,
+    "api_call_count": 56
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T13:45:26.704641Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 364,
+    "human_removed": 254,
+    "total_committed": 307,
+    "agent_percentage": 0
+  }
+}
