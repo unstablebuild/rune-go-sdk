@@ -1,0 +1,50 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "f16959155880",
+  "session_id": "b7d69255-f05f-48c3-af0f-3917e641b705",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T21:02:35.137764Z",
+  "branch": "cli-flags-after",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "cli/cli.go",
+    "cli/context.go",
+    "cli/context_test.go",
+    "cli/errors.go",
+    "cli/fixture_test.go",
+    "cli/lazy.go",
+    "cli/parse.go",
+    "cli/parse_test.go",
+    "cli/usage.go",
+    "cli/usage_test.go",
+    "cmd/runectl/datadir.go",
+    "cmd/runectl/editor.go",
+    "cmd/runectl/main.go",
+    "cmd/runectl/main_test.go",
+    "cmd/runectl/notify.go",
+    "cmd/runectl/open.go",
+    "cmd/runectl/storage.go",
+    "cmd/runectl/syntax.go",
+    "cmd/runectl/uri.go",
+    "cmd/runectl/wm.go",
+    "runectl"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 690,
+    "cache_creation_tokens": 279904,
+    "cache_read_tokens": 6178713,
+    "output_tokens": 25957,
+    "api_call_count": 86
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T21:02:34.995149Z",
+    "agent_lines": 3430,
+    "human_added": 733,
+    "human_modified": 4,
+    "human_removed": 0,
+    "total_committed": 4167,
+    "agent_percentage": 82.31341492680585
+  }
+}

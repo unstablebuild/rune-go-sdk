@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "f16959155880",
+  "strategy": "manual-commit",
+  "branch": "cli-flags-after",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "cli/cli.go",
+    "cli/context.go",
+    "cli/context_test.go",
+    "cli/errors.go",
+    "cli/fixture_test.go",
+    "cli/lazy.go",
+    "cli/parse.go",
+    "cli/parse_test.go",
+    "cli/usage.go",
+    "cli/usage_test.go",
+    "cmd/runectl/datadir.go",
+    "cmd/runectl/editor.go",
+    "cmd/runectl/main.go",
+    "cmd/runectl/main_test.go",
+    "cmd/runectl/notify.go",
+    "cmd/runectl/open.go",
+    "cmd/runectl/storage.go",
+    "cmd/runectl/syntax.go",
+    "cmd/runectl/uri.go",
+    "cmd/runectl/wm.go",
+    "runectl"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f1/6959155880/0/metadata.json",
+      "transcript": "/f1/6959155880/0/full.jsonl",
+      "context": "/f1/6959155880/0/context.md",
+      "content_hash": "/f1/6959155880/0/content_hash.txt",
+      "prompt": "/f1/6959155880/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 690,
+    "cache_creation_tokens": 279904,
+    "cache_read_tokens": 6178713,
+    "output_tokens": 25957,
+    "api_call_count": 86
+  }
+}
