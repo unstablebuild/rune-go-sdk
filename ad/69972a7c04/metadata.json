@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "ad69972a7c04",
+  "strategy": "manual-commit",
+  "branch": "cli-fix-query-flags",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "cmd/runectl/main_test.go",
+    "cmd/runectl/syntax.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ad/69972a7c04/0/metadata.json",
+      "transcript": "/ad/69972a7c04/0/full.jsonl",
+      "context": "/ad/69972a7c04/0/context.md",
+      "content_hash": "/ad/69972a7c04/0/content_hash.txt",
+      "prompt": "/ad/69972a7c04/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 106,
+    "cache_creation_tokens": 34820,
+    "cache_read_tokens": 555750,
+    "output_tokens": 2686,
+    "api_call_count": 13
+  }
+}
