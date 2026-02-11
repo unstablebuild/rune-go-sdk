@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "98e838912dc8",
+  "session_id": "131ee9f6-f5c6-4b7c-b3db-ac6d8d560d3d",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T21:29:51.236028Z",
+  "branch": "runectl-uri-handlers",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "cmd/runectl/editor.go",
+    "cmd/runectl/main.go",
+    "cmd/runectl/main_test.go",
+    "cmd/runectl/open.go",
+    "cmd/runectl/syntax.go",
+    "cmd/runectl/wm.go",
+    "runectl"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "06ded993-21f0-4899-93da-d3bc748930cd",
+  "checkpoint_transcript_start": 162,
+  "transcript_lines_at_start": 162,
+  "token_usage": {
+    "input_tokens": 332,
+    "cache_creation_tokens": 120442,
+    "cache_read_tokens": 4807825,
+    "output_tokens": 10171,
+    "api_call_count": 41
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T21:29:51.117941Z",
+    "agent_lines": 913,
+    "human_added": 311,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1224,
+    "agent_percentage": 74.59150326797386
+  }
+}
