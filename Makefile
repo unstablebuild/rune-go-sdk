@@ -71,4 +71,4 @@ $(EXAMPLES): $(EXAMPLESRC) $(LIBSRC) $(BIN)
 	@cd $(patsubst bin/example_%,examples/%,$@) && $(CGO_ENABLED) $(GO) build $(GOFLAGS) -o ../../$@
 
 $(EXECS): $(EXECSRC) $(LIBSRC) $(BIN)
-	cd $(patsubst bin/%,cmd/%,$@) && $(CGO_ENABLED) $(GO) build $(GOFLAGS) -o ../../$@
+	@cd $(patsubst bin/%,cmd/%,$@) && $(CGO_ENABLED) $(GO) build $(GOFLAGS) -o ../../$@
