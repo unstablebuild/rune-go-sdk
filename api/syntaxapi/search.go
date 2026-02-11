@@ -20,6 +20,24 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
 
+// NodeCaptureName represents a known node capture name on an IDE provided
+// query. Values can be combined using bitwise OR to search for multiple node types.
+type NodeCaptureName uint32
+
+const (
+	NodeCaptureScope NodeCaptureName = 1 << iota
+	NodeCaptureDefinitionNamespace
+	NodeCaptureReference
+	NodeCaptureDefinitionFunc
+	NodeCaptureDefinitionVar
+	NodeCaptureDefinitionMethod
+	NodeCaptureDefinitionType
+	NodeCaptureNameAll = NodeCaptureScope | NodeCaptureDefinitionNamespace |
+		NodeCaptureReference | NodeCaptureDefinitionFunc |
+		NodeCaptureDefinitionVar | NodeCaptureDefinitionMethod |
+		NodeCaptureDefinitionType
+)
+
 // Result represents a single search match.
 type Result struct {
 	File        workspaceapi.URI
@@ -31,6 +49,22 @@ type Result struct {
 
 // Searcher provides AST-level search capabilities.
 type Searcher interface {
-	// Search searches for matches using the given query and capture names.
+	// Search searches for matches in the workspace using the given tree-sitter literal query
+	// and a list of capture names that should be returned.
 	Search(query string, captureNames []string) (iterator.Iterator[Result], error)
+	// SearchNode is implemented with Search by using an internally provided
+	// query that is able to capture a known set of tree nodes across programming
+	// languages. Multiple node types can be combined using bitwise OR.
+	SearchNode(nodeTypes NodeCaptureName) (iterator.Iterator[Result], error)
+	// Query searches for matches in a specific file using the given tree-sitter
+	// literal query and a list of capture names that should be returned.
+	Query(file workspaceapi.URI, query string, captureNames []string) (
+		iterator.Iterator[Result], error,
+	)
+	// QueryNode is implemented with Query by using an internally provided
+	// query that is able to capture a known set of tree nodes across
+	// programming languages. Multiple node types can be combined using bitwise OR.
+	QueryNode(file workspaceapi.URI, nodeTypes NodeCaptureName) (
+		iterator.Iterator[Result], error,
+	)
 }

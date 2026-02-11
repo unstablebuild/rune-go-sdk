@@ -50,7 +50,10 @@ func (c *Client) Init(ctx context.Context, cc grpc.ClientConnInterface) {
 }
 
 // Search satisfies syntaxapi.Searcher.
-func (c *Client) Search(query string, captureNames []string) (iterator.Iterator[syntaxapi.Result], error) {
+func (c *Client) Search(
+	query string,
+	captureNames []string,
+) (iterator.Iterator[syntaxapi.Result], error) {
 	req := SearchRequest{Query: query, CaptureNames: captureNames}
 	stream, err := c.pb.Search(c.ctx, &req)
 	if err != nil {
@@ -59,8 +62,51 @@ func (c *Client) Search(query string, captureNames []string) (iterator.Iterator[
 	return &rpcIterator{stream: stream}, nil
 }
 
+// SearchNode satisfies syntaxapi.Searcher.
+func (c *Client) SearchNode(
+	nodeTypes syntaxapi.NodeCaptureName,
+) (iterator.Iterator[syntaxapi.Result], error) {
+	req := SearchNodeRequest{NodeTypes: uint32(nodeTypes)}
+	stream, err := c.pb.SearchNode(c.ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("syntax search node: %w", err)
+	}
+	return &rpcIterator{stream: stream}, nil
+}
+
+// Query satisfies syntaxapi.Searcher.
+func (c *Client) Query(
+	file workspaceapi.URI,
+	query string,
+	captureNames []string,
+) (iterator.Iterator[syntaxapi.Result], error) {
+	req := QueryRequest{
+		Uri:          file.String(),
+		Query:        query,
+		CaptureNames: captureNames,
+	}
+	stream, err := c.pb.Query(c.ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("syntax query: %w", err)
+	}
+	return &rpcIterator{stream: stream}, nil
+}
+
+// QueryNode satisfies syntaxapi.Searcher.
+func (c *Client) QueryNode(
+	file workspaceapi.URI,
+	nodeTypes syntaxapi.NodeCaptureName,
+) (iterator.Iterator[syntaxapi.Result], error) {
+	req := QueryNodeRequest{Uri: file.String(), NodeTypes: uint32(nodeTypes)}
+	stream, err := c.pb.QueryNode(c.ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("syntax query node: %w", err)
+	}
+	return &rpcIterator{stream: stream}, nil
+}
+
 type rpcIterator struct {
-	stream Syntax_SearchClient
+	stream grpc.ServerStreamingClient[SearchResponse]
 	err    error
 }
 

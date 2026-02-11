@@ -11,6 +11,27 @@ message SearchRequest {
     repeated string capture_names = 2;
 }
 
+message SearchNodeRequest {
+    // Bitflags of node capture types to search for.
+    // Values: Scope=1, DefinitionNamespace=2, Reference=4, DefinitionFunc=8,
+    //         DefinitionVar=16, DefinitionMethod=32, DefinitionType=64
+    uint32 node_types = 1;
+}
+
+message QueryRequest {
+    string uri = 1;
+    string query = 2;
+    repeated string capture_names = 3;
+}
+
+message QueryNodeRequest {
+    string uri = 1;
+    // Bitflags of node capture types to search for.
+    // Values: Scope=1, DefinitionNamespace=2, Reference=4, DefinitionFunc=8,
+    //         DefinitionVar=16, DefinitionMethod=32, DefinitionType=64
+    uint32 node_types = 2;
+}
+
 message SearchResponse {
     string uri = 1;
     string text = 2;
@@ -22,4 +43,7 @@ message SearchResponse {
 
 service Syntax {
     rpc Search(SearchRequest) returns (stream SearchResponse);
+    rpc SearchNode(SearchNodeRequest) returns (stream SearchResponse);
+    rpc Query(QueryRequest) returns (stream SearchResponse);
+    rpc QueryNode(QueryNodeRequest) returns (stream SearchResponse);
 }
