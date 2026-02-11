@@ -380,11 +380,47 @@ func TestSyntaxQueryNode(t *testing.T) {
 	require.Equal(t, uint32(2), env.syntax.lastNodeTypes)
 }
 
+func TestSyntaxSearchNodeCombined(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	// scope=1, func=8, so scope|func = 9
+	out, err := env.run(
+		"syntax", "searchnode", "scope|func",
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, out)
+	require.Equal(t, uint32(9), env.syntax.lastNodeTypes)
+}
+
+func TestSyntaxQueryNodeCombined(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	testFile := filepath.Join(env.datadir, "test.go")
+	// namespace=2, var=16, type=64, so namespace|var|type = 82
+	out, err := env.run(
+		"syntax", "querynode",
+		testFile, "namespace|var|type",
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, out)
+	require.Equal(t, uint32(82), env.syntax.lastNodeTypes)
+}
+
 func TestSyntaxNodeTypeErr(t *testing.T) {
 	env := newTestEnv(t)
 	defer env.cleanup()
 	_, err := env.run(
 		"syntax", "searchnode", "invalid",
+	)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid node type")
+}
+
+func TestSyntaxNodeTypeCombinedErr(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	_, err := env.run(
+		"syntax", "searchnode", "func|invalid",
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid node type")

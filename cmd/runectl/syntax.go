@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
@@ -121,7 +122,7 @@ func printSyntaxResults(
 	})
 }
 
-func parseNodeType(s string) (syntaxapi.NodeCaptureName, error) {
+func parseSingleNodeType(s string) (syntaxapi.NodeCaptureName, error) {
 	switch s {
 	case "scope":
 		return syntaxapi.NodeCaptureScope, nil
@@ -144,6 +145,18 @@ func parseNodeType(s string) (syntaxapi.NodeCaptureName, error) {
 			s,
 		)
 	}
+}
+
+func parseNodeType(s string) (syntaxapi.NodeCaptureName, error) {
+	var result syntaxapi.NodeCaptureName
+	for _, part := range strings.Split(s, "|") {
+		nodeType, err := parseSingleNodeType(part)
+		if err != nil {
+			return 0, err
+		}
+		result |= nodeType
+	}
+	return result, nil
 }
 
 func (a *app) pathToURI(
