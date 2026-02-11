@@ -1,0 +1,258 @@
+Implement the following plan:
+
+# Plan: `idelsp` Package
+
+## Context
+
+Create an `idelsp/` package at the repository root that implements `idelsp.Manager` — a multi-language LSP server manager. The Manager implements `semanticapi.LSP` (routing calls to underlying per-language LSP servers) and `textapi.EventHandler` (receiving file events and mapping them to LSP notifications). It manages the full lifecycle of LSP servers: discovery via `PkgManager`, process start via `workspaceapi.Executor`, JSON-RPC 2.0 communication over stdio, crash recovery with retries, and user notifications via `browserapi.Notifications`.
+
+## Files
+
+| File | Action |
+|------|--------|
+| `idelsp/manager.go` | **Create** — Manager struct, Config, New, Close, Handle (EventHandler) |
+| `idelsp/jsonrpc.go` | **Create** — JSON-RPC 2.0 client (extracted from `semanticrpc/e2e_test.go:rpcConn`) |
+| `idelsp/server.go` | **Create** — langServer: single LSP server process lifecycle |
+| `idelsp/lsp.go` | **Create** — All 95 `semanticapi.LSP` method implementations on Manager |
+| `idelsp/language.go` | **Create** — PkgManager interface, extension-to-language mapping, langConfig registry |
+| `idelsp/manager_test.go` | **Create** — Unit tests with mock JSON-RPC server |
+| `idelsp/e2e_test.go` | **Create** — E2E tests with real gopls |
+
+## Architecture
+
+### Dependencies (all injected via Config)
+
+```go
+type Config struct {
+    RootURI       string
+    FileSystem    workspaceapi.FileSystem
+    Executor      workspaceapi.Executor
+    Notifications browserapi.Notifications
+    PkgManager    PkgManager
+    MaxRetries    uint // default 3
+}
+```
+
+### PkgManager Interface (`language.go`)
+
+```go
+type PkgManager interface {
+    LibDir(ctx context.Context, pkgID string) (
+        iterator.Iterator[string], error,
+    )
+}
+```
+
+Called with a language ID (e.g., `"go"`, `"python"`). Returns an iterator of directory paths. The Manager iterates and looks for the known LSP server executable for that language.
+
+### Language Registry (`language.go`)
+
+Hardcoded mapping of file extensions to language configuration:
+
+```go
+type langConfig struct {
+    ID      string   // language ID (e.g. "go")
+    Exts    []string // file extensions (e.g. ".go")
+    PkgID   string   // package ID for PkgManager lookup
+    Command string   // executable name (e.g. "gopls")
+    Args    []string // serve-mode args (e.g. ["serve"])
+}
+```
+
+Initial set: Go (`gopls serve`), Python (`pyright-langserver --stdio`), TypeScript (`typescript-language-server --stdio`), Rust (`rust-analyzer`), C/C++ (`clangd`).
+
+Helper: `langForExt(ext string) *langConfig` — returns nil if no language matched.
+
+### JSON-RPC Client (`jsonrpc.go`)
+
+Extracted from `semanticrpc/e2e_test.go` lines 346-513. Production-quality version of `rpcConn`:
+
+- `jsonrpcMessage` — request/response envelope
+- `rpcConn` — manages pending requests, readLoop goroutine
+- `rpcConn.call(ctx, method, params, result)` — request + wait for response
+- `rpcConn.notify(ctx, method, params)` — fire-and-forget notification
+- `rpcConn.close()` — close stdin, drain pending
+
+Key differences from test version:
+- Add `close()` method that closes stdin and waits for readLoop to exit
+- Handle server-initiated notifications (log them, don't fail)
+- Return structured `RPCError` type instead of plain error
+
+### langServer (`server.go`)
+
+Manages a single LSP server process:
+
+```go
+type langServer struct {
+    mu       sync.Mutex
+    cfg      langConfig
+    conn     *rpcConn
+    pid      workspaceapi.Pid
+    watcher  processWatcher
+    caps     semanticapi.ServerCapabilities
+    rootURI  string
+    executor workspaceapi.Executor
+    alive    bool
+}
+```
+
+Key methods:
+- `newLangServer(cfg, executor, rootURI) *langServer`
+- `start(ctx) error` — Start process via Executor (stdin/stdout piped), create rpcConn, send `initialize` + `initialized`
+- `stop(ctx) error` — Send `shutdown` + `exit`, close rpcConn
+- `call(ctx, method, params, result) error` — Delegates to rpcConn.call, checks alive
+- `notify(ctx, method, params) error` — Delegates to rpcConn.notify, checks alive
+- `waitAndRestart(ctx) error` — Watches for process exit, restarts if crash
+
+The `start` method uses `workspaceapi.Cmd` with `Stdin`/`Stdout` as `io.Pipe()` pairs and sets a `ProcessWatcher` to detect crashes.
+
+### Manager (`manager.go`)
+
+```go
+type Manager struct {
+    mu       sync.Mutex
+    cfg      Config
+    servers  map[string]*langServer // language ID -> server
+    fileToLang map[string]string    // URI -> language ID
+    ctx      context.Context
+    cancel   context.CancelFunc
+}
+```
+
+**Constructor**: `New(cfg Config) *Manager`
+
+**Handle (textapi.EventHandler)**:
+- `EventTypeOpen` → detect language from URI extension, ensure server started, call `DidOpen`
+- `EventTypeClose` → call `DidClose` on the file's language server
+- `EventTypeFlush` → call `DidSave`
+- `EventTypeEdit` → call `DidChange` with incremental content changes
+- `EventTypeCreate` → call `DidCreateFiles`
+- `EventTypeChange` → call `DidChangeWatchedFiles`
+- `EventTypeRemove` → call `DidDeleteFiles`
+- `EventTypeRename` → call `DidRenameFiles`
+- Other events (Scroll, Focus, Unfocus, Cursor, Selection, Hidden, Visible) → ignore, return false
+
+**Server Discovery** (`ensureServer` helper):
+1. Call `langForExt(ext)` to get `langConfig`
+2. If server already running for this language, return it
+3. Call `PkgManager.LibDir(ctx, langConfig.PkgID)`
+4. Iterate results, look for `langConfig.Command` executable in each directory
+5. Start `langServer` with found binary path
+6. On failure, notify user via `browserapi.Notifications`
+
+**Crash Recovery** (background goroutine per server):
+1. Monitor via `ProcessWatcher.WatchProcess()` channel
+2. On crash, use `retry` package: `CombinedStrategy(LimitStrategy(maxRetries), ExponentialStrategy(500ms, 5s))`
+3. Re-initialize the server, re-open tracked files
+4. After max retries exceeded, notify user via `Notifications.Notify(LevelError, ...)`
+
+**Close**: Shutdown + Exit all active servers, cancel context.
+
+### LSP Method Routing (`lsp.go`)
+
+All 95 methods of `semanticapi.LSP` implemented on `*Manager`.
+
+**Category 1 — Lifecycle** (managed internally):
+- `Initialize` → store rootURI and capabilities config; no-op for individual servers (lazy start)
+- `Initialized` → no-op
+- `Shutdown` → shutdown all active servers
+- `Exit` → exit all active servers
+
+**Category 2 — Document notifications** (route to owning server):
+- `DidOpen`, `DidChange`, `DidClose`, `DidSave`, `WillSave` → extract URI from params, forward to server for that file's language
+
+**Category 3 — Document requests** (route to owning server):
+All methods taking `TextDocumentIdentifier` or similar: `Hover`, `Completion`, `Definition`, `Declaration`, `TypeDefinition`, `Implementation`, `References`, `DocumentHighlight`, `DocumentSymbol`, `CodeAction`, `CodeLens`, `Formatting`, `RangeFormatting`, `Rename`, `PrepareRename`, `FoldingRange`, `SelectionRange`, `SemanticTokensFull`, `SemanticTokensRange`, `SemanticTokensFullDelta`, `Diagnostic`, `SignatureHelp`, `PrepareCallHierarchy`, `DocumentColor`, `ColorPresentation`, `DocumentLink`, `OnTypeFormatting`, `LinkedEditingRange`, `Moniker`, `WillSaveWaitUntil`, `InlayHint`, `InlineValue`
+
+Helper: `serverForURI(uri string) (*langServer, error)` — looks up `fileToLang[uri]`, returns the server or `ErrNoServer`.
+
+**Category 4 — Item-based requests** (route via item's URI):
+- `CallHierarchyIncomingCalls`, `CallHierarchyOutgoingCalls` → route via `Item.URI`
+- `CompletionResolve`, `CodeLensResolve`, `DocumentLinkResolve`, `InlayHintResolve` → needs context; route to last-used server for that item type (track in Manager), or return item unchanged if no server
+- `PrepareTypeHierarchy`, `TypeHierarchySupertypes`, `TypeHierarchySubtypes` → route via item URI
+
+**Category 5 — Workspace-wide requests** (fan out, merge):
+- `WorkspaceSymbol` → call all servers in parallel, concatenate `[]SymbolInformation`
+- `ExecuteCommand` → broadcast to all servers, return first non-error non-empty result
+
+**Category 6 — Workspace-wide notifications** (broadcast):
+- `DidChangeConfiguration`, `DidChangeWatchedFiles`, `DidChangeWorkspaceFolders`, `WorkDoneProgressCancel`, `SetTrace`, `DidCreateFiles`, `DidRenameFiles`, `DidDeleteFiles` → send to all active servers, aggregate errors via `errors.Join`
+
+**Category 7 — Workspace file operation requests** (fan out, merge edits):
+- `WillCreateFiles`, `WillRenameFiles`, `WillDeleteFiles` → call all servers, merge `WorkspaceEdit.Changes` maps
+
+### JSON-RPC ↔ semanticapi Type Compatibility
+
+The `semanticapi` types use `json:"..."` tags that match the LSP spec (camelCase). Most can be sent directly over JSON-RPC without conversion. Known exceptions (from `e2e_test.go` patterns):
+- `Initialize` params need custom capabilities structure
+- `Rename` response may use `documentChanges` (merge into `Changes`)
+- `CodeAction` diagnostics context needs manual mapping
+- Nullable responses (`*Hover`, etc.) need `null` JSON check
+
+Use the conversion functions from `e2e_test.go` (lines 593-700) as the basis: `lspWorkspaceEditToSemantic`, `lspCompletionItemToSemantic`, `lspSignatureHelpToSemantic`, etc. These move into `idelsp/convert.go` if needed, or inline in lsp.go.
+
+## Tests
+
+### Unit Tests (`manager_test.go`)
+
+Use a **mock JSON-RPC server** over `io.Pipe` — a goroutine that reads JSON-RPC requests from a pipe and writes canned responses. This tests the full Manager flow without real LSP servers.
+
+Mock dependencies:
+- `mockPkgManager` — returns canned directory paths via `iterator.FromSlice`
+- `mockExecutor` — captures Cmd, wires up pipes, runs mock JSON-RPC server goroutine
+- `mockFileSystem` — returns URI from path
+- `mockNotifications` — records calls
+
+Test cases (table-driven):
+1. Handle EventTypeOpen → starts server, sends initialize + didOpen
+2. Handle EventTypeClose → sends didClose
+3. Handle EventTypeEdit → sends didChange
+4. Handle EventTypeFlush → sends didSave
+5. Hover/Definition/References → routes to correct server
+6. WorkspaceSymbol → fans out to all servers, merges results
+7. Unknown file extension → returns error, no server started
+8. Server crash → restarts up to MaxRetries, sends notifications on final failure
+9. Close → shuts down all servers gracefully
+
+### E2E Tests (`e2e_test.go`)
+
+Similar pattern to `semanticrpc/e2e_test.go`. Uses real `gopls` binary:
+1. Create temp workspace with Go source files
+2. Create Manager with real `PkgManager` that finds gopls
+3. Send EventTypeOpen for `.go` files
+4. Call Hover, Definition, References, DocumentSymbol, WorkspaceSymbol
+5. Verify results match expected Go symbols
+6. Close Manager, verify clean shutdown
+
+Skip if `gopls` not found (same approach as `semanticrpc/e2e_test.go:newE2EEnv`).
+
+## Reusable Code
+
+| Source | What | Target |
+|--------|------|--------|
+| `semanticrpc/e2e_test.go:346-513` | `rpcConn`, `jsonrpcMessage`, `call`, `notify`, `readLoop` | `idelsp/jsonrpc.go` |
+| `semanticrpc/e2e_test.go:593-700` | LSP↔semantic conversion helpers | `idelsp/lsp.go` (inline or `convert.go`) |
+| `semanticrpc/e2e_test.go:702-1269` | `goplsLSP` method patterns (method names, null handling) | `idelsp/lsp.go` method implementations |
+| `retry/retry.go` | `CombinedStrategy`, `LimitStrategy`, `ExponentialStrategy`, `Retry` | Server crash recovery |
+| `iterator/utils.go` | `ToSlice`, `FromSlice` | PkgManager result consumption |
+
+## Implementation Order
+
+1. `idelsp/language.go` — PkgManager interface, langConfig registry, extToLanguage map
+2. `idelsp/jsonrpc.go` — Extract and harden rpcConn from e2e_test.go
+3. `idelsp/server.go` — langServer with start/stop/call/notify + crash watching
+4. `idelsp/manager.go` — Manager struct, New, Close, Handle, ensureServer, crash recovery
+5. `idelsp/lsp.go` — All 95 LSP methods with routing logic
+6. `idelsp/manager_test.go` — Unit tests with mock JSON-RPC server
+7. `idelsp/e2e_test.go` — E2E tests with real gopls
+
+## Verification
+
+1. `go build ./idelsp/` — compiles
+2. `go vet ./idelsp/` — clean
+3. `make lint` — 0 issues
+4. `go test ./idelsp/` — all tests pass
+5. `go test -run TestE2E ./idelsp/` — e2e tests pass (when gopls available)
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/atzarisurinachcorominas/.REDACTED.jsonl
