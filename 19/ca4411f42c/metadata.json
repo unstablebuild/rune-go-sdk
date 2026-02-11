@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "19ca4411f42c",
+  "strategy": "manual-commit",
+  "branch": "runectl-uri-handlers",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "cmd/runectl/editor.go",
+    "cmd/runectl/main.go",
+    "cmd/runectl/main_test.go",
+    "cmd/runectl/open.go",
+    "cmd/runectl/syntax.go",
+    "cmd/runectl/wm.go",
+    "runectl"
+  ],
+  "sessions": [
+    {
+      "metadata": "/19/ca4411f42c/0/metadata.json",
+      "transcript": "/19/ca4411f42c/0/full.jsonl",
+      "context": "/19/ca4411f42c/0/context.md",
+      "content_hash": "/19/ca4411f42c/0/content_hash.txt",
+      "prompt": "/19/ca4411f42c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 202,
+    "cache_creation_tokens": 57622,
+    "cache_read_tokens": 1319661,
+    "output_tokens": 2986,
+    "api_call_count": 26
+  }
+}

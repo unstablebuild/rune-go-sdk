@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "19ca4411f42c",
+  "session_id": "131ee9f6-f5c6-4b7c-b3db-ac6d8d560d3d",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T21:10:06.824147Z",
+  "branch": "runectl-uri-handlers",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "cmd/runectl/editor.go",
+    "cmd/runectl/main.go",
+    "cmd/runectl/main_test.go",
+    "cmd/runectl/open.go",
+    "cmd/runectl/syntax.go",
+    "cmd/runectl/wm.go",
+    "runectl"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 202,
+    "cache_creation_tokens": 57622,
+    "cache_read_tokens": 1319661,
+    "output_tokens": 2986,
+    "api_call_count": 26
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T21:10:06.765931Z",
+    "agent_lines": 67,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 67,
+    "agent_percentage": 100
+  }
+}
