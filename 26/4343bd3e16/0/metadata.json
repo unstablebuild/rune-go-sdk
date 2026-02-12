@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "264343bd3e16",
+  "session_id": "8327557c-707e-4a61-9954-c273a42d7429",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T11:13:35.767535Z",
+  "branch": "file-explorer",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "component/fileexplorer/fileexplorer_test.go",
+    "examples/fileexplorer/main.go",
+    "fileexplorer"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "a5d466d9-3adf-4d10-a98c-6f26673462ff",
+  "token_usage": {
+    "input_tokens": 270,
+    "cache_creation_tokens": 286556,
+    "cache_read_tokens": 5925617,
+    "output_tokens": 40819,
+    "api_call_count": 65
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T11:13:35.648408Z",
+    "agent_lines": 550,
+    "human_added": 26,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 576,
+    "agent_percentage": 95.48611111111111
+  }
+}

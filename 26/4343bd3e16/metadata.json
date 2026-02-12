@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "264343bd3e16",
+  "strategy": "manual-commit",
+  "branch": "file-explorer",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "component/fileexplorer/fileexplorer_test.go",
+    "examples/fileexplorer/main.go",
+    "fileexplorer"
+  ],
+  "sessions": [
+    {
+      "metadata": "/26/4343bd3e16/0/metadata.json",
+      "transcript": "/26/4343bd3e16/0/full.jsonl",
+      "context": "/26/4343bd3e16/0/context.md",
+      "content_hash": "/26/4343bd3e16/0/content_hash.txt",
+      "prompt": "/26/4343bd3e16/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 270,
+    "cache_creation_tokens": 286556,
+    "cache_read_tokens": 5925617,
+    "output_tokens": 40819,
+    "api_call_count": 65
+  }
+}
