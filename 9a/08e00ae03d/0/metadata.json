@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "9a08e00ae03d",
+  "session_id": "0abd86ef-2458-43d5-bb48-d713aa61771f",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T06:07:38.043359Z",
+  "branch": "semanticapi",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "api/semanticapi/callback.go",
+    "api/semanticapi/extension/permissions.go",
+    "api/semanticapi/semanticrpc/callback_client.go",
+    "api/semanticapi/semanticrpc/callback_server.go",
+    "api/semanticapi/semanticrpc/convert.go",
+    "api/semanticapi/semanticrpc/integration_test.go",
+    "api/semanticapi/semanticrpc/semantic.proto",
+    "api/semanticapi/types.go",
+    "idelsp/callback.go",
+    "idelsp/e2e_test.go",
+    "idelsp/jsonrpc.go",
+    "idelsp/lsp.go",
+    "idelsp/manager.go",
+    "idelsp/manager_test.go",
+    "idelsp/server.go"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "8e0950f6-2e7c-42f3-a379-7a9b83fced21",
+  "checkpoint_transcript_start": 1352,
+  "transcript_lines_at_start": 1352,
+  "token_usage": {
+    "input_tokens": 1150,
+    "cache_creation_tokens": 213199,
+    "cache_read_tokens": 15901674,
+    "output_tokens": 30398,
+    "api_call_count": 142
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T06:07:36.322759Z",
+    "agent_lines": 0,
+    "human_added": 6654,
+    "human_modified": 1922,
+    "human_removed": 0,
+    "total_committed": 7514,
+    "agent_percentage": 0
+  }
+}
