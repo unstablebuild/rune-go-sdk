@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "a68e1fd7f3c4",
+  "strategy": "manual-commit",
+  "branch": "semanticapi",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "api/extensionapi/workspace.go",
+    "api/semanticapi/semanticrpc/callback_client.go",
+    "api/semanticapi/semanticrpc/callback_server.go",
+    "api/semanticapi/semanticrpc/client.go",
+    "api/semanticapi/semanticrpc/convert.go",
+    "api/semanticapi/semanticrpc/e2e_test.go",
+    "api/semanticapi/semanticrpc/integration_test.go",
+    "api/semanticapi/semanticrpc/server.go",
+    "api/semanticapi/semanticrpc/tsemanticrpc/server.go",
+    "cmd/runectl/lsp.go",
+    "cmd/runectl/main.go",
+    "cmd/runectl/main_test.go",
+    "runectl"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a6/8e1fd7f3c4/0/metadata.json",
+      "transcript": "/a6/8e1fd7f3c4/0/full.jsonl",
+      "context": "/a6/8e1fd7f3c4/0/context.md",
+      "content_hash": "/a6/8e1fd7f3c4/0/content_hash.txt",
+      "prompt": "/a6/8e1fd7f3c4/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 712,
+    "cache_creation_tokens": 784366,
+    "cache_read_tokens": 9537406,
+    "output_tokens": 26178,
+    "api_call_count": 89
+  }
+}
