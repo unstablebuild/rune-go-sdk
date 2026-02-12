@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "999e34619389",
+  "session_id": "da88c3dd-c044-48be-b331-464f9010280b",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T10:41:53.167673Z",
+  "branch": "markdown",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "component/markdown/block.go",
+    "component/markdown/block_test.go",
+    "component/markdown/blockquote.go",
+    "component/markdown/code.go",
+    "component/markdown/config.go",
+    "component/markdown/doc.go",
+    "component/markdown/fuzz_test.go",
+    "component/markdown/header.go",
+    "component/markdown/hrule.go",
+    "component/markdown/list.go",
+    "component/markdown/markdown.go",
+    "component/markdown/markdown_test.go",
+    "component/markdown/paragraph.go",
+    "component/markdown/parser.go",
+    "component/markdown/parser_test.go",
+    "component/markdown/table.go",
+    "component/markdown/wrap.go",
+    "examples/mdview/main.go",
+    "examples/mdview/sample.md",
+    "mdview"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 1408,
+    "cache_creation_tokens": 448120,
+    "cache_read_tokens": 17611229,
+    "output_tokens": 56665,
+    "api_call_count": 174
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T10:41:52.878494Z",
+    "agent_lines": 3366,
+    "human_added": 85,
+    "human_modified": 34,
+    "human_removed": 0,
+    "total_committed": 3481,
+    "agent_percentage": 96.69635162309682
+  }
+}
