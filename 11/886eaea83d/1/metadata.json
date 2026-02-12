@@ -1,11 +1,12 @@
 {
   "cli_version": "0.4.2",
   "checkpoint_id": "11886eaea83d",
+  "session_id": "50a0c07e-57b4-4f25-8cdd-5d55ab143e26",
   "strategy": "manual-commit",
+  "created_at": "2026-02-12T06:44:53.776004Z",
   "branch": "sandbox",
-  "checkpoints_count": 4,
+  "checkpoints_count": 3,
   "files_touched": [
-    ".claude/settings.local.json",
     "sandbox/config.go",
     "sandbox/e2e_test.go",
     "sandbox/errors.go",
@@ -32,27 +33,21 @@
     "sandbox/sandboxtest/mock_executor_test.go",
     "sandbox/sandboxtest/mock_runtime.go"
   ],
-  "sessions": [
-    {
-      "metadata": "/11/886eaea83d/0/metadata.json",
-      "transcript": "/11/886eaea83d/0/full.jsonl",
-      "context": "/11/886eaea83d/0/context.md",
-      "content_hash": "/11/886eaea83d/0/content_hash.txt",
-      "prompt": "/11/886eaea83d/0/prompt.txt"
-    },
-    {
-      "metadata": "/11/886eaea83d/1/metadata.json",
-      "transcript": "/11/886eaea83d/1/full.jsonl",
-      "context": "/11/886eaea83d/1/context.md",
-      "content_hash": "/11/886eaea83d/1/content_hash.txt",
-      "prompt": "/11/886eaea83d/1/prompt.txt"
-    }
-  ],
+  "agent": "Claude Code",
   "token_usage": {
-    "input_tokens": 4083,
-    "cache_creation_tokens": 281020,
-    "cache_read_tokens": 15288542,
-    "output_tokens": 53144,
-    "api_call_count": 185
+    "input_tokens": 1352,
+    "cache_creation_tokens": 219285,
+    "cache_read_tokens": 14392437,
+    "output_tokens": 35710,
+    "api_call_count": 168
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T06:44:53.552129Z",
+    "agent_lines": 3688,
+    "human_added": 862,
+    "human_modified": 235,
+    "human_removed": 0,
+    "total_committed": 4785,
+    "agent_percentage": 77.07419017763846
   }
 }
