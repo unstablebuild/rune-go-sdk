@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "3ccf81341e84",
+  "session_id": "da88c3dd-c044-48be-b331-464f9010280b",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T11:35:57.887101Z",
+  "branch": "markdown",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "component/markdown/block_test.go",
+    "component/markdown/blockquote.go",
+    "component/markdown/code.go",
+    "component/markdown/header.go",
+    "component/markdown/hrule.go",
+    "component/markdown/list.go",
+    "component/markdown/markdown_test.go",
+    "component/markdown/paragraph.go",
+    "component/markdown/table.go",
+    "component/markdown/wrap.go"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "e370f2ef-c6d5-4db3-812b-e3c5101ee62a",
+  "checkpoint_transcript_start": 994,
+  "transcript_lines_at_start": 994,
+  "token_usage": {
+    "input_tokens": 5150,
+    "cache_creation_tokens": 134255,
+    "cache_read_tokens": 13022393,
+    "output_tokens": 18415,
+    "api_call_count": 111
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T11:35:57.336538Z",
+    "agent_lines": 544,
+    "human_added": 64,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 608,
+    "agent_percentage": 89.47368421052632
+  }
+}

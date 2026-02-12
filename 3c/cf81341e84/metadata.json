@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "3ccf81341e84",
+  "strategy": "manual-commit",
+  "branch": "markdown",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "component/markdown/block_test.go",
+    "component/markdown/blockquote.go",
+    "component/markdown/code.go",
+    "component/markdown/header.go",
+    "component/markdown/hrule.go",
+    "component/markdown/list.go",
+    "component/markdown/markdown_test.go",
+    "component/markdown/paragraph.go",
+    "component/markdown/table.go",
+    "component/markdown/wrap.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/3c/cf81341e84/0/metadata.json",
+      "transcript": "/3c/cf81341e84/0/full.jsonl",
+      "context": "/3c/cf81341e84/0/context.md",
+      "content_hash": "/3c/cf81341e84/0/content_hash.txt",
+      "prompt": "/3c/cf81341e84/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 5150,
+    "cache_creation_tokens": 134255,
+    "cache_read_tokens": 13022393,
+    "output_tokens": 18415,
+    "api_call_count": 111
+  }
+}
