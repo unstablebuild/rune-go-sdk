@@ -1779,6 +1779,8 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	t.Setenv("RUNE_SOCKET", sockPath)
 	t.Setenv("RUNE_DATADIR", datadir)
+	t.Setenv("RUNE_CERT", "")
+	t.Setenv("RUNE_TOKEN", "")
 
 	return &testEnv{
 		t: t, srv: srv, socket: sockPath,
