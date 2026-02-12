@@ -1,0 +1,260 @@
+You are a principal software engineer at a security company. You have been tasked with verifying the security of the sandbox package introduced in the latest commit. This is the spec: // Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package sandbox
+
+import (
+    "bytes"
+    "context"
+    "testing"
+    "time"
+
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+    "github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
+)
+
+// setupE2EExecutor creates a sandbox executor for e2e testing.
+// Uses the mock runtime for now; real e2e tests will use actual VMs.
+func setupE2EExecutor(t *testing.T, config Config) *Executor {
+    t.Helper()
+
+    if config.WorkspaceRoot == "" {
+        config.WorkspaceRoot = "/tmp"
+    }
+
+    exec, err := New(context.Background(), config, WithRuntime(newMockRuntime()))
+    require.NoError(t, err)
+    t.Cleanup(func() { _ = exec.Close() })
+
+    return exec
+}
+
+func runCommand(t *testing.T, exec *Executor, command string) (string, string) {
+    t.Helper()
+
+    stdout := &bytes.Buffer{}
+    stderr := &bytes.Buffer{}
+    watchCh := make(chan error, 1)
+
+    cmd := workspaceapi.Cmd{
+        Path:    "/bin/sh",
+        Args:    []string{"-c", command},
+        Stdout:  stdout,
+        Stderr:  stderr,
+        Watcher: &testWatcher{ch: watchCh},
+    }
+
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    _, err := exec.Start(ctx, cmd)
+    require.NoError(t, err)
+
+    select {
+    case <-watchCh:
+    case <-ctx.Done():
+        t.Fatalf("timeout waiting for command: %s", command)
+    }
+
+    return stdout.String(), stderr.String()
+}
+
+func TestE2E_SimpleCommand(t *testing.T) {
+    exec := setupE2EExecutor(t, DefaultConfig())
+
+    stdout, _ := runCommand(t, exec, "echo hello")
+    assert.Equal(t, "hello\n", stdout)
+}
+
+func TestE2E_EnvironmentVariables(t *testing.T) {
+    exec := setupE2EExecutor(t, DefaultConfig())
+
+    tsuite := []struct {
+        name    string
+        cmd     string
+        wantOut string
+    }{
+        {
+            name:    "echo with var",
+            cmd:     "export FOO=bar && echo $FOO",
+            wantOut: "bar\n",
+        },
+        {
+            name:    "multiple vars",
+            cmd:     "export A=1 B=2 && echo $A$B",
+            wantOut: "12\n",
+        },
+    }
+
+    for _, tc := range tsuite {
+        t.Run(tc.name, func(t *testing.T) {
+            stdout, _ := runCommand(t, exec, tc.cmd)
+            assert.Equal(t, tc.wantOut, stdout)
+        })
+    }
+}
+
+func TestE2E_WorkingDirectory(t *testing.T) {
+    exec := setupE2EExecutor(t, DefaultConfig())
+
+    stdout, _ := runCommand(t, exec, "cd /tmp && pwd")
+    // On macOS /tmp is symlinked to /private/tmp
+    assert.Contains(t, stdout, "tmp")
+}
+
+func TestE2E_StderrCapture(t *testing.T) {
+    exec := setupE2EExecutor(t, DefaultConfig())
+
+    stdout, stderr := runCommand(t, exec, "echo out; echo err >&2")
+    assert.Equal(t, "out\n", stdout)
+    assert.Equal(t, "err\n", stderr)
+}
+
+func TestE2E_ExitCode(t *testing.T) {
+    exec := setupE2EExecutor(t, DefaultConfig())
+
+    watchCh := make(chan error, 1)
+    cmd := workspaceapi.Cmd{
+        Path:    "/bin/sh",
+        Args:    []string{"-c", "exit 42"},
+        Watcher: &testWatcher{ch: watchCh},
+    }
+
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+
+    _, err := exec.Start(ctx, cmd)
+    require.NoError(t, err)
+
+    select {
+    case werr := <-watchCh:
+        require.Error(t, werr)
+        assert.Contains(t, werr.Error(), "42")
+    case <-ctx.Done():
+        t.Fatal("timeout")
+    }
+}
+
+// The following tests are stubs for features that require real VM integration.
+// They will be implemented once Matchlock is integrated.
+
+func TestE2E_ResourceLimits(t *testing.T) {
+    t.Skip("TODO: Implement with real VM integration")
+
+    tsuite := []struct {
+        name      string
+        resources ResourceConfig
+        cmd       string
+        wantErr   string
+    }{
+        {
+            name:      "memory limit OOM",
+            resources: ResourceConfig{MemoryMB: 64},
+            cmd:       "stress --vm 1 --vm-bytes 128M",
+            wantErr:   "killed",
+        },
+        {
+            name:      "disk quota exceeded",
+            resources: ResourceConfig{DiskMB: 10},
+            cmd:       "dd if=/dev/zero of=/tmp/big bs=1M count=20",
+            wantErr:   "No space left",
+        },
+    }
+
+    for _, tc := range tsuite {
+        t.Run(tc.name, func(t *testing.T) {
+            config := DefaultConfig()
+            config.Resources = &tc.resources
+            exec := setupE2EExecutor(t, config)
+            _, stderr := runCommand(t, exec, tc.cmd)
+            assert.Contains(t, stderr, tc.wantErr)
+        })
+    }
+}
+
+func TestE2E_NetworkPolicy(t *testing.T) {
+    t.Skip("TODO: Implement with real VM integration")
+
+    tsuite := []struct {
+        name         string
+        allowedHosts []string
+        targetHost   string
+        wantAllowed  bool
+    }{
+        {
+            name:         "default deny",
+            allowedHosts: nil,
+            targetHost:   "example.com",
+            wantAllowed:  false,
+        },
+        {
+            name:         "allowed host",
+            allowedHosts: []string{"api.github.com"},
+            targetHost:   "api.github.com",
+            wantAllowed:  true,
+        },
+        {
+            name:         "blocked host",
+            allowedHosts: []string{"api.github.com"},
+            targetHost:   "google.com",
+            wantAllowed:  false,
+        },
+    }
+
+    for _, tc := range tsuite {
+        t.Run(tc.name, func(t *testing.T) {
+            // TODO: Implement network policy test
+            _ = tc
+        })
+    }
+}
+
+func TestE2E_ProcessIsolation(t *testing.T) {
+    t.Skip("TODO: Implement with real VM integration")
+    // This test verifies that host PIDs are not visible in the sandbox
+}
+
+func TestE2E_EphemeralFilesystem(t *testing.T) {
+    t.Skip("TODO: Implement with real VM integration")
+    // This test verifies that filesystem changes don't persist across sandboxes
+}
+
+func TestE2E_EnvironmentScrubbing(t *testing.T) {
+    t.Skip("TODO: Implement with real VM integration")
+
+    tsuite := []struct {
+        name     string
+        envVar   string
+        envValue string
+    }{
+        {name: "github token", envVar: "GITHUB_TOKEN", envValue: "ghp_secret123"},
+        {name: "aws secret", envVar: "AWS_SECRET_ACCESS_KEY", envValue: "wJalrXUtnFEMI"},
+        {name: "api key", envVar: "API_KEY", envValue: "sk-proj-abc123"},
+    }
+
+    for _, tc := range tsuite {
+        t.Run(tc.name, func(t *testing.T) {
+            t.Setenv(tc.envVar, tc.envValue)
+            exec := setupE2EExecutor(t, DefaultConfig())
+            stdout, _ := runCommand(t, exec, "env")
+            assert.NotContains(t, stdout, tc.envValue)
+        })
+    }
+}
+. Verify that all of the spec is met, point by point. Provide a report at the end with evidence based on the tests at sandbox/e2e_test.go about what points are being met and which are not being met (gaps).
+
+---
+
+Please proceed with your recommendatios.
