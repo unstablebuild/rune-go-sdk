@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "4bd8b3ff6131",
+  "strategy": "manual-commit",
+  "branch": "semanticapi",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "idelsp/e2e_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/4b/d8b3ff6131/0/metadata.json",
+      "transcript": "/4b/d8b3ff6131/0/full.jsonl",
+      "context": "/4b/d8b3ff6131/0/context.md",
+      "content_hash": "/4b/d8b3ff6131/0/content_hash.txt",
+      "prompt": "/4b/d8b3ff6131/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 198,
+    "cache_creation_tokens": 56146,
+    "cache_read_tokens": 3068106,
+    "output_tokens": 5817,
+    "api_call_count": 24
+  }
+}
