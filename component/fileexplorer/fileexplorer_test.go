@@ -644,6 +644,53 @@ func TestChanges(t *testing.T) {
 				},
 			},
 		},
+		{
+			// This test documents a bug: when entries are added at the
+			// wrong depth (depth 0 inside an expanded directory), subsequent
+			// entries get mis-parented in the virtual tree, causing spurious
+			// delete operations.
+			name: "wrong depth insertion causes cascading deletes",
+			dirs: map[string][]mockEntry{
+				"/project": {
+					{name: "src", isDir: true},
+				},
+				"/project/src": {
+					{name: "a.go", isDir: false},
+					{name: "b.go", isDir: false},
+					{name: "c.go", isDir: false},
+				},
+			},
+			expand: []int{0},
+			// After expand, cells are:
+			//   src/
+			// │   a.go
+			// │   b.go
+			// │   c.go
+			//
+			// User adds depth-0 file and dir after a.go (WRONG!):
+			//   src/
+			// │   a.go
+			//   newfile.txt  <-- depth 0 (should be 1)
+			//   newdir/      <-- depth 0 (should be 1)
+			// │   b.go       <-- depth 1, now parented to newdir!
+			// │   c.go       <-- depth 1, now parented to newdir!
+			cells: `  src/
+│   a.go
+  newfile.txt
+  newdir/
+│   b.go
+│   c.go`,
+			// BUG: b.go and c.go are "deleted" from src because they
+			// get attached to newdir in the virtual tree. The expected
+			// ops show the buggy behavior - ideally this should only
+			// create newfile.txt and newdir inside src/.
+			ops: []expectedOp{
+				{OpCreate, "", "file:///project/newfile.txt"},
+				{OpMkdir, "", "file:///project/newdir"},
+				{OpDelete, "file:///project/src/b.go", ""},
+				{OpDelete, "file:///project/src/c.go", ""},
+			},
+		},
 	}
 
 	for _, tt := range tests {
