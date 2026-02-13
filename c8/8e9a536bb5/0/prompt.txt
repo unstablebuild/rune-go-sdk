@@ -1,0 +1,65 @@
+We built the sandbox package and implemented a darwin and linux runtime (vm creation implementation), that unfortunately has system dependencies like e2fsprogs or agent-fused, etc. We want a minimal implementation of the Runtime interface by using apple containers directly. We want to impement the following features: Agent Sandbox Security: Essential Features
+This is a great topic, especially given where you are with Rune and the broader shift toward agentic tooling. Here's a comprehensive breakdown of what makes an agent sandbox effective at protecting the user.
+
+Process Isolation
+The foundation of any sandbox is strong process isolation. The agent's execution environment should be separated from the host system using one or more of these mechanisms:
+Namespace isolation — The agent process should operate in its own PID, network, mount, user, and IPC namespaces. This prevents it from seeing or interacting with host processes, network interfaces, or filesystems it shouldn't touch. On Linux, this means leveraging clone() with appropriate CLONE_NEW* flags or using higher-level abstractions like containers.
+Filesystem confinement — The agent should have a restricted view of the filesystem, ideally a chroot or overlay mount that exposes only what it needs. Writes should be captured in an ephemeral layer (copy-on-write) so the host filesystem is never mutated directly. Any changes can then be reviewed and selectively applied.
+Seccomp and capability dropping — Even within a namespace, the syscall surface should be minimized. A seccomp-bpf profile that whitelists only necessary syscalls dramatically reduces the blast radius of any exploit. All Linux capabilities should be dropped except those explicitly needed.
+
+Resource Controls
+An agent that can exhaust CPU, memory, disk, or network is a denial-of-service vector against the user's own machine.
+Cgroup limits — Hard ceilings on CPU time (both wall-clock and CPU-seconds), memory (with OOM kill rather than swap thrashing), PIDs (to prevent fork bombs), and I/O bandwidth. These should be non-negotiable defaults, not opt-in.
+Execution timeouts — Every agent action should have a wall-clock timeout. If an agent hangs or enters an infinite loop, the sandbox should kill it deterministically. This needs to be layered: per-command timeout, per-task timeout, and a global session timeout.
+Disk quotas — The ephemeral filesystem layer should have a hard size cap. An agent that fills a disk can destabilize the entire system.
+
+Network Policy
+Network access is one of the highest-risk capabilities you can give an agent.
+Default-deny egress — The agent should have no network access by default. If network is needed, it should go through a proxy that enforces an explicit allowlist of domains/IPs and protocols.
+No listening sockets — The agent should never be able to bind and listen on ports accessible from the host or LAN, preventing it from opening backdoors.
+DNS filtering — Even with an allowlist, DNS queries should be intercepted and filtered to prevent DNS-based exfiltration or tunneling.
+Rate limiting — Outbound connections should be rate-limited to prevent data exfiltration at scale even through allowed channels.
+
+Permission and Capability Model
+This is where most sandboxes fall short — they give binary access (sandbox on/off) instead of a granular capability model.
+Declarative capability requests — Before execution, the agent should declare what it needs: filesystem paths (read/write/execute), network endpoints, environment variables, subprocess spawning, etc. The user reviews and approves a capability set before the agent runs.
+Least privilege by default — If the agent doesn't request a capability, it doesn't get it. Unknown capabilities are denied, not granted.
+Tiered approval — Low-risk actions (reading files in a project directory) can be auto-approved. Medium-risk actions (writing files, running build commands) get a one-time approval or session-scoped approval. High-risk actions (network access, running arbitrary binaries, modifying dotfiles) require explicit per-invocation approval.
+Revocable permissions — The user should be able to revoke a granted permission mid-session. The sandbox must be able to enforce this immediately, not just on the next action.
+
+Action Audit and Transparency
+The user should never be in the dark about what the agent is doing.
+Complete action log — Every syscall, file operation, network request, and subprocess invocation should be logged in a structured, queryable format. This is the agent's equivalent of an audit trail.
+Real-time visibility — The user should be able to see a live feed of what the agent is doing, not just the final output. This includes commands being run, files being modified, and network requests being made.
+Diff-based review — For filesystem mutations, the sandbox should present changes as diffs (like a git staging area) that the user can accept, reject, or modify before they're applied to the real filesystem. This is the single most important UX feature for trust.
+Reproducibility — The action log should be detailed enough that the entire session can be replayed or audited after the fact.
+
+Rollback and Recovery
+Even with all protections, things go wrong. The sandbox must make recovery trivial.
+Snapshot-based state management — The sandbox should snapshot the relevant state (filesystem, environment) before the agent begins. If anything goes wrong, one-click rollback to the pre-agent state.
+Incremental checkpoints — For long-running agent tasks, periodic checkpoints allow partial rollback without losing all progress.
+Transaction semantics — Ideally, agent actions are only committed to the real environment when explicitly approved. Until then, everything lives in a transactional overlay.
+
+Secret and Credential Protection
+Agents operating in a developer's environment are surrounded by sensitive material.
+Environment scrubbing — The agent's environment should not inherit the user's shell environment by default. API keys, tokens, credentials in ~/.ssh, ~/.aws, ~/.config, etc. should be invisible to the agent unless explicitly passed through.
+Credential injection, not exposure — If the agent needs to authenticate somewhere, credentials should be injected at the point of use (e.g., a proxy that adds auth headers) rather than exposed to the agent process. The agent never sees the raw secret.
+Clipboard isolation — The agent should not be able to read the system clipboard, which often contains sensitive data.
+Memory protection — After the sandbox session ends, all agent memory should be zeroed. No core dumps should be writable from within the sandbox.
+
+Input/Output Sanitization
+The boundary between the agent and the host is a trust boundary.
+Output validation — Files produced by the agent should be scanned or validated before being applied. This includes checking for embedded scripts in documents, symlink attacks, or path traversal in generated filenames.
+Prompt injection resistance — If the agent reads files or network responses as part of its context, the sandbox should flag or sanitize content that looks like prompt injection attempts. This is an emerging and genuinely hard problem, but at minimum the architecture should separate "data" from "instructions" as clearly as possible.
+Symlink and hardlink restrictions — The agent should not be able to create symlinks or hardlinks that point outside its confined filesystem. This is a classic container escape vector.
+
+Escape and Escalation Prevention
+The sandbox itself must be hardened against breakout.
+No ptrace — The agent should not be able to attach to other processes. PR_SET_NO_NEW_PRIVS should be set.
+Read-only root filesystem — The sandbox's own runtime (not the working overlay) should be immutable.
+Minimal attack surface — The sandbox environment should contain the absolute minimum set of binaries and libraries. No compilers, debuggers, or network tools unless explicitly needed and approved.
+Nested execution prevention — The agent should not be able to launch its own sandbox or container runtime, which could be used to escape the outer sandbox.. We only want to support darwin to start with.
+
+---
+
+[Request interrupted by user for tool use]
