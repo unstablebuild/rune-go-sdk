@@ -1,0 +1,356 @@
+Implement the following plan:
+
+# Minimal Darwin Sandbox with Embedded Images
+
+## Context
+
+The current sandbox implementation depends on:
+- **Matchlock** - Go wrapper around Apple's Virtualization.framework
+- **e2fsprogs** - Required at runtime for ext4 image manipulation
+- **Downloaded binaries** - guest-agent and guest-fused from GitHub
+
+These external dependencies complicate deployment and make the package harder to use. The goal is to create a minimal implementation that:
+1. Uses `github.com/Code-Hex/vz` directly (pure Go bindings)
+2. Has **zero runtime dependencies** (no e2fsprogs, no downloads)
+3. Embeds a pre-built Alpine Linux kernel and rootfs
+4. Supports darwin/arm64 only (Apple Silicon)
+
+## Implementation Approach
+
+### 1. Architecture Overview
+
+```
+sandbox/
+  runtime.go              # Interfaces (unchanged)
+  runtime_darwin.go       # Update to use vzRuntime
+  config.go               # Config (unchanged)
+  executor.go             # Executor (unchanged, already handles ExecutableVM)
+  errors.go               # Errors (unchanged)
+  policy/                 # Policy (unchanged)
+  sandboxrpc/             # gRPC protocol (reuse for guest agent)
+
+  vzruntime/              # NEW: Direct vz implementation
+    runtime.go            # vzRuntime implementing Runtime
+    vm.go                 # vzVM implementing ExecutableVM
+    images.go             # Image extraction and caching
+    images/               # Embedded images directory
+      embed.go            # go:embed directives
+      kernel/             # vmlinuz-arm64.gz
+      rootfs/             # rootfs-arm64.ext4.zst
+      init.sh             # Init script (source for embedding)
+
+  guest/                  # NEW: Guest agent (cross-compiled to linux/arm64)
+    main.go               # Entry point
+
+  scripts/                # Build scripts
+    build-guest-images.sh # Build kernel + rootfs + guest-agent
+```
+
+### 2. Files to Delete
+
+- `sandbox/deps.go` - e2fsprogs dependency checks no longer needed
+- `sandbox/guest.go` - Binary download logic no longer needed
+
+### 3. Files to Create
+
+#### `sandbox/vzruntime/runtime.go` - Runtime Factory
+```go
+type vzRuntime struct {
+    kernelPath  string  // Cached extracted kernel
+    rootfsPath  string  // Cached extracted rootfs
+    cacheDir    string  // ~/.cache/rune-sandbox/v1
+}
+
+func NewRuntime() (*vzRuntime, error)
+func (r *vzRuntime) Create(ctx, config) (VM, error)
+```
+
+#### `sandbox/vzruntime/vm.go` - VM Implementation
+```go
+type vzVM struct {
+    id           string
+    vm           *vz.VirtualMachine
+    socketDevice vz.SocketDevice
+    agentConn    *grpc.ClientConn
+    config       *sandbox.Config
+    tempRootfs   string  // Per-VM copy
+    state        VMState
+}
+
+// Implements VM interface
+func (v *vzVM) ID() string
+func (v *vzVM) State() VMState
+func (v *vzVM) AgentConn() (net.Conn, error)  // Returns vsock connection
+func (v *vzVM) Close() error
+
+// Implements ExecutableVM interface (via gRPC to guest agent)
+func (v *vzVM) Exec(ctx, command, opts) (*ExecResult, error)
+func (v *vzVM) WriteFile(ctx, path, content, mode) error
+func (v *vzVM) ReadFile(ctx, path) ([]byte, error)
+```
+
+#### `sandbox/vzruntime/images.go` - Image Extraction
+```go
+func (r *vzRuntime) extractImages() error
+func decompressGzip(data []byte, dest string) error
+func decompressZstd(data []byte, dest string) error
+```
+
+#### `sandbox/vzruntime/images/embed.go` - Embedded Assets
+```go
+//go:embed kernel/vmlinuz-arm64.gz
+var KernelArm64 []byte
+
+//go:embed rootfs/rootfs-arm64.ext4.zst
+var RootfsArm64 []byte
+
+//go:embed init.sh
+var InitScript []byte
+```
+
+#### `sandbox/guest/main.go` - Guest Agent
+```go
+func main() {
+    listener, _ := vsock.Listen(5000, nil)
+    server := grpc.NewServer()
+    sandboxrpc.RegisterAgentServer(server, sandboxrpc.NewServer())
+    server.Serve(listener)
+}
+```
+
+### 4. Files to Modify
+
+#### `sandbox/runtime_darwin.go`
+Replace Matchlock-based implementation with vzRuntime:
+
+```go
+import "github.com/unstablebuild/rune-go-sdk/sandbox/vzruntime"
+
+func NewRuntime() (Runtime, error) {
+    if runtime.GOARCH != "arm64" {
+        return nil, ErrUnsupportedPlatform
+    }
+    return vzruntime.NewRuntime()
+}
+```
+
+#### `go.mod`
+- Remove: `github.com/jingkaihe/matchlock`
+- Add: `github.com/Code-Hex/vz/v3`
+- Add: `github.com/klauspost/compress` (for zstd decompression)
+- Add: `github.com/mdlayher/vsock` (for guest agent, already indirect)
+
+### 5. VM Configuration Details
+
+Using Code-Hex/vz v3 APIs:
+
+```go
+// Boot loader
+bootLoader, _ := vz.NewLinuxBootLoader(
+    kernelPath,
+    vz.WithCommandLine("console=hvc0 root=/dev/vda rw init=/init"),
+)
+
+// VM config
+vmConfig, _ := vz.NewVirtualMachineConfiguration(bootLoader, cpus, memoryBytes)
+
+// Storage - rootfs as virtio block device
+diskAttachment, _ := vz.NewDiskImageStorageDeviceAttachment(rootfsPath, false)
+storageConfig, _ := vz.NewVirtioBlockDeviceConfiguration(diskAttachment)
+vmConfig.SetStorageDevicesVirtualMachineConfiguration(...)
+
+// Network - NAT for internet access (filtered by guest-side iptables)
+natAttachment, _ := vz.NewNATNetworkDeviceAttachment()
+netConfig, _ := vz.NewVirtioNetworkDeviceConfiguration(natAttachment)
+vmConfig.SetNetworkDevicesVirtualMachineConfiguration(...)
+
+// Vsock - for host-guest communication
+socketConfig, _ := vz.NewVirtioSocketDeviceConfiguration()
+vmConfig.SetSocketDevicesVirtualMachineConfiguration(...)
+
+// Shared directory - workspace mounting via virtio-fs
+sharedDir, _ := vz.NewSharedDirectory(config.WorkspaceRoot, readOnly)
+share, _ := vz.NewSingleDirectoryShare(sharedDir)
+fsConfig, _ := vz.NewVirtioFileSystemDeviceConfiguration("workspace")
+fsConfig.SetDirectoryShare(share)
+vmConfig.SetDirectorySharingDevicesVirtualMachineConfiguration(...)
+```
+
+### 6. Guest Init Script (`init.sh`)
+
+```sh
+#!/bin/sh
+# Minimal init for sandbox VM
+
+# Mount essential filesystems
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+mount -t devpts devpts /dev/pts
+mount -t tmpfs tmpfs /run
+mount -t tmpfs tmpfs /tmp
+
+# Mount workspace via virtio-fs
+mkdir -p /workspace
+mount -t virtiofs workspace /workspace 2>/dev/null || true
+
+# Configure network
+ip link set lo up
+ip link set eth0 up
+udhcpc -i eth0 -s /etc/udhcpc.script -q -n 2>/dev/null || true
+
+# Start guest agent as PID 1
+exec /usr/bin/guest-agent
+```
+
+### 7. Build Process
+
+**Prerequisites (build-time only, NOT runtime):**
+- Docker (for rootfs building)
+- Go (for cross-compiling guest-agent)
+
+**Build script (`scripts/build-guest-images.sh`):**
+
+1. **Build guest-agent** (cross-compile):
+   ```bash
+   GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" \
+       -o images/guest-agent ./sandbox/guest/
+   ```
+
+2. **Build rootfs** (Docker-based, no e2fsprogs on host):
+   ```dockerfile
+   FROM alpine:3.19 as rootfs
+   RUN apk add --no-cache ca-certificates
+   COPY guest-agent /usr/bin/guest-agent
+   COPY init.sh /init
+   RUN chmod +x /init /usr/bin/guest-agent
+
+   FROM scratch as export
+   COPY --from=rootfs / /rootfs
+   ```
+
+   Then create ext4 image inside Docker:
+   ```bash
+   docker run --rm -v $(pwd):/out alpine sh -c "
+     apk add e2fsprogs
+     dd if=/dev/zero of=/out/rootfs.ext4 bs=1M count=100
+     mkfs.ext4 /out/rootfs.ext4
+     mount /out/rootfs.ext4 /mnt
+     cp -a /rootfs/* /mnt/
+     umount /mnt
+   "
+   zstd -19 rootfs.ext4 -o images/rootfs/rootfs-arm64.ext4.zst
+   ```
+
+3. **Download/build kernel**:
+   - Option A: Use pre-built kernel from Alpine/Linuxkit
+   - Option B: Build minimal kernel with custom config
+   ```bash
+   curl -L https://boot.alpinelinux.org/kernels/arm64/vmlinuz-lts -o images/kernel/vmlinuz-arm64
+   gzip images/kernel/vmlinuz-arm64
+   ```
+
+### 8. Network Policy Enforcement
+
+Since we use NAT networking, additional filtering via guest-side iptables:
+
+```sh
+# In init.sh, if network policy is restrictive
+if [ -f /etc/sandbox/network-policy ]; then
+    iptables -P OUTPUT DROP
+    iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+    # Allow specific hosts from policy file
+    while read host; do
+        iptables -A OUTPUT -d "$host" -j ACCEPT
+    done < /etc/sandbox/allowed-hosts
+fi
+```
+
+### 9. Security Features (Process Sandboxing Level)
+
+Guest-side security (already in sandboxrpc.Server):
+- Commands execute in their own PID/mount namespaces (optional enhancement)
+- Working directory defaults to /workspace
+- Environment scrubbed by host-side policy before reaching guest
+
+VM-level isolation:
+- Separate VM per sandbox
+- No shared state between VMs
+- Network isolated via NAT
+- Filesystem isolated except explicit workspace mount
+
+### 10. Image Sizes (Estimated)
+
+| Component | Uncompressed | Compressed |
+|-----------|-------------|------------|
+| Kernel | ~15 MB | ~5 MB (gzip) |
+| Rootfs | ~50 MB | ~15 MB (zstd) |
+| Guest Agent | ~5 MB | ~2 MB (in rootfs) |
+| **Total embedded** | - | **~20 MB** |
+
+### 11. Implementation Phases
+
+**Phase 1: Core VM (2-3 days)**
+- Create `vzruntime/` package with Runtime and VM implementations
+- Hardcode paths to external kernel/rootfs (test without embedding)
+- Verify VM boots and vsock works
+
+**Phase 2: Guest Agent (1-2 days)**
+- Cross-compile guest agent using existing sandboxrpc.Server
+- Create minimal init.sh
+- Verify command execution works end-to-end
+
+**Phase 3: Image Embedding (1-2 days)**
+- Create build scripts for kernel + rootfs
+- Set up go:embed
+- Implement extraction and caching logic
+
+**Phase 4: Cleanup & Testing (1-2 days)**
+- Remove Matchlock dependency
+- Delete deps.go and guest.go
+- Update runtime_darwin.go
+- Run all e2e tests
+- Document build process
+
+## Verification
+
+1. **Unit tests**: Run existing tests with new implementation
+   ```bash
+   make test
+   ```
+
+2. **E2E tests**: Run sandbox e2e tests
+   ```bash
+   go test -v ./sandbox/... -run E2E
+   ```
+
+3. **Manual verification**:
+   ```go
+   runtime, _ := sandbox.NewRuntime()
+   vm, _ := runtime.Create(ctx, &sandbox.Config{
+       WorkspaceRoot: "/tmp/test",
+   })
+   defer vm.Close()
+
+   execVM := vm.(sandbox.ExecutableVM)
+   result, _ := execVM.Exec(ctx, "echo hello", nil)
+   // result.Stdout should be "hello\n"
+   ```
+
+4. **Verify no external dependencies**:
+   ```bash
+   # Should work without e2fsprogs installed
+   brew uninstall e2fsprogs
+   go test ./sandbox/...
+   ```
+
+## Critical Files Reference
+
+- Interfaces: `sandbox/runtime.go` (lines 55-107)
+- Executor usage: `sandbox/executor.go` (uses ExecutableVM at line 113)
+- Existing gRPC server: `sandbox/sandboxrpc/server.go` (reuse in guest)
+- E2E tests: `sandbox/e2e_test.go`
+- Matchlock vz usage: `~/src/matchlock/pkg/vm/darwin/backend.go` (reference)
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/atzarisurinachcorominas/.REDACTED.jsonl
