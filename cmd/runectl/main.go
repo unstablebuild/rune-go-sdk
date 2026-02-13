@@ -129,6 +129,8 @@ func newRootCmd() *cobra.Command {
 		newStorageCmd(a),
 		newEditorCmd(a),
 		newSyntaxCmd(a),
+		newExecCmd(a),
+		newSignalCmd(a),
 	)
 
 	return cmd

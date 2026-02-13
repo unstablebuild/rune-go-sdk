@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -602,6 +603,149 @@ func TestSyntaxNodeTypeCombinedErr(t *testing.T) {
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid node type")
+}
+
+func TestSignal(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run("signal", "12345", "SIGTERM")
+	require.NoError(t, err)
+	require.Equal(t, "OK\n", out)
+	require.True(t, env.executor.signalCalled)
+	require.Equal(t, int64(12345), env.executor.lastPid)
+	require.Equal(t, int32(15), env.executor.lastSignal) // SIGTERM = 15
+}
+
+func TestSignalWithNumber(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run("signal", "9999", "9")
+	require.NoError(t, err)
+	require.Equal(t, "OK\n", out)
+	require.Equal(t, int64(9999), env.executor.lastPid)
+	require.Equal(t, int32(9), env.executor.lastSignal) // SIGKILL = 9
+}
+
+func TestSignalFormat(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	out, err := env.run(
+		"signal", "-F", "json", "12345", "TERM",
+	)
+	require.NoError(t, err)
+	require.Contains(t, out, `"success":true`)
+}
+
+func TestSignalInvalidPid(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	_, err := env.run("signal", "abc", "SIGTERM")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid pid")
+}
+
+func TestSignalInvalidSignal(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+	_, err := env.run("signal", "12345", "INVALID")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unknown signal")
+}
+
+func TestParseSignal(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    syscall.Signal
+		wantErr bool
+	}{
+		{
+			name:  "numeric",
+			input: "15",
+			want:  syscall.Signal(15),
+		},
+		{
+			name:  "sigterm_full",
+			input: "SIGTERM",
+			want:  syscall.SIGTERM,
+		},
+		{
+			name:  "term_short",
+			input: "TERM",
+			want:  syscall.SIGTERM,
+		},
+		{
+			name:  "lowercase",
+			input: "term",
+			want:  syscall.SIGTERM,
+		},
+		{
+			name:  "sigkill",
+			input: "SIGKILL",
+			want:  syscall.SIGKILL,
+		},
+		{
+			name:  "kill",
+			input: "KILL",
+			want:  syscall.SIGKILL,
+		},
+		{
+			name:  "sigint",
+			input: "SIGINT",
+			want:  syscall.SIGINT,
+		},
+		{
+			name:  "int",
+			input: "INT",
+			want:  syscall.SIGINT,
+		},
+		{
+			name:  "sighup",
+			input: "SIGHUP",
+			want:  syscall.SIGHUP,
+		},
+		{
+			name:  "sigusr1",
+			input: "SIGUSR1",
+			want:  syscall.SIGUSR1,
+		},
+		{
+			name:  "sigusr2",
+			input: "USR2",
+			want:  syscall.SIGUSR2,
+		},
+		{
+			name:  "sigstop",
+			input: "STOP",
+			want:  syscall.SIGSTOP,
+		},
+		{
+			name:  "sigcont",
+			input: "CONT",
+			want:  syscall.SIGCONT,
+		},
+		{
+			name:    "invalid",
+			input:   "INVALID",
+			wantErr: true,
+		},
+		{
+			name:    "empty",
+			input:   "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseSignal(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestDatadirFormat(t *testing.T) {
@@ -1223,7 +1367,7 @@ func TestJSON(t *testing.T) {
 			raw: true,
 		},
 		{
-			name: "synquery/ok",
+			name:  "synquery/ok",
 			setup: func(env *testEnv) {},
 			args: []string{
 				"syntax", "query",
@@ -1241,6 +1385,29 @@ func TestJSON(t *testing.T) {
 				"/tmp/test.go", "var",
 			},
 			raw: true,
+		},
+		{
+			name: "signal/ok",
+			args: []string{
+				"signal", "-F", "json",
+				"12345", "SIGTERM",
+			},
+		},
+		{
+			name: "signal/err_pid",
+			args: []string{
+				"signal", "-F", "json",
+				"invalid", "SIGTERM",
+			},
+			wantErr: true,
+		},
+		{
+			name: "signal/err_sig",
+			args: []string{
+				"signal", "-F", "json",
+				"12345", "INVALID",
+			},
+			wantErr: true,
 		},
 		{
 			name: "notify/err",
@@ -1660,6 +1827,125 @@ func (m *mockDocStore) List(
 	return nil
 }
 
+type mockTerminal struct {
+	workspacerpc.UnimplementedTerminalServer
+	masterR *os.File // Read end for master (code reads from here)
+	masterW *os.File // Write end for master (test writes here)
+	slaveR  *os.File // Read end for slave
+	slaveW  *os.File // Write end for slave
+}
+
+func newMockTerminal() *mockTerminal {
+	// Create pipes for PTY simulation
+	masterR, masterW, _ := os.Pipe()
+	slaveR, slaveW, _ := os.Pipe()
+	return &mockTerminal{
+		masterR: masterR,
+		masterW: masterW,
+		slaveR:  slaveR,
+		slaveW:  slaveW,
+	}
+}
+
+func (m *mockTerminal) NewPty(
+	_ context.Context,
+	_ *workspacerpc.NewPtyRequest,
+) (*workspacerpc.NewPtyResponse, error) {
+	return &workspacerpc.NewPtyResponse{
+		Master:   m.masterR.Name(),
+		MasterFd: uint32(m.masterR.Fd()),
+		Slave:    m.slaveW.Name(),
+		SlaveFd:  uint32(m.slaveW.Fd()),
+	}, nil
+}
+
+func (m *mockTerminal) cleanup() {
+	_ = m.masterR.Close()
+	_ = m.masterW.Close()
+	_ = m.slaveR.Close()
+	_ = m.slaveW.Close()
+}
+
+type mockExecutor struct {
+	workspacerpc.UnimplementedExecutorServer
+	lastPid      int64
+	lastSignal   int32
+	signalCalled bool
+	startPid     int64
+	lastDir      string
+	lastArgs     []string
+	stdoutData   string
+	stderrData   string
+	exitError    string
+}
+
+func (m *mockExecutor) StartCommand(
+	stream grpc.BidiStreamingServer[workspacerpc.CommandPayload, workspacerpc.CommandPayload],
+) error {
+	msg, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	if msg.GetType() != workspacerpc.CommandPayload_TypeStart {
+		return fmt.Errorf("expected TypeStart, got %v", msg.GetType())
+	}
+	m.lastDir = msg.GetStart().GetDir()
+	m.lastArgs = msg.GetStart().GetArgs()
+
+	resp := &workspacerpc.CommandPayload{
+		Type:    workspacerpc.CommandPayload_TypeStarted,
+		Started: &workspacerpc.CommandPayload_Started{Pid: m.startPid},
+	}
+	if err := stream.Send(resp); err != nil {
+		return err
+	}
+
+	// Stream stdout if configured
+	if m.stdoutData != "" {
+		stdoutResp := &workspacerpc.CommandPayload{
+			Type: workspacerpc.CommandPayload_TypeIO,
+			Io: &workspacerpc.CommandPayload_IO{
+				Type: workspacerpc.CommandPayload_IO_TypeStdout,
+				Data: []byte(m.stdoutData),
+			},
+		}
+		if err := stream.Send(stdoutResp); err != nil {
+			return err
+		}
+	}
+
+	// Stream stderr if configured
+	if m.stderrData != "" {
+		stderrResp := &workspacerpc.CommandPayload{
+			Type: workspacerpc.CommandPayload_TypeIO,
+			Io: &workspacerpc.CommandPayload_IO{
+				Type: workspacerpc.CommandPayload_IO_TypeStderr,
+				Data: []byte(m.stderrData),
+			},
+		}
+		if err := stream.Send(stderrResp); err != nil {
+			return err
+		}
+	}
+
+	// Send done message
+	doneResp := &workspacerpc.CommandPayload{
+		Type: workspacerpc.CommandPayload_TypeDone,
+		Done: &workspacerpc.CommandPayload_Done{ExitError: m.exitError},
+	}
+	return stream.Send(doneResp)
+}
+
+func (m *mockExecutor) Signal(
+	_ context.Context,
+	req *workspacerpc.SignalRequest,
+) (*workspacerpc.SignalResponse, error) {
+	m.signalCalled = true
+	m.lastPid = req.GetPid()
+	m.lastSignal = req.GetSig()
+	return &workspacerpc.SignalResponse{}, nil
+}
+
 type mockSyntax struct {
 	syntaxrpc.UnimplementedSyntaxServer
 	lastCaptures  []string
@@ -1739,6 +2025,8 @@ type testEnv struct {
 	editor   *mockEditor
 	docStore *mockDocStore
 	syntax   *mockSyntax
+	executor *mockExecutor
+	terminal *mockTerminal
 	cleanup  func()
 }
 
@@ -1762,6 +2050,8 @@ func newTestEnv(t *testing.T) *testEnv {
 	ed := &mockEditor{cursorX: 10, cursorY: 20}
 	ds := newMockDocStore()
 	syn := &mockSyntax{}
+	exec := &mockExecutor{startPid: 12345}
+	term := newMockTerminal()
 
 	browserrpc.RegisterNotificationsServer(
 		srv, notif,
@@ -1774,6 +2064,8 @@ func newTestEnv(t *testing.T) *testEnv {
 	textrpc.RegisterEditorServer(srv, ed)
 	docpb.RegisterDocumentStoreServer(srv, ds)
 	syntaxrpc.RegisterSyntaxServer(srv, syn)
+	workspacerpc.RegisterExecutorServer(srv, exec)
+	workspacerpc.RegisterTerminalServer(srv, term)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -1787,7 +2079,11 @@ func newTestEnv(t *testing.T) *testEnv {
 		datadir: datadir, notif: notif, wm: wm,
 		opener: opener, scheme: scheme,
 		editor: ed, docStore: ds, syntax: syn,
-		cleanup: func() { srv.Stop() },
+		executor: exec, terminal: term,
+		cleanup: func() {
+			srv.Stop()
+			term.cleanup()
+		},
 	}
 }
 
