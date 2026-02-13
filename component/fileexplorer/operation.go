@@ -28,116 +28,116 @@ const (
 	OpMkdir
 	// OpDelete indicates a file or directory should be deleted.
 	OpDelete
-	// OpRename indicates a file or directory should be renamed.
+	// OpRename indicates a file or directory should be renamed/moved.
 	OpRename
 )
 
 // Operation represents a single filesystem change detected by
-// diffing the edited cell buffer against the internal tree.
+// comparing the view tree against the base tree.
 type Operation struct {
 	Type   OperationType
-	URI    workspaceapi.URI
-	NewURI workspaceapi.URI
+	URI    workspaceapi.URI // Source URI (for delete, rename)
+	NewURI workspaceapi.URI // Destination URI (for create, mkdir, rename)
 }
 
-func computeChanges(
-	oldRoot *node, entries []parsedEntry, cfg Config,
-) []Operation {
-	newTree := buildVirtualTree(entries)
+// computeChanges compares the view tree against the base tree
+// and returns the operations needed to transform base into view.
+// Nodes are matched by their row ID, allowing proper rename detection.
+func computeChanges(baseTree, viewTree *node) []Operation {
 	var ops []Operation
-	diffChildren(oldRoot, newTree, cfg, &ops)
+
+	// Collect all nodes from both trees
+	baseNodes := collectNodesByID(baseTree)
+	viewNodes := collectNodesByID(viewTree)
+	newNodes := collectNewNodes(viewTree)
+
+	// Find deleted nodes: in base but not in view
+	for id, baseNode := range baseNodes {
+		if _, exists := viewNodes[id]; !exists {
+			ops = append(ops, Operation{
+				Type: OpDelete,
+				URI:  baseNode.uri,
+			})
+		}
+	}
+
+	// Add operations for new nodes (id == 0)
+	for _, viewNode := range newNodes {
+		if viewNode.isDir {
+			ops = append(ops, Operation{
+				Type:   OpMkdir,
+				NewURI: viewNode.uri,
+			})
+		} else {
+			ops = append(ops, Operation{
+				Type:   OpCreate,
+				NewURI: viewNode.uri,
+			})
+		}
+	}
+
+	// Find renamed/moved nodes: same ID but different URI
+	for id, viewNode := range viewNodes {
+		baseNode, exists := baseNodes[id]
+		if !exists {
+			// Node with ID not in base - treat as new
+			if viewNode.isDir {
+				ops = append(ops, Operation{
+					Type:   OpMkdir,
+					NewURI: viewNode.uri,
+				})
+			} else {
+				ops = append(ops, Operation{
+					Type:   OpCreate,
+					NewURI: viewNode.uri,
+				})
+			}
+			continue
+		}
+
+		// Check if renamed or moved
+		if baseNode.uri.String() != viewNode.uri.String() {
+			ops = append(ops, Operation{
+				Type:   OpRename,
+				URI:    baseNode.uri,
+				NewURI: viewNode.uri,
+			})
+		}
+	}
+
 	return ops
 }
 
-func buildVirtualTree(entries []parsedEntry) *node {
-	root := &node{depth: 0}
-	stack := []*node{root}
-	for _, e := range entries {
-		for len(stack) > 1 && stack[len(stack)-1].depth >= e.depth {
-			stack = stack[:len(stack)-1]
+// collectNodesByID walks the tree and returns a map of ID to node.
+// Only includes nodes with non-zero IDs.
+func collectNodesByID(root *node) map[rune]*node {
+	nodes := make(map[rune]*node)
+	var walk func(n *node)
+	walk = func(n *node) {
+		if n.id != 0 {
+			nodes[n.id] = n
 		}
-		parent := stack[len(stack)-1]
-		child := &node{
-			name:  e.name,
-			isDir: e.isDir,
-			depth: e.depth,
-		}
-		parent.children = append(parent.children, child)
-		if e.isDir {
-			stack = append(stack, child)
+		for _, child := range n.children {
+			walk(child)
 		}
 	}
-	return root
+	walk(root)
+	return nodes
 }
 
-func diffChildren(
-	old, new *node, cfg Config, ops *[]Operation,
-) {
-	oldByName := make(map[string]*node, len(old.children))
-	for _, c := range old.children {
-		oldByName[c.name] = c
-	}
-	newByName := make(map[string]*node, len(new.children))
-	for _, c := range new.children {
-		newByName[c.name] = c
-	}
-
-	var removed []*node
-	var added []*node
-
-	for _, c := range old.children {
-		if _, ok := newByName[c.name]; !ok {
-			removed = append(removed, c)
+// collectNewNodes walks the tree and returns all nodes with id == 0.
+// These are nodes created by the user that don't exist in the base tree.
+func collectNewNodes(root *node) []*node {
+	var nodes []*node
+	var walk func(n *node)
+	walk = func(n *node) {
+		if n.id == 0 && n != root {
+			nodes = append(nodes, n)
+		}
+		for _, child := range n.children {
+			walk(child)
 		}
 	}
-	for _, c := range new.children {
-		if _, ok := oldByName[c.name]; !ok {
-			added = append(added, c)
-		}
-	}
-
-	if len(removed) == 1 && len(added) == 1 {
-		*ops = append(*ops, Operation{
-			Type:   OpRename,
-			URI:    removed[0].uri,
-			NewURI: workspaceapi.Join(
-				old.uri, added[0].name,
-			),
-		})
-	} else {
-		for _, c := range removed {
-			*ops = append(*ops, Operation{
-				Type: OpDelete,
-				URI:  c.uri,
-			})
-		}
-		for _, c := range added {
-			if c.isDir {
-				*ops = append(*ops, Operation{
-					Type: OpMkdir,
-					NewURI: workspaceapi.Join(
-						old.uri, c.name,
-					),
-				})
-			} else {
-				*ops = append(*ops, Operation{
-					Type: OpCreate,
-					NewURI: workspaceapi.Join(
-						old.uri, c.name,
-					),
-				})
-			}
-		}
-	}
-
-	for _, oc := range old.children {
-		if !oc.expanded {
-			continue
-		}
-		nc, ok := newByName[oc.name]
-		if !ok {
-			continue
-		}
-		diffChildren(oc, nc, cfg, ops)
-	}
+	walk(root)
+	return nodes
 }

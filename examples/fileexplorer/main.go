@@ -75,7 +75,7 @@ func NewExplorerDemo(root workspaceapi.URI) (*ExplorerDemo, error) {
 
 	return &ExplorerDemo{
 		explorer: exp,
-		status:   "Press Enter to expand/collapse, Ctrl+S to show changes, Esc to quit",
+		status:   "Enter:expand/collapse, a/A:add file/dir, d:delete, Tab/Shift+Tab:indent, Ctrl+S:save",
 	}, nil
 }
 
@@ -150,6 +150,14 @@ func (d *ExplorerDemo) Handle(ev term.Event) (exit, handled bool) {
 
 	case ev.Ch == 'A':
 		d.addDir()
+		return false, true
+
+	case ev.Key == term.KeyTab && ev.Mod == 0:
+		d.indentLine()
+		return false, true
+
+	case ev.Key == term.KeyTab && ev.Mod == term.ModShift:
+		d.dedentLine()
 		return false, true
 	}
 
@@ -264,11 +272,12 @@ func (d *ExplorerDemo) deleteLine() {
 
 func (d *ExplorerDemo) addFile() {
 	cells := d.explorer.Cells()
-	newLine := term.StringToCells("  newfile.txt")
-	pos := d.cursor + 1
-	if pos > len(cells) {
-		pos = len(cells)
+	if len(cells) == 0 {
+		return
 	}
+	depth := d.depthAtCursor(cells)
+	newLine := d.buildLine(depth, "newfile.txt", false)
+	pos := min(d.cursor+1, len(cells))
 	newCells := make([][]term.Cell, 0, len(cells)+1)
 	newCells = append(newCells, cells[:pos]...)
 	newCells = append(newCells, newLine...)
@@ -280,11 +289,12 @@ func (d *ExplorerDemo) addFile() {
 
 func (d *ExplorerDemo) addDir() {
 	cells := d.explorer.Cells()
-	newLine := term.StringToCells("  newdir/")
-	pos := d.cursor + 1
-	if pos > len(cells) {
-		pos = len(cells)
+	if len(cells) == 0 {
+		return
 	}
+	depth := d.depthAtCursor(cells)
+	newLine := d.buildLine(depth, "newdir", true)
+	pos := min(d.cursor+1, len(cells))
 	newCells := make([][]term.Cell, 0, len(cells)+1)
 	newCells = append(newCells, cells[:pos]...)
 	newCells = append(newCells, newLine...)
@@ -292,6 +302,72 @@ func (d *ExplorerDemo) addDir() {
 	d.explorer.SetCells(newCells)
 	d.cursor = pos
 	d.status = "Added newdir/ (Ctrl+S to review changes)"
+}
+
+func (d *ExplorerDemo) depthAtCursor(cells [][]term.Cell) int {
+	if d.cursor >= len(cells) {
+		return 0
+	}
+	row := cells[d.cursor]
+	depth := 0
+	i := 0
+	for i+1 < len(row) {
+		if row[i].Ch == '│' && row[i+1].Ch == ' ' {
+			depth++
+			i += 2
+		} else {
+			break
+		}
+	}
+	return depth
+}
+
+func (d *ExplorerDemo) buildLine(depth int, name string, isDir bool) [][]term.Cell {
+	var b strings.Builder
+	for range depth {
+		b.WriteString("│ ")
+	}
+	b.WriteString("  ") // icon placeholder + space
+	b.WriteString(name)
+	if isDir {
+		b.WriteRune('/')
+	}
+	return term.StringToCells(b.String())
+}
+
+func (d *ExplorerDemo) indentLine() {
+	cells := d.explorer.Cells()
+	if d.cursor >= len(cells) {
+		return
+	}
+
+	// Insert "│ " at the beginning of the line
+	indent := term.StringToCells("│ ")[0]
+	row := cells[d.cursor]
+	newRow := make([]term.Cell, 0, len(row)+2)
+	newRow = append(newRow, indent...)
+	newRow = append(newRow, row...)
+
+	cells[d.cursor] = newRow
+	d.explorer.SetCells(cells)
+	d.status = "Indented line (Tab to indent more, Shift+Tab to dedent)"
+}
+
+func (d *ExplorerDemo) dedentLine() {
+	cells := d.explorer.Cells()
+	if d.cursor >= len(cells) {
+		return
+	}
+
+	row := cells[d.cursor]
+	// Check if line starts with "│ " and remove it
+	if len(row) >= 2 && row[0].Ch == '│' && row[1].Ch == ' ' {
+		cells[d.cursor] = row[2:]
+		d.explorer.SetCells(cells)
+		d.status = "Dedented line (Tab to indent, Shift+Tab to dedent more)"
+	} else {
+		d.status = "Cannot dedent further (already at root level)"
+	}
 }
 
 func (d *ExplorerDemo) drawCursor(w term.Writer) {

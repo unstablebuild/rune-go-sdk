@@ -24,6 +24,7 @@ import (
 )
 
 type node struct {
+	id       rune // Unique identifier from Private Use Area
 	name     string
 	uri      workspaceapi.URI
 	isDir    bool
@@ -33,7 +34,32 @@ type node struct {
 	children []*node
 }
 
+// deepCopy creates a deep copy of the node and all its children.
+func (n *node) deepCopy() *node {
+	if n == nil {
+		return nil
+	}
+	copy := &node{
+		id:       n.id,
+		name:     n.name,
+		uri:      n.uri,
+		isDir:    n.isDir,
+		expanded: n.expanded,
+		depth:    n.depth,
+		// parent is set below when copying children
+	}
+	if len(n.children) > 0 {
+		copy.children = make([]*node, len(n.children))
+		for i, child := range n.children {
+			copy.children[i] = child.deepCopy()
+			copy.children[i].parent = copy
+		}
+	}
+	return copy
+}
+
 type parsedEntry struct {
+	id    rune // Row ID (0 if not present)
 	name  string
 	isDir bool
 	depth int
@@ -89,13 +115,23 @@ func flatten(root *node) []*node {
 	return flat
 }
 
-func renderCells(
+// renderCellsWithIDs renders nodes to cells, prepending each row
+// with the node's ID as the first cell.
+func renderCellsWithIDs(
 	flat []*node, cfg Config,
 ) [][]term.Cell {
 	rows := make([][]term.Cell, 0, len(flat))
 	for _, n := range flat {
 		line := renderLine(n, cfg)
-		rows = append(rows, term.StringToCells(line)...)
+		lineCells := term.StringToCells(line)
+		if len(lineCells) == 0 {
+			continue
+		}
+		// Prepend the row ID as first cell
+		row := make([]term.Cell, 0, len(lineCells[0])+1)
+		row = append(row, term.Cell{Ch: n.id, Width: 0})
+		row = append(row, lineCells[0]...)
+		rows = append(rows, row)
 	}
 	return rows
 }
@@ -143,14 +179,30 @@ func iconFor(n *node, cfg Config) rune {
 	return ' '
 }
 
-func parseCells(
+// parseCellsWithIDs parses cells back into entries, extracting
+// the row ID from the first cell of each row.
+func parseCellsWithIDs(
 	cells [][]term.Cell, cfg Config,
 ) []parsedEntry {
 	entries := make([]parsedEntry, 0, len(cells))
 	indent := indentRune(cfg)
 	for _, row := range cells {
-		line := cellsToRowString(row)
+		if len(row) == 0 {
+			continue
+		}
+
+		// First cell is the row ID (if in Private Use Area)
+		var id rune
+		startIdx := 0
+		if row[0].Ch >= firstRowID && row[0].Ch <= lastRowID {
+			id = row[0].Ch
+			startIdx = 1
+		}
+
+		// Parse the rest of the row
+		line := cellsToRowString(row[startIdx:])
 		entry := parseLine(line, indent)
+		entry.id = id
 		entries = append(entries, entry)
 	}
 	return entries
