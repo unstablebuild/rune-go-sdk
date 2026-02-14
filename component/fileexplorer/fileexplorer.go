@@ -175,6 +175,10 @@ func (c *Component) ExpandNodeAt(
 	}
 	if n.expanded {
 		n.expanded = false
+		// Sync collapsed state to baseTree
+		if baseNode := c.findNodeByID(c.baseTree, n.id); baseNode != nil {
+			baseNode.expanded = false
+		}
 	} else {
 		if n.children == nil {
 			if err := readChildren(c.fs, n); err != nil {
@@ -189,6 +193,7 @@ func (c *Component) ExpandNodeAt(
 					_ = readChildren(c.fs, baseNode)
 					c.copyIDsToBase(n, baseNode)
 				}
+				baseNode.expanded = true
 			}
 		}
 		n.expanded = true
@@ -206,6 +211,7 @@ func (c *Component) ExpandLevel(pos term.Coordinates) {
 	}
 	targetDepth := n.depth
 	c.expandAtDepth(c.viewTree, targetDepth)
+	c.syncExpandedToBase()
 	c.rebuildCells()
 }
 
@@ -218,12 +224,14 @@ func (c *Component) CollapseLevel(pos term.Coordinates) {
 	}
 	targetDepth := n.depth
 	collapseAtDepth(c.viewTree, targetDepth)
+	collapseAtDepth(c.baseTree, targetDepth)
 	c.rebuildCells()
 }
 
 // CollapseAll collapses every directory in the tree.
 func (c *Component) CollapseAll() {
 	collapseAll(c.viewTree)
+	collapseAll(c.baseTree)
 	c.rebuildCells()
 }
 
@@ -242,9 +250,15 @@ func (c *Component) SetCells(cells [][]term.Cell) {
 
 // Changes compares the view tree against the base tree and
 // returns the detected operations. Nodes are matched by their
-// row ID, allowing proper rename detection.
+// row ID, allowing proper rename/move detection.
 func (c *Component) Changes() []Operation {
 	return computeChanges(c.baseTree, c.viewTree)
+}
+
+// ChangeSet compares the view tree against the base tree and
+// returns a ChangeSet with operations and any detected conflicts.
+func (c *Component) ChangeSet() *ChangeSet {
+	return computeChangeSet(c.baseTree, c.viewTree)
 }
 
 // ApplyChanges executes the given operations on the filesystem,
@@ -358,6 +372,36 @@ func (c *Component) copyIDsToBase(viewNode, baseNode *node) {
 	}
 }
 
+// syncExpandedToBase walks viewTree and syncs expanded directories
+// to baseTree, ensuring both trees have matching children with IDs.
+func (c *Component) syncExpandedToBase() {
+	var walk func(viewNode *node)
+	walk = func(viewNode *node) {
+		for _, vc := range viewNode.children {
+			if !vc.isDir {
+				continue
+			}
+			baseNode := c.findNodeByID(c.baseTree, vc.id)
+			if baseNode == nil {
+				continue
+			}
+			if vc.expanded {
+				if baseNode.children == nil && vc.children != nil {
+					_ = readChildren(c.fs, baseNode)
+					c.copyIDsToBase(vc, baseNode)
+				}
+				baseNode.expanded = true
+			} else {
+				baseNode.expanded = false
+			}
+			if vc.expanded {
+				walk(vc)
+			}
+		}
+	}
+	walk(c.viewTree)
+}
+
 // parseTreeFromCells builds a view tree from the given cells,
 // preserving row IDs where present.
 func (c *Component) parseTreeFromCells(cells [][]term.Cell) *node {
@@ -444,12 +488,31 @@ func (c *Component) applyOperation(op Operation) error {
 	case OpDelete:
 		return c.fs.Remove(op.URI.Path())
 
-	case OpRename:
-		// Read content, write to new location, delete old
+	case OpRename, OpMove:
+		// Copy content to new location, delete old
+		info, err := c.fs.Stat(op.URI.Path())
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			// For directories, just create at new location
+			// (children will be handled by subsequent operations)
+			return c.fs.MkdirAll(op.NewURI.Path(), 0755)
+		}
 		if err := c.copyFile(op.URI.Path(), op.NewURI.Path()); err != nil {
 			return err
 		}
 		return c.fs.Remove(op.URI.Path())
+
+	case OpCopy:
+		info, err := c.fs.Stat(op.URI.Path())
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return c.fs.MkdirAll(op.NewURI.Path(), 0755)
+		}
+		return c.copyFile(op.URI.Path(), op.NewURI.Path())
 	}
 	return nil
 }

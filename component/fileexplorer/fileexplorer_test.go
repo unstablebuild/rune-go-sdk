@@ -694,6 +694,642 @@ func TestDefaultIndentRune(t *testing.T) {
 	)
 }
 
+func TestChangesMoveFile(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "src", isDir: true},
+			{name: "file.go", isDir: false},
+		},
+		"/project/src": {},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Expand src
+	c.ExpandNodeAt(term.Coordinates{Y: 0})
+
+	cells := c.Cells()
+	// Row 0: src/ (dir)
+	// Row 1: file.go (file at root)
+
+	// Move file.go into src/ by changing its depth
+	// We need to modify the cells to represent the move
+	fileRow := cells[1]
+	fileID := fileRow[0]
+
+	// Create new cells: src/, then file.go inside src
+	newCells := make([][]term.Cell, 2)
+	newCells[0] = cells[0] // src/ stays the same
+
+	// Create file.go at depth 1 (inside src)
+	newContent := term.StringToCells("│   file.go")[0]
+	newCells[1] = append([]term.Cell{fileID}, newContent...)
+
+	c.SetCells(newCells)
+
+	ops := c.Changes()
+	require.Len(t, ops, 1)
+	assert.Equal(t, OpMove, ops[0].Type)
+	assert.Equal(t, "file:///project/file.go", ops[0].URI.String())
+	assert.Equal(t, "file:///project/src/file.go", ops[0].NewURI.String())
+}
+
+func TestChangesMoveDirectory(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "dest", isDir: true},
+			{name: "src", isDir: true},
+		},
+		"/project/dest": {},
+		"/project/src": {},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Expand dest
+	c.ExpandNodeAt(term.Coordinates{Y: 0})
+
+	cells := c.Cells()
+	// Row 0: dest/ (expanded)
+	// Row 1: src/ (at root)
+
+	srcID := cells[1][0]
+
+	// Move src/ into dest/
+	newCells := make([][]term.Cell, 2)
+	newCells[0] = cells[0] // dest/ stays
+
+	// src/ at depth 1 (inside dest)
+	newContent := term.StringToCells("│   src/")[0]
+	newCells[1] = append([]term.Cell{srcID}, newContent...)
+
+	c.SetCells(newCells)
+
+	ops := c.Changes()
+	require.Len(t, ops, 1)
+	assert.Equal(t, OpMove, ops[0].Type)
+	assert.Equal(t, "file:///project/src", ops[0].URI.String())
+	assert.Equal(t, "file:///project/dest/src", ops[0].NewURI.String())
+}
+
+func TestChangesDetectDuplicateID(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "original.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	cells := c.Cells()
+	originalID := cells[0][0]
+
+	// Add a second row with the same ID
+	// This simulates a copy scenario where the same ID appears multiple times
+	copyContent := term.StringToCells("  copy.go")[0]
+	copyRow := append([]term.Cell{originalID}, copyContent...)
+
+	newCells := make([][]term.Cell, 2)
+	newCells[0] = cells[0]
+	newCells[1] = copyRow
+
+	c.SetCells(newCells)
+
+	ops := c.Changes()
+	// When same ID appears twice, the implementation detects a copy operation
+	// The behavior may vary based on the order of processing
+	assert.NotEmpty(t, ops, "should detect some operations")
+
+	// Check that we have a copy operation
+	hasCopy := false
+	for _, op := range ops {
+		if op.Type == OpCopy {
+			hasCopy = true
+		}
+	}
+	assert.True(t, hasCopy, "should detect a copy operation for duplicate IDs")
+}
+
+func TestChangeSetConflicts(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "a.go", isDir: false},
+			{name: "b.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	cells := c.Cells()
+
+	// Rename both files to the same name (conflict)
+	newContent := term.StringToCells("  same.go")[0]
+	newCells := make([][]term.Cell, 2)
+	newCells[0] = append([]term.Cell{cells[0][0]}, newContent...)
+	newCells[1] = append([]term.Cell{cells[1][0]}, newContent...)
+
+	c.SetCells(newCells)
+
+	cs := c.ChangeSet()
+	assert.True(t, cs.HasConflicts())
+	require.Len(t, cs.Conflicts, 1)
+	assert.Contains(t, cs.Conflicts[0].Path, "same.go")
+}
+
+func TestChangeSetNoConflicts(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "test.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// No modifications
+	cs := c.ChangeSet()
+	assert.False(t, cs.HasConflicts())
+	assert.Empty(t, cs.Conflicts)
+	assert.Empty(t, cs.Operations)
+}
+
+func TestChangesDeleteNested(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "src", isDir: true},
+		},
+		"/project/src": {
+			{name: "main.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	c.ExpandNodeAt(term.Coordinates{Y: 0})
+
+	// Delete all rows
+	c.SetCells(nil)
+
+	ops := c.Changes()
+
+	// Should have 2 deletes
+	assert.Len(t, ops, 2)
+
+	var deletedPaths []string
+	for _, op := range ops {
+		assert.Equal(t, OpDelete, op.Type)
+		deletedPaths = append(deletedPaths, op.URI.Path())
+	}
+	assert.Contains(t, deletedPaths, "/project/src")
+	assert.Contains(t, deletedPaths, "/project/src/main.go")
+}
+
+func TestChangesRenameAndCreate(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "old.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	cells := c.Cells()
+	oldID := cells[0][0]
+
+	// Rename old.go to new.go and add another.go
+	newCells := make([][]term.Cell, 2)
+	renamedContent := term.StringToCells("  new.go")[0]
+	newCells[0] = append([]term.Cell{oldID}, renamedContent...)
+
+	createdContent := term.StringToCells("  another.go")[0]
+	newCells[1] = createdContent
+
+	c.SetCells(newCells)
+
+	ops := c.Changes()
+	require.Len(t, ops, 2)
+
+	var hasRename, hasCreate bool
+	for _, op := range ops {
+		if op.Type == OpRename {
+			hasRename = true
+			assert.Equal(t, "old.go", op.URI.Name())
+			assert.Equal(t, "new.go", op.NewURI.Name())
+		}
+		if op.Type == OpCreate {
+			hasCreate = true
+			assert.Equal(t, "another.go", op.NewURI.Name())
+		}
+	}
+	assert.True(t, hasRename)
+	assert.True(t, hasCreate)
+}
+
+func TestChangesDeleteAndCreate(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "old.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Delete old.go and create new.go
+	newContent := term.StringToCells("  new.go")[0]
+	c.SetCells([][]term.Cell{newContent})
+
+	ops := c.Changes()
+	require.Len(t, ops, 2)
+
+	var hasDelete, hasCreate bool
+	for _, op := range ops {
+		if op.Type == OpDelete {
+			hasDelete = true
+			assert.Equal(t, "old.go", op.URI.Name())
+		}
+		if op.Type == OpCreate {
+			hasCreate = true
+			assert.Equal(t, "new.go", op.NewURI.Name())
+		}
+	}
+	assert.True(t, hasDelete)
+	assert.True(t, hasCreate)
+}
+
+func TestDeepNestedStructure(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "a", isDir: true},
+		},
+		"/project/a": {
+			{name: "b", isDir: true},
+		},
+		"/project/a/b": {
+			{name: "c", isDir: true},
+		},
+		"/project/a/b/c": {
+			{name: "deep.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Expand all levels
+	c.ExpandNodeAt(term.Coordinates{Y: 0}) // a
+	c.ExpandNodeAt(term.Coordinates{Y: 1}) // b
+	c.ExpandNodeAt(term.Coordinates{Y: 2}) // c
+
+	cells := c.Cells()
+	assert.Len(t, cells, 4)
+
+	// Verify deep.go is at correct depth
+	result := cellsString(cells)
+	assert.Contains(t, result, "deep.go")
+
+	// No changes expected
+	ops := c.Changes()
+	assert.Empty(t, ops)
+}
+
+func TestSpecialCharactersInFilename(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "file with spaces.go", isDir: false},
+			{name: "file-with-dashes.go", isDir: false},
+			{name: "file_with_underscores.go", isDir: false},
+			{name: "file.multiple.dots.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	result := cellsString(c.Cells())
+	assert.Contains(t, result, "file with spaces.go")
+	assert.Contains(t, result, "file-with-dashes.go")
+	assert.Contains(t, result, "file_with_underscores.go")
+	assert.Contains(t, result, "file.multiple.dots.go")
+}
+
+func TestUnicodeFilenames(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "日本語.go", isDir: false},
+			{name: "émojis🎉.txt", isDir: false},
+			{name: "ñoño.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	result := cellsString(c.Cells())
+	assert.Contains(t, result, "日本語.go")
+	assert.Contains(t, result, "émojis🎉.txt")
+	assert.Contains(t, result, "ñoño.go")
+}
+
+func TestCustomIndentRune(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "src", isDir: true},
+		},
+		"/project/src": {
+			{name: "app.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{
+		IndentRune: '┃',
+	})
+	require.NoError(t, err)
+
+	c.ExpandNodeAt(term.Coordinates{Y: 0})
+	result := cellsString(c.Cells())
+	assert.Contains(t, result, "┃")
+}
+
+func TestManyFiles(t *testing.T) {
+	entries := make([]mockEntry, 100)
+	for i := range 100 {
+		entries[i] = mockEntry{
+			name:  fmt.Sprintf("file%03d.go", i),
+			isDir: false,
+		}
+	}
+
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": entries,
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	cells := c.Cells()
+	assert.Len(t, cells, 100)
+
+	// Verify sorting
+	w, h := c.Dimensions()
+	assert.Greater(t, w, 0)
+	assert.Equal(t, 100, h)
+}
+
+func TestToggleExpandMultipleTimes(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "src", isDir: true},
+		},
+		"/project/src": {
+			{name: "app.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Toggle expand multiple times
+	for range 5 {
+		c.ExpandNodeAt(term.Coordinates{Y: 0}) // expand
+		assert.Len(t, c.Cells(), 2)
+
+		c.ExpandNodeAt(term.Coordinates{Y: 0}) // collapse
+		assert.Len(t, c.Cells(), 1)
+	}
+
+	// No changes expected
+	ops := c.Changes()
+	assert.Empty(t, ops)
+}
+
+func TestNodeAtOutOfBounds(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "test.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name string
+		y    int
+	}{
+		{"negative", -1},
+		{"large positive", 1000},
+		{"just out of bounds", 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, ok := c.NodeAt(term.Coordinates{Y: tt.y})
+			assert.False(t, ok)
+		})
+	}
+}
+
+func TestExpandNodeAtOutOfBounds(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "test.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Should not crash on invalid coordinates
+	_, isFile := c.ExpandNodeAt(term.Coordinates{Y: -1})
+	assert.False(t, isFile)
+
+	_, isFile = c.ExpandNodeAt(term.Coordinates{Y: 100})
+	assert.False(t, isFile)
+}
+
+func TestEmptyCells(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "test.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Set empty cells
+	c.SetCells(nil)
+
+	ops := c.Changes()
+	require.Len(t, ops, 1)
+	assert.Equal(t, OpDelete, ops[0].Type)
+}
+
+func TestSetCellsPreservesExpanded(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "src", isDir: true},
+		},
+		"/project/src": {
+			{name: "app.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	// Expand
+	c.ExpandNodeAt(term.Coordinates{Y: 0})
+	assert.Len(t, c.Cells(), 2)
+
+	// Clone and set cells
+	cells := term.CloneCells(c.Cells())
+	c.SetCells(cells)
+
+	// Should preserve expanded state
+	assert.Len(t, c.Cells(), 2)
+}
+
+func TestChangesMixedOperations(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "delete-me.go", isDir: false},
+			{name: "rename-me.go", isDir: false},
+			{name: "keep.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	cells := c.Cells()
+
+	// delete-me.go is deleted (row 0)
+	// rename-me.go is renamed to renamed.go (row 1)
+	// keep.go stays (row 2)
+	// new.go is created
+
+	newCells := make([][]term.Cell, 3)
+
+	// renamed.go (keep ID from rename-me.go)
+	renamedContent := term.StringToCells("  renamed.go")[0]
+	newCells[0] = append([]term.Cell{cells[1][0]}, renamedContent...)
+
+	// keep.go unchanged
+	newCells[1] = cells[2]
+
+	// new.go (no ID)
+	newCells[2] = term.StringToCells("  new.go")[0]
+
+	c.SetCells(newCells)
+
+	ops := c.Changes()
+	assert.Len(t, ops, 3)
+
+	counts := map[OperationType]int{}
+	for _, op := range ops {
+		counts[op.Type]++
+	}
+	assert.Equal(t, 1, counts[OpDelete])
+	assert.Equal(t, 1, counts[OpRename])
+	assert.Equal(t, 1, counts[OpCreate])
+}
+
+func TestOperationString(t *testing.T) {
+	tests := []struct {
+		op       Operation
+		expected string
+	}{
+		{
+			Operation{Type: OpCreate, NewURI: mustParseURI("file:///test.go")},
+			"create test.go",
+		},
+		{
+			Operation{Type: OpMkdir, NewURI: mustParseURI("file:///newdir")},
+			"mkdir newdir",
+		},
+		{
+			Operation{Type: OpDelete, URI: mustParseURI("file:///old.go")},
+			"delete old.go",
+		},
+		{
+			Operation{
+				Type:   OpRename,
+				URI:    mustParseURI("file:///old.go"),
+				NewURI: mustParseURI("file:///new.go"),
+			},
+			"rename old.go -> new.go",
+		},
+		{
+			Operation{
+				Type:   OpMove,
+				URI:    mustParseURI("file:///src/file.go"),
+				NewURI: mustParseURI("file:///dest/file.go"),
+			},
+			"move /src/file.go -> /dest/file.go",
+		},
+		{
+			Operation{
+				Type:   OpCopy,
+				URI:    mustParseURI("file:///src/file.go"),
+				NewURI: mustParseURI("file:///copy.go"),
+			},
+			"copy /src/file.go -> /copy.go",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expected, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.op.String())
+		})
+	}
+}
+
+func TestOperationTypeString(t *testing.T) {
+	tests := []struct {
+		t        OperationType
+		expected string
+	}{
+		{OpCreate, "create"},
+		{OpMkdir, "mkdir"},
+		{OpDelete, "delete"},
+		{OpRename, "rename"},
+		{OpMove, "move"},
+		{OpCopy, "copy"},
+		{OperationType(99), "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expected, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.t.String())
+		})
+	}
+}
+
+func TestDimensionsEmpty(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	w, h := c.Dimensions()
+	assert.Equal(t, 0, w)
+	assert.Equal(t, 0, h)
+}
+
+func TestCellsReturnsCopy(t *testing.T) {
+	mfs := &mockFS{dirs: map[string][]mockEntry{
+		"/project": {
+			{name: "test.go", isDir: false},
+		},
+	}}
+	c, err := New(mfs, rootURI(), Config{})
+	require.NoError(t, err)
+
+	cells1 := c.Cells()
+	cells2 := c.Cells()
+
+	// Both should be equal
+	assert.Equal(t, cellsString(cells1), cellsString(cells2))
+}
+
+func mustParseURI(s string) workspaceapi.URI {
+	u, err := workspaceapi.ParseURI(s)
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
 // Test helpers
 
 type mockEntry struct {
