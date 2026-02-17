@@ -30,7 +30,7 @@ import (
 	"log/slog"
 
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
-	"unstable.build/go-tui/ide/idelsp/jsonrpc2"
+	"github.com/unstablebuild/rune-go-sdk/idelsp/jsonrpc2"
 )
 
 // callbackAdapter adapts semanticapi.LSPCallback to jsonrpc2.Handler.

@@ -37,11 +37,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"unstable.build/go-tui/text"
-	"unstable.build/go-tui/text/vi"
-	"unstable.build/go-tui/workspace"
 
-	"github.com/unstablebuild/blue/iterator"
+	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"github.com/unstablebuild/rune-go-sdk/api/config"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
@@ -54,11 +51,6 @@ func TestE2E(t *testing.T) {
 	tmpDir := setupTestWorkspace(t, "go")
 
 	uri := makeURI(t, "file://"+tmpDir)
-	scheme, err := workspace.NewFileScheme(context.Background(), config.NopConfig(), uri)
-	require.NoError(t, err)
-	w := workspace.NewSchemeWorkspace(uri, scheme)
-	textcomp, err := text.NewComponent(vi.Editor(), w, text.DefaultConfig())
-	require.NoError(t, err)
 
 	mainPath := filepath.Join(tmpDir, "main.go")
 	mainContent, err := os.ReadFile(mainPath)
@@ -1427,13 +1419,7 @@ func broken() {
 	}
 
 	uri := makeURI(t, "file://"+tmpDir)
-	scheme, err := workspace.NewFileScheme(context.Background(), config.NopConfig(), uri)
-	require.NoError(t, err)
-	w := workspace.NewSchemeWorkspace(uri, scheme)
-	ed := vi.Editor()
-	opener, err := text.NewComponent(ed, w, text.DefaultConfig())
-	require.NoError(t, err)
-	err = os.WriteFile(mainPath, []byte(errorContent), 0777)
+	err := os.WriteFile(mainPath, []byte(errorContent), 0777)
 	require.NoError(t, err)
 
 	mgr := New(

@@ -25,12 +25,12 @@ package idelsp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
-	"github.com/unstablebuild/blue/iterator"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
-	"unstable.build/go-tui/ide/syntax"
+	"github.com/unstablebuild/rune-go-sdk/iterator"
 )
 
 // PkgManager abstracts the ability to resolve package
@@ -83,8 +83,18 @@ func languageForFile(filename workspaceapi.URI) (langConfig, error) {
 	return languageForFilename(filename.Path())
 }
 
+func doLanguageForFile(filename string) (string, error) {
+	ext := filepath.Ext(filename)
+	switch ext {
+	case ".go":
+		return "go", nil
+	default:
+		return "", errors.New("unsupported language")
+	}
+}
+
 func languageForFilename(filename string) (langConfig, error) {
-	id, err := syntax.LanguageForFile(filepath.Base(filename))
+	id, err := doLanguageForFile(filepath.Base(filename))
 	if err != nil {
 		return langConfig{}, err
 	}

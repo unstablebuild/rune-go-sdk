@@ -35,15 +35,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unstablebuild/blue/iterator"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
 	"github.com/unstablebuild/rune-go-sdk/api/schemeapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/debug"
+	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"github.com/unstablebuild/rune-go-sdk/retry"
-	"unstable.build/go-tui/text"
 )
 
 // ErrNoServer is returned when no language server is
@@ -88,7 +87,7 @@ var (
 // New creates a new Manager with the given dependencies and configuration.
 func New(
 	uri workspaceapi.URI, fileSystem schemeapi.FileSystem,
-	executor schemeapi.Executor, ed text.Editor,
+	executor schemeapi.Executor,
 	pkgManager PkgManager, notifications browserapi.Notifications,
 	opener browserapi.ResourceOpener,
 	cfg Config,

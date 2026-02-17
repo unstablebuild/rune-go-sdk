@@ -37,7 +37,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/schemeapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
-	"unstable.build/go-tui/ide/idelsp/jsonrpc2"
+	"github.com/unstablebuild/rune-go-sdk/idelsp/jsonrpc2"
 )
 
 type langServer struct {
