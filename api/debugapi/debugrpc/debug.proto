@@ -1,0 +1,392 @@
+// Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpc";
+
+package debug;
+
+// DebugService provides debugging operations following the DAP shape.
+service DebugService {
+  // Session Management
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+  rpc Launch(LaunchRequest) returns (LaunchResponse);
+  rpc Attach(AttachRequest) returns (AttachResponse);
+  rpc ConfigurationDone(ConfigurationDoneRequest) returns (ConfigurationDoneResponse);
+  rpc Disconnect(DisconnectRequest) returns (DisconnectResponse);
+
+  // Execution Control
+  rpc Continue(ContinueRequest) returns (ContinueResponse);
+  rpc Pause(PauseRequest) returns (PauseResponse);
+  rpc Next(NextRequest) returns (NextResponse);
+  rpc StepIn(StepInRequest) returns (StepInResponse);
+  rpc StepOut(StepOutRequest) returns (StepOutResponse);
+
+  // Breakpoints
+  rpc SetBreakpoints(SetBreakpointsRequest) returns (SetBreakpointsResponse);
+  rpc SetFunctionBreakpoints(SetFunctionBreakpointsRequest) returns (SetFunctionBreakpointsResponse);
+
+  // State Inspection
+  rpc Threads(ThreadsRequest) returns (ThreadsResponse);
+  rpc StackTrace(StackTraceRequest) returns (StackTraceResponse);
+  rpc Scopes(ScopesRequest) returns (ScopesResponse);
+  rpc Variables(VariablesRequest) returns (VariablesResponse);
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+  rpc SetVariable(SetVariableRequest) returns (SetVariableResponse);
+
+  // Memory & Disassembly
+  rpc ReadMemory(ReadMemoryRequest) returns (ReadMemoryResponse);
+  rpc Disassemble(DisassembleRequest) returns (DisassembleResponse);
+
+  // Events - Server-side streaming
+  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream Event);
+}
+
+// === Session Management ===
+
+message InitializeRequest {
+  string client_id = 1;
+  string client_name = 2;
+  string adapter_id = 3;
+  string locale = 4;
+}
+
+message InitializeResponse {
+  Capabilities capabilities = 1;
+}
+
+message LaunchRequest {
+  string program = 1;
+  repeated string args = 2;
+  string cwd = 3;
+  map<string, string> env = 4;
+  bool stop_on_entry = 5;
+  bool no_debug = 6;
+}
+
+message LaunchResponse {}
+
+message AttachRequest {
+  int32 pid = 1;
+  string program = 2;
+}
+
+message AttachResponse {}
+
+message ConfigurationDoneRequest {}
+
+message ConfigurationDoneResponse {}
+
+message DisconnectRequest {
+  bool restart = 1;
+  bool terminate_debuggee = 2;
+  bool suspend_debuggee = 3;
+}
+
+message DisconnectResponse {}
+
+// === Execution Control ===
+
+message ContinueRequest {
+  int64 thread_id = 1;
+}
+
+message ContinueResponse {}
+
+message PauseRequest {
+  int64 thread_id = 1;
+}
+
+message PauseResponse {}
+
+message NextRequest {
+  int64 thread_id = 1;
+}
+
+message NextResponse {}
+
+message StepInRequest {
+  int64 thread_id = 1;
+}
+
+message StepInResponse {}
+
+message StepOutRequest {
+  int64 thread_id = 1;
+}
+
+message StepOutResponse {}
+
+// === Breakpoints ===
+
+message Source {
+  string name = 1;
+  string path = 2;
+}
+
+message SourceBreakpoint {
+  int32 line = 1;
+  int32 column = 2;
+  string condition = 3;
+  string hit_condition = 4;
+  string log_message = 5;
+}
+
+message FunctionBreakpoint {
+  string name = 1;
+  string condition = 2;
+  string hit_condition = 3;
+}
+
+message Breakpoint {
+  int32 id = 1;
+  bool verified = 2;
+  string message = 3;
+  Source source = 4;
+  int32 line = 5;
+  int32 column = 6;
+  int32 end_line = 7;
+  int32 end_column = 8;
+}
+
+message SetBreakpointsRequest {
+  Source source = 1;
+  repeated SourceBreakpoint breakpoints = 2;
+}
+
+message SetBreakpointsResponse {
+  repeated Breakpoint breakpoints = 1;
+}
+
+message SetFunctionBreakpointsRequest {
+  repeated FunctionBreakpoint breakpoints = 1;
+}
+
+message SetFunctionBreakpointsResponse {
+  repeated Breakpoint breakpoints = 1;
+}
+
+// === State Inspection ===
+
+message ThreadsRequest {}
+
+message Thread {
+  int64 id = 1;
+  string name = 2;
+}
+
+message ThreadsResponse {
+  repeated Thread threads = 1;
+}
+
+message StackTraceRequest {
+  int64 thread_id = 1;
+  int32 start_frame = 2;
+  int32 levels = 3;
+}
+
+message StackFrame {
+  int64 id = 1;
+  string name = 2;
+  Source source = 3;
+  int32 line = 4;
+  int32 column = 5;
+  int32 end_line = 6;
+  int32 end_column = 7;
+  string instruction_pointer_reference = 8;
+}
+
+message StackTraceResponse {
+  repeated StackFrame stack_frames = 1;
+  int32 total_frames = 2;
+}
+
+message ScopesRequest {
+  int64 frame_id = 1;
+}
+
+message Scope {
+  string name = 1;
+  string presentation_hint = 2;
+  int64 variables_reference = 3;
+  int32 named_variables = 4;
+  int32 indexed_variables = 5;
+  bool expensive = 6;
+}
+
+message ScopesResponse {
+  repeated Scope scopes = 1;
+}
+
+message VariablesRequest {
+  int64 variables_reference = 1;
+  string filter = 2;
+  int32 start = 3;
+  int32 count = 4;
+}
+
+message Variable {
+  string name = 1;
+  string value = 2;
+  string type = 3;
+  int64 variables_reference = 4;
+  int32 named_variables = 5;
+  int32 indexed_variables = 6;
+  string memory_reference = 7;
+}
+
+message VariablesResponse {
+  repeated Variable variables = 1;
+}
+
+message EvaluateRequest {
+  string expression = 1;
+  int64 frame_id = 2;
+  string context = 3;
+}
+
+message EvaluateResponse {
+  Variable result = 1;
+}
+
+message SetVariableRequest {
+  int64 variables_reference = 1;
+  string name = 2;
+  string value = 3;
+}
+
+message SetVariableResponse {
+  Variable result = 1;
+}
+
+// === Memory & Disassembly ===
+
+message ReadMemoryRequest {
+  string memory_reference = 1;
+  int64 offset = 2;
+  int32 count = 3;
+}
+
+message ReadMemoryResponse {
+  bytes data = 1;
+}
+
+message DisassembleRequest {
+  string memory_reference = 1;
+  int64 offset = 2;
+  int32 instruction_offset = 3;
+  int32 instruction_count = 4;
+}
+
+message DisassembledInstruction {
+  string address = 1;
+  string instruction_bytes = 2;
+  string instruction = 3;
+  string symbol = 4;
+  int32 line = 5;
+  int32 column = 6;
+  int32 end_line = 7;
+  int32 end_column = 8;
+}
+
+message DisassembleResponse {
+  repeated DisassembledInstruction instructions = 1;
+}
+
+// === Events ===
+
+message SubscribeEventsRequest {}
+
+message Event {
+  enum Type {
+    STOPPED = 0;
+    CONTINUED = 1;
+    EXITED = 2;
+    TERMINATED = 3;
+    THREAD = 4;
+    OUTPUT = 5;
+    BREAKPOINT = 6;
+    MODULE = 7;
+  }
+
+  enum StopReason {
+    STEP = 0;
+    BREAKPOINT_HIT = 1;
+    EXCEPTION = 2;
+    PAUSE = 3;
+    ENTRY = 4;
+    GOTO = 5;
+    FUNCTION_BREAKPOINT = 6;
+    DATA_BREAKPOINT = 7;
+  }
+
+  Type type = 1;
+
+  // For stopped events
+  StopReason reason = 2;
+  int64 thread_id = 3;
+  bool all_threads_stopped = 4;
+  repeated int32 hit_breakpoint_ids = 5;
+
+  // For exited events
+  int32 exit_code = 6;
+
+  // For thread events
+  string thread_reason = 7;
+
+  // For output events
+  string category = 8;
+  string output = 9;
+
+  // For breakpoint events
+  string breakpoint_reason = 10;
+  Breakpoint breakpoint = 11;
+}
+
+// === Capabilities ===
+
+message Capabilities {
+  bool supports_configuration_done_request = 1;
+  bool supports_function_breakpoints = 2;
+  bool supports_conditional_breakpoints = 3;
+  bool supports_hit_conditional_breakpoints = 4;
+  bool supports_evaluate_for_hovers = 5;
+  bool supports_step_back = 6;
+  bool supports_set_variable = 7;
+  bool supports_restart_frame = 8;
+  bool supports_goto_targets_request = 9;
+  bool supports_step_in_targets_request = 10;
+  bool supports_completions_request = 11;
+  bool supports_modules_request = 12;
+  bool supports_restart_request = 13;
+  bool supports_exception_options = 14;
+  bool supports_value_formatting_options = 15;
+  bool supports_exception_info_request = 16;
+  bool support_terminate_debuggee = 17;
+  bool supports_delayed_stack_trace_loading = 18;
+  bool supports_loaded_sources_request = 19;
+  bool supports_log_points = 20;
+  bool supports_terminate_threads_request = 21;
+  bool supports_set_expression = 22;
+  bool supports_terminate_request = 23;
+  bool supports_data_breakpoints = 24;
+  bool supports_read_memory_request = 25;
+  bool supports_write_memory_request = 26;
+  bool supports_disassemble_request = 27;
+  bool supports_cancel_request = 28;
+  bool supports_breakpoint_locations_request = 29;
+  bool supports_clipboard_context = 30;
+  bool supports_single_thread_execution_requests = 31;
+}
