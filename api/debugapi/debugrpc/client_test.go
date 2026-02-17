@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-dap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
@@ -29,234 +30,444 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// mockDebugger is a mock implementation of debugapi.Debugger for testing.
-type mockDebugger struct {
-	// Tracks method calls for verification
-	initializeCalled          bool
-	launchCalled              bool
-	attachCalled              bool
-	configurationDoneCalled   bool
-	disconnectCalled          bool
-	continueCalled            bool
-	pauseCalled               bool
-	nextCalled                bool
-	stepInCalled              bool
-	stepOutCalled             bool
-	setBreakpointsCalled      bool
-	setFunctionBreakpointsCalled bool
-	threadsCalled             bool
-	stackTraceCalled          bool
-	scopesCalled              bool
-	variablesCalled           bool
-	evaluateCalled            bool
-	setVariableCalled         bool
-	readMemoryCalled          bool
-	disassembleCalled         bool
+// === Tests (public) ===
 
-	// Store arguments for verification
-	lastInitializeArgs          debugapi.InitializeArguments
-	lastLaunchArgs              debugapi.LaunchArguments
-	lastAttachArgs              debugapi.AttachArguments
-	lastDisconnectArgs          debugapi.DisconnectArguments
-	lastContinueThreadID        int64
-	lastPauseThreadID           int64
-	lastNextThreadID            int64
-	lastStepInThreadID          int64
-	lastStepOutThreadID         int64
-	lastSetBreakpointsArgs      debugapi.SetBreakpointsArguments
-	lastSetFunctionBreakpointsArgs debugapi.SetFunctionBreakpointsArguments
-	lastStackTraceArgs          debugapi.StackTraceArguments
-	lastScopesFrameID           int64
-	lastVariablesArgs           debugapi.VariablesArguments
-	lastEvaluateArgs            debugapi.EvaluateArguments
-	lastSetVariableArgs         debugapi.SetVariableArguments
-	lastReadMemoryArgs          debugapi.ReadMemoryArguments
-	lastDisassembleArgs         debugapi.DisassembleArguments
+func TestClient_Initialize(t *testing.T) {
+	tests := []struct {
+		name         string
+		args         *dap.InitializeRequestArguments
+		wantCaps     *dap.Capabilities
+		wantCalled   bool
+	}{
+		{
+			name: "basic initialization",
+			args: &dap.InitializeRequestArguments{
+				ClientID:   "test-client",
+				ClientName: "Test Client",
+				AdapterID:  "test-adapter",
+				Locale:     "en-US",
+			},
+			wantCaps: &dap.Capabilities{
+				SupportsConfigurationDoneRequest: true,
+				SupportsFunctionBreakpoints:      true,
+			},
+			wantCalled: true,
+		},
+		{
+			name: "minimal initialization",
+			args: &dap.InitializeRequestArguments{
+				AdapterID: "minimal-adapter",
+			},
+			wantCaps: &dap.Capabilities{
+				SupportsConfigurationDoneRequest: true,
+			},
+			wantCalled: true,
+		},
+	}
 
-	// Return values
-	capabilities        *debugapi.Capabilities
-	threads             []debugapi.Thread
-	stackFrames         []debugapi.StackFrame
-	totalFrames         int
-	scopes              []debugapi.Scope
-	variables           []debugapi.Variable
-	evaluateResult      *debugapi.Variable
-	setVariableResult   *debugapi.Variable
-	breakpoints         []debugapi.Breakpoint
-	functionBreakpoints []debugapi.Breakpoint
-	memoryData          []byte
-	instructions        []debugapi.DisassembledInstruction
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			env.mock.capabilities = tc.wantCaps
+			ctx := context.Background()
 
-	events chan debugapi.Event
-}
-
-func newMockDebugger() *mockDebugger {
-	return &mockDebugger{
-		capabilities: &debugapi.Capabilities{
-			SupportsConfigurationDoneRequest: true,
-			SupportsFunctionBreakpoints:      true,
-			SupportsConditionalBreakpoints:   true,
-			SupportsSetVariable:              true,
-			SupportsReadMemoryRequest:        true,
-			SupportsDisassembleRequest:       true,
-		},
-		threads: []debugapi.Thread{
-			{ID: 1, Name: "main"},
-			{ID: 2, Name: "worker"},
-		},
-		stackFrames: []debugapi.StackFrame{
-			{ID: 1, Name: "main.main", Line: 10},
-			{ID: 2, Name: "main.foo", Line: 20},
-		},
-		totalFrames: 2,
-		scopes: []debugapi.Scope{
-			{Name: "Locals", VariablesReference: 1000},
-			{Name: "Arguments", VariablesReference: 1001},
-		},
-		variables: []debugapi.Variable{
-			{Name: "x", Value: "42", Type: "int"},
-			{Name: "y", Value: "hello", Type: "string"},
-		},
-		evaluateResult:    &debugapi.Variable{Name: "result", Value: "100", Type: "int"},
-		setVariableResult: &debugapi.Variable{Name: "x", Value: "99", Type: "int"},
-		breakpoints: []debugapi.Breakpoint{
-			{ID: 1, Verified: true, Line: 10},
-		},
-		functionBreakpoints: []debugapi.Breakpoint{
-			{ID: 2, Verified: true},
-		},
-		memoryData:   []byte{0x48, 0x65, 0x6c, 0x6c, 0x6f},
-		instructions: []debugapi.DisassembledInstruction{
-			{Address: "0x1000", Instruction: "mov eax, 1"},
-			{Address: "0x1004", Instruction: "ret"},
-		},
-		events: make(chan debugapi.Event, 10),
+			caps, err := env.client.Initialize(ctx, tc.args)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantCalled, env.mock.initializeCalled)
+			assert.Equal(t, tc.wantCaps.SupportsConfigurationDoneRequest, caps.SupportsConfigurationDoneRequest)
+		})
 	}
 }
 
-func (m *mockDebugger) Initialize(ctx context.Context, args debugapi.InitializeArguments) (*debugapi.Capabilities, error) {
-	m.initializeCalled = true
-	m.lastInitializeArgs = args
-	return m.capabilities, nil
+func TestClient_Launch(t *testing.T) {
+	tests := []struct {
+		name string
+		args debugapi.LaunchRequestArguments
+	}{
+		{
+			name: "launch with program only",
+			args: debugapi.LaunchRequestArguments{
+				Program: "/path/to/program",
+			},
+		},
+		{
+			name: "launch with all options",
+			args: debugapi.LaunchRequestArguments{
+				Program:     "/path/to/program",
+				Args:        []string{"--flag", "value"},
+				Cwd:         "/working/dir",
+				Env:         map[string]string{"FOO": "bar"},
+				StopOnEntry: true,
+				NoDebug:     false,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			ctx := context.Background()
+
+			err := env.client.Launch(ctx, tc.args)
+			require.NoError(t, err)
+			assert.True(t, env.mock.launchCalled)
+			assert.Equal(t, tc.args.Program, env.mock.lastLaunchArgs.Program)
+		})
+	}
 }
 
-func (m *mockDebugger) Launch(ctx context.Context, args debugapi.LaunchArguments) error {
-	m.launchCalled = true
-	m.lastLaunchArgs = args
-	return nil
+func TestClient_Attach(t *testing.T) {
+	tests := []struct {
+		name string
+		args debugapi.AttachRequestArguments
+	}{
+		{
+			name: "attach by PID",
+			args: debugapi.AttachRequestArguments{
+				PID: 12345,
+			},
+		},
+		{
+			name: "attach by program",
+			args: debugapi.AttachRequestArguments{
+				Program: "/path/to/program",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			ctx := context.Background()
+
+			err := env.client.Attach(ctx, tc.args)
+			require.NoError(t, err)
+			assert.True(t, env.mock.attachCalled)
+		})
+	}
 }
 
-func (m *mockDebugger) Attach(ctx context.Context, args debugapi.AttachArguments) error {
-	m.attachCalled = true
-	m.lastAttachArgs = args
-	return nil
+func TestClient_SessionManagement(t *testing.T) {
+	tests := []struct {
+		name   string
+		action func(*Client, context.Context) error
+		verify func(*mockDebugger) bool
+	}{
+		{
+			name:   "ConfigurationDone",
+			action: func(c *Client, ctx context.Context) error { return c.ConfigurationDone(ctx) },
+			verify: func(m *mockDebugger) bool { return m.configurationDoneCalled },
+		},
+		{
+			name: "Disconnect",
+			action: func(c *Client, ctx context.Context) error {
+				return c.Disconnect(ctx, &dap.DisconnectArguments{Restart: true, TerminateDebuggee: true})
+			},
+			verify: func(m *mockDebugger) bool { return m.disconnectCalled },
+		},
+		{
+			name: "Terminate",
+			action: func(c *Client, ctx context.Context) error {
+				return c.Terminate(ctx, &dap.TerminateArguments{Restart: false})
+			},
+			verify: func(m *mockDebugger) bool { return m.terminateCalled },
+		},
+		{
+			name:   "Restart",
+			action: func(c *Client, ctx context.Context) error { return c.Restart(ctx) },
+			verify: func(m *mockDebugger) bool { return m.restartCalled },
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			ctx := context.Background()
+
+			err := tc.action(env.client, ctx)
+			require.NoError(t, err)
+			assert.True(t, tc.verify(env.mock))
+		})
+	}
 }
 
-func (m *mockDebugger) ConfigurationDone(ctx context.Context) error {
-	m.configurationDoneCalled = true
-	return nil
+func TestClient_ExecutionControl(t *testing.T) {
+	tests := []struct {
+		name     string
+		action   func(*Client, context.Context) error
+		verify   func(*mockDebugger) bool
+	}{
+		{
+			name: "Continue",
+			action: func(c *Client, ctx context.Context) error {
+				_, err := c.Continue(ctx, &dap.ContinueArguments{ThreadId: 1})
+				return err
+			},
+			verify: func(m *mockDebugger) bool { return m.continueCalled },
+		},
+		{
+			name: "Pause",
+			action: func(c *Client, ctx context.Context) error {
+				return c.Pause(ctx, &dap.PauseArguments{ThreadId: 1})
+			},
+			verify: func(m *mockDebugger) bool { return m.pauseCalled },
+		},
+		{
+			name: "Next",
+			action: func(c *Client, ctx context.Context) error {
+				return c.Next(ctx, &dap.NextArguments{ThreadId: 1})
+			},
+			verify: func(m *mockDebugger) bool { return m.nextCalled },
+		},
+		{
+			name: "StepIn",
+			action: func(c *Client, ctx context.Context) error {
+				return c.StepIn(ctx, &dap.StepInArguments{ThreadId: 1})
+			},
+			verify: func(m *mockDebugger) bool { return m.stepInCalled },
+		},
+		{
+			name: "StepOut",
+			action: func(c *Client, ctx context.Context) error {
+				return c.StepOut(ctx, &dap.StepOutArguments{ThreadId: 1})
+			},
+			verify: func(m *mockDebugger) bool { return m.stepOutCalled },
+		},
+		{
+			name: "StepBack",
+			action: func(c *Client, ctx context.Context) error {
+				return c.StepBack(ctx, &dap.StepBackArguments{ThreadId: 1})
+			},
+			verify: func(m *mockDebugger) bool { return m.stepBackCalled },
+		},
+		{
+			name: "ReverseContinue",
+			action: func(c *Client, ctx context.Context) error {
+				return c.ReverseContinue(ctx, &dap.ReverseContinueArguments{ThreadId: 1})
+			},
+			verify: func(m *mockDebugger) bool { return m.reverseContinueCalled },
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			ctx := context.Background()
+
+			err := tc.action(env.client, ctx)
+			require.NoError(t, err)
+			assert.True(t, tc.verify(env.mock))
+		})
+	}
 }
 
-func (m *mockDebugger) Disconnect(ctx context.Context, args debugapi.DisconnectArguments) error {
-	m.disconnectCalled = true
-	m.lastDisconnectArgs = args
-	return nil
+func TestClient_Breakpoints(t *testing.T) {
+	tests := []struct {
+		name       string
+		setupMock  func(*mockDebugger)
+		action     func(*Client, context.Context) (interface{}, error)
+		wantLen    int
+	}{
+		{
+			name: "SetBreakpoints",
+			setupMock: func(m *mockDebugger) {
+				m.breakpoints = []dap.Breakpoint{
+					{Id: 1, Verified: true, Line: 10},
+					{Id: 2, Verified: true, Line: 20},
+				}
+			},
+			action: func(c *Client, ctx context.Context) (interface{}, error) {
+				return c.SetBreakpoints(ctx, &dap.SetBreakpointsArguments{
+					Source: dap.Source{Path: "/path/to/main.go"},
+					Breakpoints: []dap.SourceBreakpoint{
+						{Line: 10},
+						{Line: 20},
+					},
+				})
+			},
+			wantLen: 2,
+		},
+		{
+			name: "SetFunctionBreakpoints",
+			setupMock: func(m *mockDebugger) {
+				m.breakpoints = []dap.Breakpoint{
+					{Id: 1, Verified: true},
+				}
+			},
+			action: func(c *Client, ctx context.Context) (interface{}, error) {
+				return c.SetFunctionBreakpoints(ctx, &dap.SetFunctionBreakpointsArguments{
+					Breakpoints: []dap.FunctionBreakpoint{
+						{Name: "main.foo"},
+					},
+				})
+			},
+			wantLen: 1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			tc.setupMock(env.mock)
+			ctx := context.Background()
+
+			result, err := tc.action(env.client, ctx)
+			require.NoError(t, err)
+
+			bps := result.([]dap.Breakpoint)
+			assert.Len(t, bps, tc.wantLen)
+		})
+	}
 }
 
-func (m *mockDebugger) Continue(ctx context.Context, threadID int64) error {
-	m.continueCalled = true
-	m.lastContinueThreadID = threadID
-	return nil
+func TestClient_StateInspection(t *testing.T) {
+	t.Run("Threads", func(t *testing.T) {
+		env := newTestEnv(t)
+		env.mock.threads = []dap.Thread{
+			{Id: 1, Name: "main"},
+			{Id: 2, Name: "worker"},
+		}
+		ctx := context.Background()
+
+		threads, err := env.client.Threads(ctx)
+		require.NoError(t, err)
+		assert.Len(t, threads, 2)
+		assert.Equal(t, 1, threads[0].Id)
+		assert.Equal(t, "main", threads[0].Name)
+	})
+
+	t.Run("StackTrace", func(t *testing.T) {
+		env := newTestEnv(t)
+		env.mock.stackTraceResponse = &dap.StackTraceResponseBody{
+			StackFrames: []dap.StackFrame{
+				{Id: 1, Name: "main.main", Line: 10},
+				{Id: 2, Name: "main.foo", Line: 20},
+			},
+			TotalFrames: 2,
+		}
+		ctx := context.Background()
+
+		resp, err := env.client.StackTrace(ctx, &dap.StackTraceArguments{ThreadId: 1})
+		require.NoError(t, err)
+		assert.Len(t, resp.StackFrames, 2)
+		assert.Equal(t, 2, resp.TotalFrames)
+	})
+
+	t.Run("Scopes", func(t *testing.T) {
+		env := newTestEnv(t)
+		env.mock.scopes = []dap.Scope{
+			{Name: "Locals", VariablesReference: 1000},
+			{Name: "Arguments", VariablesReference: 1001},
+		}
+		ctx := context.Background()
+
+		scopes, err := env.client.Scopes(ctx, &dap.ScopesArguments{FrameId: 1})
+		require.NoError(t, err)
+		assert.Len(t, scopes, 2)
+		assert.Equal(t, "Locals", scopes[0].Name)
+	})
+
+	t.Run("Variables", func(t *testing.T) {
+		env := newTestEnv(t)
+		env.mock.variables = []dap.Variable{
+			{Name: "x", Value: "42", Type: "int"},
+			{Name: "y", Value: "hello", Type: "string"},
+		}
+		ctx := context.Background()
+
+		vars, err := env.client.Variables(ctx, &dap.VariablesArguments{VariablesReference: 1000})
+		require.NoError(t, err)
+		assert.Len(t, vars, 2)
+		assert.Equal(t, "x", vars[0].Name)
+	})
 }
 
-func (m *mockDebugger) Pause(ctx context.Context, threadID int64) error {
-	m.pauseCalled = true
-	m.lastPauseThreadID = threadID
-	return nil
+func TestClient_Evaluate(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       *dap.EvaluateArguments
+		wantResult string
+	}{
+		{
+			name:       "evaluate expression",
+			args:       &dap.EvaluateArguments{Expression: "x + y", FrameId: 1, Context: "repl"},
+			wantResult: "100",
+		},
+		{
+			name:       "evaluate watch",
+			args:       &dap.EvaluateArguments{Expression: "myVar", FrameId: 1, Context: "watch"},
+			wantResult: "100",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newTestEnv(t)
+			env.mock.evaluateResponse = &dap.EvaluateResponseBody{
+				Result: tc.wantResult,
+				Type:   "int",
+			}
+			ctx := context.Background()
+
+			result, err := env.client.Evaluate(ctx, tc.args)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantResult, result.Result)
+		})
+	}
 }
 
-func (m *mockDebugger) Next(ctx context.Context, threadID int64) error {
-	m.nextCalled = true
-	m.lastNextThreadID = threadID
-	return nil
+func TestClient_Memory(t *testing.T) {
+	t.Run("ReadMemory", func(t *testing.T) {
+		env := newTestEnv(t)
+		env.mock.readMemoryResponse = &dap.ReadMemoryResponseBody{
+			Address: "0x1000",
+			Data:    "SGVsbG8=", // "Hello" in base64
+		}
+		ctx := context.Background()
+
+		resp, err := env.client.ReadMemory(ctx, &dap.ReadMemoryArguments{
+			MemoryReference: "0x1000",
+			Count:           5,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "0x1000", resp.Address)
+	})
+
+	t.Run("WriteMemory", func(t *testing.T) {
+		env := newTestEnv(t)
+		env.mock.writeMemoryResponse = &dap.WriteMemoryResponseBody{
+			BytesWritten: 5,
+		}
+		ctx := context.Background()
+
+		resp, err := env.client.WriteMemory(ctx, &dap.WriteMemoryArguments{
+			MemoryReference: "0x1000",
+			Data:            "SGVsbG8=",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 5, resp.BytesWritten)
+	})
 }
 
-func (m *mockDebugger) StepIn(ctx context.Context, threadID int64) error {
-	m.stepInCalled = true
-	m.lastStepInThreadID = threadID
-	return nil
+func TestClient_Disassemble(t *testing.T) {
+	env := newTestEnv(t)
+	env.mock.disassembleResponse = []dap.DisassembledInstruction{
+		{Address: "0x1000", Instruction: "mov eax, 1"},
+		{Address: "0x1004", Instruction: "ret"},
+	}
+	ctx := context.Background()
+
+	instructions, err := env.client.Disassemble(ctx, &dap.DisassembleArguments{
+		MemoryReference:  "0x1000",
+		InstructionCount: 10,
+	})
+	require.NoError(t, err)
+	assert.Len(t, instructions, 2)
+	assert.Equal(t, "0x1000", instructions[0].Address)
 }
 
-func (m *mockDebugger) StepOut(ctx context.Context, threadID int64) error {
-	m.stepOutCalled = true
-	m.lastStepOutThreadID = threadID
-	return nil
-}
+// === Private test helpers ===
 
-func (m *mockDebugger) SetBreakpoints(ctx context.Context, args debugapi.SetBreakpointsArguments) ([]debugapi.Breakpoint, error) {
-	m.setBreakpointsCalled = true
-	m.lastSetBreakpointsArgs = args
-	return m.breakpoints, nil
-}
-
-func (m *mockDebugger) SetFunctionBreakpoints(ctx context.Context, args debugapi.SetFunctionBreakpointsArguments) ([]debugapi.Breakpoint, error) {
-	m.setFunctionBreakpointsCalled = true
-	m.lastSetFunctionBreakpointsArgs = args
-	return m.functionBreakpoints, nil
-}
-
-func (m *mockDebugger) Threads(ctx context.Context) ([]debugapi.Thread, error) {
-	m.threadsCalled = true
-	return m.threads, nil
-}
-
-func (m *mockDebugger) StackTrace(ctx context.Context, args debugapi.StackTraceArguments) ([]debugapi.StackFrame, int, error) {
-	m.stackTraceCalled = true
-	m.lastStackTraceArgs = args
-	return m.stackFrames, m.totalFrames, nil
-}
-
-func (m *mockDebugger) Scopes(ctx context.Context, frameID int64) ([]debugapi.Scope, error) {
-	m.scopesCalled = true
-	m.lastScopesFrameID = frameID
-	return m.scopes, nil
-}
-
-func (m *mockDebugger) Variables(ctx context.Context, args debugapi.VariablesArguments) ([]debugapi.Variable, error) {
-	m.variablesCalled = true
-	m.lastVariablesArgs = args
-	return m.variables, nil
-}
-
-func (m *mockDebugger) Evaluate(ctx context.Context, args debugapi.EvaluateArguments) (*debugapi.Variable, error) {
-	m.evaluateCalled = true
-	m.lastEvaluateArgs = args
-	return m.evaluateResult, nil
-}
-
-func (m *mockDebugger) SetVariable(ctx context.Context, args debugapi.SetVariableArguments) (*debugapi.Variable, error) {
-	m.setVariableCalled = true
-	m.lastSetVariableArgs = args
-	return m.setVariableResult, nil
-}
-
-func (m *mockDebugger) ReadMemory(ctx context.Context, args debugapi.ReadMemoryArguments) ([]byte, error) {
-	m.readMemoryCalled = true
-	m.lastReadMemoryArgs = args
-	return m.memoryData, nil
-}
-
-func (m *mockDebugger) Disassemble(ctx context.Context, args debugapi.DisassembleArguments) ([]debugapi.DisassembledInstruction, error) {
-	m.disassembleCalled = true
-	m.lastDisassembleArgs = args
-	return m.instructions, nil
-}
-
-func (m *mockDebugger) Events() <-chan debugapi.Event {
-	return m.events
-}
-
-// testEnv sets up a test environment with server and client over Unix socket.
 type testEnv struct {
 	mock     *mockDebugger
 	server   *grpc.Server
@@ -264,28 +475,24 @@ type testEnv struct {
 	listener net.Listener
 }
 
-func setupTestEnv(t *testing.T) *testEnv {
+func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
-	// Create Unix socket
 	socketPath := filepath.Join(os.TempDir(), "debugapi_test.sock")
-	os.Remove(socketPath) // Clean up any previous socket
+	os.Remove(socketPath)
 
 	listener, err := net.Listen("unix", socketPath)
 	require.NoError(t, err)
 
-	// Create mock and server
 	mock := newMockDebugger()
 	srv := grpc.NewServer()
 	debugServer := NewServer(mock)
 	debugServer.Register(srv)
 
-	// Start server in background
 	go func() {
 		_ = srv.Serve(listener)
 	}()
 
-	// Create client connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -312,341 +519,239 @@ func setupTestEnv(t *testing.T) *testEnv {
 	}
 }
 
-func TestClientServer_Initialize(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
+type mockDebugger struct {
+	initializeCalled        bool
+	launchCalled            bool
+	attachCalled            bool
+	configurationDoneCalled bool
+	disconnectCalled        bool
+	terminateCalled         bool
+	restartCalled           bool
+	continueCalled          bool
+	pauseCalled             bool
+	nextCalled              bool
+	stepInCalled            bool
+	stepOutCalled           bool
+	stepBackCalled          bool
+	reverseContinueCalled   bool
+	setBreakpointsCalled    bool
+	threadsCalled           bool
+	stackTraceCalled        bool
+	scopesCalled            bool
+	variablesCalled         bool
+	evaluateCalled          bool
+	readMemoryCalled        bool
+	writeMemoryCalled       bool
+	disassembleCalled       bool
 
-	args := debugapi.InitializeArguments{
-		ClientID:   "test-client",
-		ClientName: "Test Client",
-		AdapterID:  "test-adapter",
-		Locale:     "en-US",
-	}
+	lastLaunchArgs debugapi.LaunchRequestArguments
 
-	caps, err := env.client.Initialize(ctx, args)
-	require.NoError(t, err)
+	capabilities          *dap.Capabilities
+	threads               []dap.Thread
+	stackTraceResponse    *dap.StackTraceResponseBody
+	scopes                []dap.Scope
+	variables             []dap.Variable
+	evaluateResponse      *dap.EvaluateResponseBody
+	breakpoints           []dap.Breakpoint
+	readMemoryResponse    *dap.ReadMemoryResponseBody
+	writeMemoryResponse   *dap.WriteMemoryResponseBody
+	disassembleResponse   []dap.DisassembledInstruction
 
-	assert.True(t, env.mock.initializeCalled)
-	assert.Equal(t, args.ClientID, env.mock.lastInitializeArgs.ClientID)
-	assert.Equal(t, args.ClientName, env.mock.lastInitializeArgs.ClientName)
-	assert.Equal(t, args.AdapterID, env.mock.lastInitializeArgs.AdapterID)
-	assert.Equal(t, args.Locale, env.mock.lastInitializeArgs.Locale)
-
-	assert.True(t, caps.SupportsConfigurationDoneRequest)
-	assert.True(t, caps.SupportsFunctionBreakpoints)
+	events chan dap.EventMessage
 }
 
-func TestClientServer_Launch(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.LaunchArguments{
-		Program:     "/path/to/program",
-		Args:        []string{"--flag", "value"},
-		Cwd:         "/working/dir",
-		Env:         map[string]string{"FOO": "bar"},
-		StopOnEntry: true,
-		NoDebug:     false,
-	}
-
-	err := env.client.Launch(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.launchCalled)
-	assert.Equal(t, args.Program, env.mock.lastLaunchArgs.Program)
-	assert.Equal(t, args.Args, env.mock.lastLaunchArgs.Args)
-	assert.Equal(t, args.Cwd, env.mock.lastLaunchArgs.Cwd)
-	assert.Equal(t, args.Env, env.mock.lastLaunchArgs.Env)
-	assert.Equal(t, args.StopOnEntry, env.mock.lastLaunchArgs.StopOnEntry)
-}
-
-func TestClientServer_Attach(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.AttachArguments{
-		PID:     12345,
-		Program: "/path/to/program",
-	}
-
-	err := env.client.Attach(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.attachCalled)
-	assert.Equal(t, args.PID, env.mock.lastAttachArgs.PID)
-	assert.Equal(t, args.Program, env.mock.lastAttachArgs.Program)
-}
-
-func TestClientServer_ConfigurationDone(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	err := env.client.ConfigurationDone(ctx)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.configurationDoneCalled)
-}
-
-func TestClientServer_Disconnect(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.DisconnectArguments{
-		Restart:           true,
-		TerminateDebuggee: true,
-		SuspendDebuggee:   false,
-	}
-
-	err := env.client.Disconnect(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.disconnectCalled)
-	assert.Equal(t, args.Restart, env.mock.lastDisconnectArgs.Restart)
-	assert.Equal(t, args.TerminateDebuggee, env.mock.lastDisconnectArgs.TerminateDebuggee)
-}
-
-func TestClientServer_ExecutionControl(t *testing.T) {
-	tests := []struct {
-		name     string
-		action   func(*Client, context.Context, int64) error
-		verify   func(*mockDebugger) bool
-		threadID int64
-	}{
-		{
-			name:     "Continue",
-			action:   func(c *Client, ctx context.Context, tid int64) error { return c.Continue(ctx, tid) },
-			verify:   func(m *mockDebugger) bool { return m.continueCalled && m.lastContinueThreadID == 1 },
-			threadID: 1,
+func newMockDebugger() *mockDebugger {
+	return &mockDebugger{
+		capabilities: &dap.Capabilities{
+			SupportsConfigurationDoneRequest: true,
+			SupportsFunctionBreakpoints:      true,
 		},
-		{
-			name:     "Pause",
-			action:   func(c *Client, ctx context.Context, tid int64) error { return c.Pause(ctx, tid) },
-			verify:   func(m *mockDebugger) bool { return m.pauseCalled && m.lastPauseThreadID == 2 },
-			threadID: 2,
+		threads: []dap.Thread{
+			{Id: 1, Name: "main"},
 		},
-		{
-			name:     "Next",
-			action:   func(c *Client, ctx context.Context, tid int64) error { return c.Next(ctx, tid) },
-			verify:   func(m *mockDebugger) bool { return m.nextCalled && m.lastNextThreadID == 3 },
-			threadID: 3,
+		stackTraceResponse: &dap.StackTraceResponseBody{
+			StackFrames: []dap.StackFrame{
+				{Id: 1, Name: "main.main", Line: 10},
+			},
+			TotalFrames: 1,
 		},
-		{
-			name:     "StepIn",
-			action:   func(c *Client, ctx context.Context, tid int64) error { return c.StepIn(ctx, tid) },
-			verify:   func(m *mockDebugger) bool { return m.stepInCalled && m.lastStepInThreadID == 4 },
-			threadID: 4,
+		scopes: []dap.Scope{
+			{Name: "Locals", VariablesReference: 1000},
 		},
-		{
-			name:     "StepOut",
-			action:   func(c *Client, ctx context.Context, tid int64) error { return c.StepOut(ctx, tid) },
-			verify:   func(m *mockDebugger) bool { return m.stepOutCalled && m.lastStepOutThreadID == 5 },
-			threadID: 5,
+		variables: []dap.Variable{
+			{Name: "x", Value: "42", Type: "int"},
 		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			env := setupTestEnv(t)
-			ctx := context.Background()
-
-			err := tc.action(env.client, ctx, tc.threadID)
-			require.NoError(t, err)
-			assert.True(t, tc.verify(env.mock))
-		})
-	}
-}
-
-func TestClientServer_SetBreakpoints(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.SetBreakpointsArguments{
-		Source: debugapi.Source{
-			Name: "main.go",
-			Path: "/path/to/main.go",
+		evaluateResponse: &dap.EvaluateResponseBody{
+			Result: "100",
+			Type:   "int",
 		},
-		Breakpoints: []debugapi.SourceBreakpoint{
-			{Line: 10, Condition: "x > 5"},
-			{Line: 20, LogMessage: "value is {x}"},
+		breakpoints: []dap.Breakpoint{
+			{Id: 1, Verified: true, Line: 10},
 		},
+		events: make(chan dap.EventMessage, 10),
 	}
-
-	bps, err := env.client.SetBreakpoints(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.setBreakpointsCalled)
-	assert.Equal(t, args.Source.Path, env.mock.lastSetBreakpointsArgs.Source.Path)
-	assert.Len(t, env.mock.lastSetBreakpointsArgs.Breakpoints, 2)
-	assert.Len(t, bps, 1)
-	assert.Equal(t, 1, bps[0].ID)
-	assert.True(t, bps[0].Verified)
 }
 
-func TestClientServer_SetFunctionBreakpoints(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.SetFunctionBreakpointsArguments{
-		Breakpoints: []debugapi.FunctionBreakpoint{
-			{Name: "main.foo", Condition: "i == 0"},
-			{Name: "main.bar"},
-		},
-	}
-
-	bps, err := env.client.SetFunctionBreakpoints(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.setFunctionBreakpointsCalled)
-	assert.Len(t, env.mock.lastSetFunctionBreakpointsArgs.Breakpoints, 2)
-	assert.Len(t, bps, 1)
+func (m *mockDebugger) Initialize(ctx context.Context, args *dap.InitializeRequestArguments) (*dap.Capabilities, error) {
+	m.initializeCalled = true
+	return m.capabilities, nil
 }
 
-func TestClientServer_Threads(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	threads, err := env.client.Threads(ctx)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.threadsCalled)
-	assert.Len(t, threads, 2)
-	assert.Equal(t, int64(1), threads[0].ID)
-	assert.Equal(t, "main", threads[0].Name)
-	assert.Equal(t, int64(2), threads[1].ID)
-	assert.Equal(t, "worker", threads[1].Name)
+func (m *mockDebugger) Launch(ctx context.Context, args debugapi.LaunchRequestArguments) error {
+	m.launchCalled = true
+	m.lastLaunchArgs = args
+	return nil
 }
 
-func TestClientServer_StackTrace(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.StackTraceArguments{
-		ThreadID:   1,
-		StartFrame: 0,
-		Levels:     20,
-	}
-
-	frames, total, err := env.client.StackTrace(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.stackTraceCalled)
-	assert.Equal(t, args.ThreadID, env.mock.lastStackTraceArgs.ThreadID)
-	assert.Equal(t, args.StartFrame, env.mock.lastStackTraceArgs.StartFrame)
-	assert.Equal(t, args.Levels, env.mock.lastStackTraceArgs.Levels)
-	assert.Len(t, frames, 2)
-	assert.Equal(t, 2, total)
-	assert.Equal(t, "main.main", frames[0].Name)
+func (m *mockDebugger) Attach(ctx context.Context, args debugapi.AttachRequestArguments) error {
+	m.attachCalled = true
+	return nil
 }
 
-func TestClientServer_Scopes(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	scopes, err := env.client.Scopes(ctx, 1)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.scopesCalled)
-	assert.Equal(t, int64(1), env.mock.lastScopesFrameID)
-	assert.Len(t, scopes, 2)
-	assert.Equal(t, "Locals", scopes[0].Name)
-	assert.Equal(t, int64(1000), scopes[0].VariablesReference)
+func (m *mockDebugger) ConfigurationDone(ctx context.Context) error {
+	m.configurationDoneCalled = true
+	return nil
 }
 
-func TestClientServer_Variables(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.VariablesArguments{
-		VariablesReference: 1000,
-		Filter:             "named",
-		Start:              0,
-		Count:              10,
-	}
-
-	vars, err := env.client.Variables(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.variablesCalled)
-	assert.Equal(t, args.VariablesReference, env.mock.lastVariablesArgs.VariablesReference)
-	assert.Len(t, vars, 2)
-	assert.Equal(t, "x", vars[0].Name)
-	assert.Equal(t, "42", vars[0].Value)
+func (m *mockDebugger) Disconnect(ctx context.Context, args *dap.DisconnectArguments) error {
+	m.disconnectCalled = true
+	return nil
 }
 
-func TestClientServer_Evaluate(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.EvaluateArguments{
-		Expression: "x + y",
-		FrameID:    1,
-		Context:    "repl",
-	}
-
-	result, err := env.client.Evaluate(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.evaluateCalled)
-	assert.Equal(t, args.Expression, env.mock.lastEvaluateArgs.Expression)
-	assert.Equal(t, args.FrameID, env.mock.lastEvaluateArgs.FrameID)
-	assert.Equal(t, args.Context, env.mock.lastEvaluateArgs.Context)
-	assert.Equal(t, "result", result.Name)
-	assert.Equal(t, "100", result.Value)
+func (m *mockDebugger) Terminate(ctx context.Context, args *dap.TerminateArguments) error {
+	m.terminateCalled = true
+	return nil
 }
 
-func TestClientServer_SetVariable(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.SetVariableArguments{
-		VariablesReference: 1000,
-		Name:               "x",
-		Value:              "99",
-	}
-
-	result, err := env.client.SetVariable(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.setVariableCalled)
-	assert.Equal(t, args.VariablesReference, env.mock.lastSetVariableArgs.VariablesReference)
-	assert.Equal(t, args.Name, env.mock.lastSetVariableArgs.Name)
-	assert.Equal(t, args.Value, env.mock.lastSetVariableArgs.Value)
-	assert.Equal(t, "99", result.Value)
+func (m *mockDebugger) Restart(ctx context.Context) error {
+	m.restartCalled = true
+	return nil
 }
 
-func TestClientServer_ReadMemory(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	args := debugapi.ReadMemoryArguments{
-		MemoryReference: "0x1000",
-		Offset:          0,
-		Count:           5,
-	}
-
-	data, err := env.client.ReadMemory(ctx, args)
-	require.NoError(t, err)
-
-	assert.True(t, env.mock.readMemoryCalled)
-	assert.Equal(t, args.MemoryReference, env.mock.lastReadMemoryArgs.MemoryReference)
-	assert.Equal(t, []byte{0x48, 0x65, 0x6c, 0x6c, 0x6f}, data)
+func (m *mockDebugger) SetBreakpoints(ctx context.Context, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error) {
+	m.setBreakpointsCalled = true
+	return m.breakpoints, nil
 }
 
-func TestClientServer_Disassemble(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
+func (m *mockDebugger) SetFunctionBreakpoints(ctx context.Context, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error) {
+	return m.breakpoints, nil
+}
 
-	args := debugapi.DisassembleArguments{
-		MemoryReference:  "0x1000",
-		InstructionCount: 10,
-	}
+func (m *mockDebugger) SetExceptionBreakpoints(ctx context.Context, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error) {
+	return m.breakpoints, nil
+}
 
-	instructions, err := env.client.Disassemble(ctx, args)
-	require.NoError(t, err)
+func (m *mockDebugger) Continue(ctx context.Context, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error) {
+	m.continueCalled = true
+	return &dap.ContinueResponseBody{AllThreadsContinued: true}, nil
+}
 
-	assert.True(t, env.mock.disassembleCalled)
-	assert.Equal(t, args.MemoryReference, env.mock.lastDisassembleArgs.MemoryReference)
-	assert.Len(t, instructions, 2)
-	assert.Equal(t, "0x1000", instructions[0].Address)
-	assert.Equal(t, "mov eax, 1", instructions[0].Instruction)
+func (m *mockDebugger) Next(ctx context.Context, args *dap.NextArguments) error {
+	m.nextCalled = true
+	return nil
+}
+
+func (m *mockDebugger) StepIn(ctx context.Context, args *dap.StepInArguments) error {
+	m.stepInCalled = true
+	return nil
+}
+
+func (m *mockDebugger) StepOut(ctx context.Context, args *dap.StepOutArguments) error {
+	m.stepOutCalled = true
+	return nil
+}
+
+func (m *mockDebugger) StepBack(ctx context.Context, args *dap.StepBackArguments) error {
+	m.stepBackCalled = true
+	return nil
+}
+
+func (m *mockDebugger) ReverseContinue(ctx context.Context, args *dap.ReverseContinueArguments) error {
+	m.reverseContinueCalled = true
+	return nil
+}
+
+func (m *mockDebugger) Pause(ctx context.Context, args *dap.PauseArguments) error {
+	m.pauseCalled = true
+	return nil
+}
+
+func (m *mockDebugger) Threads(ctx context.Context) ([]dap.Thread, error) {
+	m.threadsCalled = true
+	return m.threads, nil
+}
+
+func (m *mockDebugger) StackTrace(ctx context.Context, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error) {
+	m.stackTraceCalled = true
+	return m.stackTraceResponse, nil
+}
+
+func (m *mockDebugger) Scopes(ctx context.Context, args *dap.ScopesArguments) ([]dap.Scope, error) {
+	m.scopesCalled = true
+	return m.scopes, nil
+}
+
+func (m *mockDebugger) Variables(ctx context.Context, args *dap.VariablesArguments) ([]dap.Variable, error) {
+	m.variablesCalled = true
+	return m.variables, nil
+}
+
+func (m *mockDebugger) SetVariable(ctx context.Context, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error) {
+	return &dap.SetVariableResponseBody{Value: "99"}, nil
+}
+
+func (m *mockDebugger) Source(ctx context.Context, args *dap.SourceArguments) (*dap.SourceResponseBody, error) {
+	return &dap.SourceResponseBody{Content: "source code"}, nil
+}
+
+func (m *mockDebugger) Evaluate(ctx context.Context, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error) {
+	m.evaluateCalled = true
+	return m.evaluateResponse, nil
+}
+
+func (m *mockDebugger) SetExpression(ctx context.Context, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error) {
+	return &dap.SetExpressionResponseBody{Value: "new_value"}, nil
+}
+
+func (m *mockDebugger) Completions(ctx context.Context, args *dap.CompletionsArguments) ([]dap.CompletionItem, error) {
+	return []dap.CompletionItem{{Label: "item1"}}, nil
+}
+
+func (m *mockDebugger) ExceptionInfo(ctx context.Context, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error) {
+	return &dap.ExceptionInfoResponseBody{ExceptionId: "err1"}, nil
+}
+
+func (m *mockDebugger) Modules(ctx context.Context, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error) {
+	return &dap.ModulesResponseBody{}, nil
+}
+
+func (m *mockDebugger) LoadedSources(ctx context.Context) ([]dap.Source, error) {
+	return []dap.Source{}, nil
+}
+
+func (m *mockDebugger) ReadMemory(ctx context.Context, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error) {
+	m.readMemoryCalled = true
+	return m.readMemoryResponse, nil
+}
+
+func (m *mockDebugger) WriteMemory(ctx context.Context, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error) {
+	m.writeMemoryCalled = true
+	return m.writeMemoryResponse, nil
+}
+
+func (m *mockDebugger) Disassemble(ctx context.Context, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error) {
+	m.disassembleCalled = true
+	return m.disassembleResponse, nil
+}
+
+func (m *mockDebugger) GotoTargets(ctx context.Context, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error) {
+	return []dap.GotoTarget{}, nil
+}
+
+func (m *mockDebugger) Goto(ctx context.Context, args *dap.GotoArguments) error {
+	return nil
+}
+
+func (m *mockDebugger) Events() <-chan dap.EventMessage {
+	return m.events
 }

@@ -13,376 +13,194 @@
 // limitations under the License.
 
 // Package debugapi defines a common interface for debuggers across languages.
-// The interface follows the Debug Adapter Protocol (DAP) shape, enabling
-// implementations for Go (Delve), Python (debugpy), Rust/C/C++ (LLDB/GDB),
-// and other languages.
+// The interface follows the Debug Adapter Protocol (DAP) specification,
+// using types from github.com/google/go-dap.
+//
+// See: https://microsoft.github.io/debug-adapter-protocol/specification
 package debugapi
 
 import (
 	"context"
 	"errors"
+
+	"github.com/google/go-dap"
 )
 
 // Common errors returned by Debugger implementations.
 var (
-	// ErrNotSupported is returned when an operation is not supported by the debugger.
+	// ErrNotSupported is returned when an operation is not supported.
 	ErrNotSupported = errors.New("operation not supported by this debugger")
 
 	// ErrNotConnected is returned when the debugger is not connected.
 	ErrNotConnected = errors.New("debugger not connected")
 
-	// ErrAlreadyRunning is returned when trying to start while already running.
+	// ErrAlreadyRunning is returned when trying to start while running.
 	ErrAlreadyRunning = errors.New("debuggee already running")
 
 	// ErrNotRunning is returned when trying to pause while not running.
 	ErrNotRunning = errors.New("debuggee not running")
-
-	// ErrInvalidBreakpoint is returned when a breakpoint operation fails.
-	ErrInvalidBreakpoint = errors.New("invalid breakpoint")
 )
 
-// Debugger is the core interface for debugging programs.
-// It abstracts operations common across debuggers following the DAP shape.
+// Debugger defines the Debug Adapter Protocol operations.
+// All methods correspond to DAP requests as defined in the specification.
+//
+// See: https://microsoft.github.io/debug-adapter-protocol/specification
 type Debugger interface {
-	// === Session Management ===
+	// Initialize configures the debug adapter with client capabilities
+	// and retrieves the adapter's capabilities.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Initialize
+	Initialize(ctx context.Context, args *dap.InitializeRequestArguments) (*dap.Capabilities, error)
 
-	// Initialize configures the debugger with client capabilities and returns
-	// the debugger's capabilities.
-	Initialize(ctx context.Context, args InitializeArguments) (*Capabilities, error)
+	// Launch starts the debuggee with or without debugging.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Launch
+	Launch(ctx context.Context, args LaunchRequestArguments) error
 
-	// Launch starts debugging a new process.
-	Launch(ctx context.Context, args LaunchArguments) error
+	// Attach connects to an already running debuggee.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Attach
+	Attach(ctx context.Context, args AttachRequestArguments) error
 
-	// Attach connects to an already-running process.
-	Attach(ctx context.Context, args AttachArguments) error
-
-	// ConfigurationDone signals that all configuration is complete.
+	// ConfigurationDone indicates that configuration is complete.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ConfigurationDone
 	ConfigurationDone(ctx context.Context) error
 
 	// Disconnect ends the debug session.
-	Disconnect(ctx context.Context, args DisconnectArguments) error
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Disconnect
+	Disconnect(ctx context.Context, args *dap.DisconnectArguments) error
 
-	// === Execution Control ===
+	// Terminate requests graceful termination of the debuggee.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Terminate
+	Terminate(ctx context.Context, args *dap.TerminateArguments) error
 
-	// Continue resumes execution of the given thread (or all threads if threadID is 0).
-	Continue(ctx context.Context, threadID int64) error
+	// Restart restarts the debug session.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Restart
+	Restart(ctx context.Context) error
 
-	// Pause suspends execution of the given thread (or all threads if threadID is 0).
-	Pause(ctx context.Context, threadID int64) error
-
-	// Next executes one step, stepping over function calls.
-	Next(ctx context.Context, threadID int64) error
-
-	// StepIn steps into function calls.
-	StepIn(ctx context.Context, threadID int64) error
-
-	// StepOut continues until the current function returns.
-	StepOut(ctx context.Context, threadID int64) error
-
-	// === Breakpoints ===
-
-	// SetBreakpoints sets breakpoints for a source file, replacing all previous
-	// breakpoints in that file.
-	SetBreakpoints(ctx context.Context, args SetBreakpointsArguments) ([]Breakpoint, error)
+	// SetBreakpoints sets breakpoints for a source file.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetBreakpoints
+	SetBreakpoints(ctx context.Context, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error)
 
 	// SetFunctionBreakpoints sets breakpoints on function names.
-	SetFunctionBreakpoints(ctx context.Context, args SetFunctionBreakpointsArguments) ([]Breakpoint, error)
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetFunctionBreakpoints
+	SetFunctionBreakpoints(ctx context.Context, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error)
 
-	// === State Inspection ===
+	// SetExceptionBreakpoints configures exception breakpoints.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetExceptionBreakpoints
+	SetExceptionBreakpoints(ctx context.Context, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error)
 
-	// Threads returns all threads in the debuggee.
-	Threads(ctx context.Context) ([]Thread, error)
+	// Continue resumes execution of all threads.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Continue
+	Continue(ctx context.Context, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error)
+
+	// Next executes one step (stepping over function calls).
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next
+	Next(ctx context.Context, args *dap.NextArguments) error
+
+	// StepIn steps into a function call.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepIn
+	StepIn(ctx context.Context, args *dap.StepInArguments) error
+
+	// StepOut steps out of the current function.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepOut
+	StepOut(ctx context.Context, args *dap.StepOutArguments) error
+
+	// StepBack executes one backward step.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepBack
+	StepBack(ctx context.Context, args *dap.StepBackArguments) error
+
+	// ReverseContinue resumes backward execution.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ReverseContinue
+	ReverseContinue(ctx context.Context, args *dap.ReverseContinueArguments) error
+
+	// Pause suspends execution.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Pause
+	Pause(ctx context.Context, args *dap.PauseArguments) error
+
+	// Threads retrieves all threads.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Threads
+	Threads(ctx context.Context) ([]dap.Thread, error)
 
 	// StackTrace returns the call stack for a thread.
-	StackTrace(ctx context.Context, args StackTraceArguments) ([]StackFrame, int, error)
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StackTrace
+	StackTrace(ctx context.Context, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error)
 
-	// Scopes returns the variable scopes for a stack frame.
-	Scopes(ctx context.Context, frameID int64) ([]Scope, error)
+	// Scopes returns variable scopes for a stack frame.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Scopes
+	Scopes(ctx context.Context, args *dap.ScopesArguments) ([]dap.Scope, error)
 
-	// Variables returns variables within a scope or container.
-	Variables(ctx context.Context, args VariablesArguments) ([]Variable, error)
+	// Variables retrieves child variables.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Variables
+	Variables(ctx context.Context, args *dap.VariablesArguments) ([]dap.Variable, error)
 
-	// Evaluate evaluates an expression in the context of a stack frame.
-	Evaluate(ctx context.Context, args EvaluateArguments) (*Variable, error)
+	// SetVariable modifies a variable's value.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetVariable
+	SetVariable(ctx context.Context, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error)
 
-	// SetVariable modifies the value of a variable.
-	SetVariable(ctx context.Context, args SetVariableArguments) (*Variable, error)
+	// Source retrieves source code.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Source
+	Source(ctx context.Context, args *dap.SourceArguments) (*dap.SourceResponseBody, error)
 
-	// === Memory & Disassembly ===
+	// Evaluate evaluates an expression.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Evaluate
+	Evaluate(ctx context.Context, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error)
 
-	// ReadMemory reads bytes from the debuggee's memory.
-	ReadMemory(ctx context.Context, args ReadMemoryArguments) ([]byte, error)
+	// SetExpression assigns a value to an expression.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetExpression
+	SetExpression(ctx context.Context, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error)
+
+	// Completions provides completion suggestions.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Completions
+	Completions(ctx context.Context, args *dap.CompletionsArguments) ([]dap.CompletionItem, error)
+
+	// ExceptionInfo retrieves exception details.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ExceptionInfo
+	ExceptionInfo(ctx context.Context, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error)
+
+	// Modules retrieves loaded modules.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Modules
+	Modules(ctx context.Context, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error)
+
+	// LoadedSources retrieves all loaded sources.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_LoadedSources
+	LoadedSources(ctx context.Context) ([]dap.Source, error)
+
+	// ReadMemory reads bytes from memory.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ReadMemory
+	ReadMemory(ctx context.Context, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error)
+
+	// WriteMemory writes bytes to memory.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_WriteMemory
+	WriteMemory(ctx context.Context, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error)
 
 	// Disassemble returns disassembled instructions.
-	Disassemble(ctx context.Context, args DisassembleArguments) ([]DisassembledInstruction, error)
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Disassemble
+	Disassemble(ctx context.Context, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error)
 
-	// === Events ===
+	// GotoTargets returns possible goto targets.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_GotoTargets
+	GotoTargets(ctx context.Context, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error)
 
-	// Events returns a channel that receives debugger events (stopped, exited, etc.).
-	Events() <-chan Event
+	// Goto sets execution to continue from a target.
+	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Goto
+	Goto(ctx context.Context, args *dap.GotoArguments) error
+
+	// Events returns a channel for receiving debugger events.
+	Events() <-chan dap.EventMessage
 }
 
-// === Argument Types ===
-
-// InitializeArguments contains arguments for Initialize.
-type InitializeArguments struct {
-	ClientID   string
-	ClientName string
-	AdapterID  string
-	Locale     string
+// LaunchRequestArguments contains arguments for Launch.
+// These are implementation-specific and not defined by DAP.
+type LaunchRequestArguments struct {
+	Program     string            `json:"program"`
+	Args        []string          `json:"args,omitempty"`
+	Cwd         string            `json:"cwd,omitempty"`
+	Env         map[string]string `json:"env,omitempty"`
+	StopOnEntry bool              `json:"stopOnEntry,omitempty"`
+	NoDebug     bool              `json:"noDebug,omitempty"`
 }
 
-// LaunchArguments contains arguments for launching a debug session.
-type LaunchArguments struct {
-	Program     string            // Path to executable or script
-	Args        []string          // Command-line arguments
-	Cwd         string            // Working directory
-	Env         map[string]string // Environment variables
-	StopOnEntry bool              // Stop at program entry point
-	NoDebug     bool              // Run without debugging
-}
-
-// AttachArguments contains arguments for attaching to a process.
-type AttachArguments struct {
-	PID     int    // Process ID to attach to
-	Program string // Optional: path to executable (for symbols)
-}
-
-// DisconnectArguments contains arguments for Disconnect.
-type DisconnectArguments struct {
-	Restart           bool // Restart after disconnect
-	TerminateDebuggee bool // Terminate the debuggee
-	SuspendDebuggee   bool // Suspend the debuggee
-}
-
-// SetBreakpointsArguments contains arguments for SetBreakpoints.
-type SetBreakpointsArguments struct {
-	Source      Source             // Source file
-	Breakpoints []SourceBreakpoint // Breakpoints to set
-}
-
-// SetFunctionBreakpointsArguments contains arguments for SetFunctionBreakpoints.
-type SetFunctionBreakpointsArguments struct {
-	Breakpoints []FunctionBreakpoint
-}
-
-// StackTraceArguments contains arguments for StackTrace.
-type StackTraceArguments struct {
-	ThreadID   int64
-	StartFrame int
-	Levels     int
-}
-
-// VariablesArguments contains arguments for Variables.
-type VariablesArguments struct {
-	VariablesReference int64
-	Filter             string // "indexed", "named", or empty for all
-	Start              int    // For indexed variables
-	Count              int    // For indexed variables
-}
-
-// EvaluateArguments contains arguments for Evaluate.
-type EvaluateArguments struct {
-	Expression string
-	FrameID    int64
-	Context    string // "watch", "repl", "hover", "clipboard"
-}
-
-// SetVariableArguments contains arguments for SetVariable.
-type SetVariableArguments struct {
-	VariablesReference int64
-	Name               string
-	Value              string
-}
-
-// ReadMemoryArguments contains arguments for ReadMemory.
-type ReadMemoryArguments struct {
-	MemoryReference string
-	Offset          int64
-	Count           int
-}
-
-// DisassembleArguments contains arguments for Disassemble.
-type DisassembleArguments struct {
-	MemoryReference   string
-	Offset            int64
-	InstructionOffset int
-	InstructionCount  int
-}
-
-// === Data Types ===
-
-// Capabilities describes debugger capabilities.
-type Capabilities struct {
-	SupportsConfigurationDoneRequest bool
-	SupportsFunctionBreakpoints      bool
-	SupportsConditionalBreakpoints   bool
-	SupportsHitConditionalBreakpoints bool
-	SupportsEvaluateForHovers        bool
-	SupportsStepBack                 bool
-	SupportsSetVariable              bool
-	SupportsRestartFrame             bool
-	SupportsGotoTargetsRequest       bool
-	SupportsStepInTargetsRequest     bool
-	SupportsCompletionsRequest       bool
-	SupportsModulesRequest           bool
-	SupportsRestartRequest           bool
-	SupportsExceptionOptions         bool
-	SupportsValueFormattingOptions   bool
-	SupportsExceptionInfoRequest     bool
-	SupportTerminateDebuggee         bool
-	SupportsDelayedStackTraceLoading bool
-	SupportsLoadedSourcesRequest     bool
-	SupportsLogPoints                bool
-	SupportsTerminateThreadsRequest  bool
-	SupportsSetExpression            bool
-	SupportsTerminateRequest         bool
-	SupportsDataBreakpoints          bool
-	SupportsReadMemoryRequest        bool
-	SupportsWriteMemoryRequest       bool
-	SupportsDisassembleRequest       bool
-	SupportsCancelRequest            bool
-	SupportsBreakpointLocationsRequest bool
-	SupportsClipboardContext         bool
-	SupportsSingleThreadExecutionRequests bool
-}
-
-// Source represents a source file.
-type Source struct {
-	Name string
-	Path string
-}
-
-// SourceBreakpoint represents a breakpoint in source code.
-type SourceBreakpoint struct {
-	Line         int
-	Column       int
-	Condition    string
-	HitCondition string
-	LogMessage   string
-}
-
-// FunctionBreakpoint represents a breakpoint on a function.
-type FunctionBreakpoint struct {
-	Name         string
-	Condition    string
-	HitCondition string
-}
-
-// Breakpoint represents an actual breakpoint set in the debuggee.
-type Breakpoint struct {
-	ID        int
-	Verified  bool
-	Message   string
-	Source    *Source
-	Line      int
-	Column    int
-	EndLine   int
-	EndColumn int
-}
-
-// Thread represents a thread in the debuggee.
-type Thread struct {
-	ID   int64
-	Name string
-}
-
-// StackFrame represents a stack frame.
-type StackFrame struct {
-	ID                          int64
-	Name                        string
-	Source                      *Source
-	Line                        int
-	Column                      int
-	EndLine                     int
-	EndColumn                   int
-	InstructionPointerReference string
-}
-
-// Scope represents a variable scope.
-type Scope struct {
-	Name               string
-	PresentationHint   string // "arguments", "locals", "registers"
-	VariablesReference int64
-	NamedVariables     int
-	IndexedVariables   int
-	Expensive          bool
-}
-
-// Variable represents a variable or expression result.
-type Variable struct {
-	Name               string
-	Value              string
-	Type               string
-	VariablesReference int64
-	NamedVariables     int
-	IndexedVariables   int
-	MemoryReference    string
-}
-
-// DisassembledInstruction represents a single disassembled instruction.
-type DisassembledInstruction struct {
-	Address          string
-	InstructionBytes string
-	Instruction      string
-	Symbol           string
-	Line             int
-	Column           int
-	EndLine          int
-	EndColumn        int
-}
-
-// === Events ===
-
-// EventType identifies the type of debugger event.
-type EventType string
-
-const (
-	EventTypeStopped    EventType = "stopped"
-	EventTypeContinued  EventType = "continued"
-	EventTypeExited     EventType = "exited"
-	EventTypeTerminated EventType = "terminated"
-	EventTypeThread     EventType = "thread"
-	EventTypeOutput     EventType = "output"
-	EventTypeBreakpoint EventType = "breakpoint"
-	EventTypeModule     EventType = "module"
-)
-
-// StopReason indicates why execution stopped.
-type StopReason string
-
-const (
-	StopReasonStep              StopReason = "step"
-	StopReasonBreakpoint        StopReason = "breakpoint"
-	StopReasonException         StopReason = "exception"
-	StopReasonPause             StopReason = "pause"
-	StopReasonEntry             StopReason = "entry"
-	StopReasonGoto              StopReason = "goto"
-	StopReasonFunctionBreakpoint StopReason = "function breakpoint"
-	StopReasonDataBreakpoint    StopReason = "data breakpoint"
-)
-
-// Event represents a debugger event.
-type Event struct {
-	Type EventType
-
-	// For stopped events
-	Reason            StopReason
-	ThreadID          int64
-	AllThreadsStopped bool
-	HitBreakpointIDs  []int
-
-	// For exited events
-	ExitCode int
-
-	// For thread events
-	ThreadReason string // "started", "exited"
-
-	// For output events
-	Category string // "console", "stdout", "stderr", etc.
-	Output   string
-
-	// For breakpoint events
-	BreakpointReason string // "changed", "new", "removed"
-	Breakpoint       *Breakpoint
+// AttachRequestArguments contains arguments for Attach.
+// These are implementation-specific and not defined by DAP.
+type AttachRequestArguments struct {
+	PID     int    `json:"pid,omitempty"`
+	Program string `json:"program,omitempty"`
 }
