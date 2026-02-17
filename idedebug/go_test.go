@@ -44,8 +44,9 @@ func TestE2E(t *testing.T) {
 	uri := makeURI(t, "file://"+tmpDir)
 	mainPath := filepath.Join(tmpDir, "main.go")
 
-	// Line number for "sum := Add(x, y)" in go/main.go
-	const breakpointLine = 13
+	// Line number for "sum := Add(x, y)" in
+	// go/main.go (after the license header).
+	const breakpointLine = 27
 
 	tests := []struct {
 		name string
@@ -58,7 +59,11 @@ func TestE2E(t *testing.T) {
 					t.Context(),
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, threads)
+				require.Len(t, threads, 1)
+				assert.Equal(t, dap.Thread{
+					Id:   1,
+					Name: "main.main",
+				}, threads[0])
 			},
 		},
 		{
@@ -68,7 +73,7 @@ func TestE2E(t *testing.T) {
 					t.Context(),
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, threads)
+				require.Len(t, threads, 1)
 
 				st, err := mgr.StackTrace(
 					t.Context(),
@@ -77,15 +82,19 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, st.StackFrames)
-				assert.Contains(t,
-					st.StackFrames[0].Source.Path,
-					"main.go",
+				require.GreaterOrEqual(t,
+					len(st.StackFrames), 1,
 				)
-				assert.Equal(t,
-					breakpointLine,
-					st.StackFrames[0].Line,
-				)
+				assert.Equal(t, dap.StackFrame{
+					Id:   st.StackFrames[0].Id,
+					Name: "main.main",
+					Source: &dap.Source{
+						Name: "main.go",
+						Path: mainPath,
+					},
+					Line:   breakpointLine,
+					Column: 0,
+				}, st.StackFrames[0])
 			},
 		},
 		{
@@ -95,7 +104,7 @@ func TestE2E(t *testing.T) {
 					t.Context(),
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, threads)
+				require.Len(t, threads, 1)
 
 				st, err := mgr.StackTrace(
 					t.Context(),
@@ -104,7 +113,9 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, st.StackFrames)
+				require.GreaterOrEqual(t,
+					len(st.StackFrames), 1,
+				)
 
 				scopes, err := mgr.Scopes(
 					t.Context(),
@@ -113,10 +124,17 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, scopes)
-				assert.Equal(t,
-					"Locals", scopes[0].Name,
-				)
+				require.Len(t, scopes, 2)
+				assert.Equal(t, dap.Scope{
+					Name: "Locals",
+					VariablesReference: scopes[0].
+						VariablesReference,
+				}, scopes[0])
+				assert.Equal(t, dap.Scope{
+					Name: "Arguments",
+					VariablesReference: scopes[1].
+						VariablesReference,
+				}, scopes[1])
 			},
 		},
 		{
@@ -126,7 +144,7 @@ func TestE2E(t *testing.T) {
 					t.Context(),
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, threads)
+				require.Len(t, threads, 1)
 
 				st, err := mgr.StackTrace(
 					t.Context(),
@@ -135,7 +153,9 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, st.StackFrames)
+				require.GreaterOrEqual(t,
+					len(st.StackFrames), 1,
+				)
 
 				scopes, err := mgr.Scopes(
 					t.Context(),
@@ -144,7 +164,7 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, scopes)
+				require.Len(t, scopes, 2)
 
 				vars, err := mgr.Variables(
 					t.Context(),
@@ -154,14 +174,19 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, vars)
-
-				varMap := make(map[string]string)
-				for _, v := range vars {
-					varMap[v.Name] = v.Value
-				}
-				assert.Equal(t, "10", varMap["x"])
-				assert.Equal(t, "20", varMap["y"])
+				require.Len(t, vars, 2)
+				assert.Equal(t, dap.Variable{
+					Name:         "x",
+					Value:        "10",
+					Type:         "int",
+					EvaluateName: "x",
+				}, vars[0])
+				assert.Equal(t, dap.Variable{
+					Name:         "y",
+					Value:        "20",
+					Type:         "int",
+					EvaluateName: "y",
+				}, vars[1])
 			},
 		},
 		{
@@ -171,7 +196,7 @@ func TestE2E(t *testing.T) {
 					t.Context(),
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, threads)
+				require.Len(t, threads, 1)
 
 				st, err := mgr.StackTrace(
 					t.Context(),
@@ -180,7 +205,9 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NotEmpty(t, st.StackFrames)
+				require.GreaterOrEqual(t,
+					len(st.StackFrames), 1,
+				)
 
 				result, err := mgr.Evaluate(
 					t.Context(),
@@ -190,19 +217,29 @@ func TestE2E(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				assert.Equal(t, "30", result.Result)
+				assert.Equal(t,
+					&dap.EvaluateResponseBody{
+						Result: "30",
+						Type:   "int",
+					}, result,
+				)
 			},
 		},
 		{
 			name: "ContinueAndTerminate",
 			fn: func(t *testing.T, mgr *Manager) {
-				_, err := mgr.Continue(
+				resp, err := mgr.Continue(
 					t.Context(),
 					&dap.ContinueArguments{
 						ThreadId: 1,
 					},
 				)
 				require.NoError(t, err)
+				assert.Equal(t,
+					&dap.ContinueResponseBody{
+						AllThreadsContinued: true,
+					}, resp,
+				)
 				waitForEvent(
 					t, mgr.Events(), "terminated",
 				)
@@ -318,7 +355,15 @@ func setupDebugSession(
 	)
 	require.NoError(t, err)
 	require.Len(t, bps, 1)
-	assert.True(t, bps[0].Verified)
+	assert.Equal(t, dap.Breakpoint{
+		Id:       bps[0].Id,
+		Verified: true,
+		Source: &dap.Source{
+			Name: "main.go",
+			Path: mainPath,
+		},
+		Line: breakpointLine,
+	}, bps[0])
 
 	err = mgr.ConfigurationDone(ctx)
 	require.NoError(t, err)
