@@ -1,3 +1,17 @@
+// Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package idedebug
 
 import (
@@ -47,9 +61,11 @@ func (m *Manager) Initialize(
 	return srv.caps, nil
 }
 
-// Launch starts the debuggee.
+// Launch starts the debuggee. The request is sent without
+// waiting for a response because in DAP the LaunchResponse
+// only arrives after ConfigurationDone.
 func (m *Manager) Launch(
-	ctx context.Context,
+	_ context.Context,
 	args debugapi.LaunchRequestArguments,
 ) error {
 	srv, err := m.serverForLaunch(args.Program)
@@ -81,13 +97,14 @@ func (m *Manager) Launch(
 		Request:   srv.newRequest("launch"),
 		Arguments: argsJSON,
 	}
-	_, err = srv.sendRequest(ctx, req)
-	return err
+	return srv.writeRequest(req)
 }
 
 // Attach connects to an already running debuggee.
+// Like Launch, the response only arrives after
+// ConfigurationDone.
 func (m *Manager) Attach(
-	ctx context.Context,
+	_ context.Context,
 	args debugapi.AttachRequestArguments,
 ) error {
 	srv, err := m.activeServer()
@@ -104,8 +121,7 @@ func (m *Manager) Attach(
 		Request:   srv.newRequest("attach"),
 		Arguments: argsJSON,
 	}
-	_, err = srv.sendRequest(ctx, req)
-	return err
+	return srv.writeRequest(req)
 }
 
 // ConfigurationDone signals that configuration is done.

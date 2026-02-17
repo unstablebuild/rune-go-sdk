@@ -1,7 +1,22 @@
+// Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package idedebug
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -222,10 +237,6 @@ func TestE2E(t *testing.T) {
 						},
 					)
 
-					waitForEvent(
-						t, mgr.Events(), "initialized",
-					)
-
 					setupDebugSession(
 						t, mgr, tmpDir, mainPath,
 						breakpointLine,
@@ -258,10 +269,6 @@ func TestE2E(t *testing.T) {
 					require.NoError(t, err)
 					require.NotNil(t, caps)
 
-					waitForEvent(
-						t, mgr.Events(), "initialized",
-					)
-
 					setupDebugSession(
 						t, mgr, tmpDir, mainPath,
 						breakpointLine,
@@ -273,6 +280,12 @@ func TestE2E(t *testing.T) {
 		})
 }
 
+// setupDebugSession performs the DAP launch sequence:
+// Launch -> wait for "initialized" -> SetBreakpoints ->
+// ConfigurationDone -> wait for "stopped".
+// In DAP, the initialized event arrives during Launch
+// processing, and LaunchResponse arrives only after
+// ConfigurationDone.
 func setupDebugSession(
 	t *testing.T,
 	mgr *Manager,
@@ -283,10 +296,14 @@ func setupDebugSession(
 	t.Helper()
 	ctx := t.Context()
 
-	err := mgr.Launch(ctx, debugapi.LaunchRequestArguments{
+	err := launchWithRetry(t, mgr, debugapi.LaunchRequestArguments{
 		Program: program,
 	})
 	require.NoError(t, err)
+
+	// In DAP, the initialized event is sent by the debug
+	// adapter during Launch, before the LaunchResponse.
+	waitForEvent(t, mgr.Events(), "initialized")
 
 	bps, err := mgr.SetBreakpoints(
 		ctx,
@@ -309,8 +326,36 @@ func setupDebugSession(
 	waitForEvent(t, mgr.Events(), "stopped")
 }
 
+// launchWithRetry retries Launch to handle the case where
+// the server was started asynchronously via Handle and may
+// not be in the server map yet.
+func launchWithRetry(
+	t *testing.T,
+	mgr *Manager,
+	args debugapi.LaunchRequestArguments,
+) error {
+	t.Helper()
+	const maxRetries = 50
+	for i := range maxRetries {
+		err := mgr.Launch(t.Context(), args)
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, ErrNoServer) || i == maxRetries-1 {
+			return err
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return nil
+}
+
 func findDlv(t *testing.T) string {
 	t.Helper()
+	if isRosetta() {
+		t.Skip(
+			"dlv cannot debug under Rosetta",
+		)
+	}
 	dlvBin, err := exec.LookPath("dlv")
 	if err != nil {
 		for _, p := range []string{
@@ -332,6 +377,16 @@ func findDlv(t *testing.T) string {
 		)
 	}
 	return dlvBin
+}
+
+func isRosetta() bool {
+	out, err := exec.Command(
+		"sysctl", "-n", "sysctl.proc_translated",
+	).Output()
+	if err != nil {
+		return false
+	}
+	return len(out) > 0 && out[0] == '1'
 }
 
 func setupTestWorkspace(

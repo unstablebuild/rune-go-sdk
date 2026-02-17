@@ -1,3 +1,17 @@
+// Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package idedebug
 
 import (
@@ -6,10 +20,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 
 	"github.com/google/go-dap"
 
@@ -65,23 +78,29 @@ func newDebugServer(
 }
 
 func (s *debugServer) start(ctx context.Context) error {
-	fds, err := syscall.Socketpair(
-		syscall.AF_UNIX, syscall.SOCK_STREAM, 0,
-	)
+	// dlv dap is a TCP server. We create a TCP listener
+	// and pass our address via --client-addr so dlv dials
+	// back to us.
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return fmt.Errorf("create socket pair: %v", err)
+		return fmt.Errorf(
+			"create listener: %w", err,
+		)
 	}
-	childEnd := os.NewFile(uintptr(fds[1]), "child-dap")
-	ourEnd := os.NewFile(uintptr(fds[0]), "ide-dap")
+	defer func() { _ = listener.Close() }()
+
+	addr := listener.Addr().String()
+	args := make([]string, len(s.cfg.args))
+	copy(args, s.cfg.args)
+	args = append(args, "--client-addr="+addr)
 
 	watchCh := make(chan error, 1)
 	watcher := workspaceapi.ChanProcessWatcher(watchCh)
 
 	cmd := workspaceapi.Cmd{
 		Path:    s.binPath,
-		Args:    s.cfg.args,
-		Stdin:   childEnd,
-		Stdout:  childEnd,
+		Args:    args,
+		Dir:     strings.TrimPrefix(s.rootURI, "file://"),
 		Watcher: watcher,
 	}
 
@@ -95,19 +114,31 @@ func (s *debugServer) start(ctx context.Context) error {
 		lifecycleCtx, cmd,
 	)
 	if err != nil {
-		_ = childEnd.Close()
-		_ = ourEnd.Close()
 		return fmt.Errorf(
 			"start %s: %w", s.cfg.command, err,
 		)
 	}
 
-	conn, err := net.FileConn(ourEnd)
-	if err != nil {
-		return fmt.Errorf("new file conn: %w", err)
+	// Accept connection from the debug adapter.
+	connCh := make(chan net.Conn, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			errCh <- err
+			return
+		}
+		connCh <- conn
+	}()
+
+	var conn net.Conn
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-errCh:
+		return fmt.Errorf("accept: %w", err)
+	case conn = <-connCh:
 	}
-	_ = ourEnd.Close()
-	_ = childEnd.Close()
 
 	s.mu.Lock()
 	s.pid = pid
@@ -285,6 +316,26 @@ func (s *debugServer) closePending() {
 		close(ch)
 		delete(s.pending, seq)
 	}
+}
+
+// writeRequest sends a DAP request without waiting for
+// a response. This is needed for Launch and Attach because
+// their responses only arrive after ConfigurationDone.
+func (s *debugServer) writeRequest(
+	req dap.Message,
+) error {
+	s.mu.Lock()
+	if !s.alive {
+		s.mu.Unlock()
+		return ErrNoServer
+	}
+	s.mu.Unlock()
+	if err := dap.WriteProtocolMessage(
+		s.conn, req,
+	); err != nil {
+		return fmt.Errorf("write request: %w", err)
+	}
+	return nil
 }
 
 func (s *debugServer) newRequest(
