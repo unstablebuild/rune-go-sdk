@@ -810,14 +810,44 @@ func (m *mockLSP) CodeAction(
 	req *semanticrpc.CodeActionRequest,
 ) (*semanticrpc.CodeActionResponse, error) {
 	return &semanticrpc.CodeActionResponse{
-		Actions: []*semanticrpc.CodeAction{
+		Items: []*semanticrpc.CodeActionResultItem{
 			{
-				Title: "Extract variable",
-				Kind:  "refactor.extract",
+				CodeAction: &semanticrpc.CodeAction{
+					Title: "Extract variable",
+					Kind:  "refactor.extract",
+				},
 			},
 			{
-				Title: "Organize imports",
-				Kind:  "source.organizeImports",
+				CodeAction: &semanticrpc.CodeAction{
+					Title: "Organize imports",
+					Kind:  "source.organizeImports",
+					Edit: &semanticrpc.WorkspaceEdit{
+						Changes: map[string]*semanticrpc.TextEditList{
+							"file:///src/main.go": {
+								Edits: []*semanticrpc.TextEdit{
+									{
+										Range: &semanticrpc.Range{
+											Start: &semanticrpc.Position{
+												Line: 2, Character: 0,
+											},
+											End: &semanticrpc.Position{
+												Line: 4, Character: 0,
+											},
+										},
+										NewText: "import (\n\t\"fmt\"\n)\n",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Command: &semanticrpc.Command{
+					Title:     "Run test",
+					Command:   "test.run",
+					Arguments: []string{`{"uri":"file:///test.go"}`},
+				},
 			},
 		},
 	}, nil

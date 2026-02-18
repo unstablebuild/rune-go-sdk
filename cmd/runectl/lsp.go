@@ -16,7 +16,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -803,6 +805,81 @@ type flatCodeAction struct {
 	Kind  string `json:"kind"`
 }
 
+type flatCodeActionEdit struct {
+	Title     string `json:"title"`
+	Kind      string `json:"kind"`
+	URI       string `json:"uri"`
+	StartLine uint32 `json:"start_line"`
+	StartChar uint32 `json:"start_char"`
+	EndLine   uint32 `json:"end_line"`
+	EndChar   uint32 `json:"end_char"`
+	NewText   string `json:"new_text"`
+}
+
+type flatCodeActionCommand struct {
+	Title     string      `json:"title"`
+	Command   string      `json:"command"`
+	Arguments commandArgs `json:"arguments"`
+}
+
+// commandArgs holds command arguments as raw JSON but
+// prints as a comma-separated list for text/table output.
+type commandArgs json.RawMessage
+
+func (a commandArgs) MarshalJSON() ([]byte, error) {
+	if len(a) == 0 {
+		return []byte("[]"), nil
+	}
+	return json.RawMessage(a), nil
+}
+
+func (a commandArgs) String() string {
+	if len(a) == 0 {
+		return ""
+	}
+	var items []json.RawMessage
+	if err := json.Unmarshal(a, &items); err != nil {
+		return string(a)
+	}
+	parts := make([]string, len(items))
+	for i, item := range items {
+		parts[i] = string(item)
+	}
+	return strings.Join(parts, ", ")
+}
+
+func fetchCodeActions(
+	a *app,
+	cmd *cobra.Command,
+	args []string,
+) ([]semanticapi.CodeActionResult, error) {
+	uri, err := a.resolveURIArg(cmd.Context(), args[0])
+	if err != nil {
+		return nil, err
+	}
+	pos, err := parsePosition(args[1], args[2])
+	if err != nil {
+		return nil, err
+	}
+	lsp, err := a.getLSP(cmd.Context())
+	if err != nil {
+		return nil, err
+	}
+	r := semanticapi.Range{Start: pos, End: pos}
+	return lsp.CodeAction(
+		cmd.Context(),
+		semanticapi.CodeActionParams{
+			TextDocument: semanticapi.TextDocumentIdentifier{
+				URI: uri.String(),
+			},
+			Range: r,
+			Context: semanticapi.CodeActionContext{
+				Diagnostics: []semanticapi.Diagnostic{},
+			},
+		},
+	)
+}
+
 func newLSPCodeActionsCmd(a *app) *cobra.Command {
 	var format string
 
@@ -810,59 +887,61 @@ func newLSPCodeActionsCmd(a *app) *cobra.Command {
 		Use:   "code-actions <file> <line> <col>",
 		Short: "List code actions at a position",
 		Args:  cobra.ExactArgs(3),
-		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
-			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
-			lsp, err := a.getLSP(cmd.Context())
-			if err != nil {
-				return err
-			}
-			r := semanticapi.Range{Start: pos, End: pos}
-			actions, err := lsp.CodeAction(
-				cmd.Context(), semanticapi.CodeActionParams{
-					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
-					},
-					Range: r,
-					Context: semanticapi.CodeActionContext{
-						Diagnostics: []semanticapi.Diagnostic{},
-					},
-				},
+		RunE: func(
+			cmd *cobra.Command, args []string,
+		) (retErr error) {
+			defer func() {
+				retErr = formatError(format, retErr)
+			}()
+			actions, err := fetchCodeActions(
+				a, cmd, args,
 			)
 			if err != nil {
 				return err
 			}
-			flat := make([]flatCodeAction, 0, len(actions))
-			for _, a := range actions {
-				if a.CodeAction != nil {
-					flat = append(flat, flatCodeAction{
-						Title: a.CodeAction.Title,
-						Kind:  string(a.CodeAction.Kind),
-					})
-				} else if a.Command != nil {
-					flat = append(flat, flatCodeAction{
-						Title: a.Command.Title,
-						Kind:  "command",
-					})
-				}
+			return printCodeActions(
+				cmd.Context(), format, actions,
+			)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
+		"Output format: table, json, or Go template",
+	)
+
+	cmd.AddCommand(
+		newLSPCodeActionEditsCmd(a),
+		newLSPCodeActionCommandsCmd(a),
+	)
+
+	return cmd
+}
+
+func newLSPCodeActionEditsCmd(
+	a *app,
+) *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "edits <file> <line> <col>",
+		Short: "List code action edits at a position",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(
+			cmd *cobra.Command, args []string,
+		) (retErr error) {
+			defer func() {
+				retErr = formatError(format, retErr)
+			}()
+			actions, err := fetchCodeActions(
+				a, cmd, args,
+			)
+			if err != nil {
+				return err
 			}
-			if format == "" {
-				for _, a := range flat {
-					fmt.Printf("[%s] %q\n", a.Kind, a.Title)
-				}
-				return nil
-			}
-			it := iterator.FromSlice(flat)
-			return printIterator(cmd.Context(), format, it, []string{
-				"Title", "Kind",
-			})
+			return printCodeActionEdits(
+				cmd.Context(), format, actions,
+			)
 		},
 	}
 
@@ -872,6 +951,207 @@ func newLSPCodeActionsCmd(a *app) *cobra.Command {
 	)
 
 	return cmd
+}
+
+func newLSPCodeActionCommandsCmd(
+	a *app,
+) *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "commands <file> <line> <col>",
+		Short: "List code action commands at a position",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(
+			cmd *cobra.Command, args []string,
+		) (retErr error) {
+			defer func() {
+				retErr = formatError(format, retErr)
+			}()
+			actions, err := fetchCodeActions(
+				a, cmd, args,
+			)
+			if err != nil {
+				return err
+			}
+			return printCodeActionCommands(
+				cmd.Context(), format, actions,
+			)
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
+		"Output format: table, json, or Go template",
+	)
+
+	return cmd
+}
+
+func printCodeActions(
+	ctx context.Context,
+	format string,
+	actions []semanticapi.CodeActionResult,
+) error {
+	flat := make([]flatCodeAction, 0, len(actions))
+	for _, a := range actions {
+		if a.CodeAction != nil {
+			flat = append(flat, flatCodeAction{
+				Title: a.CodeAction.Title,
+				Kind:  string(a.CodeAction.Kind),
+			})
+		} else if a.Command != nil {
+			flat = append(flat, flatCodeAction{
+				Title: a.Command.Title,
+				Kind:  "command",
+			})
+		}
+	}
+	if format == "" {
+		for _, a := range flat {
+			fmt.Printf("[%s] %q\n", a.Kind, a.Title)
+		}
+		return nil
+	}
+	it := iterator.FromSlice(flat)
+	return printIterator(ctx, format, it, []string{
+		"Title", "Kind",
+	})
+}
+
+func printCodeActionEdits(
+	ctx context.Context,
+	format string,
+	actions []semanticapi.CodeActionResult,
+) error {
+	var flat []flatCodeActionEdit
+	for _, a := range actions {
+		ca := a.CodeAction
+		if ca == nil || ca.Edit == nil {
+			continue
+		}
+		flat = append(
+			flat,
+			flattenWorkspaceEdit(
+				ca.Title, string(ca.Kind), ca.Edit,
+			)...,
+		)
+	}
+	if format == "" {
+		for _, e := range flat {
+			fmt.Printf(
+				"%q [%s] %s %d:%d-%d:%d %q\n",
+				e.Title, e.Kind, e.URI,
+				e.StartLine, e.StartChar,
+				e.EndLine, e.EndChar,
+				e.NewText,
+			)
+		}
+		return nil
+	}
+	it := iterator.FromSlice(flat)
+	return printIterator(ctx, format, it, []string{
+		"Title", "Kind", "URI",
+		"StartLine", "StartChar",
+		"EndLine", "EndChar", "NewText",
+	})
+}
+
+func flattenWorkspaceEdit(
+	title, kind string,
+	edit *semanticapi.WorkspaceEdit,
+) []flatCodeActionEdit {
+	var out []flatCodeActionEdit
+	if len(edit.Changes) > 0 {
+		uris := make([]string, 0, len(edit.Changes))
+		for u := range edit.Changes {
+			uris = append(uris, u)
+		}
+		sort.Strings(uris)
+		for _, u := range uris {
+			for _, te := range edit.Changes[u] {
+				out = append(out, flatCodeActionEdit{
+					Title:     title,
+					Kind:      kind,
+					URI:       u,
+					StartLine: te.Range.Start.Line,
+					StartChar: te.Range.Start.Character,
+					EndLine:   te.Range.End.Line,
+					EndChar:   te.Range.End.Character,
+					NewText:   te.NewText,
+				})
+			}
+		}
+	}
+	for _, dc := range edit.DocumentChanges {
+		tde := dc.TextDocumentEdit
+		if tde == nil {
+			continue
+		}
+		u := tde.TextDocument.URI
+		for _, te := range tde.Edits {
+			out = append(out, flatCodeActionEdit{
+				Title:     title,
+				Kind:      kind,
+				URI:       u,
+				StartLine: te.Range.Start.Line,
+				StartChar: te.Range.Start.Character,
+				EndLine:   te.Range.End.Line,
+				EndChar:   te.Range.End.Character,
+				NewText:   te.NewText,
+			})
+		}
+	}
+	return out
+}
+
+func printCodeActionCommands(
+	ctx context.Context,
+	format string,
+	actions []semanticapi.CodeActionResult,
+) error {
+	var flat []flatCodeActionCommand
+	for _, a := range actions {
+		if c := a.Command; c != nil {
+			flat = append(flat, flattenCommand(c))
+		}
+		if a.CodeAction != nil && a.CodeAction.Command != nil {
+			flat = append(
+				flat,
+				flattenCommand(a.CodeAction.Command),
+			)
+		}
+	}
+	if format == "" {
+		for _, c := range flat {
+			fmt.Printf(
+				"%q %s %s\n",
+				c.Title, c.Command, c.Arguments,
+			)
+		}
+		return nil
+	}
+	it := iterator.FromSlice(flat)
+	return printIterator(ctx, format, it, []string{
+		"Title", "Command", "Arguments",
+	})
+}
+
+func flattenCommand(
+	c *semanticapi.Command,
+) flatCodeActionCommand {
+	args := commandArgs("[]")
+	if len(c.Arguments) > 0 {
+		b, err := json.Marshal(c.Arguments)
+		if err == nil {
+			args = commandArgs(b)
+		}
+	}
+	return flatCodeActionCommand{
+		Title:     c.Title,
+		Command:   c.Command,
+		Arguments: args,
+	}
 }
 
 type flatCompletion struct {

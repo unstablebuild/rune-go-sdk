@@ -113,9 +113,60 @@ func TestLSP(t *testing.T) {
 		// code-actions
 		{
 			name: "code-actions",
-			args: []string{"lsp", "code-actions", "$FILE", "5", "5"},
+			args: []string{
+				"lsp", "code-actions", "$FILE", "5", "5",
+			},
 			wantOut: "[refactor.extract] \"Extract variable\"\n" +
-				"[source.organizeImports] \"Organize imports\"\n",
+				"[source.organizeImports] \"Organize imports\"\n" +
+				"[command] \"Run test\"\n",
+		},
+		{
+			name: "code-actions/edits",
+			args: []string{
+				"lsp", "code-actions", "edits",
+				"$FILE", "5", "5",
+			},
+			wantOut: "\"Organize imports\"" +
+				" [source.organizeImports]" +
+				" file:///src/main.go" +
+				" 2:0-4:0" +
+				" \"import (\\n\\t\\\"fmt\\\"\\n)\\n\"\n",
+		},
+		{
+			name: "code-actions/edits/j",
+			args: []string{
+				"lsp", "code-actions", "edits",
+				"-F", "json", "$FILE", "5", "5",
+			},
+			wantOut: `{"title":"Organize imports",` +
+				`"kind":"source.organizeImports",` +
+				`"uri":"file:///src/main.go",` +
+				`"start_line":2,"start_char":0,` +
+				`"end_line":4,"end_char":0,` +
+				`"new_text":"import (\n\t\"fmt\"\n)\n"}` +
+				"\n",
+		},
+		{
+			name: "code-actions/cmds",
+			args: []string{
+				"lsp", "code-actions", "commands",
+				"$FILE", "5", "5",
+			},
+			wantOut: `"Run test" test.run` +
+				` {"uri":"file:///test.go"}` +
+				"\n",
+		},
+		{
+			name: "code-actions/cmds/j",
+			args: []string{
+				"lsp", "code-actions", "commands",
+				"-F", "json", "$FILE", "5", "5",
+			},
+			wantOut: `{"title":"Run test",` +
+				`"command":"test.run",` +
+				`"arguments":` +
+				`[{"uri":"file:///test.go"}]}` +
+				"\n",
 		},
 
 		// completion
