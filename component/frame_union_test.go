@@ -759,6 +759,58 @@ func TestDrawFrameUnionWithFrameBottomOnly(t *testing.T) {
 	comptest.TestComponent(t, f, w, tests)
 }
 
+func TestFrameUnionResizeNegative(t *testing.T) {
+	suite := []struct {
+		description   string
+		width, height int
+		setup         func(f *FrameUnion)
+	}{
+		{
+			description: "negative height with top union",
+			width:       10,
+			height:      -1,
+			setup: func(f *FrameUnion) {
+				f.UnionTop(&TestComponent{Ch: 'T'}, 3)
+			},
+		},
+		{
+			description: "negative width with left union",
+			width:       -1,
+			height:      10,
+			setup: func(f *FrameUnion) {
+				f.UnionLeft(&TestComponent{Ch: 'L'}, 3)
+			},
+		},
+		{
+			description: "negative height with bottom union",
+			width:       10,
+			height:      -1,
+			setup: func(f *FrameUnion) {
+				f.UnionBottom(&TestComponent{Ch: 'B'}, 3)
+			},
+		},
+		{
+			description: "negative width with right union",
+			width:       -1,
+			height:      10,
+			setup: func(f *FrameUnion) {
+				f.UnionRight(&TestComponent{Ch: 'R'}, 3)
+			},
+		},
+	}
+
+	for _, test := range suite {
+		t.Run(test.description, func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				main := &TestComponent{Ch: 'A'}
+				f := NewFrameUnion(main)
+				test.setup(f)
+				f.Resize(test.width, test.height)
+			})
+		})
+	}
+}
+
 func TestComponentAtOutOfBounds(t *testing.T) {
 	f := NewFrameUnion(&TestComponent{})
 	f.Resize(10, 10)

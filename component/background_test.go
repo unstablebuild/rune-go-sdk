@@ -61,6 +61,24 @@ func TestResizeBackground(t *testing.T) {
 			b.Resize(1, 0)
 		})
 	})
+	t.Run("negative width does not panic", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			b := WithBackground(&TestComponent{}, term.Cell{})
+			b.Resize(-1, 5)
+		})
+	})
+	t.Run("negative height does not panic", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			b := WithBackground(&TestComponent{}, term.Cell{})
+			b.Resize(5, -1)
+		})
+	})
+	t.Run("both negative does not panic", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			b := WithBackground(&TestComponent{}, term.Cell{})
+			b.Resize(-1, -1)
+		})
+	})
 }
 
 func TestDrawBackground(t *testing.T) {

@@ -59,6 +59,8 @@ func (b *Background) Init(comp tui.Component, c term.Cell) {
 
 // Resize satisfies tui.Component
 func (b *Background) Resize(width, height int) {
+	width = max(0, width)
+	height = max(0, height)
 	b.width = width
 	b.height = height
 	b.root.Resize(width, height)

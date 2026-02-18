@@ -404,7 +404,7 @@ func (u *FrameUnion) resizeTopBottom(totalWidth, totalHeight int) (int, int) {
 		for _, bottom := range u.bottom {
 			bottom.Resize(0, 0)
 		}
-		return totalHeight, 0
+		return max(0, totalHeight), 0
 	}
 
 	bottomOffset := totalHeight - bottomHeight
@@ -471,7 +471,7 @@ func (u *FrameUnion) resizeLeftRight(totalWidth, totalHeight, topOffset int) (in
 		for _, right := range u.right {
 			right.Resize(0, 0)
 		}
-		return totalWidth, 0
+		return max(0, totalWidth), 0
 	}
 
 	rightOffset := totalWidth - rightWidth

@@ -148,6 +148,23 @@ func TestFrameWithAttributes(t *testing.T) {
 	})
 }
 
+func TestFrameResizeNegative(t *testing.T) {
+	t.Run("negative height does not panic", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			b := NewBackground(&TestComponent{}, term.Cell{})
+			f := NewFrame(b)
+			f.Resize(10, -1)
+		})
+	})
+	t.Run("negative width does not panic", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			b := NewBackground(&TestComponent{}, term.Cell{})
+			f := NewFrame(b)
+			f.Resize(-1, 10)
+		})
+	})
+}
+
 func TestFrameScrollbarCalculate(t *testing.T) {
 	suite := []struct {
 		offset, maxOffset, height      int

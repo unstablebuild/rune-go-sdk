@@ -107,11 +107,11 @@ func alignContent(
 	contentWidth := width - horizontalPadding
 	contentHeight := height - verticalPadding
 	if contentWidth < 0 {
-		contentWidth = width
+		contentWidth = max(0, width)
 		offset.X = 0
 	}
 	if contentHeight < 0 {
-		contentHeight = height
+		contentHeight = max(0, height)
 		offset.Y = 0
 	}
 

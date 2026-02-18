@@ -130,6 +130,27 @@ func TestSpanHeight(t *testing.T) {
 	})
 }
 
+func TestSpanResizeNegative(t *testing.T) {
+	t.Run("negative width does not panic", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			s := NewSpan(
+				NewBackground(&TestComponent{}, term.Cell{}),
+				DefaultSpanConfig(),
+			)
+			s.Resize(-1, 5)
+		})
+	})
+	t.Run("negative height does not panic", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			s := NewSpan(
+				NewBackground(&TestComponent{}, term.Cell{}),
+				DefaultSpanConfig(),
+			)
+			s.Resize(5, -1)
+		})
+	})
+}
+
 func TestDrawDefaultSpan(t *testing.T) {
 	u := &TestComponent{Ch: 'X'}
 	cfg := DefaultSpanConfig()
