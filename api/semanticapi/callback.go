@@ -23,7 +23,6 @@ import (
 // This includes both notifications (no return value expected) and
 // requests (return value expected from client).
 type LSPCallback interface {
-	// --- Notifications (server → client, no response) ---
 
 	// ShowMessage displays a message in the UI (window/showMessage).
 	ShowMessage(ctx context.Context, params ShowMessageParams) error
@@ -36,8 +35,6 @@ type LSPCallback interface {
 	Progress(ctx context.Context, params ProgressParams) error
 	// LogTrace logs a trace message ($/logTrace).
 	LogTrace(ctx context.Context, params LogTraceParams) error
-
-	// --- Requests (server → client, response expected) ---
 
 	// ShowDocument requests the client to display a document (window/showDocument).
 	ShowDocument(ctx context.Context, params ShowDocumentParams) (ShowDocumentResult, error)
@@ -63,8 +60,6 @@ type LSPCallback interface {
 	// UnregisterCapability dynamically unregisters capabilities
 	// (client/unregisterCapability).
 	UnregisterCapability(ctx context.Context, params UnregistrationParams) error
-
-	// --- Refresh Requests (server → client, triggers client refresh) ---
 
 	// CodeLensRefresh requests the client to refresh code lenses
 	// (workspace/codeLens/refresh).

@@ -832,8 +832,6 @@ func TestAnnotatedTextEditJSON(t *testing.T) {
 	}
 }
 
-// --- Result union type tests ---
-
 func TestLocationResultUnionType(t *testing.T) {
 	tests := []struct {
 		name     string

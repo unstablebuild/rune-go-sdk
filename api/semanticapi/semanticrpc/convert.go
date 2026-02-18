@@ -20,8 +20,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 )
 
-// --- Position ---
-
 func PositionToProto(p semanticapi.Position) *Position {
 	return &Position{Line: p.Line, Character: p.Character}
 }
@@ -32,8 +30,6 @@ func PositionFromProto(p *Position) semanticapi.Position {
 	}
 	return semanticapi.Position{Line: p.Line, Character: p.Character}
 }
-
-// --- Range ---
 
 func RangeToProto(r semanticapi.Range) *Range {
 	return &Range{
@@ -59,8 +55,6 @@ func RangePtrFromProto(r *Range) *semanticapi.Range {
 	rng := RangeFromProto(r)
 	return &rng
 }
-
-// --- Location ---
 
 func LocationToProto(l semanticapi.Location) *Location {
 	return &Location{Uri: l.URI, Range: RangeToProto(l.Range)}
@@ -89,8 +83,6 @@ func LocationsFromProto(locs []*Location) []semanticapi.Location {
 	return out
 }
 
-// --- TextEdit ---
-
 func TextEditToProto(e semanticapi.TextEdit) *TextEdit {
 	return &TextEdit{Range: RangeToProto(e.Range), NewText: e.NewText}
 }
@@ -117,8 +109,6 @@ func TextEditsFromProto(edits []*TextEdit) []semanticapi.TextEdit {
 	}
 	return out
 }
-
-// --- AnnotatedTextEdit ---
 
 func AnnotatedTextEditToProto(e semanticapi.AnnotatedTextEdit) *AnnotatedTextEdit {
 	return &AnnotatedTextEdit{
@@ -155,8 +145,6 @@ func AnnotatedTextEditsFromProto(edits []*AnnotatedTextEdit) []semanticapi.Annot
 	return out
 }
 
-// --- InsertReplaceEdit ---
-
 func InsertReplaceEditToProto(e *semanticapi.InsertReplaceEdit) *InsertReplaceEdit {
 	if e == nil {
 		return nil
@@ -178,8 +166,6 @@ func InsertReplaceEditFromProto(e *InsertReplaceEdit) *semanticapi.InsertReplace
 		Replace: RangeFromProto(e.Replace),
 	}
 }
-
-// --- MarkedString ---
 
 func MarkedStringToProto(m semanticapi.MarkedString) *MarkedString {
 	return &MarkedString{
@@ -215,8 +201,6 @@ func MarkedStringsFromProto(ms []*MarkedString) []semanticapi.MarkedString {
 	}
 	return out
 }
-
-// --- LocationLink ---
 
 func LocationLinkToProto(l semanticapi.LocationLink) *LocationLink {
 	ret := &LocationLink{
@@ -262,8 +246,6 @@ func LocationLinksFromProto(ls []*LocationLink) []semanticapi.LocationLink {
 	return out
 }
 
-// --- TextDocumentIdentifier ---
-
 func TextDocumentIdentifierToProto(t semanticapi.TextDocumentIdentifier) *TextDocumentIdentifier {
 	return &TextDocumentIdentifier{Uri: t.URI}
 }
@@ -275,8 +257,6 @@ func TextDocumentIdentifierFromProto(t *TextDocumentIdentifier) semanticapi.Text
 	return semanticapi.TextDocumentIdentifier{URI: t.Uri}
 }
 
-// --- VersionedTextDocumentIdentifier ---
-
 func VersionedTextDocumentIdentifierToProto(t semanticapi.VersionedTextDocumentIdentifier) *VersionedTextDocumentIdentifier {
 	return &VersionedTextDocumentIdentifier{Uri: t.URI, Version: t.Version}
 }
@@ -287,8 +267,6 @@ func VersionedTextDocumentIdentifierFromProto(t *VersionedTextDocumentIdentifier
 	}
 	return semanticapi.VersionedTextDocumentIdentifier{URI: t.Uri, Version: t.Version}
 }
-
-// --- TextDocumentItem ---
 
 func TextDocumentItemToProto(t semanticapi.TextDocumentItem) *TextDocumentItem {
 	return &TextDocumentItem{
@@ -310,8 +288,6 @@ func TextDocumentItemFromProto(t *TextDocumentItem) semanticapi.TextDocumentItem
 		Text:       t.Text,
 	}
 }
-
-// --- MarkupContent ---
 
 func MarkupKindToProto(k semanticapi.MarkupKind) uint32 {
 	switch k {
@@ -356,8 +332,6 @@ func MarkupContentPtrToProto(m *semanticapi.MarkupContent) *MarkupContent {
 	}
 	return MarkupContentToProto(*m)
 }
-
-// --- CompletionItem ---
 
 func CompletionItemToProto(c semanticapi.CompletionItem) *CompletionItem {
 	ret := &CompletionItem{
@@ -409,8 +383,6 @@ func CompletionItemFromProto(c *CompletionItem) semanticapi.CompletionItem {
 	return ret
 }
 
-// --- CompletionResult ---
-
 func CompletionResultToProto(r semanticapi.CompletionResult) *CompletionResult {
 	items := make([]*CompletionItem, len(r.Items))
 	for i, item := range r.Items {
@@ -429,8 +401,6 @@ func CompletionResultFromProto(r *CompletionResult) semanticapi.CompletionResult
 	}
 	return semanticapi.CompletionResult{IsIncomplete: r.IsIncomplete, Items: items}
 }
-
-// --- Hover ---
 
 func HoverToProto(h *semanticapi.Hover) (*Hover, bool) {
 	if h == nil {
@@ -454,8 +424,6 @@ func HoverFromProto(h *Hover, hasResult bool) *semanticapi.Hover {
 	}
 	return ret
 }
-
-// --- ParameterInformation ---
 
 func ParameterInformationToProto(p semanticapi.ParameterInformation) *ParameterInformation {
 	ret := &ParameterInformation{
@@ -484,8 +452,6 @@ func ParameterInformationFromProto(p *ParameterInformation) semanticapi.Paramete
 	return ret
 }
 
-// --- SignatureInformation ---
-
 func SignatureInformationToProto(s semanticapi.SignatureInformation) *SignatureInformation {
 	params := make([]*ParameterInformation, len(s.Parameters))
 	for i, p := range s.Parameters {
@@ -512,8 +478,6 @@ func SignatureInformationFromProto(s *SignatureInformation) semanticapi.Signatur
 		Parameters:    params,
 	}
 }
-
-// --- SignatureHelp ---
 
 func SignatureHelpToProto(s *semanticapi.SignatureHelp) (*SignatureHelp, bool) {
 	if s == nil {
@@ -544,8 +508,6 @@ func SignatureHelpFromProto(s *SignatureHelp, hasResult bool) *semanticapi.Signa
 		ActiveParameter: s.ActiveParameter,
 	}
 }
-
-// --- Diagnostic ---
 
 func DiagnosticToProto(d semanticapi.Diagnostic) *Diagnostic {
 	ret := &Diagnostic{
@@ -630,8 +592,6 @@ func DiagnosticsFromProto(diags []*Diagnostic) []semanticapi.Diagnostic {
 	return out
 }
 
-// --- DocumentHighlight ---
-
 func DocumentHighlightToProto(h semanticapi.DocumentHighlight) *DocumentHighlight {
 	return &DocumentHighlight{
 		Range: RangeToProto(h.Range),
@@ -664,8 +624,6 @@ func DocumentHighlightsFromProto(hs []*DocumentHighlight) []semanticapi.Document
 	}
 	return out
 }
-
-// --- DocumentSymbol ---
 
 func DocumentSymbolToProto(s semanticapi.DocumentSymbol) *DocumentSymbol {
 	children := make([]*DocumentSymbol, len(s.Children))
@@ -716,8 +674,6 @@ func DocumentSymbolsFromProto(syms []*DocumentSymbol) []semanticapi.DocumentSymb
 	return out
 }
 
-// --- SymbolInformation ---
-
 func SymbolInformationToProto(s semanticapi.SymbolInformation) *SymbolInformation {
 	return &SymbolInformation{
 		Name:     s.Name,
@@ -752,8 +708,6 @@ func SymbolInformationsFromProto(syms []*SymbolInformation) []semanticapi.Symbol
 	}
 	return out
 }
-
-// --- LocationResult ---
 
 func LocationResultToProto(r semanticapi.LocationResult) (*Location, []*Location, []*LocationLink) {
 	if r.Location != nil {
@@ -836,8 +790,6 @@ func LocationResultFromProtoImpl(res *ImplementationResponse) semanticapi.Locati
 	return semanticapi.LocationResult{}
 }
 
-// --- DocumentSymbolResult ---
-
 func DocumentSymbolResultToProto(r semanticapi.DocumentSymbolResult) ([]*DocumentSymbol, []*SymbolInformation) {
 	if len(r.DocumentSymbols) > 0 {
 		return DocumentSymbolsToProto(r.DocumentSymbols), nil
@@ -861,8 +813,6 @@ func DocumentSymbolResultFromProto(res *DocumentSymbolResponse) semanticapi.Docu
 		DocumentSymbols: DocumentSymbolsFromProto(res.GetSymbols()),
 	}
 }
-
-// --- CodeActionResult ---
 
 func CodeActionResultToProto(r semanticapi.CodeActionResult) *CodeActionResultItem {
 	if r.CodeAction != nil {
@@ -920,8 +870,6 @@ func CodeActionResultsFromProto(res *CodeActionResponse) []semanticapi.CodeActio
 	return nil
 }
 
-// --- Command ---
-
 func CommandToProto(c *semanticapi.Command) *Command {
 	if c == nil {
 		return nil
@@ -943,8 +891,6 @@ func CommandFromProto(c *Command) *semanticapi.Command {
 	}
 	return &semanticapi.Command{Title: c.Title, Command: c.Command, Arguments: args}
 }
-
-// --- CodeAction ---
 
 func CodeActionToProto(a semanticapi.CodeAction) *CodeAction {
 	ret := &CodeAction{
@@ -991,8 +937,6 @@ func CodeActionsFromProto(actions []*CodeAction) []semanticapi.CodeAction {
 	return out
 }
 
-// --- CodeLens ---
-
 func CodeLensToProto(l semanticapi.CodeLens) *CodeLens {
 	return &CodeLens{
 		Range:   RangeToProto(l.Range),
@@ -1025,8 +969,6 @@ func CodeLensesFromProto(lenses []*CodeLens) []semanticapi.CodeLens {
 	}
 	return out
 }
-
-// --- WorkspaceEdit ---
 
 func TextDocumentEditToProto(e *semanticapi.TextDocumentEdit) *TextDocumentEdit {
 	if e == nil {
@@ -1185,8 +1127,6 @@ func WorkspaceEditFromProto(e *WorkspaceEdit) *semanticapi.WorkspaceEdit {
 	return ret
 }
 
-// --- FoldingRange ---
-
 func FoldingRangeToProto(f semanticapi.FoldingRange) *FoldingRange {
 	return &FoldingRange{
 		StartLine:      f.StartLine,
@@ -1226,8 +1166,6 @@ func FoldingRangesFromProto(ranges []*FoldingRange) []semanticapi.FoldingRange {
 	return out
 }
 
-// --- SelectionRange ---
-
 func SelectionRangeToProto(s semanticapi.SelectionRange) *SelectionRange {
 	ret := &SelectionRange{Range: RangeToProto(s.Range)}
 	if s.Parent != nil {
@@ -1264,8 +1202,6 @@ func SelectionRangesFromProto(ranges []*SelectionRange) []semanticapi.SelectionR
 	return out
 }
 
-// --- SemanticTokens ---
-
 func SemanticTokensToProto(t *semanticapi.SemanticTokens) (*SemanticTokens, bool) {
 	if t == nil {
 		return nil, false
@@ -1279,8 +1215,6 @@ func SemanticTokensFromProto(t *SemanticTokens, hasResult bool) *semanticapi.Sem
 	}
 	return &semanticapi.SemanticTokens{ResultID: t.ResultId, Data: t.Data}
 }
-
-// --- CallHierarchyItem ---
 
 func CallHierarchyItemToProto(c semanticapi.CallHierarchyItem) *CallHierarchyItem {
 	return &CallHierarchyItem{
@@ -1320,8 +1254,6 @@ func CallHierarchyItemsFromProto(items []*CallHierarchyItem) []semanticapi.CallH
 	}
 	return out
 }
-
-// --- CallHierarchyIncomingCall ---
 
 func RangesToProto(ranges []semanticapi.Range) []*Range {
 	out := make([]*Range, len(ranges))
@@ -1372,8 +1304,6 @@ func CallHierarchyIncomingCallsFromProto(calls []*CallHierarchyIncomingCall) []s
 	return out
 }
 
-// --- CallHierarchyOutgoingCall ---
-
 func CallHierarchyOutgoingCallToProto(c semanticapi.CallHierarchyOutgoingCall) *CallHierarchyOutgoingCall {
 	return &CallHierarchyOutgoingCall{
 		To:         CallHierarchyItemToProto(c.To),
@@ -1406,8 +1336,6 @@ func CallHierarchyOutgoingCallsFromProto(calls []*CallHierarchyOutgoingCall) []s
 	}
 	return out
 }
-
-// --- ServerCapabilities ---
 
 func ServerCapabilitiesToProto(c semanticapi.ServerCapabilities) *ServerCapabilities {
 	ret := &ServerCapabilities{
@@ -1589,8 +1517,6 @@ func ServerCapabilitiesFromProto(c *ServerCapabilities) semanticapi.ServerCapabi
 	return ret
 }
 
-// --- DocumentDiagnosticReport ---
-
 func DocumentDiagnosticReportToProto(r semanticapi.DocumentDiagnosticReport) *DocumentDiagnosticReport {
 	ret := &DocumentDiagnosticReport{
 		Kind:     r.Kind,
@@ -1625,8 +1551,6 @@ func DocumentDiagnosticReportFromProto(r *DocumentDiagnosticReport) semanticapi.
 	}
 	return ret
 }
-
-// --- TextDocumentContentChangeEvent ---
 
 func ContentChangeToProto(c semanticapi.TextDocumentContentChangeEvent) *TextDocumentContentChangeEvent {
 	ret := &TextDocumentContentChangeEvent{Text: c.Text}
@@ -1664,8 +1588,6 @@ func ContentChangesFromProto(changes []*TextDocumentContentChangeEvent) []semant
 	return out
 }
 
-// --- PrepareRenameResult ---
-
 func PrepareRenameResultToProto(r *semanticapi.PrepareRenameResult) (*PrepareRenameResult, bool) {
 	if r == nil {
 		return nil, false
@@ -1686,8 +1608,6 @@ func PrepareRenameResultFromProto(r *PrepareRenameResult, hasResult bool) *seman
 	}
 }
 
-// --- Color ---
-
 func ColorToProto(c semanticapi.Color) *Color {
 	return &Color{Red: c.Red, Green: c.Green, Blue: c.Blue, Alpha: c.Alpha}
 }
@@ -1698,8 +1618,6 @@ func ColorFromProto(c *Color) semanticapi.Color {
 	}
 	return semanticapi.Color{Red: c.Red, Green: c.Green, Blue: c.Blue, Alpha: c.Alpha}
 }
-
-// --- ColorInformation ---
 
 func ColorInformationToProto(c semanticapi.ColorInformation) *ColorInformation {
 	return &ColorInformation{Range: RangeToProto(c.Range), Color: ColorToProto(c.Color)}
@@ -1727,8 +1645,6 @@ func ColorInformationsFromProto(cs []*ColorInformation) []semanticapi.ColorInfor
 	}
 	return out
 }
-
-// --- ColorPresentation ---
 
 func ColorPresentationToProto(c semanticapi.ColorPresentation) *ColorPresentation {
 	ret := &ColorPresentation{Label: c.Label, AdditionalTextEdits: TextEditsToProto(c.AdditionalTextEdits)}
@@ -1766,8 +1682,6 @@ func ColorPresentationsFromProto(cs []*ColorPresentation) []semanticapi.ColorPre
 	return out
 }
 
-// --- DocumentLink ---
-
 func DocumentLinkToProto(l semanticapi.DocumentLink) *DocumentLink {
 	return &DocumentLink{Range: RangeToProto(l.Range), Target: l.Target, Tooltip: l.Tooltip}
 }
@@ -1795,8 +1709,6 @@ func DocumentLinksFromProto(ls []*DocumentLink) []semanticapi.DocumentLink {
 	return out
 }
 
-// --- LinkedEditingRanges ---
-
 func LinkedEditingRangesToProto(r *semanticapi.LinkedEditingRanges) (*LinkedEditingRanges, bool) {
 	if r == nil {
 		return nil, false
@@ -1810,8 +1722,6 @@ func LinkedEditingRangesFromProto(r *LinkedEditingRanges, hasResult bool) *seman
 	}
 	return &semanticapi.LinkedEditingRanges{Ranges: RangesFromProto(r.Ranges), WordPattern: r.WordPattern}
 }
-
-// --- Moniker ---
 
 func MonikerToProto(m semanticapi.Moniker) *Moniker {
 	return &Moniker{
@@ -1850,8 +1760,6 @@ func MonikersFromProto(ms []*Moniker) []semanticapi.Moniker {
 	return out
 }
 
-// --- FileEvent ---
-
 func FileEventToProto(e semanticapi.FileEvent) *FileEvent {
 	return &FileEvent{Uri: e.URI, Type: int32(e.Type)}
 }
@@ -1879,8 +1787,6 @@ func FileEventsFromProto(es []*FileEvent) []semanticapi.FileEvent {
 	return out
 }
 
-// --- FileCreate ---
-
 func FileCreatesToProto(fs []semanticapi.FileCreate) []*FileCreate {
 	out := make([]*FileCreate, len(fs))
 	for i, f := range fs {
@@ -1898,8 +1804,6 @@ func FileCreatesFromProto(fs []*FileCreate) []semanticapi.FileCreate {
 	}
 	return out
 }
-
-// --- FileRename ---
 
 func FileRenamesToProto(fs []semanticapi.FileRename) []*FileRename {
 	out := make([]*FileRename, len(fs))
@@ -1919,8 +1823,6 @@ func FileRenamesFromProto(fs []*FileRename) []semanticapi.FileRename {
 	return out
 }
 
-// --- FileDelete ---
-
 func FileDeletesToProto(fs []semanticapi.FileDelete) []*FileDelete {
 	out := make([]*FileDelete, len(fs))
 	for i, f := range fs {
@@ -1939,8 +1841,6 @@ func FileDeletesFromProto(fs []*FileDelete) []semanticapi.FileDelete {
 	return out
 }
 
-// --- WorkspaceFolder ---
-
 func WorkspaceFoldersToProto(fs []semanticapi.WorkspaceFolder) []*WorkspaceFolder {
 	out := make([]*WorkspaceFolder, len(fs))
 	for i, f := range fs {
@@ -1958,8 +1858,6 @@ func WorkspaceFoldersFromProto(fs []*WorkspaceFolder) []semanticapi.WorkspaceFol
 	}
 	return out
 }
-
-// --- SemanticTokensDelta ---
 
 func SemanticTokensDeltaToProto(d *semanticapi.SemanticTokensDelta) (*SemanticTokensDelta, bool) {
 	if d == nil {
@@ -1984,8 +1882,6 @@ func SemanticTokensDeltaFromProto(d *SemanticTokensDelta, hasResult bool) *seman
 	}
 	return &semanticapi.SemanticTokensDelta{ResultID: d.ResultId, Edits: edits}
 }
-
-// --- TypeHierarchyItem ---
 
 func TypeHierarchyItemToProto(t semanticapi.TypeHierarchyItem) *TypeHierarchyItem {
 	tags := make([]int32, len(t.Tags))
@@ -2037,8 +1933,6 @@ func TypeHierarchyItemsFromProto(items []*TypeHierarchyItem) []semanticapi.TypeH
 	}
 	return out
 }
-
-// --- InlayHint ---
 
 func InlayHintLabelPartToProto(p semanticapi.InlayHintLabelPart) *InlayHintLabelPart {
 	ret := &InlayHintLabelPart{
@@ -2135,8 +2029,6 @@ func InlayHintsFromProto(hs []*InlayHint) []semanticapi.InlayHint {
 	}
 	return out
 }
-
-// --- InlineValue ---
 
 func InlineValueToProto(v semanticapi.InlineValue) *InlineValue {
 	return &InlineValue{

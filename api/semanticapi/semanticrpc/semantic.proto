@@ -4,8 +4,6 @@ option go_package = "github.com/unstablebuild/rune-go-sdk/api/semanticapi/semant
 
 package semantic;
 
-// --- Fundamental types ---
-
 message Position {
   uint32 line = 1;
   uint32 character = 2;
@@ -72,8 +70,6 @@ message MarkupContent {
   uint32 kind = 1;
   string value = 2;
 }
-
-// --- Compound types ---
 
 message CompletionItem {
   string label = 1;
@@ -355,8 +351,6 @@ message PrepareRenameResult {
   string placeholder = 2;
 }
 
-// --- New compound types ---
-
 message Color {
   double red = 1;
   double green = 2;
@@ -467,8 +461,6 @@ message InlineValue {
 message ShowDocumentResult {
   bool success = 1;
 }
-
-// --- Request / Response messages ---
 
 message InitializeRequest {
   string root_uri = 1;
@@ -773,8 +765,6 @@ message CallHierarchyOutgoingCallsResponse {
   repeated CallHierarchyOutgoingCall calls = 1;
 }
 
-// --- New Request / Response messages ---
-
 message CompletionResolveRequest {
   CompletionItem item = 1;
 }
@@ -1008,8 +998,6 @@ message DidDeleteFilesRequest {
 }
 
 message DidDeleteFilesResponse {}
-
-// --- Service ---
 
 service LSP {
   // Lifecycle

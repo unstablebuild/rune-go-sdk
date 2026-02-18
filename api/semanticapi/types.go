@@ -279,8 +279,6 @@ const (
 	DiagnosticTagDeprecated  DiagnosticTag = 2
 )
 
-// --- New structs (Phase 1) ---
-
 // CodeDescription represents a URI to open with more information about a diagnostic error.
 type CodeDescription struct {
 	Href string `json:"href"`
@@ -392,8 +390,6 @@ type WorkspaceFoldersChangeEvent struct {
 	Removed []WorkspaceFolder `json:"removed"`
 }
 
-// --- ServerCapabilities option structs ---
-
 // CompletionOptions describes the options for the completion provider.
 type CompletionOptions struct {
 	TriggerCharacters []string `json:"triggerCharacters,omitempty"`
@@ -462,8 +458,6 @@ type DocumentOnTypeFormattingOptions struct {
 type InlayHintOptions struct {
 	ResolveProvider bool `json:"resolveProvider,omitempty"`
 }
-
-// --- Compound types ---
 
 // CompletionItem represents a completion entry.
 type CompletionItem struct {
@@ -1622,7 +1616,6 @@ func (c *ServerCapabilities) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// --- Result union types ---
 // These types handle LSP methods that can return multiple different types.
 
 // LocationResult represents the result of definition/declaration/typeDefinition/implementation.
@@ -1822,8 +1815,6 @@ func (r *SemanticTokensResult) UnmarshalJSON(data []byte) error {
 	r.SemanticTokens = &SemanticTokens{}
 	return json.Unmarshal(data, r.SemanticTokens)
 }
-
-// --- Params structs ---
 
 // InitializeParams contains the parameters for the Initialize request.
 type InitializeParams struct {
@@ -2214,8 +2205,6 @@ type LogTraceParams struct {
 	Message string `json:"message"`
 	Verbose string `json:"verbose,omitempty"`
 }
-
-// --- Server→Client Callback Types ---
 
 // MessageType enumerates the type of a message (for ShowMessage/LogMessage).
 type MessageType int

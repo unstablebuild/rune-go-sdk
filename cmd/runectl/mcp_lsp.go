@@ -156,8 +156,6 @@ func makeRange(r [4]uint32) semanticapi.Range {
 	}
 }
 
-// --- Hover ---
-
 func registerLSPHover(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -210,8 +208,6 @@ func registerLSPHover(
 		},
 	)
 }
-
-// --- Definition / Declaration / TypeDef / Impl ---
 
 func registerLSPDefinition(
 	s *server.MCPServer,
@@ -415,8 +411,6 @@ func registerLSPImplementation(
 	)
 }
 
-// --- References ---
-
 func registerLSPReferences(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -474,8 +468,6 @@ func registerLSPReferences(
 	)
 }
 
-// --- Completion ---
-
 func registerLSPCompletion(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -531,8 +523,6 @@ func registerLSPCompletion(
 		},
 	)
 }
-
-// --- Signature Help ---
 
 func registerLSPSignatureHelp(
 	s *server.MCPServer,
@@ -598,8 +588,6 @@ func registerLSPSignatureHelp(
 		},
 	)
 }
-
-// --- Rename ---
 
 func registerLSPRename(
 	s *server.MCPServer,
@@ -723,8 +711,6 @@ func registerLSPPrepareRename(
 	)
 }
 
-// --- Code Actions ---
-
 func registerLSPCodeActions(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -795,8 +781,6 @@ func registerLSPCodeActions(
 		},
 	)
 }
-
-// --- Formatting ---
 
 func registerLSPFormatting(
 	s *server.MCPServer,
@@ -1004,8 +988,6 @@ func registerLSPOnTypeFormatting(
 	)
 }
 
-// --- Symbols ---
-
 func registerLSPSymbols(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -1117,8 +1099,6 @@ func registerLSPWorkspaceSymbols(
 	)
 }
 
-// --- Diagnostics ---
-
 func registerLSPDiagnostics(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -1184,8 +1164,6 @@ func registerLSPDiagnostics(
 	)
 }
 
-// --- Document Highlight ---
-
 func registerLSPDocHighlight(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -1247,8 +1225,6 @@ func registerLSPDocHighlight(
 		},
 	)
 }
-
-// --- Code Lens ---
 
 func registerLSPCodeLens(
 	s *server.MCPServer,
@@ -1316,8 +1292,6 @@ func registerLSPCodeLens(
 	)
 }
 
-// --- Folding Range ---
-
 func registerLSPFoldingRange(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -1382,8 +1356,6 @@ func registerLSPFoldingRange(
 		},
 	)
 }
-
-// --- Selection Range ---
 
 func registerLSPSelectionRange(
 	s *server.MCPServer,
@@ -1659,8 +1631,6 @@ func registerLSPCallHierarchyOutgoing(
 	)
 }
 
-// --- Type Hierarchy ---
-
 func registerLSPTypeHierarchyPrepare(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
@@ -1862,8 +1832,6 @@ func registerLSPTypeHierarchySubtypes(
 		},
 	)
 }
-
-// --- Execute Command ---
 
 func registerLSPExecuteCommand(
 	s *server.MCPServer,
