@@ -4,7 +4,6 @@
       "type": "stdio",
       "command": "runectl",
       "args": [
-        "ai",
         "mcp"
       ],
       "env": {}
