@@ -114,3 +114,127 @@ The SDK is built around three core abstractions defined in `tui/tui.go`:
 - **Bugs**: If we find a bug or are fixing one, we must practice
 TDD and first add a test that reproduces it, then fix it and verify
 that the test passes.
+
+## Rune MCP Tools
+
+When the Rune MCP server is connected (`runectl mcp`), prefer
+these tools over the built-in alternatives. They provide
+precise and semantically accurate results from Rune's
+language servers and tree-sitter parser, which are more
+precise than text-based search.
+
+### Code Navigation (prefer over Grep)
+
+Instead of using Grep to find where something is defined or
+used, use the suite LSP tools which understand the code semantically:
+
+- **`lsp_definition`** — Jump to where a symbol is defined.
+  Use instead of grepping for a function or type name.
+- **`lsp_references`** — Find all usages of a symbol across
+  the workspace. Use instead of grepping for callers or
+  consumers.
+- **`lsp_declaration`** — Find the interface or forward
+  declaration of a symbol.
+- **`lsp_type_definition`** — Find the type behind a value
+  (e.g., the struct that a variable holds).
+- **`lsp_implementation`** — Find concrete types implementing
+  an interface. Use instead of grepping for implementors.
+
+### Code Structure (prefer over Glob + Grep)
+
+Instead of globbing for files and grepping for patterns to
+understand code structure, use these tools:
+
+- **`lsp_document_symbols`** — List all functions, types, and
+  variables in a single file. Use instead of reading an entire
+  file to understand its structure.
+- **`lsp_workspace_symbols`** — Search for symbols by name
+  across the entire workspace. Use instead of Glob + Grep to
+  locate a function or type.
+- **`syntax_search_node`** — Find all functions, methods,
+  types, or variables workspace-wide. Use when you need
+  "all functions in the project"
+  without knowing exact names.
+- **`syntax_query_node`** — Same as above but scoped to a
+  single file.
+
+### Code Searching (prefer over regex Grep)
+
+When you need to find variables, functions, methods, references,
+namespaces or types, use rune's search node tools:
+
+- **`syntax_search_node`** — Run a tree-sitter query across all
+  workspace files. Use for searching variables, functions, methods
+  references, namespaces, or types across the workspace.
+- **`syntax_query_node`** — Same as above but scoped to a single
+  known file.
+
+When you need to search for a custom node you can provide
+your own tree-sitter query to find it use rune's search syntax tools:
+
+- **`syntax_search`** — Run a tree-sitter query across all
+  workspace files. Use for structural patterns like "all
+  function calls with two arguments" or "all composite literals
+  of type X". More precise than regex.
+- **`syntax_query`** — Same as above but scoped to a single
+  known file.
+
+### Understanding Code (prefer over reading whole files)
+
+- **`lsp_hover`** — Get type info and documentation for any
+  symbol at a position. Use instead of reading source to
+  understand what a symbol is.
+- **`lsp_signature_help`** — Get function parameter names and
+  types. Use when you need to know a function's signature
+  without reading its definition.
+- **`lsp_completion`** — Discover available methods and fields
+  on a type at a cursor position.
+
+### Error Checking (prefer over go build / go vet)
+
+- **`lsp_diagnostics`** — Get compilation errors, warnings,
+  and linter diagnostics for a file. Use instead of running
+  `go build` or `go vet` to check for errors.
+
+### Refactoring (prefer over manual find-and-replace)
+
+- **`lsp_rename`** — Safely rename a symbol across the entire
+  workspace, updating all references. Use instead of
+  Grep + Edit for renaming.
+- **`lsp_prepare_rename`** — Check if a rename is valid before
+  performing it.
+- **`lsp_code_actions`** — Discover available refactorings and
+  quick fixes at a position (extract variable, organize
+  imports, etc.).
+- **`lsp_formatting`** — Format an entire file using the
+  language server. Use instead of running `go fmt`.
+- **`lsp_range_formatting`** — Format a specific range within
+  a file.
+
+### Call and Type Hierarchies
+
+Use these for understanding relationships between functions
+and types:
+
+- **`lsp_prepare_call_hierarchy`** then
+  **`lsp_incoming_calls`** — Find all callers of a function.
+  More accurate than grepping for the function name.
+- **`lsp_prepare_call_hierarchy`** then
+  **`lsp_outgoing_calls`** — Find all functions called by a
+  function.
+- **`lsp_prepare_type_hierarchy`** then
+  **`lsp_type_supertypes`** / **`lsp_type_subtypes`** — Walk
+  inheritance chains up or down.
+
+### Other Useful Tools
+
+- **`lsp_document_highlight`** — See all read/write
+  occurrences of a variable within a single file.
+- **`lsp_code_lens`** — Discover inline actions like
+  "Run test" attached to code ranges.
+- **`lsp_execute_command`** — Execute a server-side command
+  (e.g., from a code lens or code action).
+- **`lsp_folding_range`** — Understand the block structure of
+  a file.
+- **`lsp_selection_range`** — Get smart selection expansion at
+  a cursor position.
