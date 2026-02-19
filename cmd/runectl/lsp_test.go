@@ -16,6 +16,7 @@ package main
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -105,9 +106,16 @@ func TestLSP(t *testing.T) {
 
 		// rename
 		{
-			name:    "rename",
-			args:    []string{"lsp", "rename", "$FILE", "5", "5", "newName"},
-			wantOut: "file:///src/main.go: 2 edits\n",
+			name: "rename",
+			args: []string{
+				"lsp", "rename", "--dry-run", "--no-color",
+				"$FILE", "5", "5", "newName",
+			},
+			wantOut: "--- a/src/main.go\n" +
+				"+++ b/src/main.go\n" +
+				"@@ -1,1 +1,1 @@\n" +
+				"-hello world\n" +
+				"+helnenewNameeorld\n",
 		},
 
 		// code-actions
@@ -233,14 +241,22 @@ func TestLSP(t *testing.T) {
 		// formatting
 		{
 			name: "formatting",
-			args: []string{"lsp", "formatting", "$FILE"},
-			wantOut: "2 edits\n" +
-				"  0:0-0:5\n" +
-				"  5:0-5:2\n",
+			args: []string{
+				"lsp", "formatting",
+				"--dry-run", "--no-color", "$FILE",
+			},
+			wantOut: "--- a$PATH\n" +
+				"+++ b$PATH\n" +
+				"@@ -1,1 +1,1 @@\n" +
+				"-hello world\n" +
+				"+packageworld\n",
 		},
 		{
 			name: "formatting/j",
-			args: []string{"lsp", "formatting", "-F", "json", "$FILE"},
+			args: []string{
+				"lsp", "formatting", "--dry-run",
+				"-F", "json", "$FILE",
+			},
 			wantOut: `{"start_line":0,"start_char":0,"end_line":0,"end_char":5,` +
 				`"new_text":"package"}` + "\n" +
 				`{"start_line":5,"start_char":0,"end_line":5,"end_char":2,` +
@@ -249,11 +265,16 @@ func TestLSP(t *testing.T) {
 		{
 			name: "formatting/opts",
 			args: []string{
-				"lsp", "formatting", "--tab-size", "2", "--insert-spaces=false", "$FILE",
+				"lsp", "formatting",
+				"--dry-run", "--no-color",
+				"--tab-size", "2",
+				"--insert-spaces=false", "$FILE",
 			},
-			wantOut: "2 edits\n" +
-				"  0:0-0:5\n" +
-				"  5:0-5:2\n",
+			wantOut: "--- a$PATH\n" +
+				"+++ b$PATH\n" +
+				"@@ -1,1 +1,1 @@\n" +
+				"-hello world\n" +
+				"+packageworld\n",
 		},
 
 		// prepare-rename
@@ -295,13 +316,24 @@ func TestLSP(t *testing.T) {
 		// range-formatting
 		{
 			name: "range-formatting",
-			args: []string{"lsp", "range-formatting", "$FILE", "0", "0", "10", "0"},
-			wantOut: "1 edits\n" +
-				"  0:0-0:5\n",
+			args: []string{
+				"lsp", "range-formatting",
+				"--dry-run", "--no-color",
+				"$FILE", "0", "0", "10", "0",
+			},
+			wantOut: "--- a$PATH\n" +
+				"+++ b$PATH\n" +
+				"@@ -1,1 +1,1 @@\n" +
+				"-hello world\n" +
+				"+fixed world\n",
 		},
 		{
 			name: "range-formatting/j",
-			args: []string{"lsp", "range-formatting", "-F", "json", "$FILE", "0", "0", "10", "0"},
+			args: []string{
+				"lsp", "range-formatting", "--dry-run",
+				"-F", "json",
+				"$FILE", "0", "0", "10", "0",
+			},
 			wantOut: `{"start_line":0,"start_char":0,"end_line":0,"end_char":5,` +
 				`"new_text":"fixed"}` + "\n",
 		},
@@ -566,13 +598,24 @@ func TestLSP(t *testing.T) {
 		// on-type-formatting
 		{
 			name: "on-type-formatting",
-			args: []string{"lsp", "on-type-formatting", "$FILE", "5", "0", "}"},
-			wantOut: "1 edits\n" +
-				"  5:0-5:2 -> \"\\t\"\n",
+			args: []string{
+				"lsp", "on-type-formatting",
+				"--dry-run", "--no-color",
+				"$FILE", "5", "0", "}",
+			},
+			wantOut: "--- a$PATH\n" +
+				"+++ b$PATH\n" +
+				"@@ -1,1 +1,1 @@\n" +
+				"-hello world\n" +
+				"+\tllo world\n",
 		},
 		{
 			name: "on-type-formatting/j",
-			args: []string{"lsp", "on-type-formatting", "-F", "json", "$FILE", "5", "0", "}"},
+			args: []string{
+				"lsp", "on-type-formatting", "--dry-run",
+				"-F", "json",
+				"$FILE", "5", "0", "}",
+			},
 			wantOut: `{"start_line":5,"start_char":0,"end_line":5,"end_char":2,` +
 				`"new_text":"\t"}` + "\n",
 		},
@@ -644,7 +687,10 @@ func TestLSP(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.wantOut, out)
+			want := strings.ReplaceAll(
+				tt.wantOut, "$PATH", testFile,
+			)
+			require.Equal(t, want, out)
 		})
 	}
 }

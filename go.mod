@@ -9,6 +9,7 @@ require (
 	github.com/mark3labs/mcp-go v0.44.0
 	github.com/olekukonko/tablewriter v1.1.3
 	github.com/rivo/uniseg v0.4.7
+	github.com/sergi/go-diff v1.4.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/unstablebuild/tcell/v3 v3.6.2
@@ -52,5 +53,4 @@ require (
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -109,6 +110,7 @@ func (a *app) resolveURIArg(
 
 func newRootCmd() *cobra.Command {
 	a := &app{}
+	var verbose bool
 
 	cmd := &cobra.Command{
 		Use:   "runectl",
@@ -118,7 +120,25 @@ func newRootCmd() *cobra.Command {
 		},
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(
+			cmd *cobra.Command, args []string,
+		) {
+			level := slog.LevelInfo
+			if verbose {
+				level = slog.LevelDebug
+			}
+			slog.SetDefault(slog.New(
+				slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+					Level: level,
+				}),
+			))
+		},
 	}
+
+	cmd.PersistentFlags().BoolVarP(
+		&verbose, "verbose", "v", false,
+		"Enable debug logging",
+	)
 
 	cmd.AddCommand(
 		newDatadirCmd(a),

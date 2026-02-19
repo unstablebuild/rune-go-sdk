@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strconv"
 	"strings"
@@ -734,6 +735,8 @@ type flatRenameEdit struct {
 
 func newLSPRenameCmd(a *app) *cobra.Command {
 	var format string
+	var dryRun bool
+	var noColor bool
 
 	cmd := &cobra.Command{
 		Use:   "rename <file> <line> <col> <new-name>",
@@ -766,35 +769,55 @@ func newLSPRenameCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			slog.Debug("rename: LSP response", "uri", uri.String(), "nil", edit == nil)
+			if edit != nil {
+				for u, es := range edit.Changes {
+					for i, e := range es {
+						slog.Debug("rename: edit", "file", u, "index", i,
+							"start_line", e.Range.Start.Line, "start_char", e.Range.Start.Character,
+							"end_line", e.Range.End.Line, "end_char", e.Range.End.Character,
+							"new_text", e.NewText)
+					}
+				}
+			}
 			if edit == nil {
 				return printString(
 					format, "no edits",
 					[]string{"Result"},
 				)
 			}
-			var flat []flatRenameEdit
-			for u, edits := range edit.Changes {
-				flat = append(flat, flatRenameEdit{
-					URI:   u,
-					Edits: len(edits),
-				})
-			}
-			if format == "" {
-				for _, f := range flat {
-					fmt.Printf("%s: %d edits\n", f.URI, f.Edits)
+			fe := workspaceEditToFileEdits(edit)
+			if dryRun && format != "" {
+				var flat []flatRenameEdit
+				for u, edits := range edit.Changes {
+					flat = append(flat, flatRenameEdit{
+						URI:   u,
+						Edits: len(edits),
+					})
 				}
-				return nil
+				it := iterator.FromSlice(flat)
+				return printIterator(
+					cmd.Context(), format, it,
+					[]string{"URI", "Edits"},
+				)
 			}
-			it := iterator.FromSlice(flat)
-			return printIterator(cmd.Context(), format, it, []string{
-				"URI", "Edits",
-			})
+			return a.handleEdits(
+				cmd.Context(), fe, dryRun, noColor,
+			)
 		},
 	}
 
 	cmd.Flags().StringVarP(
 		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
+	)
+	cmd.Flags().BoolVar(
+		&dryRun, "dry-run", false,
+		"Preview changes without applying",
+	)
+	cmd.Flags().BoolVar(
+		&noColor, "no-color", false,
+		"Disable colored diff output",
 	)
 
 	return cmd
@@ -1442,6 +1465,8 @@ type flatTextEdit struct {
 
 func newLSPFormattingCmd(a *app) *cobra.Command {
 	var format string
+	var dryRun bool
+	var noColor bool
 	var tabSize uint32
 	var insertSpaces bool
 
@@ -1473,38 +1498,51 @@ func newLSPFormattingCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatTextEdit, len(edits))
+			slog.Debug("formatting: LSP response", "uri", uri.String(), "num_edits", len(edits))
 			for i, e := range edits {
-				flat[i] = flatTextEdit{
-					StartLine: e.Range.Start.Line,
-					StartChar: e.Range.Start.Character,
-					EndLine:   e.Range.End.Line,
-					EndChar:   e.Range.End.Character,
-					NewText:   e.NewText,
-				}
+				slog.Debug("formatting: edit", "index", i,
+					"start_line", e.Range.Start.Line, "start_char", e.Range.Start.Character,
+					"end_line", e.Range.End.Line, "end_char", e.Range.End.Character,
+					"new_text", e.NewText)
 			}
-			if format == "" {
-				fmt.Printf("%d edits\n", len(flat))
-				for _, e := range flat {
-					fmt.Printf(
-						"  %d:%d-%d:%d\n",
-						e.StartLine, e.StartChar,
-						e.EndLine, e.EndChar,
-					)
+			fe := textEditsToFileEdits(uri.String(), edits)
+			if dryRun && format != "" {
+				flat := make([]flatTextEdit, len(edits))
+				for i, e := range edits {
+					flat[i] = flatTextEdit{
+						StartLine: e.Range.Start.Line,
+						StartChar: e.Range.Start.Character,
+						EndLine:   e.Range.End.Line,
+						EndChar:   e.Range.End.Character,
+						NewText:   e.NewText,
+					}
 				}
-				return nil
+				it := iterator.FromSlice(flat)
+				return printIterator(
+					cmd.Context(), format, it,
+					[]string{
+						"StartLine", "StartChar",
+						"EndLine", "EndChar", "NewText",
+					},
+				)
 			}
-			it := iterator.FromSlice(flat)
-			return printIterator(cmd.Context(), format, it, []string{
-				"StartLine", "StartChar",
-				"EndLine", "EndChar", "NewText",
-			})
+			return a.handleEdits(
+				cmd.Context(), fe, dryRun, noColor,
+			)
 		},
 	}
 
 	cmd.Flags().StringVarP(
 		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
+	)
+	cmd.Flags().BoolVar(
+		&dryRun, "dry-run", false,
+		"Preview changes without applying",
+	)
+	cmd.Flags().BoolVar(
+		&noColor, "no-color", false,
+		"Disable colored diff output",
 	)
 	cmd.Flags().Uint32Var(
 		&tabSize, "tab-size", 4,
@@ -1779,6 +1817,8 @@ func parseRange(
 
 func newLSPRangeFormattingCmd(a *app) *cobra.Command {
 	var format string
+	var dryRun bool
+	var noColor bool
 	var tabSize uint32
 	var insertSpaces bool
 
@@ -1815,37 +1855,52 @@ func newLSPRangeFormattingCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatTextEdit, len(edits))
+			slog.Debug("range-formatting: LSP response",
+				"uri", uri.String(), "num_edits", len(edits))
 			for i, e := range edits {
-				flat[i] = flatTextEdit{
-					StartLine: e.Range.Start.Line,
-					StartChar: e.Range.Start.Character,
-					EndLine:   e.Range.End.Line,
-					EndChar:   e.Range.End.Character,
-					NewText:   e.NewText,
-				}
+				slog.Debug("range-formatting: edit", "index", i,
+					"start_line", e.Range.Start.Line, "start_char", e.Range.Start.Character,
+					"end_line", e.Range.End.Line, "end_char", e.Range.End.Character,
+					"new_text", e.NewText)
 			}
-			if format == "" {
-				fmt.Printf("%d edits\n", len(flat))
-				for _, e := range flat {
-					fmt.Printf(
-						"  %d:%d-%d:%d\n",
-						e.StartLine, e.StartChar,
-						e.EndLine, e.EndChar,
-					)
+			fe := textEditsToFileEdits(uri.String(), edits)
+			if dryRun && format != "" {
+				flat := make([]flatTextEdit, len(edits))
+				for i, e := range edits {
+					flat[i] = flatTextEdit{
+						StartLine: e.Range.Start.Line,
+						StartChar: e.Range.Start.Character,
+						EndLine:   e.Range.End.Line,
+						EndChar:   e.Range.End.Character,
+						NewText:   e.NewText,
+					}
 				}
-				return nil
+				it := iterator.FromSlice(flat)
+				return printIterator(
+					cmd.Context(), format, it,
+					[]string{
+						"StartLine", "StartChar",
+						"EndLine", "EndChar", "NewText",
+					},
+				)
 			}
-			it := iterator.FromSlice(flat)
-			return printIterator(cmd.Context(), format, it, []string{
-				"StartLine", "StartChar", "EndLine", "EndChar", "NewText",
-			})
+			return a.handleEdits(
+				cmd.Context(), fe, dryRun, noColor,
+			)
 		},
 	}
 
 	cmd.Flags().StringVarP(
 		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
+	)
+	cmd.Flags().BoolVar(
+		&dryRun, "dry-run", false,
+		"Preview changes without applying",
+	)
+	cmd.Flags().BoolVar(
+		&noColor, "no-color", false,
+		"Disable colored diff output",
 	)
 	cmd.Flags().Uint32Var(
 		&tabSize, "tab-size", 4,
@@ -3043,6 +3098,8 @@ func newLSPDocumentLinkCmd(a *app) *cobra.Command {
 
 func newLSPOnTypeFormattingCmd(a *app) *cobra.Command {
 	var format string
+	var dryRun bool
+	var noColor bool
 	var tabSize uint32
 	var insertSpaces bool
 
@@ -3080,31 +3137,38 @@ func newLSPOnTypeFormattingCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatTextEdit, len(edits))
+			slog.Debug("on-type-formatting: LSP response",
+				"uri", uri.String(), "num_edits", len(edits))
 			for i, e := range edits {
-				flat[i] = flatTextEdit{
-					StartLine: e.Range.Start.Line,
-					StartChar: e.Range.Start.Character,
-					EndLine:   e.Range.End.Line,
-					EndChar:   e.Range.End.Character,
-					NewText:   e.NewText,
-				}
+				slog.Debug("on-type-formatting: edit", "index", i,
+					"start_line", e.Range.Start.Line, "start_char", e.Range.Start.Character,
+					"end_line", e.Range.End.Line, "end_char", e.Range.End.Character,
+					"new_text", e.NewText)
 			}
-			if format == "" {
-				fmt.Printf("%d edits\n", len(edits))
-				for _, e := range flat {
-					fmt.Printf(
-						"  %d:%d-%d:%d -> %q\n",
-						e.StartLine, e.StartChar, e.EndLine, e.EndChar,
-						e.NewText,
-					)
+			fe := textEditsToFileEdits(uri.String(), edits)
+			if dryRun && format != "" {
+				flat := make([]flatTextEdit, len(edits))
+				for i, e := range edits {
+					flat[i] = flatTextEdit{
+						StartLine: e.Range.Start.Line,
+						StartChar: e.Range.Start.Character,
+						EndLine:   e.Range.End.Line,
+						EndChar:   e.Range.End.Character,
+						NewText:   e.NewText,
+					}
 				}
-				return nil
+				it := iterator.FromSlice(flat)
+				return printIterator(
+					cmd.Context(), format, it,
+					[]string{
+						"StartLine", "StartChar",
+						"EndLine", "EndChar", "NewText",
+					},
+				)
 			}
-			it := iterator.FromSlice(flat)
-			return printIterator(cmd.Context(), format, it, []string{
-				"StartLine", "StartChar", "EndLine", "EndChar", "NewText",
-			})
+			return a.handleEdits(
+				cmd.Context(), fe, dryRun, noColor,
+			)
 		},
 	}
 
@@ -3112,8 +3176,21 @@ func newLSPOnTypeFormattingCmd(a *app) *cobra.Command {
 		&format, "format", "F", "",
 		"Output format: table, json, or Go template",
 	)
-	cmd.Flags().Uint32Var(&tabSize, "tab-size", 4, "Tab size")
-	cmd.Flags().BoolVar(&insertSpaces, "insert-spaces", true, "Use spaces")
+	cmd.Flags().BoolVar(
+		&dryRun, "dry-run", false,
+		"Preview changes without applying",
+	)
+	cmd.Flags().BoolVar(
+		&noColor, "no-color", false,
+		"Disable colored diff output",
+	)
+	cmd.Flags().Uint32Var(
+		&tabSize, "tab-size", 4, "Tab size",
+	)
+	cmd.Flags().BoolVar(
+		&insertSpaces, "insert-spaces", true,
+		"Use spaces",
+	)
 
 	return cmd
 }
