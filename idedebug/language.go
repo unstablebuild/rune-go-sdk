@@ -44,7 +44,7 @@ type debugConfig struct {
 	args []string
 }
 
-var debugAdapters = map[string]debugConfig{
+var _debugAdapters = map[string]debugConfig{
 	"go": {
 		id:      "go",
 		command: "dlv",
@@ -81,7 +81,7 @@ func debugAdapterForFilename(
 	if err != nil {
 		return debugConfig{}, err
 	}
-	cfg, ok := debugAdapters[id]
+	cfg, ok := _debugAdapters[id]
 	if !ok {
 		return debugConfig{}, fmt.Errorf(
 			"%s language debug adapter is not supported yet",

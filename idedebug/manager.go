@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/google/go-dap"
-
+	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
 	"github.com/unstablebuild/rune-go-sdk/api/schemeapi"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
@@ -40,7 +40,7 @@ var ErrNoServer = errors.New("no debug server")
 
 // Config provides optional configuration for a Manager.
 type Config struct {
-	MaxRetries         uint
+	MaxRetries         int
 	InitializeTimeout  time.Duration
 	CloseTimeout       time.Duration
 	EventHandleTimeout time.Duration
@@ -52,17 +52,23 @@ type Manager struct {
 	cfg        Config
 	evs        chan textapi.Event
 	mu         sync.Mutex
+	wg         sync.WaitGroup
 	rootURI    string
 	executor   schemeapi.Executor
 	pkgManager PkgManager
 	servers    map[string]*debugServer
+	starting   map[string]chan struct{}
+	activeSrv  *debugServer
 	events     chan dap.EventMessage
 	ctx        context.Context
 	cancel     context.CancelFunc
 	log        *slog.Logger
 }
 
-var _ textapi.EventHandler = (*Manager)(nil)
+var (
+	_ textapi.EventHandler = (*Manager)(nil)
+	_ debugapi.Debugger    = (*Manager)(nil)
+)
 
 // New creates a new Manager with the given dependencies
 // and configuration.
@@ -72,9 +78,14 @@ func New(
 	pkgManager PkgManager,
 	cfg Config,
 ) *Manager {
-	const eventsBufferSize = 5
+	// eventsBufferSize allows bursts of DAP events
+	// (e.g. multiple breakpoint hits across threads)
+	// without blocking the read loop. When full,
+	// readLoop drops events with a warning
+	// (see debugServer.readLoop).
+	const eventsBufferSize = 64
 
-	if cfg.MaxRetries == 0 {
+	if cfg.MaxRetries <= 0 {
 		cfg.MaxRetries = 3
 	}
 	if cfg.InitializeTimeout == 0 {
@@ -94,22 +105,27 @@ func New(
 		executor:   executor,
 		pkgManager: pkgManager,
 		servers:    make(map[string]*debugServer),
+		starting:   make(map[string]chan struct{}),
 		events: make(
 			chan dap.EventMessage, eventsBufferSize,
 		),
 		ctx:    ctx,
 		cancel: cancel,
-		evs: make(
-			chan textapi.Event, eventsBufferSize,
-		),
+		// Buffer of 1 for evs: allows Handle to
+		// return without blocking in the common
+		// case while handleEvs processes.
+		evs: make(chan textapi.Event, 1),
 	}
+	ret.wg.Add(1)
 	go ret.handleEvs()
 	return ret
 }
 
-// Close shuts down all active debug servers.
+// Close shuts down all active debug servers and waits
+// for all background goroutines to exit.
 func (m *Manager) Close() error {
-	defer m.cancel()
+	m.cancel()
+
 	m.mu.Lock()
 	servers := make(
 		[]*debugServer, 0, len(m.servers),
@@ -129,6 +145,8 @@ func (m *Manager) Close() error {
 			errs = append(errs, err)
 		}
 	}
+
+	m.wg.Wait()
 	return errors.Join(errs...)
 }
 
@@ -152,7 +170,7 @@ func (m *Manager) Events() <-chan dap.EventMessage {
 }
 
 func (m *Manager) handleEvs() {
-	defer m.cancel()
+	defer m.wg.Done()
 	for {
 		select {
 		case <-m.ctx.Done():
@@ -170,7 +188,7 @@ func (m *Manager) handleEvs() {
 
 func (m *Manager) handle(ev textapi.Event) error {
 	ctx, cancel := context.WithTimeout(
-		context.Background(),
+		m.ctx,
 		m.cfg.EventHandleTimeout,
 	)
 	defer cancel()
@@ -192,13 +210,54 @@ func (m *Manager) ensureServer(
 	if err != nil {
 		return nil, err
 	}
+	return m.getOrCreateServer(ctx, cfg)
+}
 
+// getOrCreateServer returns an existing server for the
+// given adapter config, or initializes one. Concurrent
+// callers for the same adapter ID will block until the
+// first caller's initialization completes.
+func (m *Manager) getOrCreateServer(
+	ctx context.Context, cfg debugConfig,
+) (*debugServer, error) {
 	m.mu.Lock()
 	if srv, ok := m.servers[cfg.id]; ok {
 		m.mu.Unlock()
 		return srv, nil
 	}
+
+	// Another goroutine is already initializing this
+	// adapter — wait for it.
+	if ch, ok := m.starting[cfg.id]; ok {
+		m.mu.Unlock()
+		select {
+		case <-ch:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		m.mu.Lock()
+		srv := m.servers[cfg.id]
+		m.mu.Unlock()
+		if srv == nil {
+			return nil, fmt.Errorf(
+				"%w: %s init failed",
+				ErrNoServer, cfg.id,
+			)
+		}
+		return srv, nil
+	}
+
+	// We are the first — mark this adapter as starting.
+	ch := make(chan struct{})
+	m.starting[cfg.id] = ch
 	m.mu.Unlock()
+
+	defer func() {
+		m.mu.Lock()
+		delete(m.starting, cfg.id)
+		m.mu.Unlock()
+		close(ch) // unblock waiting goroutines
+	}()
 
 	return m.initializeServer(ctx, cfg)
 }
@@ -244,9 +303,12 @@ func (m *Manager) initializeServer(
 
 	m.mu.Lock()
 	m.servers[cfg.id] = srv
+	m.activeSrv = srv
 	m.mu.Unlock()
 
+	m.wg.Add(1)
 	go debug.CapturePanicReport(func() {
+		defer m.wg.Done()
 		m.watchServer(&cfg, srv)
 	})
 	return srv, nil
@@ -288,9 +350,7 @@ func (m *Manager) findBinary(
 func (m *Manager) watchServer(
 	cfg *debugConfig, srv *debugServer,
 ) {
-	defer func() {
-		_ = srv.conn.Close()
-	}()
+	defer srv.closeConn()
 
 	ch := srv.watcher
 	if ch == nil {
@@ -317,7 +377,7 @@ func (m *Manager) watchServer(
 	}
 
 	strategy := retry.CombinedStrategy(
-		retry.LimitStrategy(m.cfg.MaxRetries),
+		retry.LimitStrategy(uint(m.cfg.MaxRetries)),
 		retry.ExponentialStrategy(
 			500*time.Millisecond, 5*time.Second,
 		),
@@ -342,9 +402,12 @@ func (m *Manager) watchServer(
 			}
 			m.mu.Lock()
 			m.servers[cfg.id] = newSrv
+			m.activeSrv = newSrv
 			m.mu.Unlock()
 
+			m.wg.Add(1)
 			go debug.CapturePanicReport(func() {
+				defer m.wg.Done()
 				m.watchServer(cfg, newSrv)
 			})
 			return false, nil
@@ -383,13 +446,14 @@ func (m *Manager) activeServer() (
 	*debugServer, error,
 ) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	for _, srv := range m.servers {
-		return srv, nil
+	srv := m.activeSrv
+	m.mu.Unlock()
+	if srv == nil {
+		return nil, ErrNoServer
 	}
-	return nil, ErrNoServer
+	return srv, nil
 }
 
 func convertURI(u workspaceapi.URI) string {
-	return fmt.Sprintf("file://%s", u.Path())
+	return "file://" + u.Path()
 }

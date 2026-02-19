@@ -17,6 +17,7 @@ package idedebug
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -26,13 +27,15 @@ import (
 	"time"
 
 	"github.com/google/go-dap"
-
 	"github.com/unstablebuild/rune-go-sdk/api/schemeapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 )
 
 type debugServer struct {
 	mu         sync.Mutex
+	writeMu    sync.Mutex
+	wg         sync.WaitGroup
+	closeOnce  sync.Once
 	ctx        context.Context
 	cancel     func()
 	stopCalled bool
@@ -44,7 +47,7 @@ type debugServer struct {
 	executor   schemeapi.Executor
 	conn       net.Conn
 	reader     *bufio.Reader
-	seq        int32
+	seq        atomic.Int64
 	pending    map[int]chan dap.Message
 	pendingMu  sync.Mutex
 	events     chan dap.EventMessage
@@ -122,6 +125,7 @@ func (s *debugServer) start(ctx context.Context) error {
 	// Connect to the debug adapter as a client.
 	conn, err := dialWithRetry(ctx, addr)
 	if err != nil {
+		s.cancel() // kill the spawned process
 		return fmt.Errorf(
 			"connect to %s: %w", addr, err,
 		)
@@ -135,13 +139,15 @@ func (s *debugServer) start(ctx context.Context) error {
 	s.alive = true
 	s.mu.Unlock()
 
+	s.wg.Add(1)
 	go s.readLoop()
 
 	// initialize is called without s.mu held because it
 	// calls sendRequest which also acquires s.mu.
 	caps, err := s.initialize(ctx)
 	if err != nil {
-		_ = s.conn.Close()
+		s.closeConn()
+		s.cancel() // kill the spawned process
 		return fmt.Errorf(
 			"initialize %s: %w", s.cfg.command, err,
 		)
@@ -153,6 +159,11 @@ func (s *debugServer) start(ctx context.Context) error {
 	return nil
 }
 
+// findFreeAddr binds to an ephemeral port to discover a
+// free address, then releases it. There is a small TOCTOU
+// window before the adapter binds to the same port; in
+// practice this is negligible and dialWithRetry will surface
+// a clear error if it occurs.
 func findFreeAddr() (string, error) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -241,7 +252,9 @@ func (s *debugServer) stop(ctx context.Context) error {
 	s.alive = false
 	s.mu.Unlock()
 
-	return s.conn.Close()
+	s.closeConn()
+	s.wg.Wait()
+	return nil
 }
 
 func (s *debugServer) sendRequest(
@@ -266,10 +279,13 @@ func (s *debugServer) sendRequest(
 		s.pendingMu.Unlock()
 	}()
 
-	if err := dap.WriteProtocolMessage(
-		s.conn, req,
-	); err != nil {
-		return nil, fmt.Errorf("write request: %w", err)
+	s.writeMu.Lock()
+	writeErr := dap.WriteProtocolMessage(s.conn, req)
+	s.writeMu.Unlock()
+	if writeErr != nil {
+		return nil, fmt.Errorf(
+			"write request: %w", writeErr,
+		)
 	}
 
 	select {
@@ -277,7 +293,7 @@ func (s *debugServer) sendRequest(
 		return nil, ctx.Err()
 	case msg, ok := <-ch:
 		if !ok || msg == nil {
-			return nil, fmt.Errorf(
+			return nil, errors.New(
 				"server closed connection",
 			)
 		}
@@ -294,6 +310,7 @@ func (s *debugServer) sendRequest(
 }
 
 func (s *debugServer) readLoop() {
+	defer s.wg.Done()
 	for {
 		msg, err := dap.ReadProtocolMessage(s.reader)
 		if err != nil {
@@ -355,18 +372,27 @@ func (s *debugServer) writeRequest(
 		return ErrNoServer
 	}
 	s.mu.Unlock()
-	if err := dap.WriteProtocolMessage(
-		s.conn, req,
-	); err != nil {
+	s.writeMu.Lock()
+	err := dap.WriteProtocolMessage(s.conn, req)
+	s.writeMu.Unlock()
+	if err != nil {
 		return fmt.Errorf("write request: %w", err)
 	}
 	return nil
 }
 
+func (s *debugServer) closeConn() {
+	s.closeOnce.Do(func() {
+		if s.conn != nil {
+			_ = s.conn.Close()
+		}
+	})
+}
+
 func (s *debugServer) newRequest(
 	command string,
 ) dap.Request {
-	seq := int(atomic.AddInt32(&s.seq, 1))
+	seq := int(s.seq.Add(1))
 	return dap.Request{
 		ProtocolMessage: dap.ProtocolMessage{
 			Seq:  seq,

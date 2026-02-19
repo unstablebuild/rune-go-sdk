@@ -17,14 +17,12 @@ package idedebug
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/go-dap"
-
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
 )
-
-var _ debugapi.Debugger = (*Manager)(nil)
 
 // Initialize configures the debug adapter with client
 // capabilities and retrieves the adapter's capabilities.
@@ -34,25 +32,18 @@ func (m *Manager) Initialize(
 ) (*dap.Capabilities, error) {
 	adapterID := args.AdapterID
 	if adapterID == "" {
-		return nil, fmt.Errorf(
+		return nil, errors.New(
 			"adapter ID is required",
 		)
 	}
-	cfg, ok := debugAdapters[adapterID]
+	cfg, ok := _debugAdapters[adapterID]
 	if !ok {
 		return nil, fmt.Errorf(
 			"unknown debug adapter: %s", adapterID,
 		)
 	}
 
-	m.mu.Lock()
-	if srv, ok := m.servers[cfg.id]; ok {
-		m.mu.Unlock()
-		return srv.caps, nil
-	}
-	m.mu.Unlock()
-
-	srv, err := m.initializeServer(ctx, cfg)
+	srv, err := m.getOrCreateServer(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"initialize server: %w", err,

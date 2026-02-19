@@ -29,8 +29,8 @@ import (
 	"github.com/google/go-dap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
+	"github.com/unstablebuild/rune-go-sdk/api/schemeapi"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
@@ -438,8 +438,7 @@ func setupTestWorkspace(
 	t *testing.T, testdataDir string,
 ) string {
 	t.Helper()
-	tmpDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
 
 	if testdataDir == "" {
 		return tmpDir
@@ -489,6 +488,8 @@ func makeURI(
 	return ret
 }
 
+var _ PkgManager = (*stubPkgManager)(nil)
+
 type stubPkgManager struct {
 	bin string
 }
@@ -501,8 +502,11 @@ func (p *stubPkgManager) LibDir(
 	), nil
 }
 
+var _ schemeapi.Executor = (*testExecutor)(nil)
+
 type testExecutor struct {
 	mu        sync.Mutex
+	wg        sync.WaitGroup
 	processes map[int]*os.Process
 	nextPid   int
 }
@@ -513,10 +517,11 @@ func newTestExecutor(t *testing.T) *testExecutor {
 	}
 	t.Cleanup(func() {
 		e.mu.Lock()
-		defer e.mu.Unlock()
 		for _, p := range e.processes {
 			_ = p.Kill()
 		}
+		e.mu.Unlock()
+		e.wg.Wait()
 	})
 	return e
 }
@@ -550,7 +555,9 @@ func (e *testExecutor) StartCommand(
 
 	if cmd.Watcher != nil {
 		ch := cmd.Watcher.WatchProcess()
+		e.wg.Add(1)
 		go func() {
+			defer e.wg.Done()
 			err := c.Wait()
 			if ch != nil {
 				ch <- err
