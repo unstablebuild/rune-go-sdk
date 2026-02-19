@@ -79,6 +79,23 @@ The SDK is built around three core abstractions defined in `tui/tui.go`:
   - `tui.Handler` (and derived) implementations are tested
     using the `handlertest` package. See `handler/inputbox/`
     and `handler/` for examples.
+* `handlertest.SequenceTestCase.InputSequence` is a **concatenation of tokens** (no separators). Each token becomes one `KeyComb`.
+* Token forms:
+  1. **Single character**: any rune except `'<', '>', '\\', ' '`
+  2. **Escapes** (literal special chars): `\\` → `\`, `\>` → `>`, `\<` → `<`
+  3. **Named key**: `<name>` (case-insensitive), where `name` is:
+     * Keys: `f1..f12`, `insert`, `delete`, `home`, `end`, `pgup`, `pgdn`, `up`, `down`, `left`, `right`, `tab`, `enter`, `esc`, `space`, `backspace`
+     * Mouse: `mouse-left`, `mouse-middle`, `mouse-right`, `mouse-release`, `mouse-wheel-up`, `mouse-wheel-down`
+  4. **Modified key**: `<mods-key>` where `mods` uses short/long aliases:
+     * `c|ctrl`, `s|shift`, `a|alt`, `m|meta` (order/combos supported per list)
+     * Examples: `<c-f1>`, `<m-left>`, `<a-enter>`, `<c-s-a-tab>`, etc.
+     * Shifted chars are often encoded directly: `<s-a>` → `A`, `<s-1>` → `!`, `<s-.>` → `>`, etc.
+  5. **Modifier-only tokens**: `<ctrl> <shift> <alt> <meta>` and combos:
+     `<ctrl-shift> <ctrl-alt> <ctrl-meta> <ctrl-shift-alt> <ctrl-shift-meta> <ctrl-alt-meta> <shift-meta> <alt-meta> <alt-shift> <alt-shift-meta>`
+* Invalid:
+  * literal space (must be `<space>`)
+  * raw `>`; raw `<` without matching `>`
+  * raw `\` or `\` followed by anything other than `\`, `<`, `>`
 
 **Bugs**: If we find a bug or are fixing one, we must practice
 TDD and first add a test that reproduces it, then fix it and verify
