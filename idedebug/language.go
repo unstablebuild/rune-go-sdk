@@ -37,14 +37,20 @@ type PkgManager interface {
 type debugConfig struct {
 	id      string
 	command string
-	args    []string
+	// args are passed to the debug adapter binary.
+	// The placeholder {addr} is replaced at runtime
+	// with the TCP address the adapter should listen
+	// on (e.g. "127.0.0.1:56789").
+	args []string
 }
 
 var debugAdapters = map[string]debugConfig{
 	"go": {
 		id:      "go",
 		command: "dlv",
-		args:    []string{"dap"},
+		args: []string{
+			"dap", "--listen={addr}",
+		},
 	},
 }
 

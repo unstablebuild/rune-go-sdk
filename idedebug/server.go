@@ -23,6 +23,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/google/go-dap"
 
@@ -78,21 +79,20 @@ func newDebugServer(
 }
 
 func (s *debugServer) start(ctx context.Context) error {
-	// dlv dap is a TCP server. We create a TCP listener
-	// and pass our address via --client-addr so dlv dials
-	// back to us.
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	// Pick a free TCP port for the adapter to listen on.
+	addr, err := findFreeAddr()
 	if err != nil {
-		return fmt.Errorf(
-			"create listener: %w", err,
+		return fmt.Errorf("find free addr: %w", err)
+	}
+
+	// Replace the {addr} placeholder in the config args
+	// with the concrete address.
+	args := make([]string, len(s.cfg.args))
+	for i, a := range s.cfg.args {
+		args[i] = strings.ReplaceAll(
+			a, "{addr}", addr,
 		)
 	}
-	defer func() { _ = listener.Close() }()
-
-	addr := listener.Addr().String()
-	args := make([]string, len(s.cfg.args))
-	copy(args, s.cfg.args)
-	args = append(args, "--client-addr="+addr)
 
 	watchCh := make(chan error, 1)
 	watcher := workspaceapi.ChanProcessWatcher(watchCh)
@@ -119,25 +119,12 @@ func (s *debugServer) start(ctx context.Context) error {
 		)
 	}
 
-	// Accept connection from the debug adapter.
-	connCh := make(chan net.Conn, 1)
-	errCh := make(chan error, 1)
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			errCh <- err
-			return
-		}
-		connCh <- conn
-	}()
-
-	var conn net.Conn
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-errCh:
-		return fmt.Errorf("accept: %w", err)
-	case conn = <-connCh:
+	// Connect to the debug adapter as a client.
+	conn, err := dialWithRetry(ctx, addr)
+	if err != nil {
+		return fmt.Errorf(
+			"connect to %s: %w", addr, err,
+		)
 	}
 
 	s.mu.Lock()
@@ -164,6 +151,44 @@ func (s *debugServer) start(ctx context.Context) error {
 	s.caps = caps
 	s.mu.Unlock()
 	return nil
+}
+
+func findFreeAddr() (string, error) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", err
+	}
+	addr := l.Addr().String()
+	_ = l.Close()
+	return addr, nil
+}
+
+func dialWithRetry(
+	ctx context.Context, addr string,
+) (net.Conn, error) {
+	const (
+		maxAttempts = 50
+		retryDelay  = 100 * time.Millisecond
+	)
+	var lastErr error
+	for range maxAttempts {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+		conn, err := net.DialTimeout(
+			"tcp", addr, retryDelay,
+		)
+		if err == nil {
+			return conn, nil
+		}
+		lastErr = err
+		time.Sleep(retryDelay)
+	}
+	return nil, fmt.Errorf(
+		"dial %s after retries: %w", addr, lastErr,
+	)
 }
 
 func (s *debugServer) initialize(
