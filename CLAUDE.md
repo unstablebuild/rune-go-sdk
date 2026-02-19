@@ -72,7 +72,17 @@ The SDK is built around three core abstractions defined in `tui/tui.go`:
 
 **Builder Pattern**: Components support zero-value safe constructors (`NewX()`) and full customization (`NewXWithConfig(cfg)`).
 
-**Testing**: Table-driven tests common in component package. Mock RPC types available in `*test/` packages.
+**Testing**: Always use a table-driven approach.
+  - `tui.Component` (and derived) implementations are tested
+    using the `comptest` package. See `component/*_test.go`
+    for examples.
+  - `tui.Handler` (and derived) implementations are tested
+    using the `handlertest` package. See `handler/inputbox/`
+    and `handler/` for examples.
+
+**Bugs**: If we find a bug or are fixing one, we must practice
+TDD and first add a test that reproduces it, then fix it and verify
+that the test passes.
 
 ## Development Workflow
 
@@ -91,12 +101,17 @@ The SDK is built around three core abstractions defined in `tui/tui.go`:
 3. Implement service logic in `api/<name>/`
 4. Add test helpers in `api/<name>/<name>test/`
 
-### Code Quality Requirements
+## Go Code Quality Gate
 
-- Race detector enabled by default in tests
-- Pre-commit hooks enforce: YAML validation, protobuf regeneration, license headers
-- All tests must pass with `-race -timeout 120s`
-- License headers required on all Go files (Apache 2.0)
+Before completing ANY task that modifies `.go` files, you MUST:
+1. Use the `reviewer` subagent to review all modified Go files
+3. Address any violations it identifies
+4. Re-run the subagent to confirm compliance
+5. Use the `go-idioms` subagent to review all modified Go files
+6. Address any violations it identifies
+7. Re-run the subagent to confirm compliance
+
+Never mark a task complete without this review step.
 
 ## Rune MCP Tools
 
@@ -227,16 +242,6 @@ and types:
 - **File organization**: Public functions, methods, and types go
   at the top of the file. Private types, functions, and methods
   go at the bottom.
-- **Testing**: Always use a table-driven approach.
-  - `tui.Component` (and derived) implementations are tested
-    using the `comptest` package. See `component/*_test.go`
-    for examples.
-  - `tui.Handler` (and derived) implementations are tested
-    using the `handlertest` package. See `handler/inputbox/`
-    and `handler/` for examples.
-- **Bugs**: If we find a bug or are fixing one, we must practice
-TDD and first add a test that reproduces it, then fix it and verify
-that the test passes.
 
 ## Go Style Guide
 
