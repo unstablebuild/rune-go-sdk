@@ -1129,9 +1129,17 @@ func (m *mockLSP) ExecuteCommand(
 	_ context.Context,
 	req *semanticrpc.ExecuteCommandRequest,
 ) (*semanticrpc.ExecuteCommandResponse, error) {
-	return &semanticrpc.ExecuteCommandResponse{
-		Result: "command executed: " + req.GetCommand(),
-	}, nil
+	result := "command executed: " + req.GetCommand()
+	if args := req.GetArguments(); len(args) > 0 {
+		result += " args="
+		for i, a := range args {
+			if i > 0 {
+				result += ","
+			}
+			result += a
+		}
+	}
+	return &semanticrpc.ExecuteCommandResponse{Result: result}, nil
 }
 
 func (m *mockLSP) InlayHint(

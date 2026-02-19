@@ -346,8 +346,34 @@ func TestLSP(t *testing.T) {
 		},
 		{
 			name: "execute-command/j",
-			args: []string{"lsp", "execute-command", "-F", "json", "my.command"},
-			wantOut: `{"result":"command executed: my.command","success":true}` + "\n",
+			args: []string{
+				"lsp", "execute-command",
+				"-F", "json", "my.command",
+			},
+			wantOut: `{"result":"command executed:` +
+				` my.command","success":true}` + "\n",
+		},
+		{
+			name: "execute-command/args",
+			args: []string{
+				"lsp", "execute-command",
+				"my.command",
+				`{"uri":"file:///test.go"}`,
+				`42`,
+				`true`,
+				`"hello"`,
+			},
+			wantOut: "command executed: my.command" +
+				` args={"uri":"file:///test.go"},` +
+				`42,true,"hello"` + "\n",
+		},
+		{
+			name: "execute-command/bad",
+			args: []string{
+				"lsp", "execute-command",
+				"my.command", "not-json",
+			},
+			wantErr: "invalid argument",
 		},
 
 		// inlay-hint

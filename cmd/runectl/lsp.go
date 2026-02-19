@@ -2038,13 +2038,25 @@ func newLSPExecuteCommandCmd(a *app) *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
+
+			var arguments []json.RawMessage
+			for _, a := range args[1:] {
+				if !json.Valid([]byte(a)) {
+					return fmt.Errorf("invalid argument %q:"+
+						" expected a JSON value (string, number, bool,"+
+						" object, array, or null)", a)
+				}
+				arguments = append(arguments, json.RawMessage(a))
+			}
+
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
 			result, err := lsp.ExecuteCommand(
 				cmd.Context(), semanticapi.ExecuteCommandParams{
-					Command: args[0],
+					Command:   args[0],
+					Arguments: arguments,
 				},
 			)
 			if err != nil {
