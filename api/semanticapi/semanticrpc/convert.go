@@ -592,6 +592,42 @@ func DiagnosticsFromProto(diags []*Diagnostic) []semanticapi.Diagnostic {
 	return out
 }
 
+func PreviousResultIDsToProto(ids []semanticapi.PreviousResultID) []*PreviousResultId {
+	out := make([]*PreviousResultId, len(ids))
+	for i, id := range ids {
+		out[i] = &PreviousResultId{
+			Uri:   id.URI,
+			Value: id.Value,
+		}
+	}
+	return out
+}
+
+func WorkspaceDocumentDiagnosticReportFromProto(
+	r *WorkspaceDocumentDiagnosticReport,
+) semanticapi.WorkspaceDocumentDiagnosticReport {
+	if r == nil {
+		return semanticapi.WorkspaceDocumentDiagnosticReport{}
+	}
+	return semanticapi.WorkspaceDocumentDiagnosticReport{
+		Kind:     r.Kind,
+		ResultID: r.ResultId,
+		URI:      r.Uri,
+		Version:  r.Version,
+		Items:    DiagnosticsFromProto(r.Items),
+	}
+}
+
+func WorkspaceDocumentDiagnosticReportsFromProto(
+	reports []*WorkspaceDocumentDiagnosticReport,
+) []semanticapi.WorkspaceDocumentDiagnosticReport {
+	out := make([]semanticapi.WorkspaceDocumentDiagnosticReport, len(reports))
+	for i, r := range reports {
+		out[i] = WorkspaceDocumentDiagnosticReportFromProto(r)
+	}
+	return out
+}
+
 func DocumentHighlightToProto(h semanticapi.DocumentHighlight) *DocumentHighlight {
 	return &DocumentHighlight{
 		Range: RangeToProto(h.Range),

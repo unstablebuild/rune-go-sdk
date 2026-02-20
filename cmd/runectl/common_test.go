@@ -766,6 +766,55 @@ func (m *mockLSP) Diagnostic(
 	}, nil
 }
 
+func (m *mockLSP) WorkspaceDiagnostic(
+	_ context.Context,
+	_ *semanticrpc.WorkspaceDiagnosticRequest,
+) (*semanticrpc.WorkspaceDiagnosticResponse, error) {
+	return &semanticrpc.WorkspaceDiagnosticResponse{
+		Items: []*semanticrpc.WorkspaceDocumentDiagnosticReport{
+			{
+				Kind:     "full",
+				ResultId: "r1",
+				Uri:      "file:///src/main.go",
+				Version:  1,
+				Items: []*semanticrpc.Diagnostic{{
+					Range: &semanticrpc.Range{
+						Start: &semanticrpc.Position{
+							Line: 3, Character: 10,
+						},
+						End: &semanticrpc.Position{
+							Line: 3, Character: 15,
+						},
+					},
+					Severity: 1,
+					Code:     "E001",
+					Source:   "test",
+					Message:  "undefined variable",
+				}},
+			},
+			{
+				Kind:    "full",
+				Uri:     "file:///src/util.go",
+				Version: 2,
+				Items: []*semanticrpc.Diagnostic{{
+					Range: &semanticrpc.Range{
+						Start: &semanticrpc.Position{
+							Line: 7, Character: 0,
+						},
+						End: &semanticrpc.Position{
+							Line: 7, Character: 5,
+						},
+					},
+					Severity: 2,
+					Code:     "W002",
+					Source:   "test",
+					Message:  "unused import",
+				}},
+			},
+		},
+	}, nil
+}
+
 func (m *mockLSP) Rename(
 	_ context.Context,
 	req *semanticrpc.RenameRequest,

@@ -723,6 +723,28 @@ message DiagnosticResponse {
   DocumentDiagnosticReport report = 1;
 }
 
+message PreviousResultId {
+  string uri = 1;
+  string value = 2;
+}
+
+message WorkspaceDiagnosticRequest {
+  string identifier = 1;
+  repeated PreviousResultId previous_result_ids = 2;
+}
+
+message WorkspaceDocumentDiagnosticReport {
+  string kind = 1;
+  string result_id = 2;
+  string uri = 3;
+  int32 version = 4;
+  repeated Diagnostic items = 5;
+}
+
+message WorkspaceDiagnosticResponse {
+  repeated WorkspaceDocumentDiagnosticReport items = 1;
+}
+
 message WorkspaceSymbolRequest {
   string query = 1;
 }
@@ -1038,6 +1060,7 @@ service LSP {
 
   // Diagnostics
   rpc Diagnostic(DiagnosticRequest) returns (DiagnosticResponse);
+  rpc WorkspaceDiagnostic(WorkspaceDiagnosticRequest) returns (WorkspaceDiagnosticResponse);
 
   // Workspace
   rpc WorkspaceSymbol(WorkspaceSymbolRequest) returns (WorkspaceSymbolResponse);

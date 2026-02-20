@@ -47,6 +47,7 @@ func registerLSPTools( //nolint:funlen
 	registerLSPSymbols(s, lsp, bgCtx)
 	registerLSPWorkspaceSymbols(s, lsp, bgCtx)
 	registerLSPDiagnostics(s, lsp, bgCtx)
+	registerLSPWorkspaceDiagnostics(s, lsp, bgCtx)
 	registerLSPDocHighlight(s, lsp, bgCtx)
 	registerLSPCodeLens(s, lsp, bgCtx)
 	registerLSPFoldingRange(s, lsp, bgCtx)
@@ -1157,6 +1158,72 @@ func registerLSPDiagnostics(
 					Message:   d.Message,
 					Source:    d.Source,
 					Code:      d.Code,
+				}
+			}
+			return mcpJSON(flat)
+		},
+	)
+}
+
+func registerLSPWorkspaceDiagnostics(
+	s *server.MCPServer,
+	lsp semanticapi.LSP,
+	bgCtx context.Context,
+) {
+	s.AddTool(
+		mcp.NewTool("lsp_workspace_diagnostics",
+			mcp.WithDescription(
+				"Returns diagnostics (errors, "+
+					"warnings) for all files "+
+					"in the workspace.\n\n"+
+					"Use this tool when:\n"+
+					"- Checking for errors or "+
+					"warnings across the "+
+					"entire workspace\n"+
+					"- Need a project-wide "+
+					"error overview\n\n"+
+					"Do NOT use this tool "+
+					"when:\n"+
+					"- Only need diagnostics "+
+					"for a single known file "+
+					"— use lsp_diagnostics\n\n"+
+					"Returns [{severity, "+
+					"range, message, source, "+
+					"code, uri}].",
+			),
+		),
+		func(
+			_ context.Context,
+			_ mcp.CallToolRequest,
+		) (*mcp.CallToolResult, error) {
+			report, err := lsp.WorkspaceDiagnostic(
+				bgCtx,
+				semanticapi.WorkspaceDiagnosticParams{},
+			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			flat := make(
+				[]flatWorkspaceDiagnostic,
+				0, len(report.Items),
+			)
+			for _, doc := range report.Items {
+				for _, d := range doc.Items {
+					flat = append(flat,
+						flatWorkspaceDiagnostic{
+							URI: doc.URI,
+							Severity: severityString(
+								d.Severity,
+							),
+							StartLine: d.Range.Start.Line,
+							StartChar: d.Range.Start.Character,
+							EndLine:   d.Range.End.Line,
+							EndChar:   d.Range.End.Character,
+							Message:   d.Message,
+							Source:    d.Source,
+							Code:      d.Code,
+						},
+					)
 				}
 			}
 			return mcpJSON(flat)

@@ -271,6 +271,27 @@ func TestMCPLSP(t *testing.T) {
 			},
 		},
 		{
+			name: "ws_diags",
+			tool: "lsp_workspace_diagnostics",
+			args: map[string]any{},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out,
+					"undefined variable",
+				)
+				require.Contains(t, out,
+					"unused import",
+				)
+				require.Contains(t, out, "Error")
+				require.Contains(t, out, "Warning")
+				require.Contains(t, out,
+					"file:///src/main.go",
+				)
+				require.Contains(t, out,
+					"file:///src/util.go",
+				)
+			},
+		},
+		{
 			name: "rename",
 			tool: "lsp_rename",
 			args: map[string]any{

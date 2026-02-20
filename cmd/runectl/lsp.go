@@ -278,6 +278,7 @@ func newLSPCmd(a *app) *cobra.Command {
 		newLSPSymbolsCmd(a),
 		newLSPWorkspaceSymbolsCmd(a),
 		newLSPDiagnosticsCmd(a),
+		newLSPWorkspaceDiagnosticsCmd(a),
 		newLSPRenameCmd(a),
 		newLSPCodeActionsCmd(a),
 		newLSPCompletionCmd(a),
@@ -714,6 +715,82 @@ func newLSPDiagnosticsCmd(a *app) *cobra.Command {
 			it := iterator.FromSlice(flat)
 			return printIterator(cmd.Context(), format, it, []string{
 				"Severity", "StartLine", "StartChar",
+				"EndLine", "EndChar",
+				"Message", "Source", "Code",
+			})
+		},
+	}
+
+	cmd.Flags().StringVarP(
+		&format, "format", "F", "",
+		"Output format: table, json, or Go template",
+	)
+
+	return cmd
+}
+
+type flatWorkspaceDiagnostic struct {
+	URI       string `json:"uri"`
+	Severity  string `json:"severity"`
+	StartLine uint32 `json:"start_line"`
+	StartChar uint32 `json:"start_char"`
+	EndLine   uint32 `json:"end_line"`
+	EndChar   uint32 `json:"end_char"`
+	Message   string `json:"message"`
+	Source    string `json:"source"`
+	Code      string `json:"code"`
+}
+
+func newLSPWorkspaceDiagnosticsCmd(a *app) *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "workspace-diagnostics",
+		Short: "Get diagnostics for the entire workspace",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) (retErr error) {
+			defer func() { retErr = formatError(format, retErr) }()
+			lsp, err := a.getLSP(cmd.Context())
+			if err != nil {
+				return err
+			}
+			report, err := lsp.WorkspaceDiagnostic(
+				cmd.Context(), semanticapi.WorkspaceDiagnosticParams{},
+			)
+			if err != nil {
+				return err
+			}
+			flat := make([]flatWorkspaceDiagnostic, 0, len(report.Items))
+			for _, doc := range report.Items {
+				for _, d := range doc.Items {
+					flat = append(flat, flatWorkspaceDiagnostic{
+						URI:       doc.URI,
+						Severity:  severityString(d.Severity),
+						StartLine: d.Range.Start.Line,
+						StartChar: d.Range.Start.Character,
+						EndLine:   d.Range.End.Line,
+						EndChar:   d.Range.End.Character,
+						Message:   d.Message,
+						Source:    d.Source,
+						Code:      d.Code,
+					})
+				}
+			}
+			if format == "" {
+				for _, d := range flat {
+					fmt.Printf(
+						"[%s] %s %d:%d: %s (%s, %s)\n",
+						d.Severity,
+						d.URI,
+						d.StartLine, d.StartChar,
+						d.Message, d.Source, d.Code,
+					)
+				}
+				return nil
+			}
+			it := iterator.FromSlice(flat)
+			return printIterator(cmd.Context(), format, it, []string{
+				"URI", "Severity", "StartLine", "StartChar",
 				"EndLine", "EndChar",
 				"Message", "Source", "Code",
 			})
