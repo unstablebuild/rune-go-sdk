@@ -127,6 +127,9 @@ Before completing ANY task that modifies `.go` files, you MUST:
 5. Use the `go-idioms` subagent to review all modified Go files
 6. Address any violations it identifies
 7. Re-run the subagent to confirm compliance
+8. Use the `tui` subagent to review all modified Go files
+9. Address any violations it identifies
+10. Re-run the subagent to confirm compliance
 
 Never mark a task complete without this review step.
 

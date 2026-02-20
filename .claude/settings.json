@@ -13,16 +13,6 @@
     "Stop": [
       {
         "hooks": [
-		  {
-            "type": "agent",
-            "prompt": "You are a senior code reviewer. Read .claude/agents/reviewer.md for instructions. Review each for idiom violations per the rules. Return {\"ok\": true} if all pass, or {\"ok\": false, \"reason\": \"violations found: ...\"} with details.",
-            "timeout": 600
-          },
-		  {
-            "type": "agent",
-            "prompt": "You are a Go idiom reviewer. Read .claude/agents/go-idioms.md for instructions. Review each for idiom violations per the rules. Return {\"ok\": true} if all pass, or {\"ok\": false, \"reason\": \"violations found: ...\"} with details.",
-            "timeout": 240
-          },
           {
             "type": "command",
             "command": "jq -r '.message // \"claude finished\"' | { IFS= read -r msg; runectl notify success \"$msg\"; }"
