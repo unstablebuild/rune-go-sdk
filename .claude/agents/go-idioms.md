@@ -1,7 +1,7 @@
 ---
 name: go-idioms
 description: Go idiom agent - reviews Go code for idiomatic patterns, style, and best practices.
-model: sonnet
+model: haiku
 color: blue
 ---
 

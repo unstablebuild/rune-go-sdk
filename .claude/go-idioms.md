@@ -1,6 +1,3 @@
-# Go Style Guide
-
-## Guidelines
 ## Go Style Guide
 
 ### Key Rules
@@ -29,6 +26,38 @@
 - Pre-allocate slice/map capacity when size is known
 - Use raw string literals to avoid escaping (`str`)
 - Use C-style comments for naked bool params: `fn(true /* isLocal */)`
+
+### Line wrapping
+
+When wrapping long Go function signatures, **do NOT** use the style "one parameter per line"
+unless there is a strong readability reason. This is considered noisy and makes
+small edits create large diffs.
+
+#### Bad (avoid)
+- Don’t wrap like this (one param per line):
+```go
+func HoverHandler(
+    lsp semanticapi.LSP,
+    wm browserapi.WindowManager,
+    newFloating func(string) component.Floating,
+) (textapi.CommandHandler, error) {
+```
+
+#### Good (preferred)
+Prefer packing multiple parameters per line up to the line limit; wrap at commas:
+
+```go
+func HoverHandler(
+    lsp semanticapi.LSP, wm browserapi.WindowManager,
+    newFloating func(string) component.Floating,
+) (textapi.CommandHandler, error) {
+```
+
+If the signature is still too long, break at semantic boundaries:
+- keep each name type pair together
+- keep func(...) ReturnType together when possible
+- keep return types together (don’t scatter textapi.CommandHandler and error)
+- avoid leaving lone ) on its own line
 
 ### Testing
 - Table-driven tests with subtests, using `tests` slice and `test` in loop var
