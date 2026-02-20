@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -670,6 +671,22 @@ func TestProgressTokenUnionType(t *testing.T) {
 			assert.JSONEq(t, tt.marshalCompare, string(b))
 		})
 	}
+}
+
+func TestNewWorkDoneTokenReturnsValidUUID(t *testing.T) {
+	token := NewWorkDoneToken()
+	require.NotNil(t, token)
+	assert.False(t, token.IsInteger)
+	assert.NotEmpty(t, token.StringValue)
+
+	_, err := uuid.Parse(token.StringValue)
+	require.NoError(t, err)
+}
+
+func TestNewWorkDoneTokenSuccessiveCallsAreDistinct(t *testing.T) {
+	a := NewWorkDoneToken()
+	b := NewWorkDoneToken()
+	assert.NotEqual(t, a.StringValue, b.StringValue)
 }
 
 func TestCreateFileJSON(t *testing.T) {
