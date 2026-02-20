@@ -30,5 +30,10 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Read(.claude/**)"
+    ]
   }
 }
