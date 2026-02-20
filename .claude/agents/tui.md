@@ -1,7 +1,7 @@
 ---
 name: tui
 description: rune-go-sdk TUI review agent - checks tui.Component and tui.Handler implementations for correctness, patterns, and good testing practices.
-model: sonnet
+model: haiku
 color: purple
 ---
 

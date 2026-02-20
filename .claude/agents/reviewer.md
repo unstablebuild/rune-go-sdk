@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Code review agent - critically reviews changes for quality, security, and correctness
-model: opus
+model: sonnet
 color: yellow
 ---
 
