@@ -3,6 +3,7 @@ name: reviewer
 description: Code review agent - critically reviews changes for quality, security, and correctness
 model: sonnet
 color: yellow
+tools: mcp__rune__syntax_search_node, mcp__rune__lsp_hover, mcp__rune__lsp_workspace_symbols, mcp__rune__lsp_definition, mcp__rune__lsp_references, Read, Bash
 ---
 
 # Senior Code Reviewer Agent

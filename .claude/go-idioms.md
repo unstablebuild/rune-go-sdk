@@ -41,6 +41,20 @@ func HoverHandler(
     wm browserapi.WindowManager,
     newFloating func(string) component.Floating,
 ) (textapi.CommandHandler, error) {
+}
+```
+- Don't break an expression into multiple lines if it fits within 90 characters.
+```go
+	prevIDs := make(
+		[]semanticapi.PreviousResultID, len(prevProtos),
+	)
+```
+- Don't use a variable if statement, if it doesn't fit in 90 characters.
+```go
+	if err := myImplementation.myMethod(
+		context.Background(), myArg1, myArg2, myArg3
+	); err != nil {
+	}
 ```
 
 #### Good (preferred)
@@ -51,6 +65,14 @@ func HoverHandler(
     lsp semanticapi.LSP, wm browserapi.WindowManager,
     newFloating func(string) component.Floating,
 ) (textapi.CommandHandler, error) {
+```
+```go
+	prevIDs := make([]semanticapi.PreviousResultID, len(prevProtos))
+```
+```go
+	err := myImplementation.myMethod(context.Background(), myArg1, myArg2, myArg3)
+	if err != nil {
+	}
 ```
 
 If the signature is still too long, break at semantic boundaries:

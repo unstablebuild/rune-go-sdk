@@ -121,6 +121,7 @@ that the test passes.
 ## Go Code Quality Gate
 
 Before completing ANY task that modifies `.go` files, you MUST:
+0. Run `make` and run `make lint` to ensure no linting or compiling issues remain.
 1. Use the `reviewer` subagent to review all modified Go files
 3. Address any violations it identifies
 4. Re-run the subagent to confirm compliance
@@ -209,6 +210,10 @@ your own tree-sitter query to find it use rune's search syntax tools:
   on a type at a cursor position.
 
 ### Error Checking (prefer over go build / go vet)
+
+- **`lsp_workspace_diagnostics`** — Get compilation errors, warnings,
+  and linter diagnostics for the whole workspace. Use instead of running
+  `go build` or `go vet` to check for errors.
 
 - **`lsp_diagnostics`** — Get compilation errors, warnings,
   and linter diagnostics for a file. Use instead of running

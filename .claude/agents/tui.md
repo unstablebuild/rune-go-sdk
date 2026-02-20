@@ -3,6 +3,7 @@ name: tui
 description: rune-go-sdk TUI review agent - checks tui.Component and tui.Handler implementations for correctness, patterns, and good testing practices.
 model: haiku
 color: purple
+tools: mcp__rune__syntax_search_node, mcp__rune__lsp_hover, mcp__rune__lsp_workspace_symbols, mcp__rune__lsp_definition, mcp__rune__lsp_references, Read, Bash
 ---
 
 # TUI Component & Handler Review Agent

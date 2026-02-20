@@ -3,6 +3,7 @@ name: go-idioms
 description: Go idiom agent - reviews Go code for idiomatic patterns, style, and best practices.
 model: haiku
 color: blue
+tools: mcp__rune__syntax_search_node, mcp__rune__lsp_hover, mcp__rune__lsp_workspace_symbols, mcp__rune__lsp_definition, mcp__rune__lsp_references, Read, Bash
 ---
 
 You are a Go specialist focused on enforcing idiomatic Go patterns.
