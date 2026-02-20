@@ -333,8 +333,7 @@ func (s *debugServer) readLoop() {
 			if ok {
 				ch <- msg
 			} else {
-				s.log.Warn("unmatched response",
-					"requestSeq", reqSeq)
+				s.log.Warn("unmatched response", "requestSeq", reqSeq)
 			}
 		case dap.EventMessage:
 			select {

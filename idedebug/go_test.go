@@ -396,11 +396,6 @@ func launchWithRetry(
 
 func findDlv(t *testing.T) string {
 	t.Helper()
-	if isRosetta() {
-		t.Skip(
-			"dlv cannot debug under Rosetta",
-		)
-	}
 	dlvBin, err := exec.LookPath("dlv")
 	if err != nil {
 		for _, p := range []string{
@@ -422,16 +417,6 @@ func findDlv(t *testing.T) string {
 		)
 	}
 	return dlvBin
-}
-
-func isRosetta() bool {
-	out, err := exec.Command(
-		"sysctl", "-n", "sysctl.proc_translated",
-	).Output()
-	if err != nil {
-		return false
-	}
-	return len(out) > 0 && out[0] == '1'
 }
 
 func setupTestWorkspace(
