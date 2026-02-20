@@ -14,7 +14,11 @@
 
 package semanticapi
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/google/uuid"
+)
 
 // Position represents a position in a text document (0-based line and character).
 type Position struct {
@@ -1824,6 +1828,7 @@ type InitializeParams struct {
 	WorkspaceFolders  []WorkspaceFolder `json:"workspaceFolders,omitempty"`
 	Trace             TraceValue        `json:"trace,omitempty"`
 	InitializeOptions json.RawMessage   `json:"initializationOptions,omitempty"`
+	WorkDoneToken     *ProgressToken    `json:"workDoneToken,omitempty"`
 }
 
 // InitializeResult contains the result of the Initialize request.
@@ -1880,33 +1885,38 @@ type SignatureHelpParams struct {
 
 // DefinitionParams contains the parameters for a Definition request.
 type DefinitionParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DeclarationParams contains the parameters for a Declaration request.
 type DeclarationParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // TypeDefinitionParams contains the parameters for a TypeDefinition request.
 type TypeDefinitionParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // ImplementationParams contains the parameters for an Implementation request.
 type ImplementationParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // ReferenceParams contains the parameters for a References request.
 type ReferenceParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
-	Context      ReferenceContext       `json:"context"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	Context       ReferenceContext       `json:"context"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DocumentHighlightParams contains the parameters for a DocumentHighlight request.
@@ -1922,9 +1932,10 @@ type DocumentSymbolParams struct {
 
 // CodeActionParams contains the parameters for a CodeAction request.
 type CodeActionParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Range        Range                  `json:"range"`
-	Context      CodeActionContext      `json:"context"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Range         Range                  `json:"range"`
+	Context       CodeActionContext      `json:"context"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // CodeLensParams contains the parameters for a CodeLens request.
@@ -1947,15 +1958,17 @@ type DocumentRangeFormattingParams struct {
 
 // RenameParams contains the parameters for a Rename request.
 type RenameParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
-	NewName      string                 `json:"newName"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	NewName       string                 `json:"newName"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // PrepareRenameParams contains the parameters for a PrepareRename request.
 type PrepareRenameParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // PrepareRenameResult contains the result of a PrepareRename request.
@@ -2050,13 +2063,15 @@ type DocumentDiagnosticParams struct {
 
 // WorkspaceSymbolParams contains the parameters for a WorkspaceSymbol request.
 type WorkspaceSymbolParams struct {
-	Query string `json:"query"`
+	Query         string         `json:"query"`
+	WorkDoneToken *ProgressToken `json:"workDoneToken,omitempty"`
 }
 
 // ExecuteCommandParams contains the parameters for an ExecuteCommand request.
 type ExecuteCommandParams struct {
-	Command   string            `json:"command"`
-	Arguments []json.RawMessage `json:"arguments,omitempty"`
+	Command       string            `json:"command"`
+	Arguments     []json.RawMessage `json:"arguments,omitempty"`
+	WorkDoneToken *ProgressToken    `json:"workDoneToken,omitempty"`
 }
 
 // CallHierarchyPrepareParams contains the parameters for a PrepareCallHierarchy request.
@@ -2260,6 +2275,12 @@ func (p *ProgressToken) UnmarshalJSON(data []byte) error {
 	}
 	p.IsInteger = true
 	return json.Unmarshal(data, &p.IntegerValue)
+}
+
+// NewWorkDoneToken returns a new ProgressToken with a UUID string
+// value, suitable for use as a workDoneToken in LSP requests.
+func NewWorkDoneToken() *ProgressToken {
+	return &ProgressToken{StringValue: uuid.NewString()}
 }
 
 // ProgressParams contains the parameters for a $/progress notification.
