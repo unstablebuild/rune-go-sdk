@@ -471,6 +471,26 @@ func (c *Client) Diagnostic(_ context.Context, params semanticapi.DocumentDiagno
 	return DocumentDiagnosticReportFromProto(res.GetReport()), nil
 }
 
+func (c *Client) WorkspaceDiagnostic(
+	_ context.Context,
+	params semanticapi.WorkspaceDiagnosticParams,
+) (semanticapi.WorkspaceDiagnosticReport, error) {
+	ctx, cancel := c.ctxWithTimeout()
+	defer cancel()
+
+	req := &WorkspaceDiagnosticRequest{
+		Identifier:        params.Identifier,
+		PreviousResultIds: PreviousResultIDsToProto(params.PreviousResultIDs),
+	}
+	res, err := c.lsp.WorkspaceDiagnostic(ctx, req)
+	if err != nil {
+		return semanticapi.WorkspaceDiagnosticReport{}, err
+	}
+	return semanticapi.WorkspaceDiagnosticReport{
+		Items: WorkspaceDocumentDiagnosticReportsFromProto(res.GetItems()),
+	}, nil
+}
+
 func (c *Client) WorkspaceSymbol(_ context.Context, params semanticapi.WorkspaceSymbolParams) ([]semanticapi.SymbolInformation, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()

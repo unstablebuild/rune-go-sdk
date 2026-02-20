@@ -2061,6 +2061,34 @@ type DocumentDiagnosticParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
+// PreviousResultID pairs a document URI with a previous diagnostic result ID.
+type PreviousResultID struct {
+	URI   string `json:"uri"`
+	Value string `json:"value"`
+}
+
+// WorkspaceDiagnosticParams contains the parameters for a WorkspaceDiagnostic request.
+type WorkspaceDiagnosticParams struct {
+	Identifier        string             `json:"identifier,omitempty"`
+	PreviousResultIDs []PreviousResultID `json:"previousResultIds,omitempty"`
+	WorkDoneToken     string             `json:"workDoneToken,omitempty"`
+}
+
+// WorkspaceDocumentDiagnosticReport is a per-document diagnostic report
+// within a workspace diagnostic response.
+type WorkspaceDocumentDiagnosticReport struct {
+	Kind     string       `json:"kind"`
+	ResultID string       `json:"resultId,omitempty"`
+	URI      string       `json:"uri"`
+	Version  int32        `json:"version,omitempty"`
+	Items    []Diagnostic `json:"items,omitempty"`
+}
+
+// WorkspaceDiagnosticReport contains the response from a WorkspaceDiagnostic request.
+type WorkspaceDiagnosticReport struct {
+	Items []WorkspaceDocumentDiagnosticReport `json:"items"`
+}
+
 // WorkspaceSymbolParams contains the parameters for a WorkspaceSymbol request.
 type WorkspaceSymbolParams struct {
 	Query         string         `json:"query"`

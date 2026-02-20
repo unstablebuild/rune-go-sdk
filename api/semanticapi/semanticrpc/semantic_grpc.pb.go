@@ -48,6 +48,7 @@ const (
 	LSP_SemanticTokensFull_FullMethodName         = "/semantic.LSP/SemanticTokensFull"
 	LSP_SemanticTokensRange_FullMethodName        = "/semantic.LSP/SemanticTokensRange"
 	LSP_Diagnostic_FullMethodName                 = "/semantic.LSP/Diagnostic"
+	LSP_WorkspaceDiagnostic_FullMethodName        = "/semantic.LSP/WorkspaceDiagnostic"
 	LSP_WorkspaceSymbol_FullMethodName            = "/semantic.LSP/WorkspaceSymbol"
 	LSP_ExecuteCommand_FullMethodName             = "/semantic.LSP/ExecuteCommand"
 	LSP_PrepareCallHierarchy_FullMethodName       = "/semantic.LSP/PrepareCallHierarchy"
@@ -122,6 +123,7 @@ type LSPClient interface {
 	SemanticTokensRange(ctx context.Context, in *SemanticTokensRangeRequest, opts ...grpc.CallOption) (*SemanticTokensRangeResponse, error)
 	// Diagnostics
 	Diagnostic(ctx context.Context, in *DiagnosticRequest, opts ...grpc.CallOption) (*DiagnosticResponse, error)
+	WorkspaceDiagnostic(ctx context.Context, in *WorkspaceDiagnosticRequest, opts ...grpc.CallOption) (*WorkspaceDiagnosticResponse, error)
 	// Workspace
 	WorkspaceSymbol(ctx context.Context, in *WorkspaceSymbolRequest, opts ...grpc.CallOption) (*WorkspaceSymbolResponse, error)
 	ExecuteCommand(ctx context.Context, in *ExecuteCommandRequest, opts ...grpc.CallOption) (*ExecuteCommandResponse, error)
@@ -465,6 +467,16 @@ func (c *lSPClient) Diagnostic(ctx context.Context, in *DiagnosticRequest, opts 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DiagnosticResponse)
 	err := c.cc.Invoke(ctx, LSP_Diagnostic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lSPClient) WorkspaceDiagnostic(ctx context.Context, in *WorkspaceDiagnosticRequest, opts ...grpc.CallOption) (*WorkspaceDiagnosticResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkspaceDiagnosticResponse)
+	err := c.cc.Invoke(ctx, LSP_WorkspaceDiagnostic_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -849,6 +861,7 @@ type LSPServer interface {
 	SemanticTokensRange(context.Context, *SemanticTokensRangeRequest) (*SemanticTokensRangeResponse, error)
 	// Diagnostics
 	Diagnostic(context.Context, *DiagnosticRequest) (*DiagnosticResponse, error)
+	WorkspaceDiagnostic(context.Context, *WorkspaceDiagnosticRequest) (*WorkspaceDiagnosticResponse, error)
 	// Workspace
 	WorkspaceSymbol(context.Context, *WorkspaceSymbolRequest) (*WorkspaceSymbolResponse, error)
 	ExecuteCommand(context.Context, *ExecuteCommandRequest) (*ExecuteCommandResponse, error)
@@ -994,6 +1007,9 @@ func (UnimplementedLSPServer) SemanticTokensRange(context.Context, *SemanticToke
 }
 func (UnimplementedLSPServer) Diagnostic(context.Context, *DiagnosticRequest) (*DiagnosticResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Diagnostic not implemented")
+}
+func (UnimplementedLSPServer) WorkspaceDiagnostic(context.Context, *WorkspaceDiagnosticRequest) (*WorkspaceDiagnosticResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WorkspaceDiagnostic not implemented")
 }
 func (UnimplementedLSPServer) WorkspaceSymbol(context.Context, *WorkspaceSymbolRequest) (*WorkspaceSymbolResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WorkspaceSymbol not implemented")
@@ -1636,6 +1652,24 @@ func _LSP_Diagnostic_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LSPServer).Diagnostic(ctx, req.(*DiagnosticRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LSP_WorkspaceDiagnostic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WorkspaceDiagnosticRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LSPServer).WorkspaceDiagnostic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LSP_WorkspaceDiagnostic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LSPServer).WorkspaceDiagnostic(ctx, req.(*WorkspaceDiagnosticRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2374,6 +2408,10 @@ var LSP_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Diagnostic",
 			Handler:    _LSP_Diagnostic_Handler,
+		},
+		{
+			MethodName: "WorkspaceDiagnostic",
+			Handler:    _LSP_WorkspaceDiagnostic_Handler,
 		},
 		{
 			MethodName: "WorkspaceSymbol",

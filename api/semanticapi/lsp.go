@@ -51,6 +51,7 @@ type LSP interface {
 	SemanticTokensRange(ctx context.Context, params SemanticTokensRangeParams) (*SemanticTokens, error)
 
 	Diagnostic(ctx context.Context, params DocumentDiagnosticParams) (DocumentDiagnosticReport, error)
+	WorkspaceDiagnostic(ctx context.Context, params WorkspaceDiagnosticParams) (WorkspaceDiagnosticReport, error)
 
 	WorkspaceSymbol(ctx context.Context, params WorkspaceSymbolParams) ([]SymbolInformation, error)
 	ExecuteCommand(ctx context.Context, params ExecuteCommandParams) (string, error)

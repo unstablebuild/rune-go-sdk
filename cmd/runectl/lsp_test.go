@@ -104,6 +104,32 @@ func TestLSP(t *testing.T) {
 			wantOut: "[Error] 3:10: undefined variable (test, E001)\n",
 		},
 
+		// workspace-diagnostics
+		{
+			name: "workspace-diagnostics",
+			args: []string{"lsp", "workspace-diagnostics"},
+			wantOut: "[Error] file:///src/main.go 3:10: undefined variable (test, E001)\n" +
+				"[Warning] file:///src/util.go 7:0: unused import (test, W002)\n",
+		},
+		{
+			name: "workspace-diagnostics/j",
+			args: []string{"lsp", "workspace-diagnostics", "-F", "json"},
+			wantOut: `{"uri":"file:///src/main.go",` +
+				`"severity":"Error",` +
+				`"start_line":3,"start_char":10,` +
+				`"end_line":3,"end_char":15,` +
+				`"message":"undefined variable",` +
+				`"source":"test","code":"E001"}` +
+				"\n" +
+				`{"uri":"file:///src/util.go",` +
+				`"severity":"Warning",` +
+				`"start_line":7,"start_char":0,` +
+				`"end_line":7,"end_char":5,` +
+				`"message":"unused import",` +
+				`"source":"test","code":"W002"}` +
+				"\n",
+		},
+
 		// rename
 		{
 			name: "rename",
