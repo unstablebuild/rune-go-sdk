@@ -41,6 +41,34 @@ The SDK is built around three core abstractions defined in `tui/tui.go`:
 2. **Handler** - Component that can handle events (keyboard, mouse) and manage cursor/selection
 3. **Event Loop** (`tui/run.go`) - Polls tcell events, routes to handlers, redraws, and flushes to terminal
 
+#### component.Responsive and handler.Responsive
+Designed to allow collection components (List, FrameUnion, Container, ResponsiveList, etc.)
+to vertically compose their (Responsive) children,
+given the collection's width during a call to Resize.
+- `Height(width int) int` must return a **hint** — the number
+  of lines needed to render content at the given width.
+- The component must **not assume** that `Resize` will be called
+  with the same height returned by `Height()`.
+- If the component can receive less vertical space than it
+  needs, it must implement vertical scrolling or truncation.
+- Text wrapping must happen at the width boundary (no
+  horizontal scrolling for text content).
+
+#### component.Scrollable and handler.Scrollable
+Designed to allow the TUI runtime to show a scroll bar next to
+the handler/component. It should be implemented by components/handlers
+that vertically scroll their content, or collections of Responsive
+component/handlers.
+
+#### component.Floating and handler.Floating
+Designed to allow components that are inherently capable of calculating
+their ideal width and height, because their content size and shape is known
+ahead of time via Dimensions, which should not return the width/height passed
+in the last Resize, but rather the ideal width and height for this component to
+render the entire content. This should be implemented by all components/handlers with
+easy to calculate dimensions or when they're collections of Floating components/handlers.
+
+
 ### Package Organization
 
 - **`tui/`** - Core framework interfaces and event loop
