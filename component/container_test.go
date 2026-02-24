@@ -134,9 +134,9 @@ ef
                     
                     `,
 			}, {
-				Action: func() { require.True(t, l.ScrollDown()) }, Expected: `
+				Action: func() { require.False(t, l.ScrollDown()) }, Expected: `
+cd                  
 ef                  
-                    
                     
                     
                     
@@ -146,8 +146,8 @@ ef
                     `,
 			}, {
 				Action: func() { require.False(t, l.ScrollDown()) }, Expected: `
+cd                  
 ef                  
-                    
                     
                     
                     
@@ -240,15 +240,15 @@ ZZZZZYYYYYYYYYYXXXXX
 					row.AddComponent(testResponsive('#', 2), 5)
 					row.AddComponent(testResponsive('$', 1), 5)
 				}, Expected: `
+aaaaaaaaaabbbbbbbbbb
+aaaaaaaaaabbbbbbbbbb
+aaaaaaaaaabbbbbbbbbb
+ccccccccccdddddddddd
+eeeeeeeeeeffffffffff
+ZZZZZYYYYYYYYYYXXXXX
 333332222211111     
-@@@@@@@@@@########$$
-@@@@@@@@@@########$$
-@@@@@@@@@@########$$
-                    
-                    
-                    
-                    
-                    `,
+333332222211111     
+333332222211111     `,
 			},
 		}
 		comptest.TestComponent(t, l, w, tests)

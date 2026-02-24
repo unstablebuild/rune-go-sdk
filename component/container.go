@@ -48,6 +48,9 @@ func (c *Container) AddRow() *Row {
 // Resize satisfies tui.Component.
 func (c *Container) Resize(width, height int) {
 	c.width, c.height = width, height
+	if mo := c.maxOffset(); c.offset > mo {
+		c.offset = mo
+	}
 	offset := -c.offset
 	for _, row := range c.rows {
 		rowHeight := row.Height(width)
@@ -101,6 +104,12 @@ func (c *Container) ScrollDown() bool {
 	return true
 }
 
+// ScrollToBottom scrolls the contents of this container
+// to the bottom.
+func (c *Container) ScrollToBottom() {
+	c.offset = c.maxOffset()
+}
+
 // Height satisfies component.Responsive.
 func (c *Container) Height(width int) (height int) {
 	for _, row := range c.rows {
@@ -122,13 +131,10 @@ func (r *Container) Dimensions() (retWidth int, retHeight int) {
 	return
 }
 
-func (c *Container) maxOffset() (ret int) {
+func (c *Container) maxOffset() int {
+	totalHeight := 0
 	for _, row := range c.rows {
-		rowHeight := row.Height(c.width)
-		ret += rowHeight
+		totalHeight += row.Height(c.width)
 	}
-	if ret > 0 {
-		ret--
-	}
-	return
+	return max(0, totalHeight-c.height)
 }
