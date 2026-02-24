@@ -15,6 +15,7 @@
 package inputbox
 
 import (
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -909,4 +910,505 @@ func setText(ib *Handler, s string) {
 			Ch:   ch,
 		})
 	}
+}
+
+func drawHandler(h *Handler, w, hh int) string {
+	return handlertest.DrawHandler(h, w, hh)
+}
+
+func TestPromptDisplay(t *testing.T) {
+	t.Run("prompt rendered on first line", func(t *testing.T) {
+		ib := New(WithPrompt("> "))
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "",
+				Expected:      "> ▐                 ",
+			},
+			{
+				InputSequence: "h",
+				Expected:      "> h▐                ",
+			},
+			{
+				InputSequence: "ello",
+				Expected:      "> hello▐            ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("text wraps after prompt", func(t *testing.T) {
+		ib := New(WithPrompt("> "))
+		// width=5, promptWidth=2, firstLineChars=3
+		// "hello" => line0: "> hel", line1: "lo"
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "hello",
+				Expected:      "> hel\nlo▐  ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 5, 2, cases)
+	})
+
+	t.Run("prompt not shown when scrolled past", func(t *testing.T) {
+		// With a long text that scrolls the prompt off-screen,
+		// the prompt should not appear.
+		ib := New(WithPrompt("> "))
+		// width=5, promptWidth=2, firstLineChars=3
+		// "abcdefghij" = 10 chars
+		// line0: "> abc" (3 chars), line1: "defgh" (5 chars), line2: "ij" (2 chars), line3: cursor
+		// With height=2, should show last 2 visible lines.
+		ib.Resize(5, 2)
+		setText(ib, "abcdefghij")
+		got := drawHandler(ib, 5, 2)
+		assert.Contains(t, got, "ij")
+	})
+}
+
+func TestPromptHeight(t *testing.T) {
+	t.Run("empty with prompt", func(t *testing.T) {
+		ib := New(WithPrompt("> "))
+		assert.Equal(t, 1, ib.Height(20))
+	})
+
+	t.Run("short text with prompt", func(t *testing.T) {
+		ib := New(WithPrompt("> "))
+		ib.Resize(20, 1)
+		setText(ib, "hello")
+		assert.Equal(t, 1, ib.Height(20))
+	})
+
+	t.Run("text wraps with prompt", func(t *testing.T) {
+		ib := New(WithPrompt("> "))
+		// width=5, promptWidth=2, firstLineChars=3
+		ib.Resize(5, 3)
+		setText(ib, "hello")
+		// "hel" on line 0, "lo" on line 1, cursor after 'o'
+		assert.Equal(t, 2, ib.Height(5))
+	})
+}
+
+func TestHistoryUpDown(t *testing.T) {
+	ib := New(
+		WithHistory([]string{"first", "second", "third"}),
+	)
+	cases := []handlertest.SequenceTestCase{
+		{InputSequence: "", Expected: "▐                   "},
+		{InputSequence: "<up>", Expected: "third▐              "},
+		{InputSequence: "<up>", Expected: "second▐             "},
+		{InputSequence: "<up>", Expected: "first▐              "},
+		{InputSequence: "<up>", Expected: "first▐              "},
+		{InputSequence: "<down>", Expected: "second▐             "},
+		{InputSequence: "<down>", Expected: "third▐              "},
+		{InputSequence: "<down>", Expected: "▐                   "},
+	}
+	handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+}
+
+func TestHistoryPreservesLine(t *testing.T) {
+	ib := New(
+		WithHistory([]string{"old"}),
+	)
+	cases := []handlertest.SequenceTestCase{
+		{InputSequence: "current", Expected: "current▐            "},
+		{InputSequence: "<up>", Expected: "old▐                "},
+		{InputSequence: "<down>", Expected: "current▐            "},
+	}
+	handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+}
+
+func TestHistoryEmacsBindings(t *testing.T) {
+	ib := New(
+		WithHistory([]string{"first", "second"}),
+	)
+	cases := []handlertest.SequenceTestCase{
+		{InputSequence: "", Expected: "▐                   "},
+		{InputSequence: "<c-p>", Expected: "second▐             "},
+		{InputSequence: "<c-p>", Expected: "first▐              "},
+		{InputSequence: "<c-n>", Expected: "second▐             "},
+		{InputSequence: "<c-n>", Expected: "▐                   "},
+	}
+	handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+}
+
+func TestReverseSearch(t *testing.T) {
+	t.Run("basic search", func(t *testing.T) {
+		ib := New(
+			WithHistory([]string{
+				"git commit", "git push", "make test",
+			}),
+		)
+		ib.Resize(40, 1)
+		sendKeys(t, ib, "<c-r>")
+		assert.True(t, ib.searching)
+
+		sendKeys(t, ib, "git")
+		got := drawHandler(ib, 40, 1)
+		assert.Contains(t, got, "git")
+	})
+
+	t.Run("search cancel restores line", func(t *testing.T) {
+		ib := New(
+			WithHistory([]string{"old"}),
+		)
+		ib.Resize(20, 1)
+		sendKeys(t, ib, "current")
+		sendKeys(t, ib, "<c-r>")
+		sendKeys(t, ib, "old")
+		// Ctrl+G cancels
+		sendKeys(t, ib, "<c-g>")
+		assert.False(t, ib.searching)
+		assert.Equal(t, "current", ib.Text())
+	})
+
+	t.Run("search accept via enter", func(t *testing.T) {
+		ib := New(
+			WithHistory([]string{
+				"first", "second",
+			}),
+		)
+		ib.Resize(20, 1)
+		sendKeys(t, ib, "<c-r>")
+		sendKeys(t, ib, "first")
+		exit, _ := ib.Handle(term.Event{
+			Type: term.EventKey,
+			Key:  term.KeyEnter,
+		})
+		assert.True(t, exit)
+		assert.Equal(t, "first", ib.Text())
+	})
+
+	t.Run("search cycling", func(t *testing.T) {
+		ib := New(
+			WithHistory([]string{
+				"alpha", "beta", "alpha2",
+			}),
+		)
+		ib.Resize(40, 1)
+		sendKeys(t, ib, "<c-r>")
+		sendKeys(t, ib, "alpha")
+		got1 := drawHandler(ib, 40, 1)
+		assert.Contains(t, got1, "alpha2")
+
+		sendKeys(t, ib, "<c-r>")
+		got2 := drawHandler(ib, 40, 1)
+		assert.Contains(t, got2, "alpha")
+	})
+
+	t.Run("ctrl-c cancels search", func(t *testing.T) {
+		ib := New(
+			WithHistory([]string{"old"}),
+		)
+		ib.Resize(20, 1)
+		sendKeys(t, ib, "current")
+		sendKeys(t, ib, "<c-r>")
+		sendKeys(t, ib, "old")
+		assert.True(t, ib.searching)
+		sendKeys(t, ib, "<c-c>")
+		assert.False(t, ib.searching)
+		assert.Equal(t, "current", ib.Text())
+	})
+
+	t.Run("tab accepts search without submit", func(t *testing.T) {
+		ib := New(
+			WithHistory([]string{"make test", "make lint"}),
+		)
+		ib.Resize(20, 1)
+		sendKeys(t, ib, "<c-r>")
+		sendKeys(t, ib, "test")
+		assert.True(t, ib.searching)
+		exit, handled := ib.Handle(term.Event{
+			Type: term.EventKey,
+			Key:  term.KeyTab,
+		})
+		assert.False(t, exit, "tab should not exit")
+		assert.True(t, handled)
+		assert.False(t, ib.searching, "search should end")
+		assert.Equal(t, "make test", ib.Text())
+	})
+}
+
+func TestTabCircular(t *testing.T) {
+	t.Run("single match auto-completes", func(t *testing.T) {
+		completer := func(line string, pos int) (string, []string, string) {
+			return "", []string{"foobar"}, ""
+		}
+		ib := New(WithWordCompleter(completer))
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "foo",
+				Expected:      "foo▐                ",
+			},
+			{
+				InputSequence: "<tab>",
+				Expected:      "foobar▐             ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("multiple matches cycle", func(t *testing.T) {
+		completer := func(line string, pos int) (string, []string, string) {
+			return "", []string{"abc", "abd", "abe"}, ""
+		}
+		ib := New(WithWordCompleter(completer))
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "ab",
+				Expected:      "ab▐                 ",
+			},
+			{
+				InputSequence: "<tab>",
+				Expected:      "abc▐                ",
+			},
+			{
+				InputSequence: "<tab>",
+				Expected:      "abd▐                ",
+			},
+			{
+				InputSequence: "<tab>",
+				Expected:      "abe▐                ",
+			},
+			{
+				InputSequence: "<tab>",
+				Expected:      "abc▐                ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+
+	t.Run("escape cancels completion", func(t *testing.T) {
+		completer := func(line string, pos int) (string, []string, string) {
+			return "", []string{"abc", "abd"}, ""
+		}
+		ib := New(WithWordCompleter(completer))
+		cases := []handlertest.SequenceTestCase{
+			{
+				InputSequence: "ab",
+				Expected:      "ab▐                 ",
+			},
+			{
+				InputSequence: "<tab>",
+				Expected:      "abc▐                ",
+			},
+			{
+				InputSequence: "<esc>",
+				Expected:      "ab▐                 ",
+			},
+		}
+		handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+	})
+}
+
+func TestTabPrints(t *testing.T) {
+	completer := func(line string, pos int) (string, []string, string) {
+		return "", []string{"abc", "abd", "abe"}, ""
+	}
+	ib := New(
+		WithWordCompleter(completer),
+		WithTabStyle(TabPrints),
+	)
+	ib.Resize(20, 3)
+
+	sendKeys(t, ib, "ab")
+	// First tab: common prefix
+	sendKeys(t, ib, "<tab>")
+	assert.Equal(t, "ab", ib.Text())
+
+	// Second tab: show grid
+	sendKeys(t, ib, "<tab>")
+	got := drawHandler(ib, 20, 3)
+	assert.Contains(t, got, "abc")
+	assert.Contains(t, got, "abd")
+	assert.Contains(t, got, "abe")
+}
+
+func TestWordCompleter(t *testing.T) {
+	completer := func(line string, pos int) (string, []string, string) {
+		return "cmd ", []string{"--help", "--version"}, ""
+	}
+	ib := New(WithWordCompleter(completer))
+	cases := []handlertest.SequenceTestCase{
+		{
+			InputSequence: "cmd<space>--",
+			Expected:      "cmd --▐             ",
+		},
+		{
+			InputSequence: "<tab>",
+			Expected:      "cmd --help▐         ",
+		},
+		{
+			InputSequence: "<tab>",
+			Expected:      "cmd --version▐      ",
+		},
+	}
+	handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+}
+
+func TestCtrlCAbort(t *testing.T) {
+	ib := New(WithCtrlCAborts())
+	ib.Resize(20, 1)
+	sendKeys(t, ib, "hello")
+	exit, handled := ib.Handle(term.Event{
+		Type: term.EventKey,
+		Ch:   'c',
+		Mod:  term.ModCtrl,
+	})
+	assert.True(t, exit)
+	assert.True(t, handled)
+	_, err := ib.Result()
+	assert.Equal(t, ErrAborted, err)
+}
+
+func TestCtrlCClear(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	sendKeys(t, ib, "hello")
+	exit, handled := ib.Handle(term.Event{
+		Type: term.EventKey,
+		Ch:   'c',
+		Mod:  term.ModCtrl,
+	})
+	assert.False(t, exit)
+	assert.True(t, handled)
+	assert.Equal(t, "", ib.Text())
+}
+
+func TestCtrlDEOF(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	exit, handled := ib.Handle(term.Event{
+		Type: term.EventKey,
+		Ch:   'd',
+		Mod:  term.ModCtrl,
+	})
+	assert.True(t, exit)
+	assert.True(t, handled)
+	_, err := ib.Result()
+	assert.Equal(t, io.EOF, err)
+}
+
+func TestCtrlDDeletesWhenNotEmpty(t *testing.T) {
+	ib := New()
+	cases := []handlertest.SequenceTestCase{
+		{
+			InputSequence: "abc",
+			Expected:      "abc▐                ",
+		},
+		{
+			InputSequence: "<home><c-d>",
+			Expected:      "▐c                  ",
+		},
+	}
+	handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+}
+
+func TestResult(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	sendKeys(t, ib, "hello")
+	exit, handled := ib.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+	assert.True(t, exit)
+	assert.True(t, handled)
+	text, err := ib.Result()
+	require.NoError(t, err)
+	assert.Equal(t, "hello", text)
+}
+
+func TestReset(t *testing.T) {
+	ib := New(WithHistory([]string{"old"}))
+	ib.Resize(20, 1)
+	sendKeys(t, ib, "hello")
+	ib.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+
+	ib.Reset()
+	assert.Equal(t, "", ib.Text())
+	assert.False(t, ib.done)
+	assert.False(t, ib.aborted)
+	assert.False(t, ib.eof)
+}
+
+func TestCtrlL(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	sendKeys(t, ib, "hello")
+	_, handled := ib.Handle(term.Event{
+		Type: term.EventKey,
+		Ch:   'l',
+		Mod:  term.ModCtrl,
+	})
+	assert.True(t, handled)
+	assert.Equal(t, "hello", ib.Text())
+}
+
+func TestCtrlWDeleteWordBackward(t *testing.T) {
+	ib := New()
+	cases := []handlertest.SequenceTestCase{
+		{
+			InputSequence: "hello<space>world",
+			Expected:      "hello world▐        ",
+		},
+		{
+			InputSequence: "<c-w>",
+			Expected:      "hello ▐             ",
+		},
+	}
+	handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+}
+
+func TestWithText(t *testing.T) {
+	ib := New(WithText("prefilled"))
+	cases := []handlertest.SequenceTestCase{
+		{
+			InputSequence: "",
+			Expected:      "prefilled▐          ",
+		},
+	}
+	handlertest.RunHandlerSequence(t, ib, 20, 1, cases)
+}
+
+func TestNonKeyEventIgnored(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	exit, handled := ib.Handle(term.Event{
+		Type: term.EventResize,
+	})
+	assert.False(t, exit)
+	assert.False(t, handled)
+}
+
+func TestAppendHistory(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	ib.AppendHistory("first")
+	ib.AppendHistory("second")
+
+	sendKeys(t, ib, "<up>")
+	assert.Equal(t, "second", ib.Text())
+
+	sendKeys(t, ib, "<up>")
+	assert.Equal(t, "first", ib.Text())
+}
+
+func TestSetHistory(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	ib.SetHistory([]string{"a", "b", "c"})
+
+	sendKeys(t, ib, "<up>")
+	assert.Equal(t, "c", ib.Text())
+}
+
+func TestClearHistory(t *testing.T) {
+	ib := New(WithHistory([]string{"old"}))
+	ib.Resize(20, 1)
+	ib.ClearHistory()
+
+	sendKeys(t, ib, "<up>")
+	assert.Equal(t, "", ib.Text())
 }

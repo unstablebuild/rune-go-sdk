@@ -50,3 +50,63 @@ func WithPlaceholderText(text string) Option {
 	}
 	return WithPlaceholder(text, cfg)
 }
+
+// WithPrompt sets the prompt string displayed before
+// the input text on the first line.
+func WithPrompt(prompt string) Option {
+	return func(h *Handler) {
+		h.prompt = []rune(prompt)
+		h.promptWidth = len(h.prompt)
+	}
+}
+
+// WithText pre-populates the input text and places
+// the cursor at the end.
+func WithText(text string) Option {
+	return func(h *Handler) {
+		h.text = []rune(text)
+		h.cursor = len(h.text)
+	}
+}
+
+// WithHistory pre-populates the history.
+func WithHistory(items []string) Option {
+	return func(h *Handler) {
+		h.SetHistory(items)
+	}
+}
+
+// WithCompleter sets a line completer for tab
+// completion.
+func WithCompleter(c Completer) Option {
+	return func(h *Handler) {
+		h.completer = func(line string, _ int) (string, []string, string) {
+			return c(line)
+		}
+		h.tabStyle = TabCircular
+	}
+}
+
+// WithWordCompleter sets a word completer for tab
+// completion.
+func WithWordCompleter(c WordCompleter) Option {
+	return func(h *Handler) {
+		h.completer = c
+		h.tabStyle = TabCircular
+	}
+}
+
+// WithTabStyle sets the tab completion style.
+func WithTabStyle(style TabStyle) Option {
+	return func(h *Handler) {
+		h.tabStyle = style
+	}
+}
+
+// WithCtrlCAborts makes Ctrl+C abort the input
+// (returning ErrAborted) instead of clearing the line.
+func WithCtrlCAborts() Option {
+	return func(h *Handler) {
+		h.ctrlCAborts = true
+	}
+}
