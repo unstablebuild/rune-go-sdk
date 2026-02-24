@@ -126,9 +126,9 @@ func (w *Workspace) RegisterCommand(
 	return w.editorClient(context.Background()).SubscribeCommand(cmd, h)
 }
 
-// Searcher returns the workspace's syntax searcher, which can be used
-// to perform AST-level searches across workspace files.
-func (w *Workspace) Searcher(ctx context.Context) syntaxapi.Searcher {
+// Parser returns the workspace's syntax parser, which can be used
+// to perform AST-level searches and parsing across workspace files.
+func (w *Workspace) Parser(ctx context.Context) syntaxapi.Parser {
 	return syntaxrpc.NewClient(ctx, w.conn)
 }
 

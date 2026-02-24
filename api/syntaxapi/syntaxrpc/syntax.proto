@@ -41,9 +41,22 @@ message SearchResponse {
     string capture_name = 6;
 }
 
+message HighlightRequest {
+    string uri = 1;
+    string content = 2;
+}
+
+message HighlightResponse {
+    term.Coordinates from = 1;
+    term.Coordinates to = 2;
+    term.Attributes attr = 3;
+    string message = 4;
+}
+
 service Syntax {
     rpc Search(SearchRequest) returns (stream SearchResponse);
     rpc SearchNode(SearchNodeRequest) returns (stream SearchResponse);
     rpc Query(QueryRequest) returns (stream SearchResponse);
     rpc QueryNode(QueryNodeRequest) returns (stream SearchResponse);
+    rpc Highlight(HighlightRequest) returns (stream HighlightResponse);
 }
