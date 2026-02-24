@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
+	"github.com/unstablebuild/rune-go-sdk/debug"
 )
 
 // FromDocumentIterator maps a storageapi.Iterator to an Iterator of type T.
@@ -31,7 +32,7 @@ func FromDocumentIterator[T any](it storageapi.Iterator) Iterator[T] {
 
 	ch := make(chan msg)
 	quitCh := make(chan struct{})
-	go func() {
+	go debug.CapturePanicReport(func() {
 		defer close(ch) // signal ok = false below
 		var err error
 		var data T
@@ -46,7 +47,7 @@ func FromDocumentIterator[T any](it storageapi.Iterator) Iterator[T] {
 				return
 			}
 		}
-	}()
+	})
 
 	return FromFunc(func(ctx context.Context) (ret T, ok bool, err error) {
 		var m msg
