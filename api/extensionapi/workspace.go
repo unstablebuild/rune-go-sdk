@@ -25,6 +25,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/config"
 	"github.com/unstablebuild/rune-go-sdk/api/config/configrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
+	"github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
@@ -107,6 +109,12 @@ func (w *Workspace) Editor(ctx context.Context) textapi.Editor {
 // with language servers.
 func (w *Workspace) LSP(ctx context.Context) semanticapi.LSP {
 	return semanticrpc.NewClient(ctx, w.conn)
+}
+
+// Debugger returns the workspace's Debugger client, which can be used to interact
+// with DAP-compatible debuggers.
+func (w *Workspace) Debugger(ctx context.Context) debugapi.Debugger {
+	return debugrpc.NewClient(ctx, w.conn)
 }
 
 // RegisterCommand registers a new command which is to be dispatched to the
