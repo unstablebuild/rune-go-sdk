@@ -145,7 +145,7 @@ func newSyntaxSearchCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sit, err := w.Searcher(cmd.Context()).Search(
+			sit, err := w.Parser(cmd.Context()).Search(
 				args[0], captures,
 			)
 			if err != nil {
@@ -187,7 +187,7 @@ Node types: scope|namespace|reference|func|var|method|type`,
 			if err != nil {
 				return err
 			}
-			sit, err := w.Searcher(cmd.Context()).SearchNode(nodeType)
+			sit, err := w.Parser(cmd.Context()).SearchNode(nodeType)
 			if err != nil {
 				return err
 			}
@@ -221,7 +221,7 @@ func newSyntaxQueryCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sit, err := w.Searcher(cmd.Context()).Query(
+			sit, err := w.Parser(cmd.Context()).Query(
 				uri, args[1], captures,
 			)
 			if err != nil {
@@ -267,7 +267,7 @@ Node types: scope|namespace|reference|func|var|method|type`,
 			if err != nil {
 				return err
 			}
-			sit, err := w.Searcher(cmd.Context()).QueryNode(uri, nodeType)
+			sit, err := w.Parser(cmd.Context()).QueryNode(uri, nodeType)
 			if err != nil {
 				return err
 			}

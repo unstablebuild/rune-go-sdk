@@ -314,6 +314,126 @@ func (x *SearchResponse) GetCaptureName() string {
 	return ""
 }
 
+type HighlightRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Uri           string                 `protobuf:"bytes,1,opt,name=uri,proto3" json:"uri,omitempty"`
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HighlightRequest) Reset() {
+	*x = HighlightRequest{}
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HighlightRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HighlightRequest) ProtoMessage() {}
+
+func (x *HighlightRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HighlightRequest.ProtoReflect.Descriptor instead.
+func (*HighlightRequest) Descriptor() ([]byte, []int) {
+	return file_syntaxrpc_syntax_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *HighlightRequest) GetUri() string {
+	if x != nil {
+		return x.Uri
+	}
+	return ""
+}
+
+func (x *HighlightRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+type HighlightResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	From          *termrpc.Coordinates   `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	To            *termrpc.Coordinates   `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
+	Attr          *termrpc.Attributes    `protobuf:"bytes,3,opt,name=attr,proto3" json:"attr,omitempty"`
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HighlightResponse) Reset() {
+	*x = HighlightResponse{}
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HighlightResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HighlightResponse) ProtoMessage() {}
+
+func (x *HighlightResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HighlightResponse.ProtoReflect.Descriptor instead.
+func (*HighlightResponse) Descriptor() ([]byte, []int) {
+	return file_syntaxrpc_syntax_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *HighlightResponse) GetFrom() *termrpc.Coordinates {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *HighlightResponse) GetTo() *termrpc.Coordinates {
+	if x != nil {
+		return x.To
+	}
+	return nil
+}
+
+func (x *HighlightResponse) GetAttr() *termrpc.Attributes {
+	if x != nil {
+		return x.Attr
+	}
+	return nil
+}
+
+func (x *HighlightResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_syntaxrpc_syntax_proto protoreflect.FileDescriptor
 
 const file_syntaxrpc_syntax_proto_rawDesc = "" +
@@ -338,13 +458,22 @@ const file_syntaxrpc_syntax_proto_rawDesc = "" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x12%\n" +
 	"\x04from\x18\x04 \x01(\v2\x11.term.CoordinatesR\x04from\x12!\n" +
 	"\x02to\x18\x05 \x01(\v2\x11.term.CoordinatesR\x02to\x12!\n" +
-	"\fcapture_name\x18\x06 \x01(\tR\vcaptureNameJ\x04\b\x03\x10\x042\x80\x02\n" +
+	"\fcapture_name\x18\x06 \x01(\tR\vcaptureNameJ\x04\b\x03\x10\x04\">\n" +
+	"\x10HighlightRequest\x12\x10\n" +
+	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\"\x9d\x01\n" +
+	"\x11HighlightResponse\x12%\n" +
+	"\x04from\x18\x01 \x01(\v2\x11.term.CoordinatesR\x04from\x12!\n" +
+	"\x02to\x18\x02 \x01(\v2\x11.term.CoordinatesR\x02to\x12$\n" +
+	"\x04attr\x18\x03 \x01(\v2\x10.term.AttributesR\x04attr\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage2\xc4\x02\n" +
 	"\x06Syntax\x129\n" +
 	"\x06Search\x12\x15.syntax.SearchRequest\x1a\x16.syntax.SearchResponse0\x01\x12A\n" +
 	"\n" +
 	"SearchNode\x12\x19.syntax.SearchNodeRequest\x1a\x16.syntax.SearchResponse0\x01\x127\n" +
 	"\x05Query\x12\x14.syntax.QueryRequest\x1a\x16.syntax.SearchResponse0\x01\x12?\n" +
-	"\tQueryNode\x12\x18.syntax.QueryNodeRequest\x1a\x16.syntax.SearchResponse0\x01B>Z<github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpcb\x06proto3"
+	"\tQueryNode\x12\x18.syntax.QueryNodeRequest\x1a\x16.syntax.SearchResponse0\x01\x12B\n" +
+	"\tHighlight\x12\x18.syntax.HighlightRequest\x1a\x19.syntax.HighlightResponse0\x01B>Z<github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpcb\x06proto3"
 
 var (
 	file_syntaxrpc_syntax_proto_rawDescOnce sync.Once
@@ -358,31 +487,39 @@ func file_syntaxrpc_syntax_proto_rawDescGZIP() []byte {
 	return file_syntaxrpc_syntax_proto_rawDescData
 }
 
-var file_syntaxrpc_syntax_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_syntaxrpc_syntax_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_syntaxrpc_syntax_proto_goTypes = []any{
 	(*SearchRequest)(nil),       // 0: syntax.SearchRequest
 	(*SearchNodeRequest)(nil),   // 1: syntax.SearchNodeRequest
 	(*QueryRequest)(nil),        // 2: syntax.QueryRequest
 	(*QueryNodeRequest)(nil),    // 3: syntax.QueryNodeRequest
 	(*SearchResponse)(nil),      // 4: syntax.SearchResponse
-	(*termrpc.Coordinates)(nil), // 5: term.Coordinates
+	(*HighlightRequest)(nil),    // 5: syntax.HighlightRequest
+	(*HighlightResponse)(nil),   // 6: syntax.HighlightResponse
+	(*termrpc.Coordinates)(nil), // 7: term.Coordinates
+	(*termrpc.Attributes)(nil),  // 8: term.Attributes
 }
 var file_syntaxrpc_syntax_proto_depIdxs = []int32{
-	5, // 0: syntax.SearchResponse.from:type_name -> term.Coordinates
-	5, // 1: syntax.SearchResponse.to:type_name -> term.Coordinates
-	0, // 2: syntax.Syntax.Search:input_type -> syntax.SearchRequest
-	1, // 3: syntax.Syntax.SearchNode:input_type -> syntax.SearchNodeRequest
-	2, // 4: syntax.Syntax.Query:input_type -> syntax.QueryRequest
-	3, // 5: syntax.Syntax.QueryNode:input_type -> syntax.QueryNodeRequest
-	4, // 6: syntax.Syntax.Search:output_type -> syntax.SearchResponse
-	4, // 7: syntax.Syntax.SearchNode:output_type -> syntax.SearchResponse
-	4, // 8: syntax.Syntax.Query:output_type -> syntax.SearchResponse
-	4, // 9: syntax.Syntax.QueryNode:output_type -> syntax.SearchResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	7,  // 0: syntax.SearchResponse.from:type_name -> term.Coordinates
+	7,  // 1: syntax.SearchResponse.to:type_name -> term.Coordinates
+	7,  // 2: syntax.HighlightResponse.from:type_name -> term.Coordinates
+	7,  // 3: syntax.HighlightResponse.to:type_name -> term.Coordinates
+	8,  // 4: syntax.HighlightResponse.attr:type_name -> term.Attributes
+	0,  // 5: syntax.Syntax.Search:input_type -> syntax.SearchRequest
+	1,  // 6: syntax.Syntax.SearchNode:input_type -> syntax.SearchNodeRequest
+	2,  // 7: syntax.Syntax.Query:input_type -> syntax.QueryRequest
+	3,  // 8: syntax.Syntax.QueryNode:input_type -> syntax.QueryNodeRequest
+	5,  // 9: syntax.Syntax.Highlight:input_type -> syntax.HighlightRequest
+	4,  // 10: syntax.Syntax.Search:output_type -> syntax.SearchResponse
+	4,  // 11: syntax.Syntax.SearchNode:output_type -> syntax.SearchResponse
+	4,  // 12: syntax.Syntax.Query:output_type -> syntax.SearchResponse
+	4,  // 13: syntax.Syntax.QueryNode:output_type -> syntax.SearchResponse
+	6,  // 14: syntax.Syntax.Highlight:output_type -> syntax.HighlightResponse
+	10, // [10:15] is the sub-list for method output_type
+	5,  // [5:10] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_syntaxrpc_syntax_proto_init() }
@@ -396,7 +533,7 @@ func file_syntaxrpc_syntax_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_syntaxrpc_syntax_proto_rawDesc), len(file_syntaxrpc_syntax_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

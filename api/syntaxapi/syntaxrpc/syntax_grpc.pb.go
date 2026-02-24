@@ -23,6 +23,7 @@ const (
 	Syntax_SearchNode_FullMethodName = "/syntax.Syntax/SearchNode"
 	Syntax_Query_FullMethodName      = "/syntax.Syntax/Query"
 	Syntax_QueryNode_FullMethodName  = "/syntax.Syntax/QueryNode"
+	Syntax_Highlight_FullMethodName  = "/syntax.Syntax/Highlight"
 )
 
 // SyntaxClient is the client API for Syntax service.
@@ -33,6 +34,7 @@ type SyntaxClient interface {
 	SearchNode(ctx context.Context, in *SearchNodeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SearchResponse], error)
 	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SearchResponse], error)
 	QueryNode(ctx context.Context, in *QueryNodeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SearchResponse], error)
+	Highlight(ctx context.Context, in *HighlightRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[HighlightResponse], error)
 }
 
 type syntaxClient struct {
@@ -119,6 +121,25 @@ func (c *syntaxClient) QueryNode(ctx context.Context, in *QueryNodeRequest, opts
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Syntax_QueryNodeClient = grpc.ServerStreamingClient[SearchResponse]
 
+func (c *syntaxClient) Highlight(ctx context.Context, in *HighlightRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[HighlightResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Syntax_ServiceDesc.Streams[4], Syntax_Highlight_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[HighlightRequest, HighlightResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Syntax_HighlightClient = grpc.ServerStreamingClient[HighlightResponse]
+
 // SyntaxServer is the server API for Syntax service.
 // All implementations must embed UnimplementedSyntaxServer
 // for forward compatibility.
@@ -127,6 +148,7 @@ type SyntaxServer interface {
 	SearchNode(*SearchNodeRequest, grpc.ServerStreamingServer[SearchResponse]) error
 	Query(*QueryRequest, grpc.ServerStreamingServer[SearchResponse]) error
 	QueryNode(*QueryNodeRequest, grpc.ServerStreamingServer[SearchResponse]) error
+	Highlight(*HighlightRequest, grpc.ServerStreamingServer[HighlightResponse]) error
 	mustEmbedUnimplementedSyntaxServer()
 }
 
@@ -148,6 +170,9 @@ func (UnimplementedSyntaxServer) Query(*QueryRequest, grpc.ServerStreamingServer
 }
 func (UnimplementedSyntaxServer) QueryNode(*QueryNodeRequest, grpc.ServerStreamingServer[SearchResponse]) error {
 	return status.Error(codes.Unimplemented, "method QueryNode not implemented")
+}
+func (UnimplementedSyntaxServer) Highlight(*HighlightRequest, grpc.ServerStreamingServer[HighlightResponse]) error {
+	return status.Error(codes.Unimplemented, "method Highlight not implemented")
 }
 func (UnimplementedSyntaxServer) mustEmbedUnimplementedSyntaxServer() {}
 func (UnimplementedSyntaxServer) testEmbeddedByValue()                {}
@@ -214,6 +239,17 @@ func _Syntax_QueryNode_Handler(srv interface{}, stream grpc.ServerStream) error 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Syntax_QueryNodeServer = grpc.ServerStreamingServer[SearchResponse]
 
+func _Syntax_Highlight_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(HighlightRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SyntaxServer).Highlight(m, &grpc.GenericServerStream[HighlightRequest, HighlightResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Syntax_HighlightServer = grpc.ServerStreamingServer[HighlightResponse]
+
 // Syntax_ServiceDesc is the grpc.ServiceDesc for Syntax service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -240,6 +276,11 @@ var Syntax_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "QueryNode",
 			Handler:       _Syntax_QueryNode_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Highlight",
+			Handler:       _Syntax_Highlight_Handler,
 			ServerStreams: true,
 		},
 	},

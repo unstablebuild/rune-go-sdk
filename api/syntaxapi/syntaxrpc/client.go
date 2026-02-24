@@ -20,14 +20,15 @@ import (
 	"io"
 
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
+	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"google.golang.org/grpc"
 )
 
-var _ syntaxapi.Searcher = (*Client)(nil)
+var _ syntaxapi.Parser = (*Client)(nil)
 
-// Client satisfies syntaxapi.Searcher via gRPC.
+// Client satisfies syntaxapi.Parser via gRPC.
 type Client struct {
 	cc  grpc.ClientConnInterface
 	pb  SyntaxClient
@@ -49,7 +50,7 @@ func (c *Client) Init(ctx context.Context, cc grpc.ClientConnInterface) {
 	c.ctx = ctx
 }
 
-// Search satisfies syntaxapi.Searcher.
+// Search satisfies syntaxapi.Parser.
 func (c *Client) Search(
 	query string,
 	captureNames []string,
@@ -62,7 +63,7 @@ func (c *Client) Search(
 	return &rpcIterator{stream: stream}, nil
 }
 
-// SearchNode satisfies syntaxapi.Searcher.
+// SearchNode satisfies syntaxapi.Parser.
 func (c *Client) SearchNode(
 	nodeTypes syntaxapi.NodeCaptureName,
 ) (iterator.Iterator[syntaxapi.Result], error) {
@@ -74,7 +75,7 @@ func (c *Client) SearchNode(
 	return &rpcIterator{stream: stream}, nil
 }
 
-// Query satisfies syntaxapi.Searcher.
+// Query satisfies syntaxapi.Parser.
 func (c *Client) Query(
 	file workspaceapi.URI,
 	query string,
@@ -92,7 +93,7 @@ func (c *Client) Query(
 	return &rpcIterator{stream: stream}, nil
 }
 
-// QueryNode satisfies syntaxapi.Searcher.
+// QueryNode satisfies syntaxapi.Parser.
 func (c *Client) QueryNode(
 	file workspaceapi.URI,
 	nodeTypes syntaxapi.NodeCaptureName,
@@ -103,6 +104,50 @@ func (c *Client) QueryNode(
 		return nil, fmt.Errorf("syntax query node: %w", err)
 	}
 	return &rpcIterator{stream: stream}, nil
+}
+
+// Highlight satisfies syntaxapi.Parser.
+func (c *Client) Highlight(
+	uri workspaceapi.URI,
+	content string,
+) (iterator.Iterator[textapi.Location], error) {
+	req := HighlightRequest{Uri: uri.String(), Content: content}
+	stream, err := c.pb.Highlight(c.ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("syntax highlight: %w", err)
+	}
+	return &highlightIterator{stream: stream}, nil
+}
+
+type highlightIterator struct {
+	stream grpc.ServerStreamingClient[HighlightResponse]
+	err    error
+}
+
+func (it *highlightIterator) Next(_ context.Context) (textapi.Location, bool) {
+	resp, err := it.stream.Recv()
+	if err == io.EOF {
+		return textapi.Location{}, false
+	}
+	if err != nil {
+		it.err = err
+		return textapi.Location{}, false
+	}
+	loc := textapi.Location{
+		From:    resp.GetFrom().ToModel(),
+		To:      resp.GetTo().ToModel(),
+		Attr:    resp.GetAttr().ToModel(),
+		Message: resp.GetMessage(),
+	}
+	return loc, true
+}
+
+func (it *highlightIterator) Err() error {
+	return it.err
+}
+
+func (it *highlightIterator) Close() error {
+	return it.stream.CloseSend()
 }
 
 type rpcIterator struct {

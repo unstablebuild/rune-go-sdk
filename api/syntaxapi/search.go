@@ -15,6 +15,7 @@
 package syntaxapi
 
 import (
+	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"github.com/unstablebuild/rune-go-sdk/term"
@@ -47,8 +48,8 @@ type Result struct {
 	CaptureName string
 }
 
-// Searcher provides AST-level search capabilities.
-type Searcher interface {
+// Parser provides AST-level search and parsing capabilities.
+type Parser interface {
 	// Search searches for matches in the workspace using the given tree-sitter literal query
 	// and a list of capture names that should be returned.
 	Search(query string, captureNames []string) (iterator.Iterator[Result], error)
@@ -66,5 +67,10 @@ type Searcher interface {
 	// programming languages. Multiple node types can be combined using bitwise OR.
 	QueryNode(file workspaceapi.URI, nodeTypes NodeCaptureName) (
 		iterator.Iterator[Result], error,
+	)
+	// Highlight returns syntax highlighting locations for the given content,
+	// interpreted as belonging to the file identified by uri.
+	Highlight(uri workspaceapi.URI, content string) (
+		iterator.Iterator[textapi.Location], error,
 	)
 }

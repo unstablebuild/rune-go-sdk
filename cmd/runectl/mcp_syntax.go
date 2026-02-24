@@ -85,7 +85,7 @@ func registerSyntaxSearch(
 			captures := req.GetStringSlice(
 				"captures", nil,
 			)
-			sit, err := w.Searcher(bgCtx).Search(
+			sit, err := w.Parser(bgCtx).Search(
 				query, captures,
 			)
 			if err != nil {
@@ -146,7 +146,7 @@ func registerSyntaxSearchNode(
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			sit, err := w.Searcher(bgCtx).SearchNode(nt)
+			sit, err := w.Parser(bgCtx).SearchNode(nt)
 			if err != nil {
 				return mcpErr(err), nil
 			}
@@ -227,7 +227,7 @@ func registerSyntaxQuery(
 			captures := req.GetStringSlice(
 				"captures", nil,
 			)
-			sit, err := w.Searcher(bgCtx).Query(
+			sit, err := w.Parser(bgCtx).Query(
 				uri, query, captures,
 			)
 			if err != nil {
@@ -300,7 +300,7 @@ func registerSyntaxQueryNode(
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			sit, err := w.Searcher(bgCtx).QueryNode(
+			sit, err := w.Parser(bgCtx).QueryNode(
 				uri, nt,
 			)
 			if err != nil {
