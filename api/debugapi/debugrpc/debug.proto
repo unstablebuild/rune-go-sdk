@@ -66,12 +66,7 @@ service DebugService {
   // Navigation
   rpc GotoTargets(GotoTargetsRequest) returns (GotoTargetsResponse);
   rpc Goto(GotoRequest) returns (GotoResponse);
-
-  // Events
-  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream Event);
 }
-
-// === Common Types (matching DAP specification) ===
 
 message Source {
   string name = 1;
@@ -249,8 +244,6 @@ message Capabilities {
   bool supports_exception_filter_options = 36;
   bool supports_single_thread_execution_requests = 37;
 }
-
-// === Request/Response Messages ===
 
 message InitializeRequest {
   string client_id = 1;

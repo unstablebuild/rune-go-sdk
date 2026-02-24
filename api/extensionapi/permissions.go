@@ -48,6 +48,8 @@ const (
 	PermissionConfig Permission = "permcfg"
 	// PermissionLSP requests access to the Language Server Protocol.
 	PermissionLSP Permission = "permlsp"
+	// PermissionDebugger requests access to the debugger through the DAP protocol.
+	PermissionDebugger Permission = "permdap"
 )
 
 // Permissions is a set of Permission.

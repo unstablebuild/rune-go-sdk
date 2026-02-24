@@ -67,7 +67,6 @@ const (
 	DebugService_Disassemble_FullMethodName             = "/debug.DebugService/Disassemble"
 	DebugService_GotoTargets_FullMethodName             = "/debug.DebugService/GotoTargets"
 	DebugService_Goto_FullMethodName                    = "/debug.DebugService/Goto"
-	DebugService_SubscribeEvents_FullMethodName         = "/debug.DebugService/SubscribeEvents"
 )
 
 // DebugServiceClient is the client API for DebugService service.
@@ -117,8 +116,6 @@ type DebugServiceClient interface {
 	// Navigation
 	GotoTargets(ctx context.Context, in *GotoTargetsRequest, opts ...grpc.CallOption) (*GotoTargetsResponse, error)
 	Goto(ctx context.Context, in *GotoRequest, opts ...grpc.CallOption) (*GotoResponse, error)
-	// Events
-	SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error)
 }
 
 type debugServiceClient struct {
@@ -469,25 +466,6 @@ func (c *debugServiceClient) Goto(ctx context.Context, in *GotoRequest, opts ...
 	return out, nil
 }
 
-func (c *debugServiceClient) SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &DebugService_ServiceDesc.Streams[0], DebugService_SubscribeEvents_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SubscribeEventsRequest, Event]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type DebugService_SubscribeEventsClient = grpc.ServerStreamingClient[Event]
-
 // DebugServiceServer is the server API for DebugService service.
 // All implementations must embed UnimplementedDebugServiceServer
 // for forward compatibility.
@@ -535,8 +513,6 @@ type DebugServiceServer interface {
 	// Navigation
 	GotoTargets(context.Context, *GotoTargetsRequest) (*GotoTargetsResponse, error)
 	Goto(context.Context, *GotoRequest) (*GotoResponse, error)
-	// Events
-	SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[Event]) error
 	mustEmbedUnimplementedDebugServiceServer()
 }
 
@@ -648,9 +624,6 @@ func (UnimplementedDebugServiceServer) GotoTargets(context.Context, *GotoTargets
 }
 func (UnimplementedDebugServiceServer) Goto(context.Context, *GotoRequest) (*GotoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Goto not implemented")
-}
-func (UnimplementedDebugServiceServer) SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[Event]) error {
-	return status.Error(codes.Unimplemented, "method SubscribeEvents not implemented")
 }
 func (UnimplementedDebugServiceServer) mustEmbedUnimplementedDebugServiceServer() {}
 func (UnimplementedDebugServiceServer) testEmbeddedByValue()                      {}
@@ -1285,17 +1258,6 @@ func _DebugService_Goto_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_SubscribeEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeEventsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(DebugServiceServer).SubscribeEvents(m, &grpc.GenericServerStream[SubscribeEventsRequest, Event]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type DebugService_SubscribeEventsServer = grpc.ServerStreamingServer[Event]
-
 // DebugService_ServiceDesc is the grpc.ServiceDesc for DebugService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1440,12 +1402,6 @@ var DebugService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DebugService_Goto_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "SubscribeEvents",
-			Handler:       _DebugService_SubscribeEvents_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "debugrpc/debug.proto",
 }

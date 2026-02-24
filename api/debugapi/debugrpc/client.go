@@ -657,8 +657,6 @@ func (c *Client) Goto(ctx context.Context, args *dap.GotoArguments) error {
 	return err
 }
 
-// === Conversion Functions ===
-
 func capabilitiesFromProto(c *Capabilities) *dap.Capabilities {
 	if c == nil {
 		return nil

@@ -5615,7 +5615,7 @@ const file_debugrpc_debug_proto_rawDesc = "" +
 	"\x16SubscribeEventsRequest\"1\n" +
 	"\x05Event\x12\x14\n" +
 	"\x05event\x18\x01 \x01(\tR\x05event\x12\x12\n" +
-	"\x04body\x18\x02 \x01(\fR\x04body2\xb0\x12\n" +
+	"\x04body\x18\x02 \x01(\fR\x04body2\xee\x11\n" +
 	"\fDebugService\x12A\n" +
 	"\n" +
 	"Initialize\x12\x18.debug.InitializeRequest\x1a\x19.debug.InitializeResponse\x125\n" +
@@ -5654,8 +5654,7 @@ const file_debugrpc_debug_proto_rawDesc = "" +
 	"\vWriteMemory\x12\x19.debug.WriteMemoryRequest\x1a\x1a.debug.WriteMemoryResponse\x12D\n" +
 	"\vDisassemble\x12\x19.debug.DisassembleRequest\x1a\x1a.debug.DisassembleResponse\x12D\n" +
 	"\vGotoTargets\x12\x19.debug.GotoTargetsRequest\x1a\x1a.debug.GotoTargetsResponse\x12/\n" +
-	"\x04Goto\x12\x12.debug.GotoRequest\x1a\x13.debug.GotoResponse\x12@\n" +
-	"\x0fSubscribeEvents\x12\x1d.debug.SubscribeEventsRequest\x1a\f.debug.Event0\x01B<Z:github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpcb\x06proto3"
+	"\x04Goto\x12\x12.debug.GotoRequest\x1a\x13.debug.GotoResponseB<Z:github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpcb\x06proto3"
 
 var (
 	file_debugrpc_debug_proto_rawDescOnce sync.Once
@@ -5817,44 +5816,42 @@ var file_debugrpc_debug_proto_depIdxs = []int32{
 	76, // 56: debug.DebugService.Disassemble:input_type -> debug.DisassembleRequest
 	78, // 57: debug.DebugService.GotoTargets:input_type -> debug.GotoTargetsRequest
 	80, // 58: debug.DebugService.Goto:input_type -> debug.GotoRequest
-	82, // 59: debug.DebugService.SubscribeEvents:input_type -> debug.SubscribeEventsRequest
-	15, // 60: debug.DebugService.Initialize:output_type -> debug.InitializeResponse
-	17, // 61: debug.DebugService.Launch:output_type -> debug.LaunchResponse
-	19, // 62: debug.DebugService.Attach:output_type -> debug.AttachResponse
-	21, // 63: debug.DebugService.ConfigurationDone:output_type -> debug.ConfigurationDoneResponse
-	23, // 64: debug.DebugService.Disconnect:output_type -> debug.DisconnectResponse
-	25, // 65: debug.DebugService.Terminate:output_type -> debug.TerminateResponse
-	27, // 66: debug.DebugService.Restart:output_type -> debug.RestartResponse
-	29, // 67: debug.DebugService.SetBreakpoints:output_type -> debug.SetBreakpointsResponse
-	31, // 68: debug.DebugService.SetFunctionBreakpoints:output_type -> debug.SetFunctionBreakpointsResponse
-	33, // 69: debug.DebugService.SetExceptionBreakpoints:output_type -> debug.SetExceptionBreakpointsResponse
-	35, // 70: debug.DebugService.Continue:output_type -> debug.ContinueResponse
-	37, // 71: debug.DebugService.Next:output_type -> debug.NextResponse
-	39, // 72: debug.DebugService.StepIn:output_type -> debug.StepInResponse
-	41, // 73: debug.DebugService.StepOut:output_type -> debug.StepOutResponse
-	43, // 74: debug.DebugService.StepBack:output_type -> debug.StepBackResponse
-	45, // 75: debug.DebugService.ReverseContinue:output_type -> debug.ReverseContinueResponse
-	47, // 76: debug.DebugService.Pause:output_type -> debug.PauseResponse
-	49, // 77: debug.DebugService.Threads:output_type -> debug.ThreadsResponse
-	51, // 78: debug.DebugService.StackTrace:output_type -> debug.StackTraceResponse
-	53, // 79: debug.DebugService.Scopes:output_type -> debug.ScopesResponse
-	55, // 80: debug.DebugService.Variables:output_type -> debug.VariablesResponse
-	57, // 81: debug.DebugService.SetVariable:output_type -> debug.SetVariableResponse
-	59, // 82: debug.DebugService.Source:output_type -> debug.SourceResponse
-	61, // 83: debug.DebugService.Evaluate:output_type -> debug.EvaluateResponse
-	63, // 84: debug.DebugService.SetExpression:output_type -> debug.SetExpressionResponse
-	65, // 85: debug.DebugService.Completions:output_type -> debug.CompletionsResponse
-	67, // 86: debug.DebugService.ExceptionInfo:output_type -> debug.ExceptionInfoResponse
-	69, // 87: debug.DebugService.Modules:output_type -> debug.ModulesResponse
-	71, // 88: debug.DebugService.LoadedSources:output_type -> debug.LoadedSourcesResponse
-	73, // 89: debug.DebugService.ReadMemory:output_type -> debug.ReadMemoryResponse
-	75, // 90: debug.DebugService.WriteMemory:output_type -> debug.WriteMemoryResponse
-	77, // 91: debug.DebugService.Disassemble:output_type -> debug.DisassembleResponse
-	79, // 92: debug.DebugService.GotoTargets:output_type -> debug.GotoTargetsResponse
-	81, // 93: debug.DebugService.Goto:output_type -> debug.GotoResponse
-	83, // 94: debug.DebugService.SubscribeEvents:output_type -> debug.Event
-	60, // [60:95] is the sub-list for method output_type
-	25, // [25:60] is the sub-list for method input_type
+	15, // 59: debug.DebugService.Initialize:output_type -> debug.InitializeResponse
+	17, // 60: debug.DebugService.Launch:output_type -> debug.LaunchResponse
+	19, // 61: debug.DebugService.Attach:output_type -> debug.AttachResponse
+	21, // 62: debug.DebugService.ConfigurationDone:output_type -> debug.ConfigurationDoneResponse
+	23, // 63: debug.DebugService.Disconnect:output_type -> debug.DisconnectResponse
+	25, // 64: debug.DebugService.Terminate:output_type -> debug.TerminateResponse
+	27, // 65: debug.DebugService.Restart:output_type -> debug.RestartResponse
+	29, // 66: debug.DebugService.SetBreakpoints:output_type -> debug.SetBreakpointsResponse
+	31, // 67: debug.DebugService.SetFunctionBreakpoints:output_type -> debug.SetFunctionBreakpointsResponse
+	33, // 68: debug.DebugService.SetExceptionBreakpoints:output_type -> debug.SetExceptionBreakpointsResponse
+	35, // 69: debug.DebugService.Continue:output_type -> debug.ContinueResponse
+	37, // 70: debug.DebugService.Next:output_type -> debug.NextResponse
+	39, // 71: debug.DebugService.StepIn:output_type -> debug.StepInResponse
+	41, // 72: debug.DebugService.StepOut:output_type -> debug.StepOutResponse
+	43, // 73: debug.DebugService.StepBack:output_type -> debug.StepBackResponse
+	45, // 74: debug.DebugService.ReverseContinue:output_type -> debug.ReverseContinueResponse
+	47, // 75: debug.DebugService.Pause:output_type -> debug.PauseResponse
+	49, // 76: debug.DebugService.Threads:output_type -> debug.ThreadsResponse
+	51, // 77: debug.DebugService.StackTrace:output_type -> debug.StackTraceResponse
+	53, // 78: debug.DebugService.Scopes:output_type -> debug.ScopesResponse
+	55, // 79: debug.DebugService.Variables:output_type -> debug.VariablesResponse
+	57, // 80: debug.DebugService.SetVariable:output_type -> debug.SetVariableResponse
+	59, // 81: debug.DebugService.Source:output_type -> debug.SourceResponse
+	61, // 82: debug.DebugService.Evaluate:output_type -> debug.EvaluateResponse
+	63, // 83: debug.DebugService.SetExpression:output_type -> debug.SetExpressionResponse
+	65, // 84: debug.DebugService.Completions:output_type -> debug.CompletionsResponse
+	67, // 85: debug.DebugService.ExceptionInfo:output_type -> debug.ExceptionInfoResponse
+	69, // 86: debug.DebugService.Modules:output_type -> debug.ModulesResponse
+	71, // 87: debug.DebugService.LoadedSources:output_type -> debug.LoadedSourcesResponse
+	73, // 88: debug.DebugService.ReadMemory:output_type -> debug.ReadMemoryResponse
+	75, // 89: debug.DebugService.WriteMemory:output_type -> debug.WriteMemoryResponse
+	77, // 90: debug.DebugService.Disassemble:output_type -> debug.DisassembleResponse
+	79, // 91: debug.DebugService.GotoTargets:output_type -> debug.GotoTargetsResponse
+	81, // 92: debug.DebugService.Goto:output_type -> debug.GotoResponse
+	59, // [59:93] is the sub-list for method output_type
+	25, // [25:59] is the sub-list for method input_type
 	25, // [25:25] is the sub-list for extension type_name
 	25, // [25:25] is the sub-list for extension extendee
 	0,  // [0:25] is the sub-list for field type_name
