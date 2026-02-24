@@ -41,6 +41,7 @@ func newMCPCmd(a *app) *cobra.Command {
 			ctx := cmd.Context()
 			registerSyntaxTools(s, w, ctx)
 			registerLSPTools(s, w, ctx)
+			registerDebugTools(s, w, ctx)
 			return server.ServeStdio(s)
 		},
 	}

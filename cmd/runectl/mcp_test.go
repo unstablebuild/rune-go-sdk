@@ -46,17 +46,14 @@ func newMCPTestEnv(t *testing.T) *mcpTestEnv {
 	ctx := context.Background()
 	registerSyntaxTools(s, w, ctx)
 	registerLSPTools(s, w, ctx)
+	registerDebugTools(s, w, ctx)
 
 	return &mcpTestEnv{testEnv: env, srv: s}
 }
 
 // callTool sends a tools/call JSON-RPC message and
 // returns the result text content.
-func (e *mcpTestEnv) callTool(
-	t *testing.T,
-	name string,
-	args map[string]any,
-) string {
+func (e *mcpTestEnv) callTool(t *testing.T, name string, args map[string]any) string {
 	t.Helper()
 	msg := map[string]any{
 		"jsonrpc": "2.0",
@@ -70,14 +67,9 @@ func (e *mcpTestEnv) callTool(
 	data, err := json.Marshal(msg)
 	require.NoError(t, err)
 
-	resp := e.srv.HandleMessage(
-		context.Background(), data,
-	)
+	resp := e.srv.HandleMessage(context.Background(), data)
 	jsonResp, ok := resp.(mcp.JSONRPCResponse)
-	require.True(t, ok,
-		"expected JSONRPCResponse, got %T: %+v",
-		resp, resp,
-	)
+	require.True(t, ok, "expected JSONRPCResponse, got %T: %+v", resp, resp)
 
 	resultJSON, err := json.Marshal(jsonResp.Result)
 	require.NoError(t, err)
@@ -85,17 +77,11 @@ func (e *mcpTestEnv) callTool(
 	var toolResult mcp.CallToolResult
 	err = json.Unmarshal(resultJSON, &toolResult)
 	require.NoError(t, err)
-	require.False(t, toolResult.IsError,
-		"tool returned error: %+v",
-		toolResult.Content,
-	)
+	require.False(t, toolResult.IsError, "tool returned error: %+v", toolResult.Content)
 	require.NotEmpty(t, toolResult.Content)
 
 	text, ok := toolResult.Content[0].(mcp.TextContent)
-	require.True(t, ok,
-		"expected TextContent, got %T",
-		toolResult.Content[0],
-	)
+	require.True(t, ok, "expected TextContent, got %T", toolResult.Content[0])
 	return text.Text
 }
 
@@ -113,12 +99,8 @@ func TestMCPSyntax(t *testing.T) {
 				"query": "(function_declaration) @fn",
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"file:///src/main.go",
-				)
-				require.Contains(t, out,
-					"func main()",
-				)
+				require.Contains(t, out, "file:///src/main.go")
+				require.Contains(t, out, "func main()")
 			},
 		},
 		{
@@ -139,9 +121,7 @@ func TestMCPSyntax(t *testing.T) {
 				"query": "(package_clause) @pkg",
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"package main",
-				)
+				require.Contains(t, out, "package main")
 			},
 		},
 		{
@@ -162,9 +142,7 @@ func TestMCPSyntax(t *testing.T) {
 			env := newMCPTestEnv(t)
 			defer env.cleanup()
 
-			out := env.callTool(
-				t, tt.tool, tt.args,
-			)
+			out := env.callTool(t, tt.tool, tt.args)
 			tt.check(t, out)
 		})
 	}
@@ -186,9 +164,7 @@ func TestMCPLSP(t *testing.T) {
 				"character": 5,
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"func main()",
-				)
+				require.Contains(t, out, "func main()")
 			},
 		},
 		{
@@ -200,9 +176,7 @@ func TestMCPLSP(t *testing.T) {
 				"character": 5,
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"file:///src/main.go",
-				)
+				require.Contains(t, out, "file:///src/main.go")
 				require.Contains(t, out, `"start_line":10`)
 			},
 		},
@@ -215,12 +189,8 @@ func TestMCPLSP(t *testing.T) {
 				"character": 5,
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"file:///src/main.go",
-				)
-				require.Contains(t, out,
-					"file:///src/util.go",
-				)
+				require.Contains(t, out, "file:///src/main.go")
+				require.Contains(t, out, "file:///src/util.go")
 			},
 		},
 		{
@@ -264,9 +234,7 @@ func TestMCPLSP(t *testing.T) {
 				"uri": "file:///src/main.go",
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"undefined variable",
-				)
+				require.Contains(t, out, "undefined variable")
 				require.Contains(t, out, "Error")
 			},
 		},
@@ -275,20 +243,12 @@ func TestMCPLSP(t *testing.T) {
 			tool: "lsp_workspace_diagnostics",
 			args: map[string]any{},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"undefined variable",
-				)
-				require.Contains(t, out,
-					"unused import",
-				)
+				require.Contains(t, out, "undefined variable")
+				require.Contains(t, out, "unused import")
 				require.Contains(t, out, "Error")
 				require.Contains(t, out, "Warning")
-				require.Contains(t, out,
-					"file:///src/main.go",
-				)
-				require.Contains(t, out,
-					"file:///src/util.go",
-				)
+				require.Contains(t, out, "file:///src/main.go")
+				require.Contains(t, out, "file:///src/util.go")
 			},
 		},
 		{
@@ -301,9 +261,7 @@ func TestMCPLSP(t *testing.T) {
 				"new_name":  "newMain",
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"file:///src/main.go",
-				)
+				require.Contains(t, out, "file:///src/main.go")
 			},
 		},
 		{
@@ -315,12 +273,8 @@ func TestMCPLSP(t *testing.T) {
 				"character": 0,
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"Extract variable",
-				)
-				require.Contains(t, out,
-					"Organize imports",
-				)
+				require.Contains(t, out, "Extract variable")
+				require.Contains(t, out, "Organize imports")
 			},
 		},
 		{
@@ -342,9 +296,7 @@ func TestMCPLSP(t *testing.T) {
 				"character": 5,
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"file:///src/types.go",
-				)
+				require.Contains(t, out, "file:///src/types.go")
 			},
 		},
 		{
@@ -356,9 +308,7 @@ func TestMCPLSP(t *testing.T) {
 				"character": 5,
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"file:///src/types.go",
-				)
+				require.Contains(t, out, "file:///src/types.go")
 			},
 		},
 		{
@@ -370,12 +320,8 @@ func TestMCPLSP(t *testing.T) {
 				"character": 5,
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"file:///src/impl1.go",
-				)
-				require.Contains(t, out,
-					"file:///src/impl2.go",
-				)
+				require.Contains(t, out, "file:///src/impl1.go")
+				require.Contains(t, out, "file:///src/impl2.go")
 			},
 		},
 		{
@@ -458,9 +404,7 @@ func TestMCPLSP(t *testing.T) {
 				"command": "test.run",
 			},
 			check: func(t *testing.T, out string) {
-				require.Contains(t, out,
-					"command executed: test.run",
-				)
+				require.Contains(t, out, "command executed: test.run")
 			},
 		},
 	}
@@ -470,9 +414,7 @@ func TestMCPLSP(t *testing.T) {
 			env := newMCPTestEnv(t)
 			defer env.cleanup()
 
-			out := env.callTool(
-				t, tt.tool, tt.args,
-			)
+			out := env.callTool(t, tt.tool, tt.args)
 			if tt.check != nil {
 				tt.check(t, out)
 			}
@@ -497,14 +439,9 @@ func TestMCPToolError(t *testing.T) {
 	data, err := json.Marshal(msg)
 	require.NoError(t, err)
 
-	resp := env.srv.HandleMessage(
-		context.Background(), data,
-	)
+	resp := env.srv.HandleMessage(context.Background(), data)
 	jsonResp, ok := resp.(mcp.JSONRPCResponse)
-	require.True(t, ok,
-		"expected JSONRPCResponse, got %T",
-		resp,
-	)
+	require.True(t, ok, "expected JSONRPCResponse, got %T", resp)
 
 	resultJSON, err := json.Marshal(jsonResp.Result)
 	require.NoError(t, err)
@@ -512,9 +449,128 @@ func TestMCPToolError(t *testing.T) {
 	var toolResult mcp.CallToolResult
 	err = json.Unmarshal(resultJSON, &toolResult)
 	require.NoError(t, err)
-	require.True(t, toolResult.IsError,
-		"expected tool error for missing params",
-	)
+	require.True(t, toolResult.IsError, "expected tool error for missing params")
+}
+
+func TestMCPDebug(t *testing.T) {
+	tests := []struct {
+		name  string
+		tool  string
+		args  map[string]any
+		check func(*testing.T, string)
+	}{
+		{
+			name: "launch",
+			tool: "dap_launch",
+			args: map[string]any{
+				"program": "/usr/bin/test",
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, `"ok":true`)
+			},
+		},
+		{
+			name: "configuration_done",
+			tool: "dap_configuration_done",
+			args: map[string]any{},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, `"ok":true`)
+			},
+		},
+		{
+			name: "set_breakpoints",
+			tool: "dap_set_breakpoints",
+			args: map[string]any{
+				"source_path": "/src/main.go",
+				"breakpoints": `[{"line":10},` +
+					`{"line":20}]`,
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, `"verified":true`)
+				require.Contains(t, out, "/src/main.go")
+			},
+		},
+		{
+			name: "continue",
+			tool: "dap_continue",
+			args: map[string]any{
+				"thread_id": 1,
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "allThreadsContinued")
+			},
+		},
+		{
+			name: "threads",
+			tool: "dap_threads",
+			args: map[string]any{},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "main")
+				require.Contains(t, out, "worker")
+			},
+		},
+		{
+			name: "stack_trace",
+			tool: "dap_stack_trace",
+			args: map[string]any{
+				"thread_id": 1,
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "main.run")
+				require.Contains(t, out, "/src/main.go")
+			},
+		},
+		{
+			name: "scopes",
+			tool: "dap_scopes",
+			args: map[string]any{
+				"frame_id": 0,
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "Locals")
+			},
+		},
+		{
+			name: "variables",
+			tool: "dap_variables",
+			args: map[string]any{
+				"variables_reference": 100,
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, `"x"`)
+				require.Contains(t, out, `"42"`)
+				require.Contains(t, out, `"int"`)
+			},
+		},
+		{
+			name: "evaluate",
+			tool: "dap_evaluate",
+			args: map[string]any{
+				"expression": "x + 1",
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "result of x + 1")
+			},
+		},
+		{
+			name: "disconnect",
+			tool: "dap_disconnect",
+			args: map[string]any{},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, `"ok":true`)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := newMCPTestEnv(t)
+			defer env.cleanup()
+
+			out := env.callTool(t, tt.tool, tt.args)
+			tt.check(t, out)
+		})
+	}
 }
 
 func TestMCPUnknownTool(t *testing.T) {
@@ -531,14 +587,9 @@ func TestMCPUnknownTool(t *testing.T) {
 		}
 	}`
 
-	resp := env.srv.HandleMessage(
-		context.Background(), []byte(msg),
-	)
+	resp := env.srv.HandleMessage(context.Background(), []byte(msg))
 	// Should return an error response.
 	_, isErr := resp.(mcp.JSONRPCError)
 	_, isResp := resp.(mcp.JSONRPCResponse)
-	require.True(t, isErr || isResp,
-		"expected error or response, got %T",
-		resp,
-	)
+	require.True(t, isErr || isResp, "expected error or response, got %T", resp)
 }

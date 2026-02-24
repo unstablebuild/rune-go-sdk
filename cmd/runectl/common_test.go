@@ -25,6 +25,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/docpb"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpc"
@@ -52,6 +53,7 @@ type testEnv struct {
 	executor *mockExecutor
 	terminal *mockTerminal
 	lsp      *mockLSP
+	debugger *mockDebugger
 	cleanup  func()
 }
 
@@ -59,9 +61,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
 	datadir := t.TempDir()
-	sockPath := filepath.Join(
-		datadir, "rune.sock",
-	)
+	sockPath := filepath.Join(datadir, "rune.sock")
 
 	lis, err := net.Listen("unix", sockPath)
 	require.NoError(t, err)
@@ -78,14 +78,11 @@ func newTestEnv(t *testing.T) *testEnv {
 	exec := &mockExecutor{startPid: 12345}
 	term := newMockTerminal()
 	lspMock := &mockLSP{}
+	dbg := &mockDebugger{}
 
-	browserrpc.RegisterNotificationsServer(
-		srv, notif,
-	)
+	browserrpc.RegisterNotificationsServer(srv, notif)
 	browserrpc.RegisterWindowManagerServer(srv, wm)
-	browserrpc.RegisterResourceOpenerServer(
-		srv, opener,
-	)
+	browserrpc.RegisterResourceOpenerServer(srv, opener)
 	workspacerpc.RegisterSchemeServer(srv, scheme)
 	textrpc.RegisterEditorServer(srv, ed)
 	docpb.RegisterDocumentStoreServer(srv, ds)
@@ -93,6 +90,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	workspacerpc.RegisterExecutorServer(srv, exec)
 	workspacerpc.RegisterTerminalServer(srv, term)
 	semanticrpc.RegisterLSPServer(srv, lspMock)
+	debugrpc.RegisterDebugServiceServer(srv, dbg)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -111,13 +109,12 @@ func newTestEnv(t *testing.T) *testEnv {
 			srv.Stop()
 			term.cleanup()
 		},
-		lsp: lspMock,
+		lsp:      lspMock,
+		debugger: dbg,
 	}
 }
 
-func (e *testEnv) run(
-	args ...string,
-) (string, error) {
+func (e *testEnv) run(args ...string) (string, error) {
 	e.t.Helper()
 
 	root := newRootCmd()
@@ -147,10 +144,7 @@ type mockNotifications struct {
 	lastMsg   string
 }
 
-func (m *mockNotifications) Notify(
-	_ context.Context,
-	req *browserrpc.NotifyRequest,
-) (*browserrpc.NotifyResponse, error) {
+func (m *mockNotifications) Notify(_ context.Context, req *browserrpc.NotifyRequest) (*browserrpc.NotifyResponse, error) {
 	m.lastLevel = req.GetLevel()
 	m.lastMsg = req.GetMsg()
 	return &browserrpc.NotifyResponse{
@@ -165,9 +159,7 @@ type mockWindowManager struct {
 	closedID      uint64
 }
 
-func (m *mockWindowManager) Focus(
-	_ context.Context, _ *browserrpc.FocusRequest,
-) (*browserrpc.FocusResponse, error) {
+func (m *mockWindowManager) Focus(_ context.Context, _ *browserrpc.FocusRequest) (*browserrpc.FocusResponse, error) {
 	return &browserrpc.FocusResponse{
 		WindowId: m.focusWindowID,
 	}, nil
@@ -232,13 +224,8 @@ type mockScheme struct {
 	workspacerpc.UnimplementedSchemeServer
 }
 
-func (m *mockScheme) URI(
-	_ context.Context,
-	req *workspacerpc.URIRequest,
-) (*workspacerpc.URIResponse, error) {
-	uri := fmt.Sprintf(
-		"file://%s", req.GetPath(),
-	)
+func (m *mockScheme) URI(_ context.Context, req *workspacerpc.URIRequest) (*workspacerpc.URIResponse, error) {
+	uri := fmt.Sprintf("file://%s", req.GetPath())
 	return &workspacerpc.URIResponse{Uri: uri}, nil
 }
 
@@ -254,15 +241,11 @@ type mockEditor struct {
 	movePrevCalled  bool
 }
 
-func (m *mockEditor) Editor(
-	_ context.Context, _ *textrpc.EditorRequest,
-) (*textrpc.EditorResponse, error) {
+func (m *mockEditor) Editor(_ context.Context, _ *textrpc.EditorRequest) (*textrpc.EditorResponse, error) {
 	return &textrpc.EditorResponse{}, nil
 }
 
-func (m *mockEditor) Cursor(
-	_ context.Context, _ *textrpc.CursorRequest,
-) (*textrpc.CursorResponse, error) {
+func (m *mockEditor) Cursor(_ context.Context, _ *textrpc.CursorRequest) (*textrpc.CursorResponse, error) {
 	return &textrpc.CursorResponse{
 		Pos: &termrpc.Coordinates{
 			X: m.cursorX, Y: m.cursorY,
@@ -270,20 +253,14 @@ func (m *mockEditor) Cursor(
 	}, nil
 }
 
-func (m *mockEditor) SetCursor(
-	_ context.Context,
-	req *textrpc.SetCursorRequest,
-) (*textrpc.SetCursorResponse, error) {
+func (m *mockEditor) SetCursor(_ context.Context, req *textrpc.SetCursorRequest) (*textrpc.SetCursorResponse, error) {
 	m.setCursorCalled = true
 	m.cursorX = req.GetPos().GetX()
 	m.cursorY = req.GetPos().GetY()
 	return &textrpc.SetCursorResponse{}, nil
 }
 
-func (m *mockEditor) EditCell(
-	_ context.Context,
-	req *textrpc.EditCellRequest,
-) (*textrpc.EditCellResponse, error) {
+func (m *mockEditor) EditCell(_ context.Context, req *textrpc.EditCellRequest) (*textrpc.EditCellResponse, error) {
 	return &textrpc.EditCellResponse{
 		From: &termrpc.Coordinates{
 			X: req.GetStart().GetX(),
@@ -297,10 +274,7 @@ func (m *mockEditor) EditCell(
 	}, nil
 }
 
-func (m *mockEditor) RawCells(
-	_ context.Context,
-	_ *textrpc.RawCellsRequest,
-) (*textrpc.RawCellsResponse, error) {
+func (m *mockEditor) RawCells(_ context.Context, _ *textrpc.RawCellsRequest) (*textrpc.RawCellsResponse, error) {
 	cells := term.StringToCells("hello world")
 	return textrpc.NewRawCellsResponse(cells), nil
 }
@@ -350,26 +324,17 @@ func newMockDocStore() *mockDocStore {
 	}
 }
 
-func (m *mockDocStore) Create(
-	_ context.Context,
-	req *docpb.CreateDocumentRequest,
-) (*docpb.CreateDocumentResponse, error) {
+func (m *mockDocStore) Create(_ context.Context, req *docpb.CreateDocumentRequest) (*docpb.CreateDocumentResponse, error) {
 	m.docs[req.GetId()] = req.GetData()
 	return &docpb.CreateDocumentResponse{}, nil
 }
 
-func (m *mockDocStore) Set(
-	_ context.Context,
-	req *docpb.SetDocumentRequest,
-) (*docpb.DocumentResponse, error) {
+func (m *mockDocStore) Set(_ context.Context, req *docpb.SetDocumentRequest) (*docpb.DocumentResponse, error) {
 	m.docs[req.GetId()] = req.GetData()
 	return &docpb.DocumentResponse{}, nil
 }
 
-func (m *mockDocStore) Get(
-	_ context.Context,
-	req *docpb.GetDocumentRequest,
-) (*docpb.GetDocumentResponse, error) {
+func (m *mockDocStore) Get(_ context.Context, req *docpb.GetDocumentRequest) (*docpb.GetDocumentResponse, error) {
 	data, ok := m.docs[req.GetId()]
 	if !ok {
 		return &docpb.GetDocumentResponse{}, nil
@@ -379,18 +344,12 @@ func (m *mockDocStore) Get(
 	}, nil
 }
 
-func (m *mockDocStore) Delete(
-	_ context.Context,
-	req *docpb.DeleteDocumentRequest,
-) (*docpb.DocumentResponse, error) {
+func (m *mockDocStore) Delete(_ context.Context, req *docpb.DeleteDocumentRequest) (*docpb.DocumentResponse, error) {
 	delete(m.docs, req.GetId())
 	return &docpb.DocumentResponse{}, nil
 }
 
-func (m *mockDocStore) Update(
-	_ context.Context,
-	req *docpb.UpdateDocumentRequest,
-) (*docpb.UpdateDocumentResponse, error) {
+func (m *mockDocStore) Update(_ context.Context, req *docpb.UpdateDocumentRequest) (*docpb.UpdateDocumentResponse, error) {
 	m.lastUpdate = req
 	return &docpb.UpdateDocumentResponse{}, nil
 }
@@ -431,10 +390,7 @@ func newMockTerminal() *mockTerminal {
 	}
 }
 
-func (m *mockTerminal) NewPty(
-	_ context.Context,
-	_ *workspacerpc.NewPtyRequest,
-) (*workspacerpc.NewPtyResponse, error) {
+func (m *mockTerminal) NewPty(_ context.Context, _ *workspacerpc.NewPtyRequest) (*workspacerpc.NewPtyResponse, error) {
 	return &workspacerpc.NewPtyResponse{
 		Master:   m.masterR.Name(),
 		MasterFd: uint32(m.masterR.Fd()),
@@ -521,10 +477,7 @@ func (m *mockExecutor) StartCommand(
 	return stream.Send(doneResp)
 }
 
-func (m *mockExecutor) Signal(
-	_ context.Context,
-	req *workspacerpc.SignalRequest,
-) (*workspacerpc.SignalResponse, error) {
+func (m *mockExecutor) Signal(_ context.Context, req *workspacerpc.SignalRequest) (*workspacerpc.SignalResponse, error) {
 	m.signalCalled = true
 	m.lastPid = req.GetPid()
 	m.lastSignal = req.GetSig()
@@ -604,10 +557,7 @@ type mockLSP struct {
 	semanticrpc.UnimplementedLSPServer
 }
 
-func (m *mockLSP) Hover(
-	_ context.Context,
-	req *semanticrpc.HoverRequest,
-) (*semanticrpc.HoverResponse, error) {
+func (m *mockLSP) Hover(_ context.Context, req *semanticrpc.HoverRequest) (*semanticrpc.HoverResponse, error) {
 	return &semanticrpc.HoverResponse{
 		HasResult: true,
 		Result: &semanticrpc.Hover{
@@ -619,10 +569,7 @@ func (m *mockLSP) Hover(
 	}, nil
 }
 
-func (m *mockLSP) Definition(
-	_ context.Context,
-	req *semanticrpc.DefinitionRequest,
-) (*semanticrpc.DefinitionResponse, error) {
+func (m *mockLSP) Definition(_ context.Context, req *semanticrpc.DefinitionRequest) (*semanticrpc.DefinitionResponse, error) {
 	return &semanticrpc.DefinitionResponse{
 		Locations: []*semanticrpc.Location{{
 			Uri: "file:///src/main.go",
@@ -638,10 +585,7 @@ func (m *mockLSP) Definition(
 	}, nil
 }
 
-func (m *mockLSP) References(
-	_ context.Context,
-	req *semanticrpc.ReferencesRequest,
-) (*semanticrpc.ReferencesResponse, error) {
+func (m *mockLSP) References(_ context.Context, req *semanticrpc.ReferencesRequest) (*semanticrpc.ReferencesResponse, error) {
 	return &semanticrpc.ReferencesResponse{
 		Locations: []*semanticrpc.Location{
 			{
@@ -741,10 +685,7 @@ func (m *mockLSP) WorkspaceSymbol(
 	}, nil
 }
 
-func (m *mockLSP) Diagnostic(
-	_ context.Context,
-	req *semanticrpc.DiagnosticRequest,
-) (*semanticrpc.DiagnosticResponse, error) {
+func (m *mockLSP) Diagnostic(_ context.Context, req *semanticrpc.DiagnosticRequest) (*semanticrpc.DiagnosticResponse, error) {
 	return &semanticrpc.DiagnosticResponse{
 		Report: &semanticrpc.DocumentDiagnosticReport{
 			Kind: "full",
@@ -815,10 +756,7 @@ func (m *mockLSP) WorkspaceDiagnostic(
 	}, nil
 }
 
-func (m *mockLSP) Rename(
-	_ context.Context,
-	req *semanticrpc.RenameRequest,
-) (*semanticrpc.RenameResponse, error) {
+func (m *mockLSP) Rename(_ context.Context, req *semanticrpc.RenameRequest) (*semanticrpc.RenameResponse, error) {
 	return &semanticrpc.RenameResponse{
 		HasResult: true,
 		Result: &semanticrpc.WorkspaceEdit{
@@ -854,10 +792,7 @@ func (m *mockLSP) Rename(
 	}, nil
 }
 
-func (m *mockLSP) CodeAction(
-	_ context.Context,
-	req *semanticrpc.CodeActionRequest,
-) (*semanticrpc.CodeActionResponse, error) {
+func (m *mockLSP) CodeAction(_ context.Context, req *semanticrpc.CodeActionRequest) (*semanticrpc.CodeActionResponse, error) {
 	return &semanticrpc.CodeActionResponse{
 		Items: []*semanticrpc.CodeActionResultItem{
 			{
@@ -902,10 +837,7 @@ func (m *mockLSP) CodeAction(
 	}, nil
 }
 
-func (m *mockLSP) Completion(
-	_ context.Context,
-	req *semanticrpc.CompletionRequest,
-) (*semanticrpc.CompletionResponse, error) {
+func (m *mockLSP) Completion(_ context.Context, req *semanticrpc.CompletionRequest) (*semanticrpc.CompletionResponse, error) {
 	return &semanticrpc.CompletionResponse{
 		Result: &semanticrpc.CompletionResult{
 			Items: []*semanticrpc.CompletionItem{
@@ -945,10 +877,7 @@ func (m *mockLSP) SignatureHelp(
 	}, nil
 }
 
-func (m *mockLSP) Declaration(
-	_ context.Context,
-	req *semanticrpc.DeclarationRequest,
-) (*semanticrpc.DeclarationResponse, error) {
+func (m *mockLSP) Declaration(_ context.Context, req *semanticrpc.DeclarationRequest) (*semanticrpc.DeclarationResponse, error) {
 	return &semanticrpc.DeclarationResponse{
 		Locations: []*semanticrpc.Location{{
 			Uri: "file:///src/types.go",
@@ -1015,10 +944,7 @@ func (m *mockLSP) Implementation(
 	}, nil
 }
 
-func (m *mockLSP) Formatting(
-	_ context.Context,
-	req *semanticrpc.FormattingRequest,
-) (*semanticrpc.FormattingResponse, error) {
+func (m *mockLSP) Formatting(_ context.Context, req *semanticrpc.FormattingRequest) (*semanticrpc.FormattingResponse, error) {
 	return &semanticrpc.FormattingResponse{
 		Edits: []*semanticrpc.TextEdit{
 			{
@@ -1091,10 +1017,7 @@ func (m *mockLSP) DocumentHighlight(
 	}, nil
 }
 
-func (m *mockLSP) CodeLens(
-	_ context.Context,
-	req *semanticrpc.CodeLensRequest,
-) (*semanticrpc.CodeLensResponse, error) {
+func (m *mockLSP) CodeLens(_ context.Context, req *semanticrpc.CodeLensRequest) (*semanticrpc.CodeLensResponse, error) {
 	return &semanticrpc.CodeLensResponse{
 		Lenses: []*semanticrpc.CodeLens{
 			{
@@ -1191,10 +1114,7 @@ func (m *mockLSP) ExecuteCommand(
 	return &semanticrpc.ExecuteCommandResponse{Result: result}, nil
 }
 
-func (m *mockLSP) InlayHint(
-	_ context.Context,
-	req *semanticrpc.InlayHintRequest,
-) (*semanticrpc.InlayHintResponse, error) {
+func (m *mockLSP) InlayHint(_ context.Context, req *semanticrpc.InlayHintRequest) (*semanticrpc.InlayHintResponse, error) {
 	return &semanticrpc.InlayHintResponse{
 		Hints: []*semanticrpc.InlayHint{
 			{
@@ -1495,10 +1415,7 @@ func (m *mockLSP) LinkedEditingRange(
 	}, nil
 }
 
-func (m *mockLSP) Moniker(
-	_ context.Context,
-	req *semanticrpc.MonikerRequest,
-) (*semanticrpc.MonikerResponse, error) {
+func (m *mockLSP) Moniker(_ context.Context, req *semanticrpc.MonikerRequest) (*semanticrpc.MonikerResponse, error) {
 	return &semanticrpc.MonikerResponse{
 		Monikers: []*semanticrpc.Moniker{
 			{
@@ -1511,10 +1428,7 @@ func (m *mockLSP) Moniker(
 	}, nil
 }
 
-func (m *mockLSP) InlineValue(
-	_ context.Context,
-	req *semanticrpc.InlineValueRequest,
-) (*semanticrpc.InlineValueResponse, error) {
+func (m *mockLSP) InlineValue(_ context.Context, req *semanticrpc.InlineValueRequest) (*semanticrpc.InlineValueResponse, error) {
 	return &semanticrpc.InlineValueResponse{
 		Values: []*semanticrpc.InlineValue{
 			{
@@ -1526,5 +1440,111 @@ func (m *mockLSP) InlineValue(
 				VariableName: "x",
 			},
 		},
+	}, nil
+}
+
+// mockDebugger implements debugrpc.DebugServiceServer.
+type mockDebugger struct {
+	debugrpc.UnimplementedDebugServiceServer
+}
+
+func (m *mockDebugger) Launch(_ context.Context, _ *debugrpc.LaunchRequest) (*debugrpc.LaunchResponse, error) {
+	return &debugrpc.LaunchResponse{}, nil
+}
+
+func (m *mockDebugger) ConfigurationDone(
+	_ context.Context,
+	_ *debugrpc.ConfigurationDoneRequest,
+) (*debugrpc.ConfigurationDoneResponse, error) {
+	return &debugrpc.ConfigurationDoneResponse{}, nil
+}
+
+func (m *mockDebugger) Disconnect(_ context.Context, _ *debugrpc.DisconnectRequest) (
+	*debugrpc.DisconnectResponse, error,
+) {
+	return &debugrpc.DisconnectResponse{}, nil
+}
+
+func (m *mockDebugger) SetBreakpoints(
+	_ context.Context,
+	req *debugrpc.SetBreakpointsRequest,
+) (*debugrpc.SetBreakpointsResponse, error) {
+	var bps []*debugrpc.Breakpoint
+	for _, sb := range req.GetBreakpoints() {
+		bps = append(bps, &debugrpc.Breakpoint{
+			Id:       sb.GetLine(),
+			Verified: true,
+			Line:     sb.GetLine(),
+			Source: &debugrpc.Source{
+				Path: req.GetSource().GetPath(),
+			},
+		})
+	}
+	return &debugrpc.SetBreakpointsResponse{Breakpoints: bps}, nil
+}
+
+func (m *mockDebugger) Continue(_ context.Context, _ *debugrpc.ContinueRequest) (*debugrpc.ContinueResponse, error) {
+	return &debugrpc.ContinueResponse{AllThreadsContinued: true}, nil
+}
+
+func (m *mockDebugger) Threads(_ context.Context, _ *debugrpc.ThreadsRequest) (*debugrpc.ThreadsResponse, error) {
+	return &debugrpc.ThreadsResponse{
+		Threads: []*debugrpc.Thread{
+			{Id: 1, Name: "main"},
+			{Id: 2, Name: "worker"},
+		},
+	}, nil
+}
+
+func (m *mockDebugger) StackTrace(_ context.Context, _ *debugrpc.StackTraceRequest) (*debugrpc.StackTraceResponse, error) {
+	return &debugrpc.StackTraceResponse{
+		StackFrames: []*debugrpc.StackFrame{
+			{
+				Id:   0,
+				Name: "main.run",
+				Source: &debugrpc.Source{
+					Path: "/src/main.go",
+				},
+				Line:   42,
+				Column: 1,
+			},
+		},
+		TotalFrames: 1,
+	}, nil
+}
+
+func (m *mockDebugger) Scopes(_ context.Context, _ *debugrpc.ScopesRequest) (*debugrpc.ScopesResponse, error) {
+	return &debugrpc.ScopesResponse{
+		Scopes: []*debugrpc.Scope{
+			{
+				Name:               "Locals",
+				VariablesReference: 100,
+				NamedVariables:     3,
+			},
+		},
+	}, nil
+}
+
+func (m *mockDebugger) Variables(_ context.Context, _ *debugrpc.VariablesRequest) (*debugrpc.VariablesResponse, error) {
+	return &debugrpc.VariablesResponse{
+		Variables: []*debugrpc.Variable{
+			{
+				Name:  "x",
+				Value: "42",
+				Type:  "int",
+			},
+			{
+				Name:  "name",
+				Value: `"hello"`,
+				Type:  "string",
+			},
+		},
+	}, nil
+}
+
+func (m *mockDebugger) Evaluate(_ context.Context, req *debugrpc.EvaluateRequest) (*debugrpc.EvaluateResponse, error) {
+	return &debugrpc.EvaluateResponse{
+		Result: "result of " + req.GetExpression(),
+		Type:   "string",
 	}, nil
 }
