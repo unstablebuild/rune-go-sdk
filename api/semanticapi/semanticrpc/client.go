@@ -17,13 +17,11 @@ package semanticrpc
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
+	"github.com/unstablebuild/rune-go-sdk/joincontext"
 	"google.golang.org/grpc"
 )
-
-const defaultTimeout = 10 * time.Second
 
 var _ semanticapi.LSP = (*Client)(nil)
 
@@ -51,12 +49,8 @@ func (c *Client) Init(ctx context.Context, cc grpc.ClientConnInterface) {
 	c.log = slog.Default().With("struct", "semanticrpc.Client")
 }
 
-func (c *Client) ctxWithTimeout() (context.Context, func()) {
-	return context.WithTimeout(c.clientCtx, defaultTimeout)
-}
-
-func (c *Client) Initialize(_ context.Context, params semanticapi.InitializeParams) (semanticapi.InitializeResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Initialize(ctx context.Context, params semanticapi.InitializeParams) (semanticapi.InitializeResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &InitializeRequest{
@@ -78,32 +72,32 @@ func (c *Client) Initialize(_ context.Context, params semanticapi.InitializePara
 	}, nil
 }
 
-func (c *Client) Initialized(_ context.Context) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Initialized(ctx context.Context) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	_, err := c.lsp.Initialized(ctx, &InitializedRequest{})
 	return err
 }
 
-func (c *Client) Shutdown(_ context.Context) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Shutdown(ctx context.Context) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	_, err := c.lsp.Shutdown(ctx, &ShutdownRequest{})
 	return err
 }
 
-func (c *Client) Exit(_ context.Context) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Exit(ctx context.Context) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	_, err := c.lsp.Exit(ctx, &ExitRequest{})
 	return err
 }
 
-func (c *Client) DidOpen(_ context.Context, params semanticapi.DidOpenTextDocumentParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidOpen(ctx context.Context, params semanticapi.DidOpenTextDocumentParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidOpenRequest{TextDocument: TextDocumentItemToProto(params.TextDocument)}
@@ -111,8 +105,8 @@ func (c *Client) DidOpen(_ context.Context, params semanticapi.DidOpenTextDocume
 	return err
 }
 
-func (c *Client) DidChange(_ context.Context, params semanticapi.DidChangeTextDocumentParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidChange(ctx context.Context, params semanticapi.DidChangeTextDocumentParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidChangeRequest{
@@ -123,8 +117,8 @@ func (c *Client) DidChange(_ context.Context, params semanticapi.DidChangeTextDo
 	return err
 }
 
-func (c *Client) DidClose(_ context.Context, params semanticapi.DidCloseTextDocumentParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidClose(ctx context.Context, params semanticapi.DidCloseTextDocumentParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidCloseRequest{TextDocument: TextDocumentIdentifierToProto(params.TextDocument)}
@@ -132,8 +126,8 @@ func (c *Client) DidClose(_ context.Context, params semanticapi.DidCloseTextDocu
 	return err
 }
 
-func (c *Client) DidSave(_ context.Context, params semanticapi.DidSaveTextDocumentParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidSave(ctx context.Context, params semanticapi.DidSaveTextDocumentParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidSaveRequest{
@@ -144,8 +138,8 @@ func (c *Client) DidSave(_ context.Context, params semanticapi.DidSaveTextDocume
 	return err
 }
 
-func (c *Client) Completion(_ context.Context, params semanticapi.CompletionParams) (semanticapi.CompletionResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Completion(ctx context.Context, params semanticapi.CompletionParams) (semanticapi.CompletionResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CompletionRequest{
@@ -163,8 +157,8 @@ func (c *Client) Completion(_ context.Context, params semanticapi.CompletionPara
 	return CompletionResultFromProto(res.GetResult()), nil
 }
 
-func (c *Client) Hover(_ context.Context, params semanticapi.HoverParams) (*semanticapi.Hover, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Hover(ctx context.Context, params semanticapi.HoverParams) (*semanticapi.Hover, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &HoverRequest{
@@ -178,8 +172,8 @@ func (c *Client) Hover(_ context.Context, params semanticapi.HoverParams) (*sema
 	return HoverFromProto(res.GetResult(), res.GetHasResult()), nil
 }
 
-func (c *Client) SignatureHelp(_ context.Context, params semanticapi.SignatureHelpParams) (*semanticapi.SignatureHelp, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) SignatureHelp(ctx context.Context, params semanticapi.SignatureHelpParams) (*semanticapi.SignatureHelp, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SignatureHelpRequest{
@@ -193,8 +187,8 @@ func (c *Client) SignatureHelp(_ context.Context, params semanticapi.SignatureHe
 	return SignatureHelpFromProto(res.GetResult(), res.GetHasResult()), nil
 }
 
-func (c *Client) Definition(_ context.Context, params semanticapi.DefinitionParams) (semanticapi.LocationResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Definition(ctx context.Context, params semanticapi.DefinitionParams) (semanticapi.LocationResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DefinitionRequest{
@@ -208,8 +202,8 @@ func (c *Client) Definition(_ context.Context, params semanticapi.DefinitionPara
 	return LocationResultFromProto(res), nil
 }
 
-func (c *Client) Declaration(_ context.Context, params semanticapi.DeclarationParams) (semanticapi.LocationResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Declaration(ctx context.Context, params semanticapi.DeclarationParams) (semanticapi.LocationResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DeclarationRequest{
@@ -223,8 +217,8 @@ func (c *Client) Declaration(_ context.Context, params semanticapi.DeclarationPa
 	return LocationResultFromProtoDecl(res), nil
 }
 
-func (c *Client) TypeDefinition(_ context.Context, params semanticapi.TypeDefinitionParams) (semanticapi.LocationResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) TypeDefinition(ctx context.Context, params semanticapi.TypeDefinitionParams) (semanticapi.LocationResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &TypeDefinitionRequest{
@@ -238,8 +232,8 @@ func (c *Client) TypeDefinition(_ context.Context, params semanticapi.TypeDefini
 	return LocationResultFromProtoTypeDef(res), nil
 }
 
-func (c *Client) Implementation(_ context.Context, params semanticapi.ImplementationParams) (semanticapi.LocationResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Implementation(ctx context.Context, params semanticapi.ImplementationParams) (semanticapi.LocationResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ImplementationRequest{
@@ -253,8 +247,8 @@ func (c *Client) Implementation(_ context.Context, params semanticapi.Implementa
 	return LocationResultFromProtoImpl(res), nil
 }
 
-func (c *Client) References(_ context.Context, params semanticapi.ReferenceParams) ([]semanticapi.Location, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) References(ctx context.Context, params semanticapi.ReferenceParams) ([]semanticapi.Location, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ReferencesRequest{
@@ -269,8 +263,8 @@ func (c *Client) References(_ context.Context, params semanticapi.ReferenceParam
 	return LocationsFromProto(res.GetLocations()), nil
 }
 
-func (c *Client) DocumentHighlight(_ context.Context, params semanticapi.DocumentHighlightParams) ([]semanticapi.DocumentHighlight, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DocumentHighlight(ctx context.Context, params semanticapi.DocumentHighlightParams) ([]semanticapi.DocumentHighlight, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DocumentHighlightRequest{
@@ -284,8 +278,8 @@ func (c *Client) DocumentHighlight(_ context.Context, params semanticapi.Documen
 	return DocumentHighlightsFromProto(res.GetHighlights()), nil
 }
 
-func (c *Client) DocumentSymbol(_ context.Context, params semanticapi.DocumentSymbolParams) (semanticapi.DocumentSymbolResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DocumentSymbol(ctx context.Context, params semanticapi.DocumentSymbolParams) (semanticapi.DocumentSymbolResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DocumentSymbolRequest{
@@ -298,8 +292,8 @@ func (c *Client) DocumentSymbol(_ context.Context, params semanticapi.DocumentSy
 	return DocumentSymbolResultFromProto(res), nil
 }
 
-func (c *Client) CodeAction(_ context.Context, params semanticapi.CodeActionParams) ([]semanticapi.CodeActionResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) CodeAction(ctx context.Context, params semanticapi.CodeActionParams) ([]semanticapi.CodeActionResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CodeActionRequest{
@@ -314,8 +308,8 @@ func (c *Client) CodeAction(_ context.Context, params semanticapi.CodeActionPara
 	return CodeActionResultsFromProto(res), nil
 }
 
-func (c *Client) CodeLens(_ context.Context, params semanticapi.CodeLensParams) ([]semanticapi.CodeLens, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) CodeLens(ctx context.Context, params semanticapi.CodeLensParams) ([]semanticapi.CodeLens, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CodeLensRequest{
@@ -328,8 +322,8 @@ func (c *Client) CodeLens(_ context.Context, params semanticapi.CodeLensParams) 
 	return CodeLensesFromProto(res.GetLenses()), nil
 }
 
-func (c *Client) Formatting(_ context.Context, params semanticapi.DocumentFormattingParams) ([]semanticapi.TextEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Formatting(ctx context.Context, params semanticapi.DocumentFormattingParams) ([]semanticapi.TextEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &FormattingRequest{
@@ -344,8 +338,8 @@ func (c *Client) Formatting(_ context.Context, params semanticapi.DocumentFormat
 	return TextEditsFromProto(res.GetEdits()), nil
 }
 
-func (c *Client) RangeFormatting(_ context.Context, params semanticapi.DocumentRangeFormattingParams) ([]semanticapi.TextEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) RangeFormatting(ctx context.Context, params semanticapi.DocumentRangeFormattingParams) ([]semanticapi.TextEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &RangeFormattingRequest{
@@ -361,8 +355,8 @@ func (c *Client) RangeFormatting(_ context.Context, params semanticapi.DocumentR
 	return TextEditsFromProto(res.GetEdits()), nil
 }
 
-func (c *Client) Rename(_ context.Context, params semanticapi.RenameParams) (*semanticapi.WorkspaceEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Rename(ctx context.Context, params semanticapi.RenameParams) (*semanticapi.WorkspaceEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &RenameRequest{
@@ -380,8 +374,8 @@ func (c *Client) Rename(_ context.Context, params semanticapi.RenameParams) (*se
 	return WorkspaceEditFromProto(res.GetResult()), nil
 }
 
-func (c *Client) PrepareRename(_ context.Context, params semanticapi.PrepareRenameParams) (*semanticapi.PrepareRenameResult, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) PrepareRename(ctx context.Context, params semanticapi.PrepareRenameParams) (*semanticapi.PrepareRenameResult, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &PrepareRenameRequest{
@@ -395,8 +389,8 @@ func (c *Client) PrepareRename(_ context.Context, params semanticapi.PrepareRena
 	return PrepareRenameResultFromProto(res.GetResult(), res.GetHasResult()), nil
 }
 
-func (c *Client) FoldingRange(_ context.Context, params semanticapi.FoldingRangeParams) ([]semanticapi.FoldingRange, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) FoldingRange(ctx context.Context, params semanticapi.FoldingRangeParams) ([]semanticapi.FoldingRange, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &FoldingRangeRequest{
@@ -409,8 +403,8 @@ func (c *Client) FoldingRange(_ context.Context, params semanticapi.FoldingRange
 	return FoldingRangesFromProto(res.GetRanges()), nil
 }
 
-func (c *Client) SelectionRange(_ context.Context, params semanticapi.SelectionRangeParams) ([]semanticapi.SelectionRange, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) SelectionRange(ctx context.Context, params semanticapi.SelectionRangeParams) ([]semanticapi.SelectionRange, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	positions := make([]*Position, len(params.Positions))
@@ -428,8 +422,8 @@ func (c *Client) SelectionRange(_ context.Context, params semanticapi.SelectionR
 	return SelectionRangesFromProto(res.GetRanges()), nil
 }
 
-func (c *Client) SemanticTokensFull(_ context.Context, params semanticapi.SemanticTokensParams) (*semanticapi.SemanticTokens, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) SemanticTokensFull(ctx context.Context, params semanticapi.SemanticTokensParams) (*semanticapi.SemanticTokens, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SemanticTokensFullRequest{
@@ -442,8 +436,8 @@ func (c *Client) SemanticTokensFull(_ context.Context, params semanticapi.Semant
 	return SemanticTokensFromProto(res.GetResult(), res.GetHasResult()), nil
 }
 
-func (c *Client) SemanticTokensRange(_ context.Context, params semanticapi.SemanticTokensRangeParams) (*semanticapi.SemanticTokens, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) SemanticTokensRange(ctx context.Context, params semanticapi.SemanticTokensRangeParams) (*semanticapi.SemanticTokens, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SemanticTokensRangeRequest{
@@ -457,8 +451,8 @@ func (c *Client) SemanticTokensRange(_ context.Context, params semanticapi.Seman
 	return SemanticTokensFromProto(res.GetResult(), res.GetHasResult()), nil
 }
 
-func (c *Client) Diagnostic(_ context.Context, params semanticapi.DocumentDiagnosticParams) (semanticapi.DocumentDiagnosticReport, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Diagnostic(ctx context.Context, params semanticapi.DocumentDiagnosticParams) (semanticapi.DocumentDiagnosticReport, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DiagnosticRequest{
@@ -472,10 +466,10 @@ func (c *Client) Diagnostic(_ context.Context, params semanticapi.DocumentDiagno
 }
 
 func (c *Client) WorkspaceDiagnostic(
-	_ context.Context,
+	ctx context.Context,
 	params semanticapi.WorkspaceDiagnosticParams,
 ) (semanticapi.WorkspaceDiagnosticReport, error) {
-	ctx, cancel := c.ctxWithTimeout()
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WorkspaceDiagnosticRequest{
@@ -491,8 +485,8 @@ func (c *Client) WorkspaceDiagnostic(
 	}, nil
 }
 
-func (c *Client) WorkspaceSymbol(_ context.Context, params semanticapi.WorkspaceSymbolParams) ([]semanticapi.SymbolInformation, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) WorkspaceSymbol(ctx context.Context, params semanticapi.WorkspaceSymbolParams) ([]semanticapi.SymbolInformation, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WorkspaceSymbolRequest{Query: params.Query}
@@ -503,8 +497,8 @@ func (c *Client) WorkspaceSymbol(_ context.Context, params semanticapi.Workspace
 	return SymbolInformationsFromProto(res.GetSymbols()), nil
 }
 
-func (c *Client) ExecuteCommand(_ context.Context, params semanticapi.ExecuteCommandParams) (string, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) ExecuteCommand(ctx context.Context, params semanticapi.ExecuteCommandParams) (string, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	args := make([]string, len(params.Arguments))
@@ -522,8 +516,8 @@ func (c *Client) ExecuteCommand(_ context.Context, params semanticapi.ExecuteCom
 	return res.GetResult(), nil
 }
 
-func (c *Client) PrepareCallHierarchy(_ context.Context, params semanticapi.CallHierarchyPrepareParams) ([]semanticapi.CallHierarchyItem, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) PrepareCallHierarchy(ctx context.Context, params semanticapi.CallHierarchyPrepareParams) ([]semanticapi.CallHierarchyItem, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &PrepareCallHierarchyRequest{
@@ -537,8 +531,8 @@ func (c *Client) PrepareCallHierarchy(_ context.Context, params semanticapi.Call
 	return CallHierarchyItemsFromProto(res.GetItems()), nil
 }
 
-func (c *Client) CallHierarchyIncomingCalls(_ context.Context, params semanticapi.CallHierarchyIncomingCallsParams) ([]semanticapi.CallHierarchyIncomingCall, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) CallHierarchyIncomingCalls(ctx context.Context, params semanticapi.CallHierarchyIncomingCallsParams) ([]semanticapi.CallHierarchyIncomingCall, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CallHierarchyIncomingCallsRequest{
@@ -551,8 +545,8 @@ func (c *Client) CallHierarchyIncomingCalls(_ context.Context, params semanticap
 	return CallHierarchyIncomingCallsFromProto(res.GetCalls()), nil
 }
 
-func (c *Client) CallHierarchyOutgoingCalls(_ context.Context, params semanticapi.CallHierarchyOutgoingCallsParams) ([]semanticapi.CallHierarchyOutgoingCall, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) CallHierarchyOutgoingCalls(ctx context.Context, params semanticapi.CallHierarchyOutgoingCallsParams) ([]semanticapi.CallHierarchyOutgoingCall, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CallHierarchyOutgoingCallsRequest{
@@ -565,8 +559,8 @@ func (c *Client) CallHierarchyOutgoingCalls(_ context.Context, params semanticap
 	return CallHierarchyOutgoingCallsFromProto(res.GetCalls()), nil
 }
 
-func (c *Client) CompletionResolve(_ context.Context, item semanticapi.CompletionItem) (semanticapi.CompletionItem, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) CompletionResolve(ctx context.Context, item semanticapi.CompletionItem) (semanticapi.CompletionItem, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CompletionResolveRequest{Item: CompletionItemToProto(item)}
@@ -577,8 +571,8 @@ func (c *Client) CompletionResolve(_ context.Context, item semanticapi.Completio
 	return CompletionItemFromProto(res.GetItem()), nil
 }
 
-func (c *Client) CodeLensResolve(_ context.Context, lens semanticapi.CodeLens) (semanticapi.CodeLens, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) CodeLensResolve(ctx context.Context, lens semanticapi.CodeLens) (semanticapi.CodeLens, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CodeLensResolveRequest{Lens: CodeLensToProto(lens)}
@@ -589,8 +583,8 @@ func (c *Client) CodeLensResolve(_ context.Context, lens semanticapi.CodeLens) (
 	return CodeLensFromProto(res.GetLens()), nil
 }
 
-func (c *Client) DocumentColor(_ context.Context, params semanticapi.DocumentColorParams) ([]semanticapi.ColorInformation, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DocumentColor(ctx context.Context, params semanticapi.DocumentColorParams) ([]semanticapi.ColorInformation, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DocumentColorRequest{
@@ -603,8 +597,8 @@ func (c *Client) DocumentColor(_ context.Context, params semanticapi.DocumentCol
 	return ColorInformationsFromProto(res.GetColors()), nil
 }
 
-func (c *Client) ColorPresentation(_ context.Context, params semanticapi.ColorPresentationParams) ([]semanticapi.ColorPresentation, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) ColorPresentation(ctx context.Context, params semanticapi.ColorPresentationParams) ([]semanticapi.ColorPresentation, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ColorPresentationRequest{
@@ -619,8 +613,8 @@ func (c *Client) ColorPresentation(_ context.Context, params semanticapi.ColorPr
 	return ColorPresentationsFromProto(res.GetPresentations()), nil
 }
 
-func (c *Client) DocumentLink(_ context.Context, params semanticapi.DocumentLinkParams) ([]semanticapi.DocumentLink, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DocumentLink(ctx context.Context, params semanticapi.DocumentLinkParams) ([]semanticapi.DocumentLink, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DocumentLinkRequest{
@@ -633,8 +627,8 @@ func (c *Client) DocumentLink(_ context.Context, params semanticapi.DocumentLink
 	return DocumentLinksFromProto(res.GetLinks()), nil
 }
 
-func (c *Client) DocumentLinkResolve(_ context.Context, link semanticapi.DocumentLink) (semanticapi.DocumentLink, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DocumentLinkResolve(ctx context.Context, link semanticapi.DocumentLink) (semanticapi.DocumentLink, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DocumentLinkResolveRequest{Link: DocumentLinkToProto(link)}
@@ -645,8 +639,8 @@ func (c *Client) DocumentLinkResolve(_ context.Context, link semanticapi.Documen
 	return DocumentLinkFromProto(res.GetLink()), nil
 }
 
-func (c *Client) OnTypeFormatting(_ context.Context, params semanticapi.DocumentOnTypeFormattingParams) ([]semanticapi.TextEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) OnTypeFormatting(ctx context.Context, params semanticapi.DocumentOnTypeFormattingParams) ([]semanticapi.TextEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &OnTypeFormattingRequest{
@@ -663,8 +657,8 @@ func (c *Client) OnTypeFormatting(_ context.Context, params semanticapi.Document
 	return TextEditsFromProto(res.GetEdits()), nil
 }
 
-func (c *Client) LinkedEditingRange(_ context.Context, params semanticapi.LinkedEditingRangeParams) (*semanticapi.LinkedEditingRanges, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) LinkedEditingRange(ctx context.Context, params semanticapi.LinkedEditingRangeParams) (*semanticapi.LinkedEditingRanges, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &LinkedEditingRangeRequest{
@@ -678,8 +672,8 @@ func (c *Client) LinkedEditingRange(_ context.Context, params semanticapi.Linked
 	return LinkedEditingRangesFromProto(res.GetResult(), res.GetHasResult()), nil
 }
 
-func (c *Client) Moniker(_ context.Context, params semanticapi.MonikerParams) ([]semanticapi.Moniker, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) Moniker(ctx context.Context, params semanticapi.MonikerParams) ([]semanticapi.Moniker, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &MonikerRequest{
@@ -693,8 +687,8 @@ func (c *Client) Moniker(_ context.Context, params semanticapi.MonikerParams) ([
 	return MonikersFromProto(res.GetMonikers()), nil
 }
 
-func (c *Client) WillSaveWaitUntil(_ context.Context, params semanticapi.WillSaveTextDocumentParams) ([]semanticapi.TextEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) WillSaveWaitUntil(ctx context.Context, params semanticapi.WillSaveTextDocumentParams) ([]semanticapi.TextEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WillSaveWaitUntilRequest{
@@ -708,8 +702,8 @@ func (c *Client) WillSaveWaitUntil(_ context.Context, params semanticapi.WillSav
 	return TextEditsFromProto(res.GetEdits()), nil
 }
 
-func (c *Client) SemanticTokensFullDelta(_ context.Context, params semanticapi.SemanticTokensDeltaParams) (*semanticapi.SemanticTokensDelta, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) SemanticTokensFullDelta(ctx context.Context, params semanticapi.SemanticTokensDeltaParams) (*semanticapi.SemanticTokensDelta, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SemanticTokensFullDeltaRequest{
@@ -723,8 +717,8 @@ func (c *Client) SemanticTokensFullDelta(_ context.Context, params semanticapi.S
 	return SemanticTokensDeltaFromProto(res.GetResult(), res.GetHasResult()), nil
 }
 
-func (c *Client) PrepareTypeHierarchy(_ context.Context, params semanticapi.TypeHierarchyPrepareParams) ([]semanticapi.TypeHierarchyItem, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) PrepareTypeHierarchy(ctx context.Context, params semanticapi.TypeHierarchyPrepareParams) ([]semanticapi.TypeHierarchyItem, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &PrepareTypeHierarchyRequest{
@@ -738,8 +732,8 @@ func (c *Client) PrepareTypeHierarchy(_ context.Context, params semanticapi.Type
 	return TypeHierarchyItemsFromProto(res.GetItems()), nil
 }
 
-func (c *Client) TypeHierarchySupertypes(_ context.Context, params semanticapi.TypeHierarchySupertypesParams) ([]semanticapi.TypeHierarchyItem, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) TypeHierarchySupertypes(ctx context.Context, params semanticapi.TypeHierarchySupertypesParams) ([]semanticapi.TypeHierarchyItem, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &TypeHierarchySupertypesRequest{
@@ -752,8 +746,8 @@ func (c *Client) TypeHierarchySupertypes(_ context.Context, params semanticapi.T
 	return TypeHierarchyItemsFromProto(res.GetItems()), nil
 }
 
-func (c *Client) TypeHierarchySubtypes(_ context.Context, params semanticapi.TypeHierarchySubtypesParams) ([]semanticapi.TypeHierarchyItem, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) TypeHierarchySubtypes(ctx context.Context, params semanticapi.TypeHierarchySubtypesParams) ([]semanticapi.TypeHierarchyItem, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &TypeHierarchySubtypesRequest{
@@ -766,8 +760,8 @@ func (c *Client) TypeHierarchySubtypes(_ context.Context, params semanticapi.Typ
 	return TypeHierarchyItemsFromProto(res.GetItems()), nil
 }
 
-func (c *Client) InlayHint(_ context.Context, params semanticapi.InlayHintParams) ([]semanticapi.InlayHint, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) InlayHint(ctx context.Context, params semanticapi.InlayHintParams) ([]semanticapi.InlayHint, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &InlayHintRequest{
@@ -781,8 +775,8 @@ func (c *Client) InlayHint(_ context.Context, params semanticapi.InlayHintParams
 	return InlayHintsFromProto(res.GetHints()), nil
 }
 
-func (c *Client) InlayHintResolve(_ context.Context, hint semanticapi.InlayHint) (semanticapi.InlayHint, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) InlayHintResolve(ctx context.Context, hint semanticapi.InlayHint) (semanticapi.InlayHint, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &InlayHintResolveRequest{Hint: InlayHintToProto(hint)}
@@ -793,8 +787,8 @@ func (c *Client) InlayHintResolve(_ context.Context, hint semanticapi.InlayHint)
 	return InlayHintFromProto(res.GetHint()), nil
 }
 
-func (c *Client) InlineValue(_ context.Context, params semanticapi.InlineValueParams) ([]semanticapi.InlineValue, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) InlineValue(ctx context.Context, params semanticapi.InlineValueParams) ([]semanticapi.InlineValue, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &InlineValueRequest{
@@ -808,8 +802,8 @@ func (c *Client) InlineValue(_ context.Context, params semanticapi.InlineValuePa
 	return InlineValuesFromProto(res.GetValues()), nil
 }
 
-func (c *Client) WillCreateFiles(_ context.Context, params semanticapi.CreateFilesParams) (*semanticapi.WorkspaceEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) WillCreateFiles(ctx context.Context, params semanticapi.CreateFilesParams) (*semanticapi.WorkspaceEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WillCreateFilesRequest{Files: FileCreatesToProto(params.Files)}
@@ -823,8 +817,8 @@ func (c *Client) WillCreateFiles(_ context.Context, params semanticapi.CreateFil
 	return WorkspaceEditFromProto(res.GetResult()), nil
 }
 
-func (c *Client) WillRenameFiles(_ context.Context, params semanticapi.RenameFilesParams) (*semanticapi.WorkspaceEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) WillRenameFiles(ctx context.Context, params semanticapi.RenameFilesParams) (*semanticapi.WorkspaceEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WillRenameFilesRequest{Files: FileRenamesToProto(params.Files)}
@@ -838,8 +832,8 @@ func (c *Client) WillRenameFiles(_ context.Context, params semanticapi.RenameFil
 	return WorkspaceEditFromProto(res.GetResult()), nil
 }
 
-func (c *Client) WillDeleteFiles(_ context.Context, params semanticapi.DeleteFilesParams) (*semanticapi.WorkspaceEdit, error) {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) WillDeleteFiles(ctx context.Context, params semanticapi.DeleteFilesParams) (*semanticapi.WorkspaceEdit, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WillDeleteFilesRequest{Files: FileDeletesToProto(params.Files)}
@@ -853,8 +847,8 @@ func (c *Client) WillDeleteFiles(_ context.Context, params semanticapi.DeleteFil
 	return WorkspaceEditFromProto(res.GetResult()), nil
 }
 
-func (c *Client) WillSave(_ context.Context, params semanticapi.WillSaveTextDocumentParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) WillSave(ctx context.Context, params semanticapi.WillSaveTextDocumentParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WillSaveRequest{
@@ -865,8 +859,8 @@ func (c *Client) WillSave(_ context.Context, params semanticapi.WillSaveTextDocu
 	return err
 }
 
-func (c *Client) DidChangeConfiguration(_ context.Context, params semanticapi.DidChangeConfigurationParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidChangeConfiguration(ctx context.Context, params semanticapi.DidChangeConfigurationParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidChangeConfigurationRequest{Settings: []byte(params.Settings)}
@@ -874,8 +868,8 @@ func (c *Client) DidChangeConfiguration(_ context.Context, params semanticapi.Di
 	return err
 }
 
-func (c *Client) DidChangeWatchedFiles(_ context.Context, params semanticapi.DidChangeWatchedFilesParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidChangeWatchedFiles(ctx context.Context, params semanticapi.DidChangeWatchedFilesParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidChangeWatchedFilesRequest{Changes: FileEventsToProto(params.Changes)}
@@ -883,8 +877,8 @@ func (c *Client) DidChangeWatchedFiles(_ context.Context, params semanticapi.Did
 	return err
 }
 
-func (c *Client) DidChangeWorkspaceFolders(_ context.Context, params semanticapi.DidChangeWorkspaceFoldersParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidChangeWorkspaceFolders(ctx context.Context, params semanticapi.DidChangeWorkspaceFoldersParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidChangeWorkspaceFoldersRequest{
@@ -895,8 +889,8 @@ func (c *Client) DidChangeWorkspaceFolders(_ context.Context, params semanticapi
 	return err
 }
 
-func (c *Client) WorkDoneProgressCancel(_ context.Context, params semanticapi.WorkDoneProgressCancelParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) WorkDoneProgressCancel(ctx context.Context, params semanticapi.WorkDoneProgressCancelParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WorkDoneProgressCancelRequest{Token: params.Token}
@@ -904,8 +898,8 @@ func (c *Client) WorkDoneProgressCancel(_ context.Context, params semanticapi.Wo
 	return err
 }
 
-func (c *Client) SetTrace(_ context.Context, params semanticapi.SetTraceParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) SetTrace(ctx context.Context, params semanticapi.SetTraceParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SetTraceRequest{Value: string(params.Value)}
@@ -913,8 +907,8 @@ func (c *Client) SetTrace(_ context.Context, params semanticapi.SetTraceParams) 
 	return err
 }
 
-func (c *Client) DidCreateFiles(_ context.Context, params semanticapi.CreateFilesParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidCreateFiles(ctx context.Context, params semanticapi.CreateFilesParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidCreateFilesRequest{Files: FileCreatesToProto(params.Files)}
@@ -922,8 +916,8 @@ func (c *Client) DidCreateFiles(_ context.Context, params semanticapi.CreateFile
 	return err
 }
 
-func (c *Client) DidRenameFiles(_ context.Context, params semanticapi.RenameFilesParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidRenameFiles(ctx context.Context, params semanticapi.RenameFilesParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidRenameFilesRequest{Files: FileRenamesToProto(params.Files)}
@@ -931,8 +925,8 @@ func (c *Client) DidRenameFiles(_ context.Context, params semanticapi.RenameFile
 	return err
 }
 
-func (c *Client) DidDeleteFiles(_ context.Context, params semanticapi.DeleteFilesParams) error {
-	ctx, cancel := c.ctxWithTimeout()
+func (c *Client) DidDeleteFiles(ctx context.Context, params semanticapi.DeleteFilesParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DidDeleteFilesRequest{Files: FileDeletesToProto(params.Files)}
