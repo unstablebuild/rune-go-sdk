@@ -17,7 +17,6 @@ package debugrpc
 import (
 	"context"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/google/go-dap"
@@ -36,8 +35,7 @@ type Client struct {
 	clientCtx       context.Context
 	clientCancelCtx func()
 
-	eventsMu sync.Mutex
-	events   chan dap.EventMessage
+	events chan dap.EventMessage
 }
 
 // NewClient creates a new Client connected to the given gRPC connection.
@@ -66,7 +64,7 @@ func (c *Client) ctxWithTimeout() (context.Context, func()) {
 }
 
 // Initialize implements debugapi.Debugger.
-func (c *Client) Initialize(ctx context.Context, args *dap.InitializeRequestArguments) (*dap.Capabilities, error) {
+func (c *Client) Initialize(_ context.Context, args *dap.InitializeRequestArguments) (*dap.Capabilities, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -99,7 +97,7 @@ func (c *Client) Initialize(ctx context.Context, args *dap.InitializeRequestArgu
 }
 
 // Launch implements debugapi.Debugger.
-func (c *Client) Launch(ctx context.Context, args debugapi.LaunchRequestArguments) error {
+func (c *Client) Launch(_ context.Context, args debugapi.LaunchRequestArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -117,7 +115,7 @@ func (c *Client) Launch(ctx context.Context, args debugapi.LaunchRequestArgument
 }
 
 // Attach implements debugapi.Debugger.
-func (c *Client) Attach(ctx context.Context, args debugapi.AttachRequestArguments) error {
+func (c *Client) Attach(_ context.Context, args debugapi.AttachRequestArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -131,7 +129,7 @@ func (c *Client) Attach(ctx context.Context, args debugapi.AttachRequestArgument
 }
 
 // ConfigurationDone implements debugapi.Debugger.
-func (c *Client) ConfigurationDone(ctx context.Context) error {
+func (c *Client) ConfigurationDone(_ context.Context) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -140,7 +138,7 @@ func (c *Client) ConfigurationDone(ctx context.Context) error {
 }
 
 // Disconnect implements debugapi.Debugger.
-func (c *Client) Disconnect(ctx context.Context, args *dap.DisconnectArguments) error {
+func (c *Client) Disconnect(_ context.Context, args *dap.DisconnectArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -155,7 +153,7 @@ func (c *Client) Disconnect(ctx context.Context, args *dap.DisconnectArguments) 
 }
 
 // Terminate implements debugapi.Debugger.
-func (c *Client) Terminate(ctx context.Context, args *dap.TerminateArguments) error {
+func (c *Client) Terminate(_ context.Context, args *dap.TerminateArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -168,7 +166,7 @@ func (c *Client) Terminate(ctx context.Context, args *dap.TerminateArguments) er
 }
 
 // Restart implements debugapi.Debugger.
-func (c *Client) Restart(ctx context.Context) error {
+func (c *Client) Restart(_ context.Context) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -177,7 +175,7 @@ func (c *Client) Restart(ctx context.Context) error {
 }
 
 // SetBreakpoints implements debugapi.Debugger.
-func (c *Client) SetBreakpoints(ctx context.Context, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error) {
+func (c *Client) SetBreakpoints(_ context.Context, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -196,7 +194,7 @@ func (c *Client) SetBreakpoints(ctx context.Context, args *dap.SetBreakpointsArg
 }
 
 // SetFunctionBreakpoints implements debugapi.Debugger.
-func (c *Client) SetFunctionBreakpoints(ctx context.Context, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error) {
+func (c *Client) SetFunctionBreakpoints(_ context.Context, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -213,7 +211,7 @@ func (c *Client) SetFunctionBreakpoints(ctx context.Context, args *dap.SetFuncti
 }
 
 // SetExceptionBreakpoints implements debugapi.Debugger.
-func (c *Client) SetExceptionBreakpoints(ctx context.Context, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error) {
+func (c *Client) SetExceptionBreakpoints(_ context.Context, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -230,7 +228,7 @@ func (c *Client) SetExceptionBreakpoints(ctx context.Context, args *dap.SetExcep
 }
 
 // Continue implements debugapi.Debugger.
-func (c *Client) Continue(ctx context.Context, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error) {
+func (c *Client) Continue(_ context.Context, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -250,7 +248,7 @@ func (c *Client) Continue(ctx context.Context, args *dap.ContinueArguments) (*da
 }
 
 // Next implements debugapi.Debugger.
-func (c *Client) Next(ctx context.Context, args *dap.NextArguments) error {
+func (c *Client) Next(_ context.Context, args *dap.NextArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -265,7 +263,7 @@ func (c *Client) Next(ctx context.Context, args *dap.NextArguments) error {
 }
 
 // StepIn implements debugapi.Debugger.
-func (c *Client) StepIn(ctx context.Context, args *dap.StepInArguments) error {
+func (c *Client) StepIn(_ context.Context, args *dap.StepInArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -281,7 +279,7 @@ func (c *Client) StepIn(ctx context.Context, args *dap.StepInArguments) error {
 }
 
 // StepOut implements debugapi.Debugger.
-func (c *Client) StepOut(ctx context.Context, args *dap.StepOutArguments) error {
+func (c *Client) StepOut(_ context.Context, args *dap.StepOutArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -296,7 +294,7 @@ func (c *Client) StepOut(ctx context.Context, args *dap.StepOutArguments) error 
 }
 
 // StepBack implements debugapi.Debugger.
-func (c *Client) StepBack(ctx context.Context, args *dap.StepBackArguments) error {
+func (c *Client) StepBack(_ context.Context, args *dap.StepBackArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -311,7 +309,7 @@ func (c *Client) StepBack(ctx context.Context, args *dap.StepBackArguments) erro
 }
 
 // ReverseContinue implements debugapi.Debugger.
-func (c *Client) ReverseContinue(ctx context.Context, args *dap.ReverseContinueArguments) error {
+func (c *Client) ReverseContinue(_ context.Context, args *dap.ReverseContinueArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -325,7 +323,7 @@ func (c *Client) ReverseContinue(ctx context.Context, args *dap.ReverseContinueA
 }
 
 // Pause implements debugapi.Debugger.
-func (c *Client) Pause(ctx context.Context, args *dap.PauseArguments) error {
+func (c *Client) Pause(_ context.Context, args *dap.PauseArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -334,7 +332,7 @@ func (c *Client) Pause(ctx context.Context, args *dap.PauseArguments) error {
 }
 
 // Threads implements debugapi.Debugger.
-func (c *Client) Threads(ctx context.Context) ([]dap.Thread, error) {
+func (c *Client) Threads(_ context.Context) ([]dap.Thread, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -347,7 +345,7 @@ func (c *Client) Threads(ctx context.Context) ([]dap.Thread, error) {
 }
 
 // StackTrace implements debugapi.Debugger.
-func (c *Client) StackTrace(ctx context.Context, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error) {
+func (c *Client) StackTrace(_ context.Context, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -369,7 +367,7 @@ func (c *Client) StackTrace(ctx context.Context, args *dap.StackTraceArguments) 
 }
 
 // Scopes implements debugapi.Debugger.
-func (c *Client) Scopes(ctx context.Context, args *dap.ScopesArguments) ([]dap.Scope, error) {
+func (c *Client) Scopes(_ context.Context, args *dap.ScopesArguments) ([]dap.Scope, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -382,7 +380,7 @@ func (c *Client) Scopes(ctx context.Context, args *dap.ScopesArguments) ([]dap.S
 }
 
 // Variables implements debugapi.Debugger.
-func (c *Client) Variables(ctx context.Context, args *dap.VariablesArguments) ([]dap.Variable, error) {
+func (c *Client) Variables(_ context.Context, args *dap.VariablesArguments) ([]dap.Variable, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -402,7 +400,7 @@ func (c *Client) Variables(ctx context.Context, args *dap.VariablesArguments) ([
 }
 
 // SetVariable implements debugapi.Debugger.
-func (c *Client) SetVariable(ctx context.Context, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error) {
+func (c *Client) SetVariable(_ context.Context, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -427,7 +425,7 @@ func (c *Client) SetVariable(ctx context.Context, args *dap.SetVariableArguments
 }
 
 // Source implements debugapi.Debugger.
-func (c *Client) Source(ctx context.Context, args *dap.SourceArguments) (*dap.SourceResponseBody, error) {
+func (c *Client) Source(_ context.Context, args *dap.SourceArguments) (*dap.SourceResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -448,7 +446,7 @@ func (c *Client) Source(ctx context.Context, args *dap.SourceArguments) (*dap.So
 }
 
 // Evaluate implements debugapi.Debugger.
-func (c *Client) Evaluate(ctx context.Context, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error) {
+func (c *Client) Evaluate(_ context.Context, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -474,7 +472,7 @@ func (c *Client) Evaluate(ctx context.Context, args *dap.EvaluateArguments) (*da
 }
 
 // SetExpression implements debugapi.Debugger.
-func (c *Client) SetExpression(ctx context.Context, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error) {
+func (c *Client) SetExpression(_ context.Context, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -499,7 +497,7 @@ func (c *Client) SetExpression(ctx context.Context, args *dap.SetExpressionArgum
 }
 
 // Completions implements debugapi.Debugger.
-func (c *Client) Completions(ctx context.Context, args *dap.CompletionsArguments) ([]dap.CompletionItem, error) {
+func (c *Client) Completions(_ context.Context, args *dap.CompletionsArguments) ([]dap.CompletionItem, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -519,7 +517,7 @@ func (c *Client) Completions(ctx context.Context, args *dap.CompletionsArguments
 }
 
 // ExceptionInfo implements debugapi.Debugger.
-func (c *Client) ExceptionInfo(ctx context.Context, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error) {
+func (c *Client) ExceptionInfo(_ context.Context, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -540,7 +538,7 @@ func (c *Client) ExceptionInfo(ctx context.Context, args *dap.ExceptionInfoArgum
 }
 
 // Modules implements debugapi.Debugger.
-func (c *Client) Modules(ctx context.Context, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error) {
+func (c *Client) Modules(_ context.Context, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -561,7 +559,7 @@ func (c *Client) Modules(ctx context.Context, args *dap.ModulesArguments) (*dap.
 }
 
 // LoadedSources implements debugapi.Debugger.
-func (c *Client) LoadedSources(ctx context.Context) ([]dap.Source, error) {
+func (c *Client) LoadedSources(_ context.Context) ([]dap.Source, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -574,7 +572,7 @@ func (c *Client) LoadedSources(ctx context.Context) ([]dap.Source, error) {
 }
 
 // ReadMemory implements debugapi.Debugger.
-func (c *Client) ReadMemory(ctx context.Context, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error) {
+func (c *Client) ReadMemory(_ context.Context, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -597,7 +595,7 @@ func (c *Client) ReadMemory(ctx context.Context, args *dap.ReadMemoryArguments) 
 }
 
 // WriteMemory implements debugapi.Debugger.
-func (c *Client) WriteMemory(ctx context.Context, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error) {
+func (c *Client) WriteMemory(_ context.Context, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -620,7 +618,7 @@ func (c *Client) WriteMemory(ctx context.Context, args *dap.WriteMemoryArguments
 }
 
 // Disassemble implements debugapi.Debugger.
-func (c *Client) Disassemble(ctx context.Context, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error) {
+func (c *Client) Disassemble(_ context.Context, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -641,7 +639,7 @@ func (c *Client) Disassemble(ctx context.Context, args *dap.DisassembleArguments
 }
 
 // GotoTargets implements debugapi.Debugger.
-func (c *Client) GotoTargets(ctx context.Context, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error) {
+func (c *Client) GotoTargets(_ context.Context, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error) {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -660,7 +658,7 @@ func (c *Client) GotoTargets(ctx context.Context, args *dap.GotoTargetsArguments
 }
 
 // Goto implements debugapi.Debugger.
-func (c *Client) Goto(ctx context.Context, args *dap.GotoArguments) error {
+func (c *Client) Goto(_ context.Context, args *dap.GotoArguments) error {
 	ctx, cancel := c.ctxWithTimeout()
 	defer cancel()
 
@@ -671,11 +669,6 @@ func (c *Client) Goto(ctx context.Context, args *dap.GotoArguments) error {
 
 	_, err := c.client.Goto(ctx, req)
 	return err
-}
-
-// Events implements debugapi.Debugger.
-func (c *Client) Events() <-chan dap.EventMessage {
-	return c.events
 }
 
 func (c *Client) subscribeEvents() {

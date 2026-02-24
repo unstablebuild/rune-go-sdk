@@ -32,22 +32,16 @@ func (m *Manager) Initialize(
 ) (*dap.Capabilities, error) {
 	adapterID := args.AdapterID
 	if adapterID == "" {
-		return nil, errors.New(
-			"adapter ID is required",
-		)
+		return nil, errors.New("adapter ID is required")
 	}
 	cfg, ok := _debugAdapters[adapterID]
 	if !ok {
-		return nil, fmt.Errorf(
-			"unknown debug adapter: %s", adapterID,
-		)
+		return nil, fmt.Errorf("unknown debug adapter: %s", adapterID)
 	}
 
 	srv, err := m.getOrCreateServer(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"initialize server: %w", err,
-		)
+		return nil, fmt.Errorf("initialize server: %w", err)
 	}
 	return srv.caps, nil
 }
@@ -80,9 +74,7 @@ func (m *Manager) Launch(
 	}
 	argsJSON, err := json.Marshal(launchArgs)
 	if err != nil {
-		return fmt.Errorf(
-			"marshal launch args: %w", err,
-		)
+		return fmt.Errorf("marshal launch args: %w", err)
 	}
 	req := &dap.LaunchRequest{
 		Request:   srv.newRequest("launch"),
@@ -104,9 +96,7 @@ func (m *Manager) Attach(
 	}
 	argsJSON, err := json.Marshal(args)
 	if err != nil {
-		return fmt.Errorf(
-			"marshal attach args: %w", err,
-		)
+		return fmt.Errorf("marshal attach args: %w", err)
 	}
 	req := &dap.AttachRequest{
 		Request:   srv.newRequest("attach"),
@@ -202,9 +192,7 @@ func (m *Manager) SetBreakpoints(
 	}
 	bpResp, ok := resp.(*dap.SetBreakpointsResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return bpResp.Body.Breakpoints, nil
 }
@@ -219,9 +207,7 @@ func (m *Manager) SetFunctionBreakpoints(
 		return nil, err
 	}
 	req := &dap.SetFunctionBreakpointsRequest{
-		Request: srv.newRequest(
-			"setFunctionBreakpoints",
-		),
+		Request:   srv.newRequest("setFunctionBreakpoints"),
 		Arguments: *args,
 	}
 	resp, err := srv.sendRequest(ctx, req)
@@ -230,9 +216,7 @@ func (m *Manager) SetFunctionBreakpoints(
 	}
 	r, ok := resp.(*dap.SetFunctionBreakpointsResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Breakpoints, nil
 }
@@ -247,9 +231,7 @@ func (m *Manager) SetExceptionBreakpoints(
 		return nil, err
 	}
 	req := &dap.SetExceptionBreakpointsRequest{
-		Request: srv.newRequest(
-			"setExceptionBreakpoints",
-		),
+		Request:   srv.newRequest("setExceptionBreakpoints"),
 		Arguments: *args,
 	}
 	resp, err := srv.sendRequest(ctx, req)
@@ -258,9 +240,7 @@ func (m *Manager) SetExceptionBreakpoints(
 	}
 	r, ok := resp.(*dap.SetExceptionBreakpointsResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Breakpoints, nil
 }
@@ -284,9 +264,7 @@ func (m *Manager) Continue(
 	}
 	r, ok := resp.(*dap.ContinueResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -410,9 +388,7 @@ func (m *Manager) Threads(
 	}
 	r, ok := resp.(*dap.ThreadsResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Threads, nil
 }
@@ -436,9 +412,7 @@ func (m *Manager) StackTrace(
 	}
 	r, ok := resp.(*dap.StackTraceResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -462,9 +436,7 @@ func (m *Manager) Scopes(
 	}
 	r, ok := resp.(*dap.ScopesResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Scopes, nil
 }
@@ -488,9 +460,7 @@ func (m *Manager) Variables(
 	}
 	r, ok := resp.(*dap.VariablesResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Variables, nil
 }
@@ -514,9 +484,7 @@ func (m *Manager) SetVariable(
 	}
 	r, ok := resp.(*dap.SetVariableResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -540,9 +508,7 @@ func (m *Manager) Source(
 	}
 	r, ok := resp.(*dap.SourceResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -566,9 +532,7 @@ func (m *Manager) Evaluate(
 	}
 	r, ok := resp.(*dap.EvaluateResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -592,9 +556,7 @@ func (m *Manager) SetExpression(
 	}
 	r, ok := resp.(*dap.SetExpressionResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -618,9 +580,7 @@ func (m *Manager) Completions(
 	}
 	r, ok := resp.(*dap.CompletionsResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Targets, nil
 }
@@ -644,9 +604,7 @@ func (m *Manager) ExceptionInfo(
 	}
 	r, ok := resp.(*dap.ExceptionInfoResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -670,9 +628,7 @@ func (m *Manager) Modules(
 	}
 	r, ok := resp.(*dap.ModulesResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -694,9 +650,7 @@ func (m *Manager) LoadedSources(
 	}
 	r, ok := resp.(*dap.LoadedSourcesResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Sources, nil
 }
@@ -720,9 +674,7 @@ func (m *Manager) ReadMemory(
 	}
 	r, ok := resp.(*dap.ReadMemoryResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -746,9 +698,7 @@ func (m *Manager) WriteMemory(
 	}
 	r, ok := resp.(*dap.WriteMemoryResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &r.Body, nil
 }
@@ -772,9 +722,7 @@ func (m *Manager) Disassemble(
 	}
 	r, ok := resp.(*dap.DisassembleResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Instructions, nil
 }
@@ -798,9 +746,7 @@ func (m *Manager) GotoTargets(
 	}
 	r, ok := resp.(*dap.GotoTargetsResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return r.Body.Targets, nil
 }

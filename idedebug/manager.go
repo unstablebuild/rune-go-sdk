@@ -38,12 +38,23 @@ import (
 // available for the requested operation.
 var ErrNoServer = errors.New("no debug server")
 
+// EventSubscriber receives DAP events from the debug server.
+type EventSubscriber interface {
+	OnEvent(ev dap.EventMessage)
+}
+
+// nopEventSubscriber is a no-op implementation of EventSubscriber.
+type nopEventSubscriber struct{}
+
+func (nopEventSubscriber) OnEvent(dap.EventMessage) {}
+
 // Config provides optional configuration for a Manager.
 type Config struct {
 	MaxRetries         int
 	InitializeTimeout  time.Duration
 	CloseTimeout       time.Duration
 	EventHandleTimeout time.Duration
+	EventSubscriber    EventSubscriber
 }
 
 // Manager is a multi-language DAP server manager.
@@ -59,7 +70,7 @@ type Manager struct {
 	servers    map[string]*debugServer
 	starting   map[string]chan struct{}
 	activeSrv  *debugServer
-	events     chan dap.EventMessage
+	eventSub   EventSubscriber
 	ctx        context.Context
 	cancel     context.CancelFunc
 	log        *slog.Logger
@@ -78,13 +89,6 @@ func New(
 	pkgManager PkgManager,
 	cfg Config,
 ) *Manager {
-	// eventsBufferSize allows bursts of DAP events
-	// (e.g. multiple breakpoint hits across threads)
-	// without blocking the read loop. When full,
-	// readLoop drops events with a warning
-	// (see debugServer.readLoop).
-	const eventsBufferSize = 64
-
 	if cfg.MaxRetries <= 0 {
 		cfg.MaxRetries = 3
 	}
@@ -97,6 +101,9 @@ func New(
 	if cfg.EventHandleTimeout == 0 {
 		cfg.EventHandleTimeout = 1 * time.Second
 	}
+	if cfg.EventSubscriber == nil {
+		cfg.EventSubscriber = nopEventSubscriber{}
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	ret := &Manager{
 		cfg:        cfg,
@@ -106,11 +113,9 @@ func New(
 		pkgManager: pkgManager,
 		servers:    make(map[string]*debugServer),
 		starting:   make(map[string]chan struct{}),
-		events: make(
-			chan dap.EventMessage, eventsBufferSize,
-		),
-		ctx:    ctx,
-		cancel: cancel,
+		eventSub:   cfg.EventSubscriber,
+		ctx:        ctx,
+		cancel:     cancel,
 		// Buffer of 1 for evs: allows Handle to
 		// return without blocking in the common
 		// case while handleEvs processes.
@@ -127,18 +132,14 @@ func (m *Manager) Close() error {
 	m.cancel()
 
 	m.mu.Lock()
-	servers := make(
-		[]*debugServer, 0, len(m.servers),
-	)
+	servers := make([]*debugServer, 0, len(m.servers))
 	for _, s := range m.servers {
 		servers = append(servers, s)
 	}
 	m.mu.Unlock()
 
 	var errs []error
-	ctx, cancel := context.WithTimeout(
-		context.Background(), m.cfg.CloseTimeout,
-	)
+	ctx, cancel := context.WithTimeout(context.Background(), m.cfg.CloseTimeout)
 	defer cancel()
 	for _, s := range servers {
 		if err := s.stop(ctx); err != nil {
@@ -154,19 +155,13 @@ func (m *Manager) Close() error {
 func (m *Manager) Handle(
 	_ context.Context, ev textapi.Event,
 ) bool {
-	m.log.Debug("received event",
-		"type", ev.Type, "file", ev.URI)
+	m.log.Debug("received event", "type", ev.Type, "file", ev.URI)
 	select {
 	case m.evs <- ev:
 		return false
 	case <-m.ctx.Done():
 		return true
 	}
-}
-
-// Events returns a channel for receiving debugger events.
-func (m *Manager) Events() <-chan dap.EventMessage {
-	return m.events
 }
 
 func (m *Manager) handleEvs() {
@@ -176,21 +171,15 @@ func (m *Manager) handleEvs() {
 		case <-m.ctx.Done():
 			return
 		case ev := <-m.evs:
-			err := m.handle(ev)
-			if err != nil {
-				m.log.Error(
-					"handle event", "error", err,
-				)
+			if err := m.handle(ev); err != nil {
+				m.log.Error("handle event", "error", err)
 			}
 		}
 	}
 }
 
 func (m *Manager) handle(ev textapi.Event) error {
-	ctx, cancel := context.WithTimeout(
-		m.ctx,
-		m.cfg.EventHandleTimeout,
-	)
+	ctx, cancel := context.WithTimeout(m.ctx, m.cfg.EventHandleTimeout)
 	defer cancel()
 
 	switch ev.Type {
@@ -239,10 +228,7 @@ func (m *Manager) getOrCreateServer(
 		srv := m.servers[cfg.id]
 		m.mu.Unlock()
 		if srv == nil {
-			return nil, fmt.Errorf(
-				"%w: %s init failed",
-				ErrNoServer, cfg.id,
-			)
+			return nil, fmt.Errorf("%w: %s init failed", ErrNoServer, cfg.id)
 		}
 		return srv, nil
 	}
@@ -266,9 +252,7 @@ func (m *Manager) initializeServer(
 	ctx context.Context, cfg debugConfig,
 ) (*debugServer, error) {
 	if cfg.command == "" {
-		return nil, errors.New(
-			"debug adapter config with empty command",
-		)
+		return nil, errors.New("debug adapter config with empty command")
 	}
 	var binPath string
 	if filepath.IsAbs(cfg.command) {
@@ -277,24 +261,15 @@ func (m *Manager) initializeServer(
 		var err error
 		binPath, err = m.findBinary(ctx, &cfg)
 		if err != nil {
-			m.log.Debug(
-				"find debug adapter executable, "+
-					"falling back to using PATH",
-				"executable", cfg.command,
-				"error", err,
-			)
+			m.log.Debug("find debug adapter, falling back to PATH",
+				"executable", cfg.command, "error", err)
 			binPath = cfg.command
 		}
 	}
 
-	srv := newDebugServer(
-		m.ctx, cfg, binPath, m.executor,
-		m.rootURI, m.events,
-	)
+	srv := newDebugServer(m.ctx, cfg, binPath, m.executor, m.rootURI, m.eventSub)
 
-	ctx, cancel := context.WithTimeout(
-		ctx, m.cfg.InitializeTimeout,
-	)
+	ctx, cancel := context.WithTimeout(ctx, m.cfg.InitializeTimeout)
 	defer cancel()
 
 	if err := srv.start(ctx); err != nil {
@@ -317,9 +292,7 @@ func (m *Manager) initializeServer(
 func (m *Manager) findBinary(
 	ctx context.Context, cfg *debugConfig,
 ) (string, error) {
-	files, err := m.pkgManager.LibDir(
-		ctx, cfg.id,
-	)
+	files, err := m.pkgManager.LibDir(ctx, cfg.id)
 	if err != nil {
 		return "", fmt.Errorf("lib dir: %w", err)
 	}
@@ -327,9 +300,7 @@ func (m *Manager) findBinary(
 
 	paths, err := iterator.ToSlice(ctx, files)
 	if err != nil {
-		return "", fmt.Errorf(
-			"lib dir iterator: %w", err,
-		)
+		return "", fmt.Errorf("lib dir iterator: %w", err)
 	}
 
 	for _, file := range paths {
@@ -341,10 +312,7 @@ func (m *Manager) findBinary(
 			return file, nil
 		}
 	}
-	return "", fmt.Errorf(
-		"%s not found in any package directory",
-		cfg.command,
-	)
+	return "", fmt.Errorf("%s not found in any package directory", cfg.command)
 }
 
 func (m *Manager) watchServer(
@@ -366,8 +334,7 @@ func (m *Manager) watchServer(
 				"adapter", cfg.id)
 			return
 		}
-		m.log.Warn("server crashed",
-			"adapter", cfg.id, "error", err)
+		m.log.Warn("server crashed", "adapter", cfg.id, "error", err)
 		srv.mu.Lock()
 		stopCalled := srv.stopCalled
 		srv.mu.Unlock()
@@ -378,48 +345,35 @@ func (m *Manager) watchServer(
 
 	strategy := retry.CombinedStrategy(
 		retry.LimitStrategy(uint(m.cfg.MaxRetries)),
-		retry.ExponentialStrategy(
-			500*time.Millisecond, 5*time.Second,
-		),
+		retry.ExponentialStrategy(500*time.Millisecond, 5*time.Second),
 	)
 
-	retryErr := retry.Retry(m.ctx, strategy,
-		func(ctx context.Context) (bool, error) {
-			ctx, cancel := context.WithTimeout(
-				ctx, m.cfg.InitializeTimeout,
-			)
-			defer cancel()
+	retryErr := retry.Retry(m.ctx, strategy, func(ctx context.Context) (bool, error) {
+		ctx, cancel := context.WithTimeout(ctx, m.cfg.InitializeTimeout)
+		defer cancel()
 
-			m.log.Debug("restarting debug adapter",
-				"adapter", cfg.id)
-			newSrv := newDebugServer(
-				m.ctx, srv.cfg, srv.binPath,
-				m.executor, m.rootURI, m.events,
-			)
+		m.log.Debug("restarting debug adapter", "adapter", cfg.id)
+		newSrv := newDebugServer(m.ctx, srv.cfg, srv.binPath, m.executor, m.rootURI, m.eventSub)
 
-			if err := newSrv.start(ctx); err != nil {
-				return true, err
-			}
-			m.mu.Lock()
-			m.servers[cfg.id] = newSrv
-			m.activeSrv = newSrv
-			m.mu.Unlock()
+		if err := newSrv.start(ctx); err != nil {
+			return true, err
+		}
+		m.mu.Lock()
+		m.servers[cfg.id] = newSrv
+		m.activeSrv = newSrv
+		m.mu.Unlock()
 
-			m.wg.Add(1)
-			go debug.CapturePanicReport(func() {
-				defer m.wg.Done()
-				m.watchServer(cfg, newSrv)
-			})
-			return false, nil
+		m.wg.Add(1)
+		go debug.CapturePanicReport(func() {
+			defer m.wg.Done()
+			m.watchServer(cfg, newSrv)
 		})
+		return false, nil
+	})
 
 	if retryErr != nil {
-		m.log.Error(
-			"debug adapter failed after retries",
-			"adapter", cfg.command,
-			"retries", m.cfg.MaxRetries,
-			"error", retryErr,
-		)
+		m.log.Error("debug adapter failed after retries",
+			"adapter", cfg.command, "retries", m.cfg.MaxRetries, "error", retryErr)
 	}
 }
 
@@ -434,17 +388,12 @@ func (m *Manager) serverForFile(
 	srv, ok := m.servers[cfg.id]
 	m.mu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf(
-			"%w: adapter %s not running",
-			ErrNoServer, cfg.id,
-		)
+		return nil, fmt.Errorf("%w: adapter %s not running", ErrNoServer, cfg.id)
 	}
 	return srv, nil
 }
 
-func (m *Manager) activeServer() (
-	*debugServer, error,
-) {
+func (m *Manager) activeServer() (*debugServer, error) {
 	m.mu.Lock()
 	srv := m.activeSrv
 	m.mu.Unlock()

@@ -29,9 +29,7 @@ import (
 type PkgManager interface {
 	// LibDir returns an iterator of directory paths where
 	// the package's binaries may be found.
-	LibDir(ctx context.Context, pkgID string) (
-		iterator.Iterator[string], error,
-	)
+	LibDir(ctx context.Context, pkgID string) (iterator.Iterator[string], error)
 }
 
 type debugConfig struct {
@@ -48,21 +46,15 @@ var _debugAdapters = map[string]debugConfig{
 	"go": {
 		id:      "go",
 		command: "dlv",
-		args: []string{
-			"dap", "--listen={addr}",
-		},
+		args: []string{"dap", "--listen={addr}"},
 	},
 }
 
-func debugAdapterForFile(
-	filename workspaceapi.URI,
-) (debugConfig, error) {
+func debugAdapterForFile(filename workspaceapi.URI) (debugConfig, error) {
 	return debugAdapterForFilename(filename.Path())
 }
 
-func doDebugAdapterForFile(
-	filename string,
-) (string, error) {
+func doDebugAdapterForFile(filename string) (string, error) {
 	ext := filepath.Ext(filename)
 	switch ext {
 	case ".go":
@@ -72,21 +64,14 @@ func doDebugAdapterForFile(
 	}
 }
 
-func debugAdapterForFilename(
-	filename string,
-) (debugConfig, error) {
-	id, err := doDebugAdapterForFile(
-		filepath.Base(filename),
-	)
+func debugAdapterForFilename(filename string) (debugConfig, error) {
+	id, err := doDebugAdapterForFile(filepath.Base(filename))
 	if err != nil {
 		return debugConfig{}, err
 	}
 	cfg, ok := _debugAdapters[id]
 	if !ok {
-		return debugConfig{}, fmt.Errorf(
-			"%s language debug adapter is not supported yet",
-			id,
-		)
+		return debugConfig{}, fmt.Errorf("%s language debug adapter is not supported yet", id)
 	}
 	return cfg, nil
 }

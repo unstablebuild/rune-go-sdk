@@ -182,9 +182,6 @@ type Debugger interface {
 	// Goto sets execution to continue from a target.
 	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Goto
 	Goto(ctx context.Context, args *dap.GotoArguments) error
-
-	// Events returns a channel for receiving debugger events.
-	Events() <-chan dap.EventMessage
 }
 
 // LaunchRequestArguments contains arguments for Launch.

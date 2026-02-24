@@ -51,11 +51,11 @@ func TestE2E(t *testing.T) {
 
 	tests := []struct {
 		name string
-		fn   func(t *testing.T, mgr *Manager)
+		fn   func(t *testing.T, mgr *Manager, events <-chan dap.EventMessage)
 	}{
 		{
 			name: "Threads",
-			fn: func(t *testing.T, mgr *Manager) {
+			fn: func(t *testing.T, mgr *Manager, _ <-chan dap.EventMessage) {
 				threads, err := mgr.Threads(
 					t.Context(),
 				)
@@ -67,7 +67,7 @@ func TestE2E(t *testing.T) {
 		},
 		{
 			name: "StackTrace",
-			fn: func(t *testing.T, mgr *Manager) {
+			fn: func(t *testing.T, mgr *Manager, _ <-chan dap.EventMessage) {
 				threads, err := mgr.Threads(
 					t.Context(),
 				)
@@ -94,7 +94,7 @@ func TestE2E(t *testing.T) {
 		},
 		{
 			name: "Scopes",
-			fn: func(t *testing.T, mgr *Manager) {
+			fn: func(t *testing.T, mgr *Manager, _ <-chan dap.EventMessage) {
 				threads, err := mgr.Threads(
 					t.Context(),
 				)
@@ -134,7 +134,7 @@ func TestE2E(t *testing.T) {
 		},
 		{
 			name: "Variables",
-			fn: func(t *testing.T, mgr *Manager) {
+			fn: func(t *testing.T, mgr *Manager, _ <-chan dap.EventMessage) {
 				threads, err := mgr.Threads(
 					t.Context(),
 				)
@@ -195,7 +195,7 @@ func TestE2E(t *testing.T) {
 		},
 		{
 			name: "Evaluate",
-			fn: func(t *testing.T, mgr *Manager) {
+			fn: func(t *testing.T, mgr *Manager, _ <-chan dap.EventMessage) {
 				threads, err := mgr.Threads(
 					t.Context(),
 				)
@@ -226,7 +226,7 @@ func TestE2E(t *testing.T) {
 		},
 		{
 			name: "ContinueAndTerminate",
-			fn: func(t *testing.T, mgr *Manager) {
+			fn: func(t *testing.T, mgr *Manager, events <-chan dap.EventMessage) {
 				resp, err := mgr.Continue(
 					t.Context(),
 					&dap.ContinueArguments{
@@ -239,9 +239,7 @@ func TestE2E(t *testing.T) {
 						AllThreadsContinued: true,
 					}, resp,
 				)
-				waitForEvent(
-					t, mgr.Events(), "terminated",
-				)
+				waitForEvent(t, events, "terminated")
 			},
 		},
 	}
@@ -252,11 +250,12 @@ func TestE2E(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
 					executor := newTestExecutor(t)
+					eventSub := newTestEventSubscriber()
 					mgr := New(
 						uri,
 						executor,
 						&stubPkgManager{bin: dlvBin},
-						Config{MaxRetries: 1},
+						Config{MaxRetries: 1, EventSubscriber: eventSub},
 					)
 
 					mainWSURI, err :=
@@ -273,11 +272,8 @@ func TestE2E(t *testing.T) {
 						},
 					)
 
-					setupDebugSession(
-						t, mgr, tmpDir, mainPath,
-						breakpointLine,
-					)
-					tt.fn(t, mgr)
+					setupDebugSession(t, mgr, eventSub.events, tmpDir, mainPath, breakpointLine)
+					tt.fn(t, mgr, eventSub.events)
 					require.NoError(t, mgr.Close())
 				})
 			}
@@ -289,11 +285,12 @@ func TestE2E(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
 					executor := newTestExecutor(t)
+					eventSub := newTestEventSubscriber()
 					mgr := New(
 						uri,
 						executor,
 						&stubPkgManager{bin: dlvBin},
-						Config{MaxRetries: 1},
+						Config{MaxRetries: 1, EventSubscriber: eventSub},
 					)
 
 					caps, err := mgr.Initialize(
@@ -305,11 +302,8 @@ func TestE2E(t *testing.T) {
 					require.NoError(t, err)
 					require.NotNil(t, caps)
 
-					setupDebugSession(
-						t, mgr, tmpDir, mainPath,
-						breakpointLine,
-					)
-					tt.fn(t, mgr)
+					setupDebugSession(t, mgr, eventSub.events, tmpDir, mainPath, breakpointLine)
+					tt.fn(t, mgr, eventSub.events)
 					require.NoError(t, mgr.Close())
 				})
 			}
@@ -325,6 +319,7 @@ func TestE2E(t *testing.T) {
 func setupDebugSession(
 	t *testing.T,
 	mgr *Manager,
+	events <-chan dap.EventMessage,
 	program string,
 	mainPath string,
 	breakpointLine int,
@@ -339,7 +334,7 @@ func setupDebugSession(
 
 	// In DAP, the initialized event is sent by the debug
 	// adapter during Launch, before the LaunchResponse.
-	waitForEvent(t, mgr.Events(), "initialized")
+	waitForEvent(t, events, "initialized")
 
 	bps, err := mgr.SetBreakpoints(
 		ctx,
@@ -367,7 +362,7 @@ func setupDebugSession(
 	err = mgr.ConfigurationDone(ctx)
 	require.NoError(t, err)
 
-	waitForEvent(t, mgr.Events(), "stopped")
+	waitForEvent(t, events, "stopped")
 }
 
 // launchWithRetry retries Launch to handle the case where
@@ -485,6 +480,26 @@ var _ PkgManager = (*stubPkgManager)(nil)
 
 type stubPkgManager struct {
 	bin string
+}
+
+var _ EventSubscriber = (*testEventSubscriber)(nil)
+
+type testEventSubscriber struct {
+	events chan dap.EventMessage
+}
+
+func newTestEventSubscriber() *testEventSubscriber {
+	return &testEventSubscriber{
+		events: make(chan dap.EventMessage, 64),
+	}
+}
+
+func (s *testEventSubscriber) OnEvent(ev dap.EventMessage) {
+	select {
+	case s.events <- ev:
+	default:
+		// drop if full
+	}
 }
 
 func (p *stubPkgManager) LibDir(

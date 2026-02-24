@@ -605,26 +605,10 @@ func (s *Server) Goto(ctx context.Context, req *GotoRequest) (*GotoResponse, err
 }
 
 // SubscribeEvents implements DebugServiceServer.
-func (s *Server) SubscribeEvents(req *SubscribeEventsRequest, stream DebugService_SubscribeEventsServer) error {
-	events := s.debugger.Events()
-	if events == nil {
-		return nil
-	}
-
-	for {
-		select {
-		case <-stream.Context().Done():
-			return stream.Context().Err()
-		case ev, ok := <-events:
-			if !ok {
-				return nil
-			}
-			protoEvent := eventToProto(ev)
-			if err := stream.Send(protoEvent); err != nil {
-				return err
-			}
-		}
-	}
+// Note: Event subscription is handled via EventSubscriber interface,
+// not through gRPC streaming. This method returns immediately.
+func (s *Server) SubscribeEvents(_ *SubscribeEventsRequest, _ DebugService_SubscribeEventsServer) error {
+	return nil
 }
 
 // === Conversion Functions ===
@@ -912,11 +896,4 @@ func gotoTargetsToProto(targets []dap.GotoTarget) []*GotoTarget {
 		}
 	}
 	return result
-}
-
-func eventToProto(ev dap.EventMessage) *Event {
-	protoEvent := &Event{
-		Event: ev.GetEvent().Event,
-	}
-	return protoEvent
 }

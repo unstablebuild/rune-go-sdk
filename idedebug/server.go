@@ -50,7 +50,7 @@ type debugServer struct {
 	seq        atomic.Int64
 	pending    map[int]chan dap.Message
 	pendingMu  sync.Mutex
-	events     chan dap.EventMessage
+	eventSub   EventSubscriber
 	alive      bool
 	log        *slog.Logger
 	caps       *dap.Capabilities
@@ -62,7 +62,7 @@ func newDebugServer(
 	binPath string,
 	executor schemeapi.Executor,
 	rootURI string,
-	events chan dap.EventMessage,
+	eventSub EventSubscriber,
 ) *debugServer {
 	ctx, cancel := context.WithCancel(ctx)
 	return &debugServer{
@@ -72,12 +72,9 @@ func newDebugServer(
 		binPath:  binPath,
 		executor: executor,
 		rootURI:  rootURI,
-		events:   events,
+		eventSub: eventSub,
 		pending:  make(map[int]chan dap.Message),
-		log: slog.With(
-			"struct", "idedebug.debugServer",
-			"adapter", cfg.id, "uri", rootURI,
-		),
+		log:      slog.With("struct", "idedebug.debugServer", "adapter", cfg.id, "uri", rootURI),
 	}
 }
 
@@ -92,9 +89,7 @@ func (s *debugServer) start(ctx context.Context) error {
 	// with the concrete address.
 	args := make([]string, len(s.cfg.args))
 	for i, a := range s.cfg.args {
-		args[i] = strings.ReplaceAll(
-			a, "{addr}", addr,
-		)
+		args[i] = strings.ReplaceAll(a, "{addr}", addr)
 	}
 
 	watchCh := make(chan error, 1)
@@ -111,24 +106,17 @@ func (s *debugServer) start(ctx context.Context) error {
 	// only be used for initial protocol exchange
 	lifecycleCtx := s.ctx
 
-	s.log.Info("starting server",
-		"path", cmd.Path, "args", cmd.Args)
-	pid, err := s.executor.StartCommand(
-		lifecycleCtx, cmd,
-	)
+	s.log.Info("starting server", "path", cmd.Path, "args", cmd.Args)
+	pid, err := s.executor.StartCommand(lifecycleCtx, cmd)
 	if err != nil {
-		return fmt.Errorf(
-			"start %s: %w", s.cfg.command, err,
-		)
+		return fmt.Errorf("start %s: %w", s.cfg.command, err)
 	}
 
 	// Connect to the debug adapter as a client.
 	conn, err := dialWithRetry(ctx, addr)
 	if err != nil {
 		s.cancel() // kill the spawned process
-		return fmt.Errorf(
-			"connect to %s: %w", addr, err,
-		)
+		return fmt.Errorf("connect to %s: %w", addr, err)
 	}
 
 	s.mu.Lock()
@@ -148,9 +136,7 @@ func (s *debugServer) start(ctx context.Context) error {
 	if err != nil {
 		s.closeConn()
 		s.cancel() // kill the spawned process
-		return fmt.Errorf(
-			"initialize %s: %w", s.cfg.command, err,
-		)
+		return fmt.Errorf("initialize %s: %w", s.cfg.command, err)
 	}
 
 	s.mu.Lock()
@@ -174,9 +160,7 @@ func findFreeAddr() (string, error) {
 	return addr, nil
 }
 
-func dialWithRetry(
-	ctx context.Context, addr string,
-) (net.Conn, error) {
+func dialWithRetry(ctx context.Context, addr string) (net.Conn, error) {
 	const (
 		maxAttempts = 50
 		retryDelay  = 100 * time.Millisecond
@@ -188,23 +172,17 @@ func dialWithRetry(
 			return nil, ctx.Err()
 		default:
 		}
-		conn, err := net.DialTimeout(
-			"tcp", addr, retryDelay,
-		)
+		conn, err := net.DialTimeout("tcp", addr, retryDelay)
 		if err == nil {
 			return conn, nil
 		}
 		lastErr = err
 		time.Sleep(retryDelay)
 	}
-	return nil, fmt.Errorf(
-		"dial %s after retries: %w", addr, lastErr,
-	)
+	return nil, fmt.Errorf("dial %s after retries: %w", addr, lastErr)
 }
 
-func (s *debugServer) initialize(
-	ctx context.Context,
-) (*dap.Capabilities, error) {
+func (s *debugServer) initialize(ctx context.Context) (*dap.Capabilities, error) {
 	s.log.Debug("dap initialize")
 	req := &dap.InitializeRequest{
 		Request: s.newRequest("initialize"),
@@ -223,9 +201,7 @@ func (s *debugServer) initialize(
 	}
 	initResp, ok := resp.(*dap.InitializeResponse)
 	if !ok {
-		return nil, fmt.Errorf(
-			"unexpected response type: %T", resp,
-		)
+		return nil, fmt.Errorf("unexpected response type: %T", resp)
 	}
 	return &initResp.Body, nil
 }
@@ -257,9 +233,7 @@ func (s *debugServer) stop(ctx context.Context) error {
 	return nil
 }
 
-func (s *debugServer) sendRequest(
-	ctx context.Context, req dap.Message,
-) (dap.Message, error) {
+func (s *debugServer) sendRequest(ctx context.Context, req dap.Message) (dap.Message, error) {
 	s.mu.Lock()
 	if !s.alive {
 		s.mu.Unlock()
@@ -283,9 +257,7 @@ func (s *debugServer) sendRequest(
 	writeErr := dap.WriteProtocolMessage(s.conn, req)
 	s.writeMu.Unlock()
 	if writeErr != nil {
-		return nil, fmt.Errorf(
-			"write request: %w", writeErr,
-		)
+		return nil, fmt.Errorf("write request: %w", writeErr)
 	}
 
 	select {
@@ -293,16 +265,11 @@ func (s *debugServer) sendRequest(
 		return nil, ctx.Err()
 	case msg, ok := <-ch:
 		if !ok || msg == nil {
-			return nil, errors.New(
-				"server closed connection",
-			)
+			return nil, errors.New("server closed connection")
 		}
 		if resp, ok := msg.(dap.ResponseMessage); ok {
 			if !resp.GetResponse().Success {
-				return nil, fmt.Errorf(
-					"dap error: %s",
-					resp.GetResponse().Message,
-				)
+				return nil, fmt.Errorf("dap error: %s", resp.GetResponse().Message)
 			}
 		}
 		return msg, nil
@@ -336,16 +303,9 @@ func (s *debugServer) readLoop() {
 				s.log.Warn("unmatched response", "requestSeq", reqSeq)
 			}
 		case dap.EventMessage:
-			select {
-			case s.events <- m:
-			default:
-				s.log.Warn(
-					"events channel full, dropping",
-				)
-			}
+			s.eventSub.OnEvent(m)
 		default:
-			s.log.Debug("unknown message type",
-				"type", fmt.Sprintf("%T", msg))
+			s.log.Debug("unknown message type", "type", fmt.Sprintf("%T", msg))
 		}
 	}
 }
@@ -359,12 +319,10 @@ func (s *debugServer) closePending() {
 	}
 }
 
-// writeRequest sends a DAP request without waiting for
-// a response. This is needed for Launch and Attach because
-// their responses only arrive after ConfigurationDone.
-func (s *debugServer) writeRequest(
-	req dap.Message,
-) error {
+// writeRequest sends a DAP request without waiting for a response.
+// This is needed for Launch and Attach because their responses only arrive
+// after ConfigurationDone.
+func (s *debugServer) writeRequest(req dap.Message) error {
 	s.mu.Lock()
 	if !s.alive {
 		s.mu.Unlock()
@@ -388,9 +346,7 @@ func (s *debugServer) closeConn() {
 	})
 }
 
-func (s *debugServer) newRequest(
-	command string,
-) dap.Request {
+func (s *debugServer) newRequest(command string) dap.Request {
 	seq := int(s.seq.Add(1))
 	return dap.Request{
 		ProtocolMessage: dap.ProtocolMessage{

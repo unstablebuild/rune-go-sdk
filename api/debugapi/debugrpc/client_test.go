@@ -479,7 +479,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
 	socketPath := filepath.Join(os.TempDir(), "debugapi_test.sock")
-	os.Remove(socketPath)
+	_ = os.Remove(socketPath)
 
 	listener, err := net.Listen("unix", socketPath)
 	require.NoError(t, err)
@@ -496,19 +496,20 @@ func newTestEnv(t *testing.T) *testEnv {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	//nolint:staticcheck // grpc.DialContext is deprecated but still works for 1.x
 	conn, err := grpc.DialContext(ctx, "unix://"+socketPath,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
+		grpc.WithBlock(), //nolint:staticcheck // deprecated but works for 1.x
 	)
 	require.NoError(t, err)
 
 	client := NewClient(context.Background(), conn)
 
 	t.Cleanup(func() {
-		client.Close()
+		_ = client.Close()
 		srv.GracefulStop()
-		listener.Close()
-		os.Remove(socketPath)
+		_ = listener.Close()
+		_ = os.Remove(socketPath)
 	})
 
 	return &testEnv{
