@@ -1,0 +1,579 @@
+// Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpc";
+
+package debug;
+
+// DebugService provides Debug Adapter Protocol operations over gRPC.
+// See: https://microsoft.github.io/debug-adapter-protocol/specification
+service DebugService {
+  // Session Management
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+  rpc Launch(LaunchRequest) returns (LaunchResponse);
+  rpc Attach(AttachRequest) returns (AttachResponse);
+  rpc ConfigurationDone(ConfigurationDoneRequest) returns (ConfigurationDoneResponse);
+  rpc Disconnect(DisconnectRequest) returns (DisconnectResponse);
+  rpc Terminate(TerminateRequest) returns (TerminateResponse);
+  rpc Restart(RestartRequest) returns (RestartResponse);
+
+  // Breakpoints
+  rpc SetBreakpoints(SetBreakpointsRequest) returns (SetBreakpointsResponse);
+  rpc SetFunctionBreakpoints(SetFunctionBreakpointsRequest) returns (SetFunctionBreakpointsResponse);
+  rpc SetExceptionBreakpoints(SetExceptionBreakpointsRequest) returns (SetExceptionBreakpointsResponse);
+
+  // Execution Control
+  rpc Continue(ContinueRequest) returns (ContinueResponse);
+  rpc Next(NextRequest) returns (NextResponse);
+  rpc StepIn(StepInRequest) returns (StepInResponse);
+  rpc StepOut(StepOutRequest) returns (StepOutResponse);
+  rpc StepBack(StepBackRequest) returns (StepBackResponse);
+  rpc ReverseContinue(ReverseContinueRequest) returns (ReverseContinueResponse);
+  rpc Pause(PauseRequest) returns (PauseResponse);
+
+  // State Inspection
+  rpc Threads(ThreadsRequest) returns (ThreadsResponse);
+  rpc StackTrace(StackTraceRequest) returns (StackTraceResponse);
+  rpc Scopes(ScopesRequest) returns (ScopesResponse);
+  rpc Variables(VariablesRequest) returns (VariablesResponse);
+  rpc SetVariable(SetVariableRequest) returns (SetVariableResponse);
+  rpc Source(SourceRequest) returns (SourceResponse);
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+  rpc SetExpression(SetExpressionRequest) returns (SetExpressionResponse);
+  rpc Completions(CompletionsRequest) returns (CompletionsResponse);
+  rpc ExceptionInfo(ExceptionInfoRequest) returns (ExceptionInfoResponse);
+  rpc Modules(ModulesRequest) returns (ModulesResponse);
+  rpc LoadedSources(LoadedSourcesRequest) returns (LoadedSourcesResponse);
+
+  // Memory & Disassembly
+  rpc ReadMemory(ReadMemoryRequest) returns (ReadMemoryResponse);
+  rpc WriteMemory(WriteMemoryRequest) returns (WriteMemoryResponse);
+  rpc Disassemble(DisassembleRequest) returns (DisassembleResponse);
+
+  // Navigation
+  rpc GotoTargets(GotoTargetsRequest) returns (GotoTargetsResponse);
+  rpc Goto(GotoRequest) returns (GotoResponse);
+
+  // Events
+  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream Event);
+}
+
+// === Common Types (matching DAP specification) ===
+
+message Source {
+  string name = 1;
+  string path = 2;
+  int32 source_reference = 3;
+  string presentation_hint = 4;
+  string origin = 5;
+  repeated Source sources = 6;
+}
+
+message SourceBreakpoint {
+  int32 line = 1;
+  int32 column = 2;
+  string condition = 3;
+  string hit_condition = 4;
+  string log_message = 5;
+}
+
+message FunctionBreakpoint {
+  string name = 1;
+  string condition = 2;
+  string hit_condition = 3;
+}
+
+message Breakpoint {
+  int32 id = 1;
+  bool verified = 2;
+  string message = 3;
+  Source source = 4;
+  int32 line = 5;
+  int32 column = 6;
+  int32 end_line = 7;
+  int32 end_column = 8;
+  string instruction_reference = 9;
+  int32 offset = 10;
+}
+
+message Thread {
+  int32 id = 1;
+  string name = 2;
+}
+
+message StackFrame {
+  int32 id = 1;
+  string name = 2;
+  Source source = 3;
+  int32 line = 4;
+  int32 column = 5;
+  int32 end_line = 6;
+  int32 end_column = 7;
+  bool can_restart = 8;
+  string instruction_pointer_reference = 9;
+  int32 module_id = 10;
+  string presentation_hint = 11;
+}
+
+message Scope {
+  string name = 1;
+  string presentation_hint = 2;
+  int32 variables_reference = 3;
+  int32 named_variables = 4;
+  int32 indexed_variables = 5;
+  bool expensive = 6;
+  Source source = 7;
+  int32 line = 8;
+  int32 column = 9;
+  int32 end_line = 10;
+  int32 end_column = 11;
+}
+
+message Variable {
+  string name = 1;
+  string value = 2;
+  string type = 3;
+  string presentation_hint = 4;
+  string evaluate_name = 5;
+  int32 variables_reference = 6;
+  int32 named_variables = 7;
+  int32 indexed_variables = 8;
+  string memory_reference = 9;
+}
+
+message DisassembledInstruction {
+  string address = 1;
+  string instruction_bytes = 2;
+  string instruction = 3;
+  string symbol = 4;
+  Source location = 5;
+  int32 line = 6;
+  int32 column = 7;
+  int32 end_line = 8;
+  int32 end_column = 9;
+}
+
+message GotoTarget {
+  int32 id = 1;
+  string label = 2;
+  int32 line = 3;
+  int32 column = 4;
+  int32 end_line = 5;
+  int32 end_column = 6;
+  string instruction_pointer_reference = 7;
+}
+
+message Module {
+  string id = 1;
+  string name = 2;
+  string path = 3;
+  bool is_optimized = 4;
+  bool is_user_code = 5;
+  string version = 6;
+  string symbol_status = 7;
+  string symbol_file_path = 8;
+  string date_time_stamp = 9;
+  string address_range = 10;
+}
+
+message CompletionItem {
+  string label = 1;
+  string text = 2;
+  string sort_text = 3;
+  string detail = 4;
+  string type = 5;
+  int32 start = 6;
+  int32 length = 7;
+  int32 selection_start = 8;
+  int32 selection_length = 9;
+}
+
+message ExceptionBreakpointsFilter {
+  string filter = 1;
+  string label = 2;
+  string description = 3;
+  bool default = 4;
+  bool supports_condition = 5;
+  string condition_description = 6;
+}
+
+message Capabilities {
+  bool supports_configuration_done_request = 1;
+  bool supports_function_breakpoints = 2;
+  bool supports_conditional_breakpoints = 3;
+  bool supports_hit_conditional_breakpoints = 4;
+  bool supports_evaluate_for_hovers = 5;
+  repeated ExceptionBreakpointsFilter exception_breakpoint_filters = 6;
+  bool supports_step_back = 7;
+  bool supports_set_variable = 8;
+  bool supports_restart_frame = 9;
+  bool supports_goto_targets_request = 10;
+  bool supports_step_in_targets_request = 11;
+  bool supports_completions_request = 12;
+  repeated string completion_trigger_characters = 13;
+  bool supports_modules_request = 14;
+  bool supports_restart_request = 15;
+  bool supports_exception_options = 16;
+  bool supports_value_formatting_options = 17;
+  bool supports_exception_info_request = 18;
+  bool support_terminate_debuggee = 19;
+  bool support_suspend_debuggee = 20;
+  bool supports_delayed_stack_trace_loading = 21;
+  bool supports_loaded_sources_request = 22;
+  bool supports_log_points = 23;
+  bool supports_terminate_threads_request = 24;
+  bool supports_set_expression = 25;
+  bool supports_terminate_request = 26;
+  bool supports_data_breakpoints = 27;
+  bool supports_read_memory_request = 28;
+  bool supports_write_memory_request = 29;
+  bool supports_disassemble_request = 30;
+  bool supports_cancel_request = 31;
+  bool supports_breakpoint_locations_request = 32;
+  bool supports_clipboard_context = 33;
+  bool supports_stepping_granularity = 34;
+  bool supports_instruction_breakpoints = 35;
+  bool supports_exception_filter_options = 36;
+  bool supports_single_thread_execution_requests = 37;
+}
+
+// === Request/Response Messages ===
+
+message InitializeRequest {
+  string client_id = 1;
+  string client_name = 2;
+  string adapter_id = 3;
+  string locale = 4;
+  bool lines_start_at_1 = 5;
+  bool columns_start_at_1 = 6;
+  string path_format = 7;
+  bool supports_variable_type = 8;
+  bool supports_variable_paging = 9;
+  bool supports_run_in_terminal_request = 10;
+  bool supports_memory_references = 11;
+  bool supports_progress_reporting = 12;
+  bool supports_invalidated_event = 13;
+  bool supports_memory_event = 14;
+}
+
+message InitializeResponse {
+  Capabilities capabilities = 1;
+}
+
+message LaunchRequest {
+  string program = 1;
+  repeated string args = 2;
+  string cwd = 3;
+  map<string, string> env = 4;
+  bool stop_on_entry = 5;
+  bool no_debug = 6;
+}
+
+message LaunchResponse {}
+
+message AttachRequest {
+  int32 pid = 1;
+  string program = 2;
+}
+
+message AttachResponse {}
+
+message ConfigurationDoneRequest {}
+message ConfigurationDoneResponse {}
+
+message DisconnectRequest {
+  bool restart = 1;
+  bool terminate_debuggee = 2;
+  bool suspend_debuggee = 3;
+}
+
+message DisconnectResponse {}
+
+message TerminateRequest {
+  bool restart = 1;
+}
+
+message TerminateResponse {}
+
+message RestartRequest {}
+message RestartResponse {}
+
+message SetBreakpointsRequest {
+  Source source = 1;
+  repeated SourceBreakpoint breakpoints = 2;
+  bool source_modified = 3;
+}
+
+message SetBreakpointsResponse {
+  repeated Breakpoint breakpoints = 1;
+}
+
+message SetFunctionBreakpointsRequest {
+  repeated FunctionBreakpoint breakpoints = 1;
+}
+
+message SetFunctionBreakpointsResponse {
+  repeated Breakpoint breakpoints = 1;
+}
+
+message SetExceptionBreakpointsRequest {
+  repeated string filters = 1;
+}
+
+message SetExceptionBreakpointsResponse {
+  repeated Breakpoint breakpoints = 1;
+}
+
+message ContinueRequest {
+  int32 thread_id = 1;
+  bool single_thread = 2;
+}
+
+message ContinueResponse {
+  bool all_threads_continued = 1;
+}
+
+message NextRequest {
+  int32 thread_id = 1;
+  bool single_thread = 2;
+  string granularity = 3;
+}
+
+message NextResponse {}
+
+message StepInRequest {
+  int32 thread_id = 1;
+  bool single_thread = 2;
+  int32 target_id = 3;
+  string granularity = 4;
+}
+
+message StepInResponse {}
+
+message StepOutRequest {
+  int32 thread_id = 1;
+  bool single_thread = 2;
+  string granularity = 3;
+}
+
+message StepOutResponse {}
+
+message StepBackRequest {
+  int32 thread_id = 1;
+  bool single_thread = 2;
+  string granularity = 3;
+}
+
+message StepBackResponse {}
+
+message ReverseContinueRequest {
+  int32 thread_id = 1;
+  bool single_thread = 2;
+}
+
+message ReverseContinueResponse {}
+
+message PauseRequest {
+  int32 thread_id = 1;
+}
+
+message PauseResponse {}
+
+message ThreadsRequest {}
+
+message ThreadsResponse {
+  repeated Thread threads = 1;
+}
+
+message StackTraceRequest {
+  int32 thread_id = 1;
+  int32 start_frame = 2;
+  int32 levels = 3;
+}
+
+message StackTraceResponse {
+  repeated StackFrame stack_frames = 1;
+  int32 total_frames = 2;
+}
+
+message ScopesRequest {
+  int32 frame_id = 1;
+}
+
+message ScopesResponse {
+  repeated Scope scopes = 1;
+}
+
+message VariablesRequest {
+  int32 variables_reference = 1;
+  string filter = 2;
+  int32 start = 3;
+  int32 count = 4;
+}
+
+message VariablesResponse {
+  repeated Variable variables = 1;
+}
+
+message SetVariableRequest {
+  int32 variables_reference = 1;
+  string name = 2;
+  string value = 3;
+}
+
+message SetVariableResponse {
+  string value = 1;
+  string type = 2;
+  int32 variables_reference = 3;
+  int32 named_variables = 4;
+  int32 indexed_variables = 5;
+}
+
+message SourceRequest {
+  int32 source_reference = 1;
+  Source source = 2;
+}
+
+message SourceResponse {
+  string content = 1;
+  string mime_type = 2;
+}
+
+message EvaluateRequest {
+  string expression = 1;
+  int32 frame_id = 2;
+  string context = 3;
+}
+
+message EvaluateResponse {
+  string result = 1;
+  string type = 2;
+  int32 variables_reference = 3;
+  int32 named_variables = 4;
+  int32 indexed_variables = 5;
+  string memory_reference = 6;
+}
+
+message SetExpressionRequest {
+  string expression = 1;
+  string value = 2;
+  int32 frame_id = 3;
+}
+
+message SetExpressionResponse {
+  string value = 1;
+  string type = 2;
+  int32 variables_reference = 3;
+  int32 named_variables = 4;
+  int32 indexed_variables = 5;
+}
+
+message CompletionsRequest {
+  int32 frame_id = 1;
+  string text = 2;
+  int32 column = 3;
+  int32 line = 4;
+}
+
+message CompletionsResponse {
+  repeated CompletionItem targets = 1;
+}
+
+message ExceptionInfoRequest {
+  int32 thread_id = 1;
+}
+
+message ExceptionInfoResponse {
+  string exception_id = 1;
+  string description = 2;
+  string break_mode = 3;
+}
+
+message ModulesRequest {
+  int32 start_module = 1;
+  int32 module_count = 2;
+}
+
+message ModulesResponse {
+  repeated Module modules = 1;
+  int32 total_modules = 2;
+}
+
+message LoadedSourcesRequest {}
+
+message LoadedSourcesResponse {
+  repeated Source sources = 1;
+}
+
+message ReadMemoryRequest {
+  string memory_reference = 1;
+  int64 offset = 2;
+  int32 count = 3;
+}
+
+message ReadMemoryResponse {
+  string address = 1;
+  int32 unreadable_bytes = 2;
+  bytes data = 3;
+}
+
+message WriteMemoryRequest {
+  string memory_reference = 1;
+  int64 offset = 2;
+  bytes data = 3;
+  bool allow_partial = 4;
+}
+
+message WriteMemoryResponse {
+  int64 offset = 1;
+  int32 bytes_written = 2;
+}
+
+message DisassembleRequest {
+  string memory_reference = 1;
+  int64 offset = 2;
+  int32 instruction_offset = 3;
+  int32 instruction_count = 4;
+  bool resolve_symbols = 5;
+}
+
+message DisassembleResponse {
+  repeated DisassembledInstruction instructions = 1;
+}
+
+message GotoTargetsRequest {
+  Source source = 1;
+  int32 line = 2;
+  int32 column = 3;
+}
+
+message GotoTargetsResponse {
+  repeated GotoTarget targets = 1;
+}
+
+message GotoRequest {
+  int32 thread_id = 1;
+  int32 target_id = 2;
+}
+
+message GotoResponse {}
+
+message SubscribeEventsRequest {}
+
+message Event {
+  string event = 1;
+  bytes body = 2;
+}
