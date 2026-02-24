@@ -68,7 +68,6 @@ in the last Resize, but rather the ideal width and height for this component to
 render the entire content. This should be implemented by all components/handlers with
 easy to calculate dimensions or when they're collections of Floating components/handlers.
 
-
 ### Package Organization
 
 - **`tui/`** - Core framework interfaces and event loop
@@ -145,22 +144,6 @@ that the test passes.
 2. Run `make generate` to regenerate Go code
 3. Implement service logic in `api/<name>/`
 4. Add test helpers in `api/<name>/<name>test/`
-
-## Go Code Quality Gate
-
-Before completing ANY task that modifies `.go` files, you MUST:
-0. Run `make` and run `make lint` to ensure no linting or compiling issues remain.
-1. Use the `reviewer` subagent to review all modified Go files
-3. Address any violations it identifies
-4. Re-run the subagent to confirm compliance
-5. Use the `go-idioms` subagent to review all modified Go files
-6. Address any violations it identifies
-7. Re-run the subagent to confirm compliance
-8. Use the `tui` subagent to review all modified Go files
-9. Address any violations it identifies
-10. Re-run the subagent to confirm compliance
-
-Never mark a task complete without this review step.
 
 ## Rune MCP Tools
 
