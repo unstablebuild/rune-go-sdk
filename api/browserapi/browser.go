@@ -166,6 +166,9 @@ type Notifications interface {
 
 // ResourceOpener is the interface that wraps the method Open.
 type ResourceOpener interface {
+	// Opens the resource with a given uri as a tab, using the underlying
+	// workspaceapi.FileSystem, but doesn't switch the focus of the current
+	// window in focus to it. That can be accomplished via WindowManager.SetWindowContent.
 	Open(resource workspaceapi.URI) (Handler, error)
 }
 
