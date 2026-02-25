@@ -48,7 +48,7 @@ type Result struct {
 	CaptureName string
 }
 
-// Parser provides AST-level search and parsing capabilities.
+// Parser provides workspace-wide AST-level search and parsing capabilities.
 type Parser interface {
 	// Search searches for matches in the workspace using the given tree-sitter literal query
 	// and a list of capture names that should be returned.
