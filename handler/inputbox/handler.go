@@ -67,6 +67,12 @@ type Handler struct {
 	compTail               string
 	compOriginal           string
 
+	// Highlight range
+	hlStart int
+	hlEnd   int
+	hlAttr  term.Attributes
+	hasHL   bool
+
 	// State
 	ctrlCAborts bool
 	done        bool
@@ -95,6 +101,20 @@ func (ib *Handler) SetAttr(attr term.Attributes) (ret term.Attributes) {
 	ib.attrs = attr
 	ib.updatePlaceholderBackground()
 	return
+}
+
+// SetHighlight applies attr to the text range [start, end).
+// The prompt and characters outside the range are unaffected.
+func (ib *Handler) SetHighlight(start, end int, attr term.Attributes) {
+	ib.hlStart = start
+	ib.hlEnd = end
+	ib.hlAttr = attr
+	ib.hasHL = true
+}
+
+// ClearHighlight removes any active highlight range.
+func (ib *Handler) ClearHighlight() {
+	ib.hasHL = false
 }
 
 // Text returns the current text content of the input box.
@@ -302,6 +322,9 @@ func (ib *Handler) drawNoPrompt(w term.Writer) {
 	var x, y int
 	for i := startIdx; i < endIdx; i++ {
 		attrs := ib.attrs
+		if ib.hasHL && i >= ib.hlStart && i < ib.hlEnd {
+			attrs = ib.hlAttr
+		}
 		if i >= selStart && i < selEnd {
 			attrs.Attrs |= tcell.AttrReverse
 		}
@@ -350,6 +373,9 @@ func (ib *Handler) drawWithPrompt(w term.Writer) {
 			break
 		}
 		attrs := ib.attrs
+		if ib.hasHL && i >= ib.hlStart && i < ib.hlEnd {
+			attrs = ib.hlAttr
+		}
 		if i >= selStart && i < selEnd {
 			attrs.Attrs |= tcell.AttrReverse
 		}

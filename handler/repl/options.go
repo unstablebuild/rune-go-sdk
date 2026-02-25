@@ -18,6 +18,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
 	"github.com/unstablebuild/rune-go-sdk/handler/inputbox"
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"github.com/unstablebuild/tcell/v3"
 )
 
 // Option configures a Handler.
@@ -52,5 +53,61 @@ func WithStorage(key string, s storageapi.Service) Option {
 	return func(h *Handler) {
 		h.storageKey = key
 		h.storage = s
+	}
+}
+
+// WithSuccessAttributes sets the prompt prefix color on
+// command success. Default: green foreground.
+func WithSuccessAttributes(attr term.Attributes) Option {
+	return func(h *Handler) {
+		h.successAttr = attr
+	}
+}
+
+// WithErrorAttributes sets the prompt prefix color on
+// command failure and the color of error messages.
+// Default: red foreground.
+func WithErrorAttributes(attr term.Attributes) Option {
+	return func(h *Handler) {
+		h.errorAttr = attr
+	}
+}
+
+// WithValidCommandAttributes sets inputbox attributes
+// when the typed command is a valid executable.
+// Default: base attributes with bold.
+func WithValidCommandAttributes(attr term.Attributes) Option {
+	return func(h *Handler) {
+		h.validCmdAttr = attr
+		h.hasValidCmdAttr = true
+	}
+}
+
+// WithRunningAnimationFrames sets the spinner animation
+// shown while a command is running. Default:
+// component.ProgressAnimationFrames().
+func WithRunningAnimationFrames(frames []string, sequence []int) Option {
+	return func(h *Handler) {
+		h.animFrames = frames
+		h.animSequence = sequence
+	}
+}
+
+// defaultSuccessAttr returns the default success attributes.
+func defaultSuccessAttr() term.Attributes {
+	return term.Attributes{Fg: tcell.ColorGreen}
+}
+
+// defaultErrorAttr returns the default error attributes.
+func defaultErrorAttr() term.Attributes {
+	return term.Attributes{Fg: tcell.ColorRed}
+}
+
+// defaultValidCmdAttr returns the default valid command
+// attributes (green foreground + bold).
+func defaultValidCmdAttr() term.Attributes {
+	return term.Attributes{
+		Fg:    tcell.ColorGreen,
+		Attrs: tcell.AttrBold,
 	}
 }

@@ -16,10 +16,21 @@ package repl
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 )
+
+// ExitError represents a non-zero command exit code.
+type ExitError struct{ Code int }
+
+func (e *ExitError) Error() string { return fmt.Sprintf("exit status %d", e.Code) }
+
+// ErrNotFound is returned by a CommandHandler to
+// indicate it does not handle the given command.
+var ErrNotFound = errors.New("command not found")
 
 // Command represents a user-issued command.
 type Command struct {

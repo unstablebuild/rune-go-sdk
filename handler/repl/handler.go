@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os/exec"
 	"slices"
 	"strings"
 	"sync"
@@ -43,6 +44,9 @@ type Handler struct {
 	cmd    CommandHandler
 	prompt string
 
+	scheduleNextTick func(func()) bool
+	interrupter      term.Interrupter
+
 	storage    storageapi.Service
 	storageKey string
 	history    []string
@@ -51,23 +55,54 @@ type Handler struct {
 	attr     term.Attributes
 	hasAttr  bool
 
+	// Prompt coloring.
+	successAttr    term.Attributes
+	errorAttr      term.Attributes
+	lastPromptLine *promptLine
+
+	// Valid command bold input.
+	validCmdAttr    term.Attributes
+	hasValidCmdAttr bool
+	lastCheckedCmd  string
+	lastCmdValid    bool
+
+	// Spinner animation.
+	spinner     *component.Animation
+	spinnerVirt component.Virtual[*component.Animation]
+	animFrames  []string
+	animSequence []int
+
 	cmdCtx    context.Context
 	cmdCancel context.CancelFunc
 
+	// wg tracks in-flight command goroutines launched by
+	// dispatchCommand. Add is only called from Handle
+	// (the event-loop goroutine) and Wait is only called
+	// after the event loop exits, so Add and Wait
+	// should never be called concurrently
 	wg sync.WaitGroup
 
 	width, height int
 }
 
 // New creates a new Handler with the given command
-// handler and options.
-func New(cmd CommandHandler, opts ...Option) *Handler {
+// handler and options. The scheduleNextTick function
+// schedules a callback on the next event-loop tick.
+// The interrupter forces a redraw of the event loop.
+func New(
+	cmd CommandHandler,
+	scheduleNextTick func(func()) bool,
+	interrupter term.Interrupter,
+	opts ...Option,
+) *Handler {
 	h := &Handler{
 		output: &component.Virtual[*component.Container]{
 			C: component.NewContainer(),
 		},
-		cmd:    cmd,
-		prompt: "> ",
+		cmd:              cmd,
+		scheduleNextTick: scheduleNextTick,
+		interrupter:      interrupter,
+		prompt:           "> ",
 	}
 	for _, o := range opts {
 		o(h)
@@ -75,6 +110,18 @@ func New(cmd CommandHandler, opts ...Option) *Handler {
 	if h.storage == nil {
 		h.storage = storagestub.NewInMemoryService()
 		h.storageKey = "repl-history"
+	}
+	if h.successAttr == (term.Attributes{}) {
+		h.successAttr = defaultSuccessAttr()
+	}
+	if h.errorAttr == (term.Attributes{}) {
+		h.errorAttr = defaultErrorAttr()
+	}
+	if !h.hasValidCmdAttr {
+		h.validCmdAttr = defaultValidCmdAttr()
+	}
+	if h.animFrames == nil {
+		h.animFrames, h.animSequence = component.ProgressAnimationFrames()
 	}
 	h.loadHistory()
 	h.cmdCtx, h.cmdCancel = context.WithCancel(context.Background())
@@ -92,6 +139,9 @@ func (h *Handler) Resize(width, height int) {
 // Draw satisfies tui.Component.
 func (h *Handler) Draw(w term.Writer) {
 	h.output.Draw(w)
+	if h.spinner != nil {
+		h.spinnerVirt.Draw(w)
+	}
 	h.rl.Draw(w)
 }
 
@@ -99,6 +149,7 @@ func (h *Handler) Draw(w term.Writer) {
 func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 	exit, handled = h.rl.Handle(ev)
 	if !exit {
+		h.updateInputStyle()
 		h.layout()
 		return false, handled
 	}
@@ -117,12 +168,14 @@ func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 	}
 
 	if strings.TrimSpace(text) == "" {
+		h.addPromptLine("")
+		h.output.C.ScrollToBottom()
 		h.resetInputBox()
 		return false, true
 	}
 	h.history = append(h.history, text)
 	h.saveHistory()
-	h.addLine(h.prompt + text)
+	h.addPromptLine(text)
 	h.output.C.ScrollToBottom()
 	h.dispatchCommand(text)
 	h.resetInputBox()
@@ -167,6 +220,9 @@ func (h *Handler) newInputBox() *handler.Virtual[*inputbox.Handler] {
 func (h *Handler) resetInputBox() {
 	h.rl.C.Reset()
 	h.rl.C.SetHistory(h.history)
+	h.lastCheckedCmd = ""
+	h.lastCmdValid = false
+	h.applyInputStyle()
 	h.layout()
 }
 
@@ -193,6 +249,31 @@ func (h *Handler) addLine(msg string) {
 	)
 }
 
+func (h *Handler) addPromptLine(text string) {
+	pl := newPromptLine(
+		h.prompt, text,
+		term.Attributes{}, term.Attributes{},
+	)
+	h.lastPromptLine = pl
+	row := h.output.C.AddRow()
+	row.AddComponent(pl, component.MaxCols)
+}
+
+func (h *Handler) addErrorLine(msg string) {
+	row := h.output.C.AddRow()
+	row.AddComponent(
+		component.NewResponsiveString(
+			msg,
+			component.StringResponsiveConfig{
+				StringConfig: component.StringConfig{
+					Attributes: h.errorAttr,
+				},
+			},
+		),
+		component.MaxCols,
+	)
+}
+
 func (h *Handler) layout() {
 	if h.width == 0 || h.height == 0 {
 		return
@@ -209,51 +290,157 @@ func (h *Handler) layout() {
 		h.output.Move(term.Coordinates{})
 	}
 
+	if h.spinner != nil {
+		h.spinnerVirt.Resize(1, 1)
+		h.spinnerVirt.Move(term.Coordinates{
+			X: h.width - 2,
+			Y: outH - 1,
+		})
+	}
+
 	h.rl.Resize(h.width, rlH)
 	h.rl.Move(term.Coordinates{Y: outH})
+}
+
+func (h *Handler) startSpinner() {
+	h.spinner = component.NewAnimation(
+		h.interrupter,
+		h.animFrames, h.animSequence, 10,
+	)
+	h.spinnerVirt.C = h.spinner
+	h.layout()
+}
+
+func (h *Handler) stopSpinner() {
+	if h.spinner != nil {
+		_ = h.spinner.Close()
+		h.spinner = nil
+		h.spinnerVirt.C = nil
+	}
 }
 
 func (h *Handler) dispatchCommand(text string) {
 	cmd := parseCommand(text)
 	ctx := h.cmdCtx
-	// All state mutations are serialized onto the event
-	// loop via ScheduleNextTick, so no additional
-	// synchronization is needed.
+	promptLine := h.lastPromptLine
 	h.wg.Add(1)
 	go debug.CapturePanicReport(func() {
 		defer h.wg.Done()
+		h.scheduleNextTick(func() {
+			h.startSpinner()
+		})
 		iter, err := h.cmd.HandleCommand(ctx, cmd)
 		if err != nil {
-			term.ScheduleNextTick(func() {
-				h.addLine(err.Error())
+			h.scheduleNextTick(func() {
+				h.stopSpinner()
+				promptLine.setPromptAttr(h.errorAttr)
+				h.addErrorLine(err.Error())
 				h.output.C.ScrollToBottom()
 				h.layout()
 			})
 			return
 		}
 		defer func() { _ = iter.Close() }()
+
+		// Batch output items so we schedule at most one
+		// drain tick at a time, keeping the event queue
+		// shallow and ctrl-c responsive.
+		var mu sync.Mutex
+		var pending []component.Responsive
+		drainScheduled := false
+
+		var drain func()
+		drain = func() {
+			mu.Lock()
+			batch := pending
+			pending = nil
+			drainScheduled = false
+			mu.Unlock()
+
+			for _, it := range batch {
+				row := h.output.C.AddRow()
+				row.AddComponent(it, component.MaxCols)
+			}
+			h.output.C.ScrollToBottom()
+			h.layout()
+
+			mu.Lock()
+			if len(pending) > 0 && !drainScheduled {
+				drainScheduled = true
+				h.scheduleNextTick(drain)
+			}
+			mu.Unlock()
+		}
+
 		for {
 			item, ok := iter.Next(ctx)
 			if !ok {
 				break
 			}
-			term.ScheduleNextTick(func() {
+			mu.Lock()
+			pending = append(pending, item)
+			if !drainScheduled {
+				drainScheduled = true
+				h.scheduleNextTick(drain)
+			}
+			mu.Unlock()
+		}
+
+		iterErr := iter.Err()
+		h.scheduleNextTick(func() {
+			// Flush remaining items that arrived after
+			// the last drain tick.
+			mu.Lock()
+			batch := pending
+			pending = nil
+			mu.Unlock()
+			for _, it := range batch {
 				row := h.output.C.AddRow()
-				row.AddComponent(
-					item, component.MaxCols,
-				)
-				h.output.C.ScrollToBottom()
-				h.layout()
-			})
-		}
-		if err := iter.Err(); err != nil {
-			term.ScheduleNextTick(func() {
-				h.addLine(err.Error())
-				h.output.C.ScrollToBottom()
-				h.layout()
-			})
-		}
+				row.AddComponent(it, component.MaxCols)
+			}
+
+			h.stopSpinner()
+			if iterErr != nil {
+				promptLine.setPromptAttr(h.errorAttr)
+				h.addErrorLine(iterErr.Error())
+			} else {
+				promptLine.setPromptAttr(h.successAttr)
+			}
+			h.output.C.ScrollToBottom()
+			h.layout()
+		})
 	})
+}
+
+func (h *Handler) updateInputStyle() {
+	text := h.rl.C.Text()
+	cmd := firstWord(text)
+	if cmd == h.lastCheckedCmd {
+		return
+	}
+	h.lastCheckedCmd = cmd
+	h.lastCmdValid = false
+	if cmd != "" {
+		_, err := exec.LookPath(cmd)
+		h.lastCmdValid = err == nil
+	}
+	h.applyInputStyle()
+}
+
+func (h *Handler) applyInputStyle() {
+	if h.lastCmdValid {
+		cmdLen := len([]rune(h.lastCheckedCmd))
+		h.rl.C.SetHighlight(0, cmdLen, h.validCmdAttr)
+	} else {
+		h.rl.C.ClearHighlight()
+	}
+}
+
+func firstWord(s string) string {
+	if i := strings.IndexByte(s, ' '); i >= 0 {
+		return s[:i]
+	}
+	return s
 }
 
 func (h *Handler) makeCompleter() inputbox.WordCompleter {
@@ -265,8 +452,16 @@ func (h *Handler) makeCompleter() inputbox.WordCompleter {
 		var args []string
 		if len(parts) > 0 {
 			cmd = parts[0]
-			if len(parts) > 1 {
-				args = parts[1:]
+			if len(parts) > 1 || (len(parts) == 1 && strings.HasSuffix(head, " ")) {
+				if len(parts) > 1 {
+					args = parts[1:]
+				}
+				// If cursor is right after a space, append
+				// empty string so the last arg is the
+				// (empty) prefix.
+				if strings.HasSuffix(head, " ") {
+					args = append(args, "")
+				}
 			}
 		}
 		lastSpace := strings.LastIndex(head, " ")

@@ -60,6 +60,8 @@ func (t *testHandler) Complete(
 	return iterator.FromSlice[string](nil), nil
 }
 
+func nopSchedule(func()) bool { return false }
+
 func sendKeys(t *testing.T, h *Handler, seq string) {
 	t.Helper()
 	keys, err := term.ParseKeys(seq)
@@ -81,6 +83,7 @@ func drawHandler(h *Handler, w, ht int) string {
 func TestBasicInput(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	cases := []handlertest.SequenceTestCase{
@@ -105,7 +108,7 @@ func TestBasicInput(t *testing.T) {
 }
 
 func TestCtrlDEOF(t *testing.T) {
-	h := New(&testHandler{})
+	h := New(&testHandler{}, nopSchedule, term.NopInterrupter())
 	h.Resize(20, 5)
 	exit, handled := h.Handle(term.Event{
 		Type: term.EventKey,
@@ -119,6 +122,7 @@ func TestCtrlDEOF(t *testing.T) {
 func TestCtrlCClearsAndShowsCaret(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 5)
@@ -149,7 +153,7 @@ func TestEmptyInput(t *testing.T) {
 			return iterator.FromSlice[component.Responsive](nil), nil
 		},
 	}
-	h := New(th, WithPrompt("$ "))
+	h := New(th, nopSchedule, term.NopInterrupter(), WithPrompt("$ "))
 	h.Resize(20, 5)
 	sendKeys(t, h, "<space><space><space>")
 	h.Handle(term.Event{
@@ -172,7 +176,7 @@ func TestCommandDispatch(t *testing.T) {
 			return iterator.FromSlice[component.Responsive](nil), nil
 		},
 	}
-	h := New(th, WithPrompt("$ "))
+	h := New(th, nopSchedule, term.NopInterrupter(), WithPrompt("$ "))
 	h.Resize(40, 10)
 	sendKeys(t, h, "echo<space>hello<space>world")
 	h.Handle(term.Event{
@@ -191,6 +195,7 @@ func TestCommandDispatch(t *testing.T) {
 func TestHistory(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(30, 5)
@@ -234,7 +239,7 @@ func TestTabCompletion(t *testing.T) {
 			return iterator.FromSlice(candidates), nil
 		},
 	}
-	h := New(th, WithPrompt("$ "))
+	h := New(th, nopSchedule, term.NopInterrupter(), WithPrompt("$ "))
 	h.Resize(30, 5)
 	sendKeys(t, h, "foo")
 	sendKeys(t, h, "<tab>")
@@ -260,7 +265,7 @@ func TestCtrlCCancelsContext(t *testing.T) {
 			return iterator.FromSlice[component.Responsive](nil), nil
 		},
 	}
-	h := New(th, WithPrompt("$ "))
+	h := New(th, nopSchedule, term.NopInterrupter(), WithPrompt("$ "))
 	h.Resize(40, 10)
 
 	// Capture the context before dispatch so
@@ -296,7 +301,7 @@ func TestCtrlCCancelsContext(t *testing.T) {
 }
 
 func TestSelection(t *testing.T) {
-	h := New(&testHandler{})
+	h := New(&testHandler{}, nopSchedule, term.NopInterrupter())
 	h.Resize(20, 5)
 	sel, ok := h.Selection()
 	assert.False(t, ok)
@@ -306,6 +311,7 @@ func TestSelection(t *testing.T) {
 func TestLayout(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 5)
@@ -326,7 +332,7 @@ func TestHandleCommandError(t *testing.T) {
 			return nil, errors.New("boom")
 		},
 	}
-	h := New(th, WithPrompt("$ "))
+	h := New(th, nopSchedule, term.NopInterrupter(), WithPrompt("$ "))
 	h.Resize(40, 10)
 
 	sendKeys(t, h, "bad")
@@ -342,6 +348,7 @@ func TestHandleCommandError(t *testing.T) {
 func TestMultipleCommands(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(40, 10)
@@ -365,6 +372,7 @@ func TestMultipleCommands(t *testing.T) {
 func TestOutputAccumulates(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(40, 10)
@@ -403,6 +411,7 @@ func TestOutputAccumulates(t *testing.T) {
 func TestCtrlDWithTextDeletesForward(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 5)
@@ -514,6 +523,7 @@ func TestNopCommandCompleterComplete(t *testing.T) {
 func TestResultEOF(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 5)
@@ -532,6 +542,7 @@ func TestResultEOF(t *testing.T) {
 func TestLayoutShortContent(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 5)
@@ -556,6 +567,7 @@ func TestLayoutShortContent(t *testing.T) {
 func TestLayoutOverflowContent(t *testing.T) {
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	// Small viewport: 3 rows total (2 output + 1
@@ -585,6 +597,7 @@ func TestHistoryPersistence(t *testing.T) {
 	svc := storagestub.NewInMemoryService()
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 		WithStorage("repl-history", svc),
 	)
@@ -620,6 +633,7 @@ func TestHistoryPreloaded(t *testing.T) {
 
 	h := New(
 		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
 		WithPrompt("$ "),
 		WithStorage("repl-history", svc),
 	)
