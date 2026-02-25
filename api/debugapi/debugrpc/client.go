@@ -28,7 +28,7 @@ var _ debugapi.Debugger = (*Client)(nil)
 // Client implements debugapi.Debugger by making gRPC calls to a DebugService server.
 type Client struct {
 	cc              grpc.ClientConnInterface
-	client          DebugServiceClient
+	client          DebuggerClient
 	clientCtx       context.Context
 	clientCancelCtx func()
 }
@@ -38,7 +38,7 @@ func NewClient(ctx context.Context, cc grpc.ClientConnInterface) *Client {
 	clientCtx, cancel := context.WithCancel(ctx)
 	return &Client{
 		cc:              cc,
-		client:          NewDebugServiceClient(cc),
+		client:          NewDebuggerClient(cc),
 		clientCtx:       clientCtx,
 		clientCancelCtx: cancel,
 	}

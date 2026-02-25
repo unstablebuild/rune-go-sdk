@@ -20,7 +20,7 @@ package debug;
 
 // DebugService provides Debug Adapter Protocol operations over gRPC.
 // See: https://microsoft.github.io/debug-adapter-protocol/specification
-service DebugService {
+service Debugger {
   // Session Management
   rpc Initialize(InitializeRequest) returns (InitializeResponse);
   rpc Launch(LaunchRequest) returns (LaunchResponse);

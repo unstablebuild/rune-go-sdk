@@ -5615,8 +5615,8 @@ const file_debugrpc_debug_proto_rawDesc = "" +
 	"\x16SubscribeEventsRequest\"1\n" +
 	"\x05Event\x12\x14\n" +
 	"\x05event\x18\x01 \x01(\tR\x05event\x12\x12\n" +
-	"\x04body\x18\x02 \x01(\fR\x04body2\xee\x11\n" +
-	"\fDebugService\x12A\n" +
+	"\x04body\x18\x02 \x01(\fR\x04body2\xea\x11\n" +
+	"\bDebugger\x12A\n" +
 	"\n" +
 	"Initialize\x12\x18.debug.InitializeRequest\x1a\x19.debug.InitializeResponse\x125\n" +
 	"\x06Launch\x12\x14.debug.LaunchRequest\x1a\x15.debug.LaunchResponse\x125\n" +
@@ -5782,74 +5782,74 @@ var file_debugrpc_debug_proto_depIdxs = []int32{
 	8,  // 22: debug.DisassembleResponse.instructions:type_name -> debug.DisassembledInstruction
 	0,  // 23: debug.GotoTargetsRequest.source:type_name -> debug.Source
 	9,  // 24: debug.GotoTargetsResponse.targets:type_name -> debug.GotoTarget
-	14, // 25: debug.DebugService.Initialize:input_type -> debug.InitializeRequest
-	16, // 26: debug.DebugService.Launch:input_type -> debug.LaunchRequest
-	18, // 27: debug.DebugService.Attach:input_type -> debug.AttachRequest
-	20, // 28: debug.DebugService.ConfigurationDone:input_type -> debug.ConfigurationDoneRequest
-	22, // 29: debug.DebugService.Disconnect:input_type -> debug.DisconnectRequest
-	24, // 30: debug.DebugService.Terminate:input_type -> debug.TerminateRequest
-	26, // 31: debug.DebugService.Restart:input_type -> debug.RestartRequest
-	28, // 32: debug.DebugService.SetBreakpoints:input_type -> debug.SetBreakpointsRequest
-	30, // 33: debug.DebugService.SetFunctionBreakpoints:input_type -> debug.SetFunctionBreakpointsRequest
-	32, // 34: debug.DebugService.SetExceptionBreakpoints:input_type -> debug.SetExceptionBreakpointsRequest
-	34, // 35: debug.DebugService.Continue:input_type -> debug.ContinueRequest
-	36, // 36: debug.DebugService.Next:input_type -> debug.NextRequest
-	38, // 37: debug.DebugService.StepIn:input_type -> debug.StepInRequest
-	40, // 38: debug.DebugService.StepOut:input_type -> debug.StepOutRequest
-	42, // 39: debug.DebugService.StepBack:input_type -> debug.StepBackRequest
-	44, // 40: debug.DebugService.ReverseContinue:input_type -> debug.ReverseContinueRequest
-	46, // 41: debug.DebugService.Pause:input_type -> debug.PauseRequest
-	48, // 42: debug.DebugService.Threads:input_type -> debug.ThreadsRequest
-	50, // 43: debug.DebugService.StackTrace:input_type -> debug.StackTraceRequest
-	52, // 44: debug.DebugService.Scopes:input_type -> debug.ScopesRequest
-	54, // 45: debug.DebugService.Variables:input_type -> debug.VariablesRequest
-	56, // 46: debug.DebugService.SetVariable:input_type -> debug.SetVariableRequest
-	58, // 47: debug.DebugService.Source:input_type -> debug.SourceRequest
-	60, // 48: debug.DebugService.Evaluate:input_type -> debug.EvaluateRequest
-	62, // 49: debug.DebugService.SetExpression:input_type -> debug.SetExpressionRequest
-	64, // 50: debug.DebugService.Completions:input_type -> debug.CompletionsRequest
-	66, // 51: debug.DebugService.ExceptionInfo:input_type -> debug.ExceptionInfoRequest
-	68, // 52: debug.DebugService.Modules:input_type -> debug.ModulesRequest
-	70, // 53: debug.DebugService.LoadedSources:input_type -> debug.LoadedSourcesRequest
-	72, // 54: debug.DebugService.ReadMemory:input_type -> debug.ReadMemoryRequest
-	74, // 55: debug.DebugService.WriteMemory:input_type -> debug.WriteMemoryRequest
-	76, // 56: debug.DebugService.Disassemble:input_type -> debug.DisassembleRequest
-	78, // 57: debug.DebugService.GotoTargets:input_type -> debug.GotoTargetsRequest
-	80, // 58: debug.DebugService.Goto:input_type -> debug.GotoRequest
-	15, // 59: debug.DebugService.Initialize:output_type -> debug.InitializeResponse
-	17, // 60: debug.DebugService.Launch:output_type -> debug.LaunchResponse
-	19, // 61: debug.DebugService.Attach:output_type -> debug.AttachResponse
-	21, // 62: debug.DebugService.ConfigurationDone:output_type -> debug.ConfigurationDoneResponse
-	23, // 63: debug.DebugService.Disconnect:output_type -> debug.DisconnectResponse
-	25, // 64: debug.DebugService.Terminate:output_type -> debug.TerminateResponse
-	27, // 65: debug.DebugService.Restart:output_type -> debug.RestartResponse
-	29, // 66: debug.DebugService.SetBreakpoints:output_type -> debug.SetBreakpointsResponse
-	31, // 67: debug.DebugService.SetFunctionBreakpoints:output_type -> debug.SetFunctionBreakpointsResponse
-	33, // 68: debug.DebugService.SetExceptionBreakpoints:output_type -> debug.SetExceptionBreakpointsResponse
-	35, // 69: debug.DebugService.Continue:output_type -> debug.ContinueResponse
-	37, // 70: debug.DebugService.Next:output_type -> debug.NextResponse
-	39, // 71: debug.DebugService.StepIn:output_type -> debug.StepInResponse
-	41, // 72: debug.DebugService.StepOut:output_type -> debug.StepOutResponse
-	43, // 73: debug.DebugService.StepBack:output_type -> debug.StepBackResponse
-	45, // 74: debug.DebugService.ReverseContinue:output_type -> debug.ReverseContinueResponse
-	47, // 75: debug.DebugService.Pause:output_type -> debug.PauseResponse
-	49, // 76: debug.DebugService.Threads:output_type -> debug.ThreadsResponse
-	51, // 77: debug.DebugService.StackTrace:output_type -> debug.StackTraceResponse
-	53, // 78: debug.DebugService.Scopes:output_type -> debug.ScopesResponse
-	55, // 79: debug.DebugService.Variables:output_type -> debug.VariablesResponse
-	57, // 80: debug.DebugService.SetVariable:output_type -> debug.SetVariableResponse
-	59, // 81: debug.DebugService.Source:output_type -> debug.SourceResponse
-	61, // 82: debug.DebugService.Evaluate:output_type -> debug.EvaluateResponse
-	63, // 83: debug.DebugService.SetExpression:output_type -> debug.SetExpressionResponse
-	65, // 84: debug.DebugService.Completions:output_type -> debug.CompletionsResponse
-	67, // 85: debug.DebugService.ExceptionInfo:output_type -> debug.ExceptionInfoResponse
-	69, // 86: debug.DebugService.Modules:output_type -> debug.ModulesResponse
-	71, // 87: debug.DebugService.LoadedSources:output_type -> debug.LoadedSourcesResponse
-	73, // 88: debug.DebugService.ReadMemory:output_type -> debug.ReadMemoryResponse
-	75, // 89: debug.DebugService.WriteMemory:output_type -> debug.WriteMemoryResponse
-	77, // 90: debug.DebugService.Disassemble:output_type -> debug.DisassembleResponse
-	79, // 91: debug.DebugService.GotoTargets:output_type -> debug.GotoTargetsResponse
-	81, // 92: debug.DebugService.Goto:output_type -> debug.GotoResponse
+	14, // 25: debug.Debugger.Initialize:input_type -> debug.InitializeRequest
+	16, // 26: debug.Debugger.Launch:input_type -> debug.LaunchRequest
+	18, // 27: debug.Debugger.Attach:input_type -> debug.AttachRequest
+	20, // 28: debug.Debugger.ConfigurationDone:input_type -> debug.ConfigurationDoneRequest
+	22, // 29: debug.Debugger.Disconnect:input_type -> debug.DisconnectRequest
+	24, // 30: debug.Debugger.Terminate:input_type -> debug.TerminateRequest
+	26, // 31: debug.Debugger.Restart:input_type -> debug.RestartRequest
+	28, // 32: debug.Debugger.SetBreakpoints:input_type -> debug.SetBreakpointsRequest
+	30, // 33: debug.Debugger.SetFunctionBreakpoints:input_type -> debug.SetFunctionBreakpointsRequest
+	32, // 34: debug.Debugger.SetExceptionBreakpoints:input_type -> debug.SetExceptionBreakpointsRequest
+	34, // 35: debug.Debugger.Continue:input_type -> debug.ContinueRequest
+	36, // 36: debug.Debugger.Next:input_type -> debug.NextRequest
+	38, // 37: debug.Debugger.StepIn:input_type -> debug.StepInRequest
+	40, // 38: debug.Debugger.StepOut:input_type -> debug.StepOutRequest
+	42, // 39: debug.Debugger.StepBack:input_type -> debug.StepBackRequest
+	44, // 40: debug.Debugger.ReverseContinue:input_type -> debug.ReverseContinueRequest
+	46, // 41: debug.Debugger.Pause:input_type -> debug.PauseRequest
+	48, // 42: debug.Debugger.Threads:input_type -> debug.ThreadsRequest
+	50, // 43: debug.Debugger.StackTrace:input_type -> debug.StackTraceRequest
+	52, // 44: debug.Debugger.Scopes:input_type -> debug.ScopesRequest
+	54, // 45: debug.Debugger.Variables:input_type -> debug.VariablesRequest
+	56, // 46: debug.Debugger.SetVariable:input_type -> debug.SetVariableRequest
+	58, // 47: debug.Debugger.Source:input_type -> debug.SourceRequest
+	60, // 48: debug.Debugger.Evaluate:input_type -> debug.EvaluateRequest
+	62, // 49: debug.Debugger.SetExpression:input_type -> debug.SetExpressionRequest
+	64, // 50: debug.Debugger.Completions:input_type -> debug.CompletionsRequest
+	66, // 51: debug.Debugger.ExceptionInfo:input_type -> debug.ExceptionInfoRequest
+	68, // 52: debug.Debugger.Modules:input_type -> debug.ModulesRequest
+	70, // 53: debug.Debugger.LoadedSources:input_type -> debug.LoadedSourcesRequest
+	72, // 54: debug.Debugger.ReadMemory:input_type -> debug.ReadMemoryRequest
+	74, // 55: debug.Debugger.WriteMemory:input_type -> debug.WriteMemoryRequest
+	76, // 56: debug.Debugger.Disassemble:input_type -> debug.DisassembleRequest
+	78, // 57: debug.Debugger.GotoTargets:input_type -> debug.GotoTargetsRequest
+	80, // 58: debug.Debugger.Goto:input_type -> debug.GotoRequest
+	15, // 59: debug.Debugger.Initialize:output_type -> debug.InitializeResponse
+	17, // 60: debug.Debugger.Launch:output_type -> debug.LaunchResponse
+	19, // 61: debug.Debugger.Attach:output_type -> debug.AttachResponse
+	21, // 62: debug.Debugger.ConfigurationDone:output_type -> debug.ConfigurationDoneResponse
+	23, // 63: debug.Debugger.Disconnect:output_type -> debug.DisconnectResponse
+	25, // 64: debug.Debugger.Terminate:output_type -> debug.TerminateResponse
+	27, // 65: debug.Debugger.Restart:output_type -> debug.RestartResponse
+	29, // 66: debug.Debugger.SetBreakpoints:output_type -> debug.SetBreakpointsResponse
+	31, // 67: debug.Debugger.SetFunctionBreakpoints:output_type -> debug.SetFunctionBreakpointsResponse
+	33, // 68: debug.Debugger.SetExceptionBreakpoints:output_type -> debug.SetExceptionBreakpointsResponse
+	35, // 69: debug.Debugger.Continue:output_type -> debug.ContinueResponse
+	37, // 70: debug.Debugger.Next:output_type -> debug.NextResponse
+	39, // 71: debug.Debugger.StepIn:output_type -> debug.StepInResponse
+	41, // 72: debug.Debugger.StepOut:output_type -> debug.StepOutResponse
+	43, // 73: debug.Debugger.StepBack:output_type -> debug.StepBackResponse
+	45, // 74: debug.Debugger.ReverseContinue:output_type -> debug.ReverseContinueResponse
+	47, // 75: debug.Debugger.Pause:output_type -> debug.PauseResponse
+	49, // 76: debug.Debugger.Threads:output_type -> debug.ThreadsResponse
+	51, // 77: debug.Debugger.StackTrace:output_type -> debug.StackTraceResponse
+	53, // 78: debug.Debugger.Scopes:output_type -> debug.ScopesResponse
+	55, // 79: debug.Debugger.Variables:output_type -> debug.VariablesResponse
+	57, // 80: debug.Debugger.SetVariable:output_type -> debug.SetVariableResponse
+	59, // 81: debug.Debugger.Source:output_type -> debug.SourceResponse
+	61, // 82: debug.Debugger.Evaluate:output_type -> debug.EvaluateResponse
+	63, // 83: debug.Debugger.SetExpression:output_type -> debug.SetExpressionResponse
+	65, // 84: debug.Debugger.Completions:output_type -> debug.CompletionsResponse
+	67, // 85: debug.Debugger.ExceptionInfo:output_type -> debug.ExceptionInfoResponse
+	69, // 86: debug.Debugger.Modules:output_type -> debug.ModulesResponse
+	71, // 87: debug.Debugger.LoadedSources:output_type -> debug.LoadedSourcesResponse
+	73, // 88: debug.Debugger.ReadMemory:output_type -> debug.ReadMemoryResponse
+	75, // 89: debug.Debugger.WriteMemory:output_type -> debug.WriteMemoryResponse
+	77, // 90: debug.Debugger.Disassemble:output_type -> debug.DisassembleResponse
+	79, // 91: debug.Debugger.GotoTargets:output_type -> debug.GotoTargetsResponse
+	81, // 92: debug.Debugger.Goto:output_type -> debug.GotoResponse
 	59, // [59:93] is the sub-list for method output_type
 	25, // [25:59] is the sub-list for method input_type
 	25, // [25:25] is the sub-list for extension type_name

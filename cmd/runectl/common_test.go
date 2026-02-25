@@ -90,7 +90,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	workspacerpc.RegisterExecutorServer(srv, exec)
 	workspacerpc.RegisterTerminalServer(srv, term)
 	semanticrpc.RegisterLSPServer(srv, lspMock)
-	debugrpc.RegisterDebugServiceServer(srv, dbg)
+	debugrpc.RegisterDebuggerServer(srv, dbg)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -1445,7 +1445,7 @@ func (m *mockLSP) InlineValue(_ context.Context, req *semanticrpc.InlineValueReq
 
 // mockDebugger implements debugrpc.DebugServiceServer.
 type mockDebugger struct {
-	debugrpc.UnimplementedDebugServiceServer
+	debugrpc.UnimplementedDebuggerServer
 }
 
 func (m *mockDebugger) Launch(_ context.Context, _ *debugrpc.LaunchRequest) (*debugrpc.LaunchResponse, error) {

@@ -33,49 +33,49 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DebugService_Initialize_FullMethodName              = "/debug.DebugService/Initialize"
-	DebugService_Launch_FullMethodName                  = "/debug.DebugService/Launch"
-	DebugService_Attach_FullMethodName                  = "/debug.DebugService/Attach"
-	DebugService_ConfigurationDone_FullMethodName       = "/debug.DebugService/ConfigurationDone"
-	DebugService_Disconnect_FullMethodName              = "/debug.DebugService/Disconnect"
-	DebugService_Terminate_FullMethodName               = "/debug.DebugService/Terminate"
-	DebugService_Restart_FullMethodName                 = "/debug.DebugService/Restart"
-	DebugService_SetBreakpoints_FullMethodName          = "/debug.DebugService/SetBreakpoints"
-	DebugService_SetFunctionBreakpoints_FullMethodName  = "/debug.DebugService/SetFunctionBreakpoints"
-	DebugService_SetExceptionBreakpoints_FullMethodName = "/debug.DebugService/SetExceptionBreakpoints"
-	DebugService_Continue_FullMethodName                = "/debug.DebugService/Continue"
-	DebugService_Next_FullMethodName                    = "/debug.DebugService/Next"
-	DebugService_StepIn_FullMethodName                  = "/debug.DebugService/StepIn"
-	DebugService_StepOut_FullMethodName                 = "/debug.DebugService/StepOut"
-	DebugService_StepBack_FullMethodName                = "/debug.DebugService/StepBack"
-	DebugService_ReverseContinue_FullMethodName         = "/debug.DebugService/ReverseContinue"
-	DebugService_Pause_FullMethodName                   = "/debug.DebugService/Pause"
-	DebugService_Threads_FullMethodName                 = "/debug.DebugService/Threads"
-	DebugService_StackTrace_FullMethodName              = "/debug.DebugService/StackTrace"
-	DebugService_Scopes_FullMethodName                  = "/debug.DebugService/Scopes"
-	DebugService_Variables_FullMethodName               = "/debug.DebugService/Variables"
-	DebugService_SetVariable_FullMethodName             = "/debug.DebugService/SetVariable"
-	DebugService_Source_FullMethodName                  = "/debug.DebugService/Source"
-	DebugService_Evaluate_FullMethodName                = "/debug.DebugService/Evaluate"
-	DebugService_SetExpression_FullMethodName           = "/debug.DebugService/SetExpression"
-	DebugService_Completions_FullMethodName             = "/debug.DebugService/Completions"
-	DebugService_ExceptionInfo_FullMethodName           = "/debug.DebugService/ExceptionInfo"
-	DebugService_Modules_FullMethodName                 = "/debug.DebugService/Modules"
-	DebugService_LoadedSources_FullMethodName           = "/debug.DebugService/LoadedSources"
-	DebugService_ReadMemory_FullMethodName              = "/debug.DebugService/ReadMemory"
-	DebugService_WriteMemory_FullMethodName             = "/debug.DebugService/WriteMemory"
-	DebugService_Disassemble_FullMethodName             = "/debug.DebugService/Disassemble"
-	DebugService_GotoTargets_FullMethodName             = "/debug.DebugService/GotoTargets"
-	DebugService_Goto_FullMethodName                    = "/debug.DebugService/Goto"
+	Debugger_Initialize_FullMethodName              = "/debug.Debugger/Initialize"
+	Debugger_Launch_FullMethodName                  = "/debug.Debugger/Launch"
+	Debugger_Attach_FullMethodName                  = "/debug.Debugger/Attach"
+	Debugger_ConfigurationDone_FullMethodName       = "/debug.Debugger/ConfigurationDone"
+	Debugger_Disconnect_FullMethodName              = "/debug.Debugger/Disconnect"
+	Debugger_Terminate_FullMethodName               = "/debug.Debugger/Terminate"
+	Debugger_Restart_FullMethodName                 = "/debug.Debugger/Restart"
+	Debugger_SetBreakpoints_FullMethodName          = "/debug.Debugger/SetBreakpoints"
+	Debugger_SetFunctionBreakpoints_FullMethodName  = "/debug.Debugger/SetFunctionBreakpoints"
+	Debugger_SetExceptionBreakpoints_FullMethodName = "/debug.Debugger/SetExceptionBreakpoints"
+	Debugger_Continue_FullMethodName                = "/debug.Debugger/Continue"
+	Debugger_Next_FullMethodName                    = "/debug.Debugger/Next"
+	Debugger_StepIn_FullMethodName                  = "/debug.Debugger/StepIn"
+	Debugger_StepOut_FullMethodName                 = "/debug.Debugger/StepOut"
+	Debugger_StepBack_FullMethodName                = "/debug.Debugger/StepBack"
+	Debugger_ReverseContinue_FullMethodName         = "/debug.Debugger/ReverseContinue"
+	Debugger_Pause_FullMethodName                   = "/debug.Debugger/Pause"
+	Debugger_Threads_FullMethodName                 = "/debug.Debugger/Threads"
+	Debugger_StackTrace_FullMethodName              = "/debug.Debugger/StackTrace"
+	Debugger_Scopes_FullMethodName                  = "/debug.Debugger/Scopes"
+	Debugger_Variables_FullMethodName               = "/debug.Debugger/Variables"
+	Debugger_SetVariable_FullMethodName             = "/debug.Debugger/SetVariable"
+	Debugger_Source_FullMethodName                  = "/debug.Debugger/Source"
+	Debugger_Evaluate_FullMethodName                = "/debug.Debugger/Evaluate"
+	Debugger_SetExpression_FullMethodName           = "/debug.Debugger/SetExpression"
+	Debugger_Completions_FullMethodName             = "/debug.Debugger/Completions"
+	Debugger_ExceptionInfo_FullMethodName           = "/debug.Debugger/ExceptionInfo"
+	Debugger_Modules_FullMethodName                 = "/debug.Debugger/Modules"
+	Debugger_LoadedSources_FullMethodName           = "/debug.Debugger/LoadedSources"
+	Debugger_ReadMemory_FullMethodName              = "/debug.Debugger/ReadMemory"
+	Debugger_WriteMemory_FullMethodName             = "/debug.Debugger/WriteMemory"
+	Debugger_Disassemble_FullMethodName             = "/debug.Debugger/Disassemble"
+	Debugger_GotoTargets_FullMethodName             = "/debug.Debugger/GotoTargets"
+	Debugger_Goto_FullMethodName                    = "/debug.Debugger/Goto"
 )
 
-// DebugServiceClient is the client API for DebugService service.
+// DebuggerClient is the client API for Debugger service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // DebugService provides Debug Adapter Protocol operations over gRPC.
 // See: https://microsoft.github.io/debug-adapter-protocol/specification
-type DebugServiceClient interface {
+type DebuggerClient interface {
 	// Session Management
 	Initialize(ctx context.Context, in *InitializeRequest, opts ...grpc.CallOption) (*InitializeResponse, error)
 	Launch(ctx context.Context, in *LaunchRequest, opts ...grpc.CallOption) (*LaunchResponse, error)
@@ -118,361 +118,361 @@ type DebugServiceClient interface {
 	Goto(ctx context.Context, in *GotoRequest, opts ...grpc.CallOption) (*GotoResponse, error)
 }
 
-type debugServiceClient struct {
+type debuggerClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewDebugServiceClient(cc grpc.ClientConnInterface) DebugServiceClient {
-	return &debugServiceClient{cc}
+func NewDebuggerClient(cc grpc.ClientConnInterface) DebuggerClient {
+	return &debuggerClient{cc}
 }
 
-func (c *debugServiceClient) Initialize(ctx context.Context, in *InitializeRequest, opts ...grpc.CallOption) (*InitializeResponse, error) {
+func (c *debuggerClient) Initialize(ctx context.Context, in *InitializeRequest, opts ...grpc.CallOption) (*InitializeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(InitializeResponse)
-	err := c.cc.Invoke(ctx, DebugService_Initialize_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Initialize_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Launch(ctx context.Context, in *LaunchRequest, opts ...grpc.CallOption) (*LaunchResponse, error) {
+func (c *debuggerClient) Launch(ctx context.Context, in *LaunchRequest, opts ...grpc.CallOption) (*LaunchResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LaunchResponse)
-	err := c.cc.Invoke(ctx, DebugService_Launch_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Launch_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Attach(ctx context.Context, in *AttachRequest, opts ...grpc.CallOption) (*AttachResponse, error) {
+func (c *debuggerClient) Attach(ctx context.Context, in *AttachRequest, opts ...grpc.CallOption) (*AttachResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AttachResponse)
-	err := c.cc.Invoke(ctx, DebugService_Attach_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Attach_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) ConfigurationDone(ctx context.Context, in *ConfigurationDoneRequest, opts ...grpc.CallOption) (*ConfigurationDoneResponse, error) {
+func (c *debuggerClient) ConfigurationDone(ctx context.Context, in *ConfigurationDoneRequest, opts ...grpc.CallOption) (*ConfigurationDoneResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ConfigurationDoneResponse)
-	err := c.cc.Invoke(ctx, DebugService_ConfigurationDone_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_ConfigurationDone_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Disconnect(ctx context.Context, in *DisconnectRequest, opts ...grpc.CallOption) (*DisconnectResponse, error) {
+func (c *debuggerClient) Disconnect(ctx context.Context, in *DisconnectRequest, opts ...grpc.CallOption) (*DisconnectResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DisconnectResponse)
-	err := c.cc.Invoke(ctx, DebugService_Disconnect_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Disconnect_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Terminate(ctx context.Context, in *TerminateRequest, opts ...grpc.CallOption) (*TerminateResponse, error) {
+func (c *debuggerClient) Terminate(ctx context.Context, in *TerminateRequest, opts ...grpc.CallOption) (*TerminateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TerminateResponse)
-	err := c.cc.Invoke(ctx, DebugService_Terminate_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Terminate_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Restart(ctx context.Context, in *RestartRequest, opts ...grpc.CallOption) (*RestartResponse, error) {
+func (c *debuggerClient) Restart(ctx context.Context, in *RestartRequest, opts ...grpc.CallOption) (*RestartResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RestartResponse)
-	err := c.cc.Invoke(ctx, DebugService_Restart_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Restart_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) SetBreakpoints(ctx context.Context, in *SetBreakpointsRequest, opts ...grpc.CallOption) (*SetBreakpointsResponse, error) {
+func (c *debuggerClient) SetBreakpoints(ctx context.Context, in *SetBreakpointsRequest, opts ...grpc.CallOption) (*SetBreakpointsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetBreakpointsResponse)
-	err := c.cc.Invoke(ctx, DebugService_SetBreakpoints_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_SetBreakpoints_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) SetFunctionBreakpoints(ctx context.Context, in *SetFunctionBreakpointsRequest, opts ...grpc.CallOption) (*SetFunctionBreakpointsResponse, error) {
+func (c *debuggerClient) SetFunctionBreakpoints(ctx context.Context, in *SetFunctionBreakpointsRequest, opts ...grpc.CallOption) (*SetFunctionBreakpointsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetFunctionBreakpointsResponse)
-	err := c.cc.Invoke(ctx, DebugService_SetFunctionBreakpoints_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_SetFunctionBreakpoints_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) SetExceptionBreakpoints(ctx context.Context, in *SetExceptionBreakpointsRequest, opts ...grpc.CallOption) (*SetExceptionBreakpointsResponse, error) {
+func (c *debuggerClient) SetExceptionBreakpoints(ctx context.Context, in *SetExceptionBreakpointsRequest, opts ...grpc.CallOption) (*SetExceptionBreakpointsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetExceptionBreakpointsResponse)
-	err := c.cc.Invoke(ctx, DebugService_SetExceptionBreakpoints_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_SetExceptionBreakpoints_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Continue(ctx context.Context, in *ContinueRequest, opts ...grpc.CallOption) (*ContinueResponse, error) {
+func (c *debuggerClient) Continue(ctx context.Context, in *ContinueRequest, opts ...grpc.CallOption) (*ContinueResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ContinueResponse)
-	err := c.cc.Invoke(ctx, DebugService_Continue_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Continue_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Next(ctx context.Context, in *NextRequest, opts ...grpc.CallOption) (*NextResponse, error) {
+func (c *debuggerClient) Next(ctx context.Context, in *NextRequest, opts ...grpc.CallOption) (*NextResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(NextResponse)
-	err := c.cc.Invoke(ctx, DebugService_Next_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Next_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) StepIn(ctx context.Context, in *StepInRequest, opts ...grpc.CallOption) (*StepInResponse, error) {
+func (c *debuggerClient) StepIn(ctx context.Context, in *StepInRequest, opts ...grpc.CallOption) (*StepInResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StepInResponse)
-	err := c.cc.Invoke(ctx, DebugService_StepIn_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_StepIn_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) StepOut(ctx context.Context, in *StepOutRequest, opts ...grpc.CallOption) (*StepOutResponse, error) {
+func (c *debuggerClient) StepOut(ctx context.Context, in *StepOutRequest, opts ...grpc.CallOption) (*StepOutResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StepOutResponse)
-	err := c.cc.Invoke(ctx, DebugService_StepOut_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_StepOut_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) StepBack(ctx context.Context, in *StepBackRequest, opts ...grpc.CallOption) (*StepBackResponse, error) {
+func (c *debuggerClient) StepBack(ctx context.Context, in *StepBackRequest, opts ...grpc.CallOption) (*StepBackResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StepBackResponse)
-	err := c.cc.Invoke(ctx, DebugService_StepBack_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_StepBack_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) ReverseContinue(ctx context.Context, in *ReverseContinueRequest, opts ...grpc.CallOption) (*ReverseContinueResponse, error) {
+func (c *debuggerClient) ReverseContinue(ctx context.Context, in *ReverseContinueRequest, opts ...grpc.CallOption) (*ReverseContinueResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ReverseContinueResponse)
-	err := c.cc.Invoke(ctx, DebugService_ReverseContinue_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_ReverseContinue_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Pause(ctx context.Context, in *PauseRequest, opts ...grpc.CallOption) (*PauseResponse, error) {
+func (c *debuggerClient) Pause(ctx context.Context, in *PauseRequest, opts ...grpc.CallOption) (*PauseResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PauseResponse)
-	err := c.cc.Invoke(ctx, DebugService_Pause_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Pause_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Threads(ctx context.Context, in *ThreadsRequest, opts ...grpc.CallOption) (*ThreadsResponse, error) {
+func (c *debuggerClient) Threads(ctx context.Context, in *ThreadsRequest, opts ...grpc.CallOption) (*ThreadsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ThreadsResponse)
-	err := c.cc.Invoke(ctx, DebugService_Threads_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Threads_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) StackTrace(ctx context.Context, in *StackTraceRequest, opts ...grpc.CallOption) (*StackTraceResponse, error) {
+func (c *debuggerClient) StackTrace(ctx context.Context, in *StackTraceRequest, opts ...grpc.CallOption) (*StackTraceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StackTraceResponse)
-	err := c.cc.Invoke(ctx, DebugService_StackTrace_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_StackTrace_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Scopes(ctx context.Context, in *ScopesRequest, opts ...grpc.CallOption) (*ScopesResponse, error) {
+func (c *debuggerClient) Scopes(ctx context.Context, in *ScopesRequest, opts ...grpc.CallOption) (*ScopesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ScopesResponse)
-	err := c.cc.Invoke(ctx, DebugService_Scopes_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Scopes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Variables(ctx context.Context, in *VariablesRequest, opts ...grpc.CallOption) (*VariablesResponse, error) {
+func (c *debuggerClient) Variables(ctx context.Context, in *VariablesRequest, opts ...grpc.CallOption) (*VariablesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VariablesResponse)
-	err := c.cc.Invoke(ctx, DebugService_Variables_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Variables_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) SetVariable(ctx context.Context, in *SetVariableRequest, opts ...grpc.CallOption) (*SetVariableResponse, error) {
+func (c *debuggerClient) SetVariable(ctx context.Context, in *SetVariableRequest, opts ...grpc.CallOption) (*SetVariableResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetVariableResponse)
-	err := c.cc.Invoke(ctx, DebugService_SetVariable_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_SetVariable_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Source(ctx context.Context, in *SourceRequest, opts ...grpc.CallOption) (*SourceResponse, error) {
+func (c *debuggerClient) Source(ctx context.Context, in *SourceRequest, opts ...grpc.CallOption) (*SourceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SourceResponse)
-	err := c.cc.Invoke(ctx, DebugService_Source_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Source_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error) {
+func (c *debuggerClient) Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EvaluateResponse)
-	err := c.cc.Invoke(ctx, DebugService_Evaluate_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Evaluate_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) SetExpression(ctx context.Context, in *SetExpressionRequest, opts ...grpc.CallOption) (*SetExpressionResponse, error) {
+func (c *debuggerClient) SetExpression(ctx context.Context, in *SetExpressionRequest, opts ...grpc.CallOption) (*SetExpressionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetExpressionResponse)
-	err := c.cc.Invoke(ctx, DebugService_SetExpression_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_SetExpression_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Completions(ctx context.Context, in *CompletionsRequest, opts ...grpc.CallOption) (*CompletionsResponse, error) {
+func (c *debuggerClient) Completions(ctx context.Context, in *CompletionsRequest, opts ...grpc.CallOption) (*CompletionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CompletionsResponse)
-	err := c.cc.Invoke(ctx, DebugService_Completions_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Completions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) ExceptionInfo(ctx context.Context, in *ExceptionInfoRequest, opts ...grpc.CallOption) (*ExceptionInfoResponse, error) {
+func (c *debuggerClient) ExceptionInfo(ctx context.Context, in *ExceptionInfoRequest, opts ...grpc.CallOption) (*ExceptionInfoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ExceptionInfoResponse)
-	err := c.cc.Invoke(ctx, DebugService_ExceptionInfo_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_ExceptionInfo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Modules(ctx context.Context, in *ModulesRequest, opts ...grpc.CallOption) (*ModulesResponse, error) {
+func (c *debuggerClient) Modules(ctx context.Context, in *ModulesRequest, opts ...grpc.CallOption) (*ModulesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ModulesResponse)
-	err := c.cc.Invoke(ctx, DebugService_Modules_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Modules_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) LoadedSources(ctx context.Context, in *LoadedSourcesRequest, opts ...grpc.CallOption) (*LoadedSourcesResponse, error) {
+func (c *debuggerClient) LoadedSources(ctx context.Context, in *LoadedSourcesRequest, opts ...grpc.CallOption) (*LoadedSourcesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoadedSourcesResponse)
-	err := c.cc.Invoke(ctx, DebugService_LoadedSources_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_LoadedSources_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) ReadMemory(ctx context.Context, in *ReadMemoryRequest, opts ...grpc.CallOption) (*ReadMemoryResponse, error) {
+func (c *debuggerClient) ReadMemory(ctx context.Context, in *ReadMemoryRequest, opts ...grpc.CallOption) (*ReadMemoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ReadMemoryResponse)
-	err := c.cc.Invoke(ctx, DebugService_ReadMemory_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_ReadMemory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) WriteMemory(ctx context.Context, in *WriteMemoryRequest, opts ...grpc.CallOption) (*WriteMemoryResponse, error) {
+func (c *debuggerClient) WriteMemory(ctx context.Context, in *WriteMemoryRequest, opts ...grpc.CallOption) (*WriteMemoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WriteMemoryResponse)
-	err := c.cc.Invoke(ctx, DebugService_WriteMemory_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_WriteMemory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Disassemble(ctx context.Context, in *DisassembleRequest, opts ...grpc.CallOption) (*DisassembleResponse, error) {
+func (c *debuggerClient) Disassemble(ctx context.Context, in *DisassembleRequest, opts ...grpc.CallOption) (*DisassembleResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DisassembleResponse)
-	err := c.cc.Invoke(ctx, DebugService_Disassemble_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Disassemble_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) GotoTargets(ctx context.Context, in *GotoTargetsRequest, opts ...grpc.CallOption) (*GotoTargetsResponse, error) {
+func (c *debuggerClient) GotoTargets(ctx context.Context, in *GotoTargetsRequest, opts ...grpc.CallOption) (*GotoTargetsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GotoTargetsResponse)
-	err := c.cc.Invoke(ctx, DebugService_GotoTargets_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_GotoTargets_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *debugServiceClient) Goto(ctx context.Context, in *GotoRequest, opts ...grpc.CallOption) (*GotoResponse, error) {
+func (c *debuggerClient) Goto(ctx context.Context, in *GotoRequest, opts ...grpc.CallOption) (*GotoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GotoResponse)
-	err := c.cc.Invoke(ctx, DebugService_Goto_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Debugger_Goto_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// DebugServiceServer is the server API for DebugService service.
-// All implementations must embed UnimplementedDebugServiceServer
+// DebuggerServer is the server API for Debugger service.
+// All implementations must embed UnimplementedDebuggerServer
 // for forward compatibility.
 //
 // DebugService provides Debug Adapter Protocol operations over gRPC.
 // See: https://microsoft.github.io/debug-adapter-protocol/specification
-type DebugServiceServer interface {
+type DebuggerServer interface {
 	// Session Management
 	Initialize(context.Context, *InitializeRequest) (*InitializeResponse, error)
 	Launch(context.Context, *LaunchRequest) (*LaunchResponse, error)
@@ -513,893 +513,893 @@ type DebugServiceServer interface {
 	// Navigation
 	GotoTargets(context.Context, *GotoTargetsRequest) (*GotoTargetsResponse, error)
 	Goto(context.Context, *GotoRequest) (*GotoResponse, error)
-	mustEmbedUnimplementedDebugServiceServer()
+	mustEmbedUnimplementedDebuggerServer()
 }
 
-// UnimplementedDebugServiceServer must be embedded to have
+// UnimplementedDebuggerServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedDebugServiceServer struct{}
+type UnimplementedDebuggerServer struct{}
 
-func (UnimplementedDebugServiceServer) Initialize(context.Context, *InitializeRequest) (*InitializeResponse, error) {
+func (UnimplementedDebuggerServer) Initialize(context.Context, *InitializeRequest) (*InitializeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Initialize not implemented")
 }
-func (UnimplementedDebugServiceServer) Launch(context.Context, *LaunchRequest) (*LaunchResponse, error) {
+func (UnimplementedDebuggerServer) Launch(context.Context, *LaunchRequest) (*LaunchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Launch not implemented")
 }
-func (UnimplementedDebugServiceServer) Attach(context.Context, *AttachRequest) (*AttachResponse, error) {
+func (UnimplementedDebuggerServer) Attach(context.Context, *AttachRequest) (*AttachResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Attach not implemented")
 }
-func (UnimplementedDebugServiceServer) ConfigurationDone(context.Context, *ConfigurationDoneRequest) (*ConfigurationDoneResponse, error) {
+func (UnimplementedDebuggerServer) ConfigurationDone(context.Context, *ConfigurationDoneRequest) (*ConfigurationDoneResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConfigurationDone not implemented")
 }
-func (UnimplementedDebugServiceServer) Disconnect(context.Context, *DisconnectRequest) (*DisconnectResponse, error) {
+func (UnimplementedDebuggerServer) Disconnect(context.Context, *DisconnectRequest) (*DisconnectResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Disconnect not implemented")
 }
-func (UnimplementedDebugServiceServer) Terminate(context.Context, *TerminateRequest) (*TerminateResponse, error) {
+func (UnimplementedDebuggerServer) Terminate(context.Context, *TerminateRequest) (*TerminateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Terminate not implemented")
 }
-func (UnimplementedDebugServiceServer) Restart(context.Context, *RestartRequest) (*RestartResponse, error) {
+func (UnimplementedDebuggerServer) Restart(context.Context, *RestartRequest) (*RestartResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Restart not implemented")
 }
-func (UnimplementedDebugServiceServer) SetBreakpoints(context.Context, *SetBreakpointsRequest) (*SetBreakpointsResponse, error) {
+func (UnimplementedDebuggerServer) SetBreakpoints(context.Context, *SetBreakpointsRequest) (*SetBreakpointsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetBreakpoints not implemented")
 }
-func (UnimplementedDebugServiceServer) SetFunctionBreakpoints(context.Context, *SetFunctionBreakpointsRequest) (*SetFunctionBreakpointsResponse, error) {
+func (UnimplementedDebuggerServer) SetFunctionBreakpoints(context.Context, *SetFunctionBreakpointsRequest) (*SetFunctionBreakpointsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetFunctionBreakpoints not implemented")
 }
-func (UnimplementedDebugServiceServer) SetExceptionBreakpoints(context.Context, *SetExceptionBreakpointsRequest) (*SetExceptionBreakpointsResponse, error) {
+func (UnimplementedDebuggerServer) SetExceptionBreakpoints(context.Context, *SetExceptionBreakpointsRequest) (*SetExceptionBreakpointsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetExceptionBreakpoints not implemented")
 }
-func (UnimplementedDebugServiceServer) Continue(context.Context, *ContinueRequest) (*ContinueResponse, error) {
+func (UnimplementedDebuggerServer) Continue(context.Context, *ContinueRequest) (*ContinueResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Continue not implemented")
 }
-func (UnimplementedDebugServiceServer) Next(context.Context, *NextRequest) (*NextResponse, error) {
+func (UnimplementedDebuggerServer) Next(context.Context, *NextRequest) (*NextResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Next not implemented")
 }
-func (UnimplementedDebugServiceServer) StepIn(context.Context, *StepInRequest) (*StepInResponse, error) {
+func (UnimplementedDebuggerServer) StepIn(context.Context, *StepInRequest) (*StepInResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StepIn not implemented")
 }
-func (UnimplementedDebugServiceServer) StepOut(context.Context, *StepOutRequest) (*StepOutResponse, error) {
+func (UnimplementedDebuggerServer) StepOut(context.Context, *StepOutRequest) (*StepOutResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StepOut not implemented")
 }
-func (UnimplementedDebugServiceServer) StepBack(context.Context, *StepBackRequest) (*StepBackResponse, error) {
+func (UnimplementedDebuggerServer) StepBack(context.Context, *StepBackRequest) (*StepBackResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StepBack not implemented")
 }
-func (UnimplementedDebugServiceServer) ReverseContinue(context.Context, *ReverseContinueRequest) (*ReverseContinueResponse, error) {
+func (UnimplementedDebuggerServer) ReverseContinue(context.Context, *ReverseContinueRequest) (*ReverseContinueResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReverseContinue not implemented")
 }
-func (UnimplementedDebugServiceServer) Pause(context.Context, *PauseRequest) (*PauseResponse, error) {
+func (UnimplementedDebuggerServer) Pause(context.Context, *PauseRequest) (*PauseResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Pause not implemented")
 }
-func (UnimplementedDebugServiceServer) Threads(context.Context, *ThreadsRequest) (*ThreadsResponse, error) {
+func (UnimplementedDebuggerServer) Threads(context.Context, *ThreadsRequest) (*ThreadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Threads not implemented")
 }
-func (UnimplementedDebugServiceServer) StackTrace(context.Context, *StackTraceRequest) (*StackTraceResponse, error) {
+func (UnimplementedDebuggerServer) StackTrace(context.Context, *StackTraceRequest) (*StackTraceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StackTrace not implemented")
 }
-func (UnimplementedDebugServiceServer) Scopes(context.Context, *ScopesRequest) (*ScopesResponse, error) {
+func (UnimplementedDebuggerServer) Scopes(context.Context, *ScopesRequest) (*ScopesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Scopes not implemented")
 }
-func (UnimplementedDebugServiceServer) Variables(context.Context, *VariablesRequest) (*VariablesResponse, error) {
+func (UnimplementedDebuggerServer) Variables(context.Context, *VariablesRequest) (*VariablesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Variables not implemented")
 }
-func (UnimplementedDebugServiceServer) SetVariable(context.Context, *SetVariableRequest) (*SetVariableResponse, error) {
+func (UnimplementedDebuggerServer) SetVariable(context.Context, *SetVariableRequest) (*SetVariableResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetVariable not implemented")
 }
-func (UnimplementedDebugServiceServer) Source(context.Context, *SourceRequest) (*SourceResponse, error) {
+func (UnimplementedDebuggerServer) Source(context.Context, *SourceRequest) (*SourceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Source not implemented")
 }
-func (UnimplementedDebugServiceServer) Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error) {
+func (UnimplementedDebuggerServer) Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Evaluate not implemented")
 }
-func (UnimplementedDebugServiceServer) SetExpression(context.Context, *SetExpressionRequest) (*SetExpressionResponse, error) {
+func (UnimplementedDebuggerServer) SetExpression(context.Context, *SetExpressionRequest) (*SetExpressionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetExpression not implemented")
 }
-func (UnimplementedDebugServiceServer) Completions(context.Context, *CompletionsRequest) (*CompletionsResponse, error) {
+func (UnimplementedDebuggerServer) Completions(context.Context, *CompletionsRequest) (*CompletionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Completions not implemented")
 }
-func (UnimplementedDebugServiceServer) ExceptionInfo(context.Context, *ExceptionInfoRequest) (*ExceptionInfoResponse, error) {
+func (UnimplementedDebuggerServer) ExceptionInfo(context.Context, *ExceptionInfoRequest) (*ExceptionInfoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExceptionInfo not implemented")
 }
-func (UnimplementedDebugServiceServer) Modules(context.Context, *ModulesRequest) (*ModulesResponse, error) {
+func (UnimplementedDebuggerServer) Modules(context.Context, *ModulesRequest) (*ModulesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Modules not implemented")
 }
-func (UnimplementedDebugServiceServer) LoadedSources(context.Context, *LoadedSourcesRequest) (*LoadedSourcesResponse, error) {
+func (UnimplementedDebuggerServer) LoadedSources(context.Context, *LoadedSourcesRequest) (*LoadedSourcesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method LoadedSources not implemented")
 }
-func (UnimplementedDebugServiceServer) ReadMemory(context.Context, *ReadMemoryRequest) (*ReadMemoryResponse, error) {
+func (UnimplementedDebuggerServer) ReadMemory(context.Context, *ReadMemoryRequest) (*ReadMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReadMemory not implemented")
 }
-func (UnimplementedDebugServiceServer) WriteMemory(context.Context, *WriteMemoryRequest) (*WriteMemoryResponse, error) {
+func (UnimplementedDebuggerServer) WriteMemory(context.Context, *WriteMemoryRequest) (*WriteMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WriteMemory not implemented")
 }
-func (UnimplementedDebugServiceServer) Disassemble(context.Context, *DisassembleRequest) (*DisassembleResponse, error) {
+func (UnimplementedDebuggerServer) Disassemble(context.Context, *DisassembleRequest) (*DisassembleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Disassemble not implemented")
 }
-func (UnimplementedDebugServiceServer) GotoTargets(context.Context, *GotoTargetsRequest) (*GotoTargetsResponse, error) {
+func (UnimplementedDebuggerServer) GotoTargets(context.Context, *GotoTargetsRequest) (*GotoTargetsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GotoTargets not implemented")
 }
-func (UnimplementedDebugServiceServer) Goto(context.Context, *GotoRequest) (*GotoResponse, error) {
+func (UnimplementedDebuggerServer) Goto(context.Context, *GotoRequest) (*GotoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Goto not implemented")
 }
-func (UnimplementedDebugServiceServer) mustEmbedUnimplementedDebugServiceServer() {}
-func (UnimplementedDebugServiceServer) testEmbeddedByValue()                      {}
+func (UnimplementedDebuggerServer) mustEmbedUnimplementedDebuggerServer() {}
+func (UnimplementedDebuggerServer) testEmbeddedByValue()                  {}
 
-// UnsafeDebugServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to DebugServiceServer will
+// UnsafeDebuggerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DebuggerServer will
 // result in compilation errors.
-type UnsafeDebugServiceServer interface {
-	mustEmbedUnimplementedDebugServiceServer()
+type UnsafeDebuggerServer interface {
+	mustEmbedUnimplementedDebuggerServer()
 }
 
-func RegisterDebugServiceServer(s grpc.ServiceRegistrar, srv DebugServiceServer) {
-	// If the following call panics, it indicates UnimplementedDebugServiceServer was
+func RegisterDebuggerServer(s grpc.ServiceRegistrar, srv DebuggerServer) {
+	// If the following call panics, it indicates UnimplementedDebuggerServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&DebugService_ServiceDesc, srv)
+	s.RegisterService(&Debugger_ServiceDesc, srv)
 }
 
-func _DebugService_Initialize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Initialize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InitializeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Initialize(ctx, in)
+		return srv.(DebuggerServer).Initialize(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Initialize_FullMethodName,
+		FullMethod: Debugger_Initialize_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Initialize(ctx, req.(*InitializeRequest))
+		return srv.(DebuggerServer).Initialize(ctx, req.(*InitializeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Launch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Launch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LaunchRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Launch(ctx, in)
+		return srv.(DebuggerServer).Launch(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Launch_FullMethodName,
+		FullMethod: Debugger_Launch_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Launch(ctx, req.(*LaunchRequest))
+		return srv.(DebuggerServer).Launch(ctx, req.(*LaunchRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Attach_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Attach_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AttachRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Attach(ctx, in)
+		return srv.(DebuggerServer).Attach(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Attach_FullMethodName,
+		FullMethod: Debugger_Attach_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Attach(ctx, req.(*AttachRequest))
+		return srv.(DebuggerServer).Attach(ctx, req.(*AttachRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_ConfigurationDone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_ConfigurationDone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ConfigurationDoneRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).ConfigurationDone(ctx, in)
+		return srv.(DebuggerServer).ConfigurationDone(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_ConfigurationDone_FullMethodName,
+		FullMethod: Debugger_ConfigurationDone_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).ConfigurationDone(ctx, req.(*ConfigurationDoneRequest))
+		return srv.(DebuggerServer).ConfigurationDone(ctx, req.(*ConfigurationDoneRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DisconnectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Disconnect(ctx, in)
+		return srv.(DebuggerServer).Disconnect(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Disconnect_FullMethodName,
+		FullMethod: Debugger_Disconnect_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Disconnect(ctx, req.(*DisconnectRequest))
+		return srv.(DebuggerServer).Disconnect(ctx, req.(*DisconnectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Terminate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Terminate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TerminateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Terminate(ctx, in)
+		return srv.(DebuggerServer).Terminate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Terminate_FullMethodName,
+		FullMethod: Debugger_Terminate_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Terminate(ctx, req.(*TerminateRequest))
+		return srv.(DebuggerServer).Terminate(ctx, req.(*TerminateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Restart_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Restart_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RestartRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Restart(ctx, in)
+		return srv.(DebuggerServer).Restart(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Restart_FullMethodName,
+		FullMethod: Debugger_Restart_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Restart(ctx, req.(*RestartRequest))
+		return srv.(DebuggerServer).Restart(ctx, req.(*RestartRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_SetBreakpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_SetBreakpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetBreakpointsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).SetBreakpoints(ctx, in)
+		return srv.(DebuggerServer).SetBreakpoints(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_SetBreakpoints_FullMethodName,
+		FullMethod: Debugger_SetBreakpoints_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).SetBreakpoints(ctx, req.(*SetBreakpointsRequest))
+		return srv.(DebuggerServer).SetBreakpoints(ctx, req.(*SetBreakpointsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_SetFunctionBreakpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_SetFunctionBreakpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetFunctionBreakpointsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).SetFunctionBreakpoints(ctx, in)
+		return srv.(DebuggerServer).SetFunctionBreakpoints(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_SetFunctionBreakpoints_FullMethodName,
+		FullMethod: Debugger_SetFunctionBreakpoints_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).SetFunctionBreakpoints(ctx, req.(*SetFunctionBreakpointsRequest))
+		return srv.(DebuggerServer).SetFunctionBreakpoints(ctx, req.(*SetFunctionBreakpointsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_SetExceptionBreakpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_SetExceptionBreakpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetExceptionBreakpointsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).SetExceptionBreakpoints(ctx, in)
+		return srv.(DebuggerServer).SetExceptionBreakpoints(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_SetExceptionBreakpoints_FullMethodName,
+		FullMethod: Debugger_SetExceptionBreakpoints_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).SetExceptionBreakpoints(ctx, req.(*SetExceptionBreakpointsRequest))
+		return srv.(DebuggerServer).SetExceptionBreakpoints(ctx, req.(*SetExceptionBreakpointsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Continue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Continue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ContinueRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Continue(ctx, in)
+		return srv.(DebuggerServer).Continue(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Continue_FullMethodName,
+		FullMethod: Debugger_Continue_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Continue(ctx, req.(*ContinueRequest))
+		return srv.(DebuggerServer).Continue(ctx, req.(*ContinueRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Next_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Next_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(NextRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Next(ctx, in)
+		return srv.(DebuggerServer).Next(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Next_FullMethodName,
+		FullMethod: Debugger_Next_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Next(ctx, req.(*NextRequest))
+		return srv.(DebuggerServer).Next(ctx, req.(*NextRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_StepIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_StepIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StepInRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).StepIn(ctx, in)
+		return srv.(DebuggerServer).StepIn(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_StepIn_FullMethodName,
+		FullMethod: Debugger_StepIn_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).StepIn(ctx, req.(*StepInRequest))
+		return srv.(DebuggerServer).StepIn(ctx, req.(*StepInRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_StepOut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_StepOut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StepOutRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).StepOut(ctx, in)
+		return srv.(DebuggerServer).StepOut(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_StepOut_FullMethodName,
+		FullMethod: Debugger_StepOut_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).StepOut(ctx, req.(*StepOutRequest))
+		return srv.(DebuggerServer).StepOut(ctx, req.(*StepOutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_StepBack_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_StepBack_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StepBackRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).StepBack(ctx, in)
+		return srv.(DebuggerServer).StepBack(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_StepBack_FullMethodName,
+		FullMethod: Debugger_StepBack_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).StepBack(ctx, req.(*StepBackRequest))
+		return srv.(DebuggerServer).StepBack(ctx, req.(*StepBackRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_ReverseContinue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_ReverseContinue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReverseContinueRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).ReverseContinue(ctx, in)
+		return srv.(DebuggerServer).ReverseContinue(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_ReverseContinue_FullMethodName,
+		FullMethod: Debugger_ReverseContinue_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).ReverseContinue(ctx, req.(*ReverseContinueRequest))
+		return srv.(DebuggerServer).ReverseContinue(ctx, req.(*ReverseContinueRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Pause_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Pause_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PauseRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Pause(ctx, in)
+		return srv.(DebuggerServer).Pause(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Pause_FullMethodName,
+		FullMethod: Debugger_Pause_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Pause(ctx, req.(*PauseRequest))
+		return srv.(DebuggerServer).Pause(ctx, req.(*PauseRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Threads_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Threads_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ThreadsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Threads(ctx, in)
+		return srv.(DebuggerServer).Threads(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Threads_FullMethodName,
+		FullMethod: Debugger_Threads_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Threads(ctx, req.(*ThreadsRequest))
+		return srv.(DebuggerServer).Threads(ctx, req.(*ThreadsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_StackTrace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_StackTrace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StackTraceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).StackTrace(ctx, in)
+		return srv.(DebuggerServer).StackTrace(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_StackTrace_FullMethodName,
+		FullMethod: Debugger_StackTrace_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).StackTrace(ctx, req.(*StackTraceRequest))
+		return srv.(DebuggerServer).StackTrace(ctx, req.(*StackTraceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Scopes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Scopes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ScopesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Scopes(ctx, in)
+		return srv.(DebuggerServer).Scopes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Scopes_FullMethodName,
+		FullMethod: Debugger_Scopes_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Scopes(ctx, req.(*ScopesRequest))
+		return srv.(DebuggerServer).Scopes(ctx, req.(*ScopesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Variables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Variables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VariablesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Variables(ctx, in)
+		return srv.(DebuggerServer).Variables(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Variables_FullMethodName,
+		FullMethod: Debugger_Variables_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Variables(ctx, req.(*VariablesRequest))
+		return srv.(DebuggerServer).Variables(ctx, req.(*VariablesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_SetVariable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_SetVariable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetVariableRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).SetVariable(ctx, in)
+		return srv.(DebuggerServer).SetVariable(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_SetVariable_FullMethodName,
+		FullMethod: Debugger_SetVariable_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).SetVariable(ctx, req.(*SetVariableRequest))
+		return srv.(DebuggerServer).SetVariable(ctx, req.(*SetVariableRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Source_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Source_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SourceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Source(ctx, in)
+		return srv.(DebuggerServer).Source(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Source_FullMethodName,
+		FullMethod: Debugger_Source_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Source(ctx, req.(*SourceRequest))
+		return srv.(DebuggerServer).Source(ctx, req.(*SourceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Evaluate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Evaluate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EvaluateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Evaluate(ctx, in)
+		return srv.(DebuggerServer).Evaluate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Evaluate_FullMethodName,
+		FullMethod: Debugger_Evaluate_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Evaluate(ctx, req.(*EvaluateRequest))
+		return srv.(DebuggerServer).Evaluate(ctx, req.(*EvaluateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_SetExpression_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_SetExpression_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetExpressionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).SetExpression(ctx, in)
+		return srv.(DebuggerServer).SetExpression(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_SetExpression_FullMethodName,
+		FullMethod: Debugger_SetExpression_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).SetExpression(ctx, req.(*SetExpressionRequest))
+		return srv.(DebuggerServer).SetExpression(ctx, req.(*SetExpressionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Completions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Completions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CompletionsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Completions(ctx, in)
+		return srv.(DebuggerServer).Completions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Completions_FullMethodName,
+		FullMethod: Debugger_Completions_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Completions(ctx, req.(*CompletionsRequest))
+		return srv.(DebuggerServer).Completions(ctx, req.(*CompletionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_ExceptionInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_ExceptionInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ExceptionInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).ExceptionInfo(ctx, in)
+		return srv.(DebuggerServer).ExceptionInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_ExceptionInfo_FullMethodName,
+		FullMethod: Debugger_ExceptionInfo_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).ExceptionInfo(ctx, req.(*ExceptionInfoRequest))
+		return srv.(DebuggerServer).ExceptionInfo(ctx, req.(*ExceptionInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Modules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Modules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ModulesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Modules(ctx, in)
+		return srv.(DebuggerServer).Modules(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Modules_FullMethodName,
+		FullMethod: Debugger_Modules_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Modules(ctx, req.(*ModulesRequest))
+		return srv.(DebuggerServer).Modules(ctx, req.(*ModulesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_LoadedSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_LoadedSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LoadedSourcesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).LoadedSources(ctx, in)
+		return srv.(DebuggerServer).LoadedSources(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_LoadedSources_FullMethodName,
+		FullMethod: Debugger_LoadedSources_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).LoadedSources(ctx, req.(*LoadedSourcesRequest))
+		return srv.(DebuggerServer).LoadedSources(ctx, req.(*LoadedSourcesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_ReadMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_ReadMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReadMemoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).ReadMemory(ctx, in)
+		return srv.(DebuggerServer).ReadMemory(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_ReadMemory_FullMethodName,
+		FullMethod: Debugger_ReadMemory_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).ReadMemory(ctx, req.(*ReadMemoryRequest))
+		return srv.(DebuggerServer).ReadMemory(ctx, req.(*ReadMemoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_WriteMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_WriteMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WriteMemoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).WriteMemory(ctx, in)
+		return srv.(DebuggerServer).WriteMemory(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_WriteMemory_FullMethodName,
+		FullMethod: Debugger_WriteMemory_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).WriteMemory(ctx, req.(*WriteMemoryRequest))
+		return srv.(DebuggerServer).WriteMemory(ctx, req.(*WriteMemoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Disassemble_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Disassemble_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DisassembleRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Disassemble(ctx, in)
+		return srv.(DebuggerServer).Disassemble(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Disassemble_FullMethodName,
+		FullMethod: Debugger_Disassemble_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Disassemble(ctx, req.(*DisassembleRequest))
+		return srv.(DebuggerServer).Disassemble(ctx, req.(*DisassembleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_GotoTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_GotoTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GotoTargetsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).GotoTargets(ctx, in)
+		return srv.(DebuggerServer).GotoTargets(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_GotoTargets_FullMethodName,
+		FullMethod: Debugger_GotoTargets_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).GotoTargets(ctx, req.(*GotoTargetsRequest))
+		return srv.(DebuggerServer).GotoTargets(ctx, req.(*GotoTargetsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebugService_Goto_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Debugger_Goto_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GotoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DebugServiceServer).Goto(ctx, in)
+		return srv.(DebuggerServer).Goto(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DebugService_Goto_FullMethodName,
+		FullMethod: Debugger_Goto_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebugServiceServer).Goto(ctx, req.(*GotoRequest))
+		return srv.(DebuggerServer).Goto(ctx, req.(*GotoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// DebugService_ServiceDesc is the grpc.ServiceDesc for DebugService service.
+// Debugger_ServiceDesc is the grpc.ServiceDesc for Debugger service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var DebugService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "debug.DebugService",
-	HandlerType: (*DebugServiceServer)(nil),
+var Debugger_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "debug.Debugger",
+	HandlerType: (*DebuggerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Initialize",
-			Handler:    _DebugService_Initialize_Handler,
+			Handler:    _Debugger_Initialize_Handler,
 		},
 		{
 			MethodName: "Launch",
-			Handler:    _DebugService_Launch_Handler,
+			Handler:    _Debugger_Launch_Handler,
 		},
 		{
 			MethodName: "Attach",
-			Handler:    _DebugService_Attach_Handler,
+			Handler:    _Debugger_Attach_Handler,
 		},
 		{
 			MethodName: "ConfigurationDone",
-			Handler:    _DebugService_ConfigurationDone_Handler,
+			Handler:    _Debugger_ConfigurationDone_Handler,
 		},
 		{
 			MethodName: "Disconnect",
-			Handler:    _DebugService_Disconnect_Handler,
+			Handler:    _Debugger_Disconnect_Handler,
 		},
 		{
 			MethodName: "Terminate",
-			Handler:    _DebugService_Terminate_Handler,
+			Handler:    _Debugger_Terminate_Handler,
 		},
 		{
 			MethodName: "Restart",
-			Handler:    _DebugService_Restart_Handler,
+			Handler:    _Debugger_Restart_Handler,
 		},
 		{
 			MethodName: "SetBreakpoints",
-			Handler:    _DebugService_SetBreakpoints_Handler,
+			Handler:    _Debugger_SetBreakpoints_Handler,
 		},
 		{
 			MethodName: "SetFunctionBreakpoints",
-			Handler:    _DebugService_SetFunctionBreakpoints_Handler,
+			Handler:    _Debugger_SetFunctionBreakpoints_Handler,
 		},
 		{
 			MethodName: "SetExceptionBreakpoints",
-			Handler:    _DebugService_SetExceptionBreakpoints_Handler,
+			Handler:    _Debugger_SetExceptionBreakpoints_Handler,
 		},
 		{
 			MethodName: "Continue",
-			Handler:    _DebugService_Continue_Handler,
+			Handler:    _Debugger_Continue_Handler,
 		},
 		{
 			MethodName: "Next",
-			Handler:    _DebugService_Next_Handler,
+			Handler:    _Debugger_Next_Handler,
 		},
 		{
 			MethodName: "StepIn",
-			Handler:    _DebugService_StepIn_Handler,
+			Handler:    _Debugger_StepIn_Handler,
 		},
 		{
 			MethodName: "StepOut",
-			Handler:    _DebugService_StepOut_Handler,
+			Handler:    _Debugger_StepOut_Handler,
 		},
 		{
 			MethodName: "StepBack",
-			Handler:    _DebugService_StepBack_Handler,
+			Handler:    _Debugger_StepBack_Handler,
 		},
 		{
 			MethodName: "ReverseContinue",
-			Handler:    _DebugService_ReverseContinue_Handler,
+			Handler:    _Debugger_ReverseContinue_Handler,
 		},
 		{
 			MethodName: "Pause",
-			Handler:    _DebugService_Pause_Handler,
+			Handler:    _Debugger_Pause_Handler,
 		},
 		{
 			MethodName: "Threads",
-			Handler:    _DebugService_Threads_Handler,
+			Handler:    _Debugger_Threads_Handler,
 		},
 		{
 			MethodName: "StackTrace",
-			Handler:    _DebugService_StackTrace_Handler,
+			Handler:    _Debugger_StackTrace_Handler,
 		},
 		{
 			MethodName: "Scopes",
-			Handler:    _DebugService_Scopes_Handler,
+			Handler:    _Debugger_Scopes_Handler,
 		},
 		{
 			MethodName: "Variables",
-			Handler:    _DebugService_Variables_Handler,
+			Handler:    _Debugger_Variables_Handler,
 		},
 		{
 			MethodName: "SetVariable",
-			Handler:    _DebugService_SetVariable_Handler,
+			Handler:    _Debugger_SetVariable_Handler,
 		},
 		{
 			MethodName: "Source",
-			Handler:    _DebugService_Source_Handler,
+			Handler:    _Debugger_Source_Handler,
 		},
 		{
 			MethodName: "Evaluate",
-			Handler:    _DebugService_Evaluate_Handler,
+			Handler:    _Debugger_Evaluate_Handler,
 		},
 		{
 			MethodName: "SetExpression",
-			Handler:    _DebugService_SetExpression_Handler,
+			Handler:    _Debugger_SetExpression_Handler,
 		},
 		{
 			MethodName: "Completions",
-			Handler:    _DebugService_Completions_Handler,
+			Handler:    _Debugger_Completions_Handler,
 		},
 		{
 			MethodName: "ExceptionInfo",
-			Handler:    _DebugService_ExceptionInfo_Handler,
+			Handler:    _Debugger_ExceptionInfo_Handler,
 		},
 		{
 			MethodName: "Modules",
-			Handler:    _DebugService_Modules_Handler,
+			Handler:    _Debugger_Modules_Handler,
 		},
 		{
 			MethodName: "LoadedSources",
-			Handler:    _DebugService_LoadedSources_Handler,
+			Handler:    _Debugger_LoadedSources_Handler,
 		},
 		{
 			MethodName: "ReadMemory",
-			Handler:    _DebugService_ReadMemory_Handler,
+			Handler:    _Debugger_ReadMemory_Handler,
 		},
 		{
 			MethodName: "WriteMemory",
-			Handler:    _DebugService_WriteMemory_Handler,
+			Handler:    _Debugger_WriteMemory_Handler,
 		},
 		{
 			MethodName: "Disassemble",
-			Handler:    _DebugService_Disassemble_Handler,
+			Handler:    _Debugger_Disassemble_Handler,
 		},
 		{
 			MethodName: "GotoTargets",
-			Handler:    _DebugService_GotoTargets_Handler,
+			Handler:    _Debugger_GotoTargets_Handler,
 		},
 		{
 			MethodName: "Goto",
-			Handler:    _DebugService_Goto_Handler,
+			Handler:    _Debugger_Goto_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
