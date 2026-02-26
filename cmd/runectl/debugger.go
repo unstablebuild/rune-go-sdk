@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -31,6 +32,28 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
 )
+
+// debugAdapter describes how to launch a DAP server for a
+// given language.
+type debugAdapter struct {
+	LangID  string `json:"langID"`
+	Command string `json:"command"`
+}
+
+// debugAdapters maps language names to their DAP adapter
+// configuration. The {addr} placeholder in Command is
+// replaced by the IDE with the actual listen address.
+var debugAdapters = map[string]debugAdapter{
+	"go": {LangID: "go", Command: "dlv dap --listen={addr}"},
+}
+
+func supportedLanguages() string {
+	langs := make([]string, 0, len(debugAdapters))
+	for k := range debugAdapters {
+		langs = append(langs, k)
+	}
+	return strings.Join(langs, ", ")
+}
 
 func newDebuggerCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
@@ -52,14 +75,14 @@ func newDebuggerLaunchCmd(a *app) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "launch [flags] <adapter> <program> [args...]",
+		Use:   "launch [flags] <language> <program> [args...]",
 		Short: "Launch a program under the debugger",
 		Long: `Launch a program under the debugger and start an interactive REPL.
 
 Examples:
-  runectl debugger launch dlv-dap ./myapp
-  runectl debugger launch dlv-dap --stop-on-entry ./myapp arg1 arg2
-  runectl debugger launch dlv-dap --cwd /tmp --env FOO=bar ./myapp`,
+  runectl debugger launch go ./myapp
+  runectl debugger launch go --stop-on-entry ./myapp arg1 arg2
+  runectl debugger launch go --cwd /tmp --env FOO=bar ./myapp`,
 		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			env := parseEnvVars(envVars)
@@ -95,12 +118,12 @@ Examples:
 
 func newDebuggerAttachCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "attach <adapter> <pid>",
+		Use:   "attach <language> <pid>",
 		Short: "Attach the debugger to a running process",
 		Long: `Attach the debugger to a running process and start an interactive REPL.
 
 Examples:
-  runectl debugger attach dlv-dap 12345`,
+  runectl debugger attach go 12345`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pid, err := strconv.Atoi(args[1])
@@ -123,9 +146,22 @@ Examples:
 func runDebugger(
 	ctx context.Context,
 	a *app,
-	adapterID string,
+	language string,
 	start func(context.Context, debugapi.Debugger) error,
 ) error {
+	adapter, ok := debugAdapters[language]
+	if !ok {
+		return fmt.Errorf(
+			"language %q unsupported (supported: %s)",
+			language, supportedLanguages(),
+		)
+	}
+
+	initOpts, err := json.Marshal(adapter)
+	if err != nil {
+		return fmt.Errorf("marshal init options: %w", err)
+	}
+
 	w, err := a.getWorkspace()
 	if err != nil {
 		return err
@@ -133,13 +169,16 @@ func runDebugger(
 
 	dbg := w.Debugger(ctx)
 
-	caps, err := dbg.Initialize(ctx, &dap.InitializeRequestArguments{
-		ClientID:     "runectl",
-		ClientName:   "runectl debugger",
-		AdapterID:    adapterID,
-		LinesStartAt1: true,
-		ColumnsStartAt1: true,
-		PathFormat:   "path",
+	caps, err := dbg.Initialize(ctx, &debugapi.InitializeRequestArguments{
+		InitializeRequestArguments: dap.InitializeRequestArguments{
+			ClientID:        "runectl",
+			ClientName:      "runectl debugger",
+			AdapterID:       language,
+			LinesStartAt1:   true,
+			ColumnsStartAt1: true,
+			PathFormat:      "path",
+		},
+		InitializeOptions: initOpts,
 	})
 	if err != nil {
 		return fmt.Errorf("initialize: %w", err)

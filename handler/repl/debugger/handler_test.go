@@ -856,7 +856,7 @@ func newMockDebugger() *mockDebugger {
 }
 
 func (m *mockDebugger) Initialize(
-	_ context.Context, _ *dap.InitializeRequestArguments,
+	_ context.Context, _ *debugapi.InitializeRequestArguments,
 ) (*dap.Capabilities, error) {
 	return &dap.Capabilities{}, nil
 }
