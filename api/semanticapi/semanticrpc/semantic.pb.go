@@ -4471,15 +4471,16 @@ func (x *ShowDocumentResult) GetSuccess() bool {
 }
 
 type InitializeRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	RootUri          string                 `protobuf:"bytes,1,opt,name=root_uri,json=rootUri,proto3" json:"root_uri,omitempty"`
-	ProcessId        int32                  `protobuf:"varint,2,opt,name=process_id,json=processId,proto3" json:"process_id,omitempty"`
-	HasProcessId     bool                   `protobuf:"varint,3,opt,name=has_process_id,json=hasProcessId,proto3" json:"has_process_id,omitempty"`
-	Capabilities     []byte                 `protobuf:"bytes,4,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
-	WorkspaceFolders []*WorkspaceFolder     `protobuf:"bytes,5,rep,name=workspace_folders,json=workspaceFolders,proto3" json:"workspace_folders,omitempty"`
-	Trace            string                 `protobuf:"bytes,6,opt,name=trace,proto3" json:"trace,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	RootUri               string                 `protobuf:"bytes,1,opt,name=root_uri,json=rootUri,proto3" json:"root_uri,omitempty"`
+	ProcessId             int32                  `protobuf:"varint,2,opt,name=process_id,json=processId,proto3" json:"process_id,omitempty"`
+	HasProcessId          bool                   `protobuf:"varint,3,opt,name=has_process_id,json=hasProcessId,proto3" json:"has_process_id,omitempty"`
+	Capabilities          []byte                 `protobuf:"bytes,4,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	WorkspaceFolders      []*WorkspaceFolder     `protobuf:"bytes,5,rep,name=workspace_folders,json=workspaceFolders,proto3" json:"workspace_folders,omitempty"`
+	Trace                 string                 `protobuf:"bytes,6,opt,name=trace,proto3" json:"trace,omitempty"`
+	InitializationOptions []byte                 `protobuf:"bytes,7,opt,name=initialization_options,json=initializationOptions,proto3" json:"initialization_options,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *InitializeRequest) Reset() {
@@ -4552,6 +4553,13 @@ func (x *InitializeRequest) GetTrace() string {
 		return x.Trace
 	}
 	return ""
+}
+
+func (x *InitializeRequest) GetInitializationOptions() []byte {
+	if x != nil {
+		return x.InitializationOptions
+	}
+	return nil
 }
 
 type InitializeResponse struct {
@@ -11058,7 +11066,7 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"expression\x18\x04 \x01(\tR\n" +
 	"expression\".\n" +
 	"\x12ShowDocumentResult\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xf5\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xac\x02\n" +
 	"\x11InitializeRequest\x12\x19\n" +
 	"\broot_uri\x18\x01 \x01(\tR\arootUri\x12\x1d\n" +
 	"\n" +
@@ -11066,7 +11074,8 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"\x0ehas_process_id\x18\x03 \x01(\bR\fhasProcessId\x12\"\n" +
 	"\fcapabilities\x18\x04 \x01(\fR\fcapabilities\x12F\n" +
 	"\x11workspace_folders\x18\x05 \x03(\v2\x19.semantic.WorkspaceFolderR\x10workspaceFolders\x12\x14\n" +
-	"\x05trace\x18\x06 \x01(\tR\x05trace\"V\n" +
+	"\x05trace\x18\x06 \x01(\tR\x05trace\x125\n" +
+	"\x16initialization_options\x18\a \x01(\fR\x15initializationOptions\"V\n" +
 	"\x12InitializeResponse\x12@\n" +
 	"\fcapabilities\x18\x01 \x01(\v2\x1c.semantic.ServerCapabilitiesR\fcapabilities\"\x14\n" +
 	"\x12InitializedRequest\"\x15\n" +

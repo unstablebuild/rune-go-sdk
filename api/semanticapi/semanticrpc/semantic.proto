@@ -469,6 +469,7 @@ message InitializeRequest {
   bytes capabilities = 4;
   repeated WorkspaceFolder workspace_folders = 5;
   string trace = 6;
+  bytes initialization_options = 7;
 }
 
 message InitializeResponse {

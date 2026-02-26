@@ -54,10 +54,11 @@ func (c *Client) Initialize(ctx context.Context, params semanticapi.InitializePa
 	defer cancel()
 
 	req := &InitializeRequest{
-		RootUri:          params.RootURI,
-		Capabilities:     params.Capabilities,
-		WorkspaceFolders: WorkspaceFoldersToProto(params.WorkspaceFolders),
-		Trace:            string(params.Trace),
+		RootUri:               params.RootURI,
+		Capabilities:          params.Capabilities,
+		InitializationOptions: params.InitializeOptions,
+		WorkspaceFolders:      WorkspaceFoldersToProto(params.WorkspaceFolders),
+		Trace:                 string(params.Trace),
 	}
 	if params.ProcessID != nil {
 		req.ProcessId = int32(*params.ProcessID)
