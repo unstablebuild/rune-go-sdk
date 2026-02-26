@@ -1635,6 +1635,7 @@ type InitializeRequest struct {
 	SupportsProgressReporting    bool                   `protobuf:"varint,12,opt,name=supports_progress_reporting,json=supportsProgressReporting,proto3" json:"supports_progress_reporting,omitempty"`
 	SupportsInvalidatedEvent     bool                   `protobuf:"varint,13,opt,name=supports_invalidated_event,json=supportsInvalidatedEvent,proto3" json:"supports_invalidated_event,omitempty"`
 	SupportsMemoryEvent          bool                   `protobuf:"varint,14,opt,name=supports_memory_event,json=supportsMemoryEvent,proto3" json:"supports_memory_event,omitempty"`
+	InitializeOptions            []byte                 `protobuf:"bytes,15,opt,name=initialize_options,json=initializeOptions,proto3" json:"initialize_options,omitempty"`
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
 }
@@ -1765,6 +1766,13 @@ func (x *InitializeRequest) GetSupportsMemoryEvent() bool {
 		return x.SupportsMemoryEvent
 	}
 	return false
+}
+
+func (x *InitializeRequest) GetInitializeOptions() []byte {
+	if x != nil {
+		return x.InitializeOptions
+	}
+	return nil
 }
 
 type InitializeResponse struct {
@@ -5396,7 +5404,7 @@ const file_debugrpc_debug_proto_rawDesc = "" +
 	"\x1dsupports_stepping_granularity\x18\" \x01(\bR\x1bsupportsSteppingGranularity\x12H\n" +
 	" supports_instruction_breakpoints\x18# \x01(\bR\x1esupportsInstructionBreakpoints\x12I\n" +
 	"!supports_exception_filter_options\x18$ \x01(\bR\x1esupportsExceptionFilterOptions\x12X\n" +
-	")supports_single_thread_execution_requests\x18% \x01(\bR%supportsSingleThreadExecutionRequests\"\xa7\x05\n" +
+	")supports_single_thread_execution_requests\x18% \x01(\bR%supportsSingleThreadExecutionRequests\"\xd6\x05\n" +
 	"\x11InitializeRequest\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x1f\n" +
 	"\vclient_name\x18\x02 \x01(\tR\n" +
@@ -5415,7 +5423,8 @@ const file_debugrpc_debug_proto_rawDesc = "" +
 	"\x1asupports_memory_references\x18\v \x01(\bR\x18supportsMemoryReferences\x12>\n" +
 	"\x1bsupports_progress_reporting\x18\f \x01(\bR\x19supportsProgressReporting\x12<\n" +
 	"\x1asupports_invalidated_event\x18\r \x01(\bR\x18supportsInvalidatedEvent\x122\n" +
-	"\x15supports_memory_event\x18\x0e \x01(\bR\x13supportsMemoryEvent\"M\n" +
+	"\x15supports_memory_event\x18\x0e \x01(\bR\x13supportsMemoryEvent\x12-\n" +
+	"\x12initialize_options\x18\x0f \x01(\fR\x11initializeOptions\"M\n" +
 	"\x12InitializeResponse\x127\n" +
 	"\fcapabilities\x18\x01 \x01(\v2\x13.debug.CapabilitiesR\fcapabilities\"\xf7\x01\n" +
 	"\rLaunchRequest\x12\x18\n" +

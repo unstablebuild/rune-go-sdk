@@ -53,7 +53,7 @@ func (c *Client) Close() error {
 }
 
 // Initialize implements debugapi.Debugger.
-func (c *Client) Initialize(ctx context.Context, args *dap.InitializeRequestArguments) (*dap.Capabilities, error) {
+func (c *Client) Initialize(ctx context.Context, args *debugapi.InitializeRequestArguments) (*dap.Capabilities, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
@@ -72,6 +72,7 @@ func (c *Client) Initialize(ctx context.Context, args *dap.InitializeRequestArgu
 		SupportsProgressReporting:    args.SupportsProgressReporting,
 		SupportsInvalidatedEvent:     args.SupportsInvalidatedEvent,
 		SupportsMemoryEvent:          args.SupportsMemoryEvent,
+		InitializeOptions:            args.InitializeOptions,
 	}
 
 	resp, err := c.client.Initialize(ctx, req)

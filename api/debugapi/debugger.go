@@ -21,10 +21,23 @@ package debugapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/google/go-dap"
 )
+
+// InitializeRequestArguments wraps dap.InitializeRequestArguments with
+// an extensible InitializeOptions field, mirroring how LSP's
+// InitializeParams carries arbitrary initializationOptions.
+type InitializeRequestArguments struct {
+	dap.InitializeRequestArguments
+	// InitializeOptions holds client-specific options as raw JSON.
+	// When set, the IDE uses `langID` and `command` properties to
+	// resolve an arbitrary debug adapter rather than looking up
+	// AdapterID in a hardcoded registry.
+	InitializeOptions json.RawMessage `json:"initializeOptions,omitempty"`
+}
 
 // Common errors returned by Debugger implementations.
 var (
@@ -49,7 +62,7 @@ type Debugger interface {
 	// Initialize configures the debug adapter with client capabilities
 	// and retrieves the adapter's capabilities.
 	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Initialize
-	Initialize(ctx context.Context, args *dap.InitializeRequestArguments) (*dap.Capabilities, error)
+	Initialize(ctx context.Context, args *InitializeRequestArguments) (*dap.Capabilities, error)
 
 	// Launch starts the debuggee with or without debugging.
 	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Launch

@@ -260,6 +260,7 @@ message InitializeRequest {
   bool supports_progress_reporting = 12;
   bool supports_invalidated_event = 13;
   bool supports_memory_event = 14;
+  bytes initialize_options = 15;
 }
 
 message InitializeResponse {
