@@ -1157,6 +1157,15 @@ const (
 	FileChangeTypeDeleted FileChangeType = 3
 )
 
+// WatchKind enumerates the kind of file system events to watch.
+type WatchKind int
+
+const (
+	WatchKindCreate WatchKind = 1
+	WatchKindChange WatchKind = 2
+	WatchKindDelete WatchKind = 4
+)
+
 // TraceValue represents a trace value.
 type TraceValue string
 
@@ -1253,6 +1262,22 @@ type WorkspaceFolder struct {
 type FileEvent struct {
 	URI  string         `json:"uri"`
 	Type FileChangeType `json:"type"`
+}
+
+// GlobPattern represents a glob pattern used for file watching.
+// It can be a simple string pattern or a RelativePattern.
+type GlobPattern = json.RawMessage
+
+// RelativePattern represents a pattern relative to a base URI.
+type RelativePattern struct {
+	BaseURI string `json:"baseUri"`
+	Pattern string `json:"pattern"`
+}
+
+// FileSystemWatcher represents a file system watcher registration.
+type FileSystemWatcher struct {
+	GlobPattern GlobPattern `json:"globPattern"`
+	Kind        WatchKind   `json:"kind,omitempty"`
 }
 
 // FileCreate represents a file creation event.
@@ -2203,6 +2228,12 @@ type DidChangeConfigurationParams struct {
 // DidChangeWatchedFilesParams contains the parameters for a DidChangeWatchedFiles notification.
 type DidChangeWatchedFilesParams struct {
 	Changes []FileEvent `json:"changes"`
+}
+
+// DidChangeWatchedFilesRegistrationOptions describes options for
+// registering file system watchers.
+type DidChangeWatchedFilesRegistrationOptions struct {
+	Watchers []FileSystemWatcher `json:"watchers"`
 }
 
 // DidChangeWorkspaceFoldersParams contains the parameters for a DidChangeWorkspaceFolders notification.
