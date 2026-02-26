@@ -29,7 +29,10 @@ type LocationList interface {
 	Next() (Location, bool)
 }
 
-// Location represents a content location in a Editor's buffer.
+// Location represents a content location in an Editor's buffer.
+// From is inclusive and To is exclusive: the range covers cells
+// [From, To). A location where From == To is empty (spans zero
+// cells) and will not match any cursor position.
 type Location struct {
 	From, To term.Coordinates
 	Attr     term.Attributes
