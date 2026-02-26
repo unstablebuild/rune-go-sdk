@@ -52,25 +52,25 @@ func newDebuggerLaunchCmd(a *app) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "launch [flags] -- <program> [args...]",
+		Use:   "launch [flags] <adapter> <program> [args...]",
 		Short: "Launch a program under the debugger",
 		Long: `Launch a program under the debugger and start an interactive REPL.
 
 Examples:
-  runectl debugger launch -- ./myapp
-  runectl debugger launch --stop-on-entry -- ./myapp arg1 arg2
-  runectl debugger launch --cwd /tmp --env FOO=bar -- ./myapp`,
-		Args: cobra.MinimumNArgs(1),
+  runectl debugger launch dlv-dap ./myapp
+  runectl debugger launch dlv-dap --stop-on-entry ./myapp arg1 arg2
+  runectl debugger launch dlv-dap --cwd /tmp --env FOO=bar ./myapp`,
+		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			env := parseEnvVars(envVars)
 			launchArgs := debugapi.LaunchRequestArguments{
-				Program:     args[0],
-				Args:        args[1:],
+				Program:     args[1],
+				Args:        args[2:],
 				Cwd:         cwd,
 				Env:         env,
 				StopOnEntry: stopOnEntry,
 			}
-			return runDebugger(cmd.Context(), a, func(
+			return runDebugger(cmd.Context(), a, args[0], func(
 				ctx context.Context, dbg debugapi.Debugger,
 			) error {
 				return dbg.Launch(ctx, launchArgs)
@@ -95,22 +95,22 @@ Examples:
 
 func newDebuggerAttachCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "attach <pid>",
+		Use:   "attach <adapter> <pid>",
 		Short: "Attach the debugger to a running process",
 		Long: `Attach the debugger to a running process and start an interactive REPL.
 
 Examples:
-  runectl debugger attach 12345`,
-		Args: cobra.ExactArgs(1),
+  runectl debugger attach dlv-dap 12345`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pid, err := strconv.Atoi(args[0])
+			pid, err := strconv.Atoi(args[1])
 			if err != nil {
 				return fmt.Errorf("invalid pid: %w", err)
 			}
 			attachArgs := debugapi.AttachRequestArguments{
 				PID: pid,
 			}
-			return runDebugger(cmd.Context(), a, func(
+			return runDebugger(cmd.Context(), a, args[0], func(
 				ctx context.Context, dbg debugapi.Debugger,
 			) error {
 				return dbg.Attach(ctx, attachArgs)
@@ -123,6 +123,7 @@ Examples:
 func runDebugger(
 	ctx context.Context,
 	a *app,
+	adapterID string,
 	start func(context.Context, debugapi.Debugger) error,
 ) error {
 	w, err := a.getWorkspace()
@@ -135,7 +136,7 @@ func runDebugger(
 	caps, err := dbg.Initialize(ctx, &dap.InitializeRequestArguments{
 		ClientID:     "runectl",
 		ClientName:   "runectl debugger",
-		AdapterID:    "rune",
+		AdapterID:    adapterID,
 		LinesStartAt1: true,
 		ColumnsStartAt1: true,
 		PathFormat:   "path",
