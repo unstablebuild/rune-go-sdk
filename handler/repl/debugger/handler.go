@@ -18,7 +18,6 @@ package debugger
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"github.com/google/go-dap"
@@ -29,10 +28,6 @@ import (
 )
 
 var _ repl.CommandHandler = (*Handler)(nil)
-
-// ErrExit is returned by the exit command to signal
-// the REPL should terminate.
-var ErrExit = errors.New("debugger session ended")
 
 // trackedBreakpoint stores a DAP breakpoint alongside the
 // user-supplied condition, which DAP reports separately from

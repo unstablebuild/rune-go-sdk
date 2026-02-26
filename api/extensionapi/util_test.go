@@ -132,6 +132,12 @@ func TestPermissionForResource(t *testing.T) {
 			wantOK:   true,
 		},
 		{
+			name:     "Debugger maps to debugger",
+			resource: "/debug.Debugger/Initialize",
+			wantPerm: PermissionDebugger,
+			wantOK:   true,
+		},
+		{
 			name:     "unknown service returns false",
 			resource: "/unknown.Service/Method",
 			wantPerm: "",

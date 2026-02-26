@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -27,6 +28,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
 	"github.com/unstablebuild/rune-go-sdk/handler/repl"
 	"github.com/unstablebuild/rune-go-sdk/handler/repl/debugger"
+	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
 )
 
@@ -156,8 +158,14 @@ func runDebugger(
 	}
 	r := repl.New(
 		handler,
+		term.ScheduleNextTick,
+		term.FuncInterrupter(func(context.Context) error {
+			if !term.PublishEvent(term.Event{Type: term.EventInterrupt}) {
+				return errors.New("could not publish interrupt")
+			}
+			return nil
+		}),
 		repl.WithPrompt("(debug) "),
-		repl.WithExitError(debugger.ErrExit),
 	)
 
 	tuiErr := tui.Run(r)

@@ -687,24 +687,6 @@ func TestHelpUnknown(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestExit(t *testing.T) {
-	m := newMockDebugger()
-	h := New(m, &dap.Capabilities{})
-
-	_, err := collectStrings(t, h, repl.Command{Name: "exit"})
-	assert.ErrorIs(t, err, ErrExit)
-	assert.False(t, m.disconnectCalled)
-}
-
-func TestQuitAlias(t *testing.T) {
-	m := newMockDebugger()
-	h := New(m, &dap.Capabilities{})
-
-	_, err := collectStrings(t, h, repl.Command{Name: "quit"})
-	assert.ErrorIs(t, err, ErrExit)
-	assert.False(t, m.disconnectCalled)
-}
-
 func TestComplete(t *testing.T) {
 	m := newMockDebugger()
 	h := New(m, &dap.Capabilities{})

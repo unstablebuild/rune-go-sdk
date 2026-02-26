@@ -103,8 +103,6 @@ func (h *Handler) buildCommands() []command {
 
 		{name: "help", aliases: []string{"h"}, fn: h.cmdHelp,
 			short: "Show help", usage: "help [command]"},
-		{name: "exit", aliases: []string{"quit", "q"}, fn: h.cmdExit,
-			short: "Disconnect and exit", usage: "exit"},
 	}
 }
 
@@ -734,12 +732,6 @@ func (h *Handler) cmdHelp(
 		lines = append(lines, line)
 	}
 	return stringsIter(lines), nil
-}
-
-func (h *Handler) cmdExit(
-	_ context.Context, _ []string,
-) (iterator.Iterator[component.Responsive], error) {
-	return nil, ErrExit
 }
 
 // --- Helpers ---
