@@ -340,6 +340,9 @@ func (h *Handler) dispatchCommand(text string) {
 			})
 			return
 		}
+		if iter == nil {
+			return
+		}
 		defer func() { _ = iter.Close() }()
 
 		// Batch output items so we schedule at most one

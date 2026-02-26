@@ -111,3 +111,11 @@ func defaultValidCmdAttr() term.Attributes {
 		Attrs: tcell.AttrBold,
 	}
 }
+	
+// WithExitError configures a sentinel error that, when
+// returned by HandleCommand, causes the REPL to exit.
+func WithExitError(err error) Option {
+	return func(h *Handler) {
+		h.exitErr = err
+	}
+}
