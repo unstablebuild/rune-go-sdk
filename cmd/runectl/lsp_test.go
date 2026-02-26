@@ -92,9 +92,12 @@ func TestLSP(t *testing.T) {
 
 		// workspace-symbols
 		{
-			name:    "workspace-symbols",
-			args:    []string{"lsp", "workspace-symbols", "My"},
-			wantOut: "MyFunc Function file:///src/main.go:5:0\n",
+			name: "workspace-symbols",
+			args: []string{"lsp", "workspace-symbols", "My"},
+			wantOut: "MyFunc Function file:///src/main.go:5:0\n" +
+				"MyInterface Interface file:///src/types.go:15:5\n" +
+				"MyStruct Struct file:///src/types.go:20:5\n" +
+				"MyStruct.MyMethod Method file:///src/types.go:30:0\n",
 		},
 
 		// diagnostics
@@ -687,6 +690,72 @@ func TestLSP(t *testing.T) {
 			args: []string{"lsp", "inline-value", "-F", "json", "$FILE", "5", "0", "15", "0"},
 			wantOut: `{"start_line":10,"start_char":5,"end_line":10,"end_char":15,` +
 				`"text":"value: 42","variable_name":"x"}` + "\n",
+		},
+
+		// symbol-mode tests
+		{
+			name:    "hover/sym",
+			args:    []string{"lsp", "hover", "MyFunc"},
+			wantOut: "func main()\n",
+		},
+		{
+			name:    "definition/sym",
+			args:    []string{"lsp", "definition", "MyFunc"},
+			wantOut: "file:///src/main.go 10:5-10:15\n",
+		},
+		{
+			name: "references/sym",
+			args: []string{"lsp", "references", "MyFunc"},
+			wantOut: "file:///src/main.go 10:5-10:15\n" +
+				"file:///src/util.go 20:3-20:13\n",
+		},
+		{
+			name: "rename/sym",
+			args: []string{
+				"lsp", "rename", "--dry-run", "--no-color",
+				"MyFunc", "newName",
+			},
+			wantOut: "--- a/src/main.go\n" +
+				"+++ b/src/main.go\n" +
+				"@@ -1,1 +1,1 @@\n" +
+				"-hello world\n" +
+				"+helnenewNameeorld\n",
+		},
+		{
+			name:    "declaration/sym",
+			args:    []string{"lsp", "declaration", "MyFunc"},
+			wantOut: "file:///src/types.go 15:5-15:15\n",
+		},
+		{
+			name:    "type-definition/sym",
+			args:    []string{"lsp", "type-definition", "myVar"},
+			wantOut: "file:///src/types.go 20:5-20:12\n",
+		},
+		{
+			name: "implementation/sym",
+			args: []string{"lsp", "implementation", "MyInterface"},
+			wantOut: "file:///src/impl1.go 10:0-10:10\n" +
+				"file:///src/impl2.go 25:0-25:10\n",
+		},
+		{
+			name:    "prepare-rename/sym",
+			args:    []string{"lsp", "prepare-rename", "MyFunc"},
+			wantOut: "5:5-5:9 \"main\"\n",
+		},
+		{
+			name:    "prepare-call-hier/sym",
+			args:    []string{"lsp", "prepare-call-hierarchy", "MyFunc"},
+			wantOut: "main [Function] file:///src/main.go 5:0-10:1\n",
+		},
+		{
+			name:    "prepare-type-hier/sym",
+			args:    []string{"lsp", "prepare-type-hierarchy", "MyInterface"},
+			wantOut: "Reader [Interface] file:///src/io.go 15:0-18:1\n",
+		},
+		{
+			name:    "hover/sym_not_found",
+			args:    []string{"lsp", "hover", "NonExistent"},
+			wantErr: "not found",
 		},
 	}
 

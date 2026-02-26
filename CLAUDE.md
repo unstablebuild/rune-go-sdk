@@ -156,7 +156,9 @@ precise than text-based search.
 ### Code Navigation (prefer over Grep)
 
 Instead of using Grep to find where something is defined or
-used, use the suite LSP tools which understand the code semantically:
+used, use the suite LSP tools which understand the code
+semantically. These tools accept a `symbol` name and
+internally resolve it via workspace symbol lookup:
 
 - **`lsp_definition`** — Jump to where a symbol is defined.
   Use instead of grepping for a function or type name.
@@ -211,8 +213,8 @@ your own tree-sitter query to find it use rune's search syntax tools:
 
 ### Understanding Code (prefer over reading whole files)
 
-- **`lsp_hover`** — Get type info and documentation for any
-  symbol at a position. Use instead of reading source to
+- **`lsp_documentation`** — Get type info and documentation
+  for a symbol by name. Use instead of reading source to
   understand what a symbol is.
 - **`lsp_signature_help`** — Get function parameter names and
   types. Use when you need to know a function's signature
@@ -232,11 +234,11 @@ your own tree-sitter query to find it use rune's search syntax tools:
 
 ### Refactoring (prefer over manual find-and-replace)
 
-- **`lsp_rename`** — Safely rename a symbol across the entire
-  workspace, updating all references. Use instead of
+- **`lsp_rename`** — Safely rename a symbol by name across the
+  entire workspace, updating all references. Use instead of
   Grep + Edit for renaming.
-- **`lsp_prepare_rename`** — Check if a rename is valid before
-  performing it.
+- **`lsp_prepare_rename`** — Check if a rename is valid for a
+  symbol by name before performing it.
 - **`lsp_code_actions`** — Discover available refactorings and
   quick fixes at a position (extract variable, organize
   imports, etc.).

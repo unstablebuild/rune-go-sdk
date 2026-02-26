@@ -319,26 +319,40 @@ func newLSPHoverCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "hover <file> <line> <col>",
-		Short: "Get hover info at a position",
-		Args:  cobra.ExactArgs(3),
+		Use:   "hover (<file> <line> <col> | <symbol>)",
+		Short: "Get hover info for a symbol",
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintDefault,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			h, err := lsp.Hover(cmd.Context(), semanticapi.HoverParams{
 				TextDocument: semanticapi.TextDocumentIdentifier{
-					URI: uri.String(),
+					URI: uri,
 				},
 				Position: pos,
 			})
@@ -378,27 +392,41 @@ func newLSPDefinitionCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "definition <file> <line> <col>",
+		Use:   "definition (<file> <line> <col> | <symbol>)",
 		Short: "Go to definition",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintDefault,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			locs, err := lsp.Definition(
 				cmd.Context(), semanticapi.DefinitionParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 				},
@@ -423,27 +451,41 @@ func newLSPReferencesCmd(a *app) *cobra.Command {
 	var includeDecl bool
 
 	cmd := &cobra.Command{
-		Use:   "references <file> <line> <col>",
+		Use:   "references (<file> <line> <col> | <symbol>)",
 		Short: "Find all references",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintDefault,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			locs, err := lsp.References(
 				cmd.Context(), semanticapi.ReferenceParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 					Context: semanticapi.ReferenceContext{
@@ -816,28 +858,44 @@ func newLSPRenameCmd(a *app) *cobra.Command {
 	var noColor bool
 
 	cmd := &cobra.Command{
-		Use:   "rename <file> <line> <col> <new-name>",
+		Use:   "rename (<file> <line> <col> <new-name> | <symbol> <new-name>)",
 		Short: "Rename a symbol",
-		Args:  cobra.ExactArgs(4),
+		Args:  cobra.RangeArgs(2, 4),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
-			newName := args[3]
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			var newName string
+			if len(args) == 4 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+				newName = args[3]
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintDefault,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+				newName = args[1]
+			}
 			edit, err := lsp.Rename(
 				cmd.Context(), semanticapi.RenameParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 					NewName:  newName,
@@ -846,7 +904,7 @@ func newLSPRenameCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			slog.Debug("rename: LSP response", "uri", uri.String(), "nil", edit == nil)
+			slog.Debug("rename: LSP response", "uri", uri, "nil", edit == nil)
 			if edit != nil {
 				for u, es := range edit.Changes {
 					for i, e := range es {
@@ -1404,27 +1462,41 @@ func newLSPDeclarationCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "declaration <file> <line> <col>",
+		Use:   "declaration (<file> <line> <col> | <symbol>)",
 		Short: "Go to declaration",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintDefault,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			locs, err := lsp.Declaration(
 				cmd.Context(), semanticapi.DeclarationParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 				},
@@ -1448,27 +1520,41 @@ func newLSPTypeDefinitionCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "type-definition <file> <line> <col>",
+		Use:   "type-definition (<file> <line> <col> | <symbol>)",
 		Short: "Go to type definition",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintTypeDefinition,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			locs, err := lsp.TypeDefinition(
 				cmd.Context(), semanticapi.TypeDefinitionParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 				},
@@ -1492,27 +1578,41 @@ func newLSPImplementationCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "implementation <file> <line> <col>",
+		Use:   "implementation (<file> <line> <col> | <symbol>)",
 		Short: "Find implementations",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintImplementation,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			locs, err := lsp.Implementation(
 				cmd.Context(), semanticapi.ImplementationParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 				},
@@ -1645,27 +1745,41 @@ func newLSPPrepareRenameCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "prepare-rename <file> <line> <col>",
+		Use:   "prepare-rename (<file> <line> <col> | <symbol>)",
 		Short: "Prepare for rename operation",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintDefault,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			result, err := lsp.PrepareRename(
 				cmd.Context(), semanticapi.PrepareRenameParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 				},
@@ -2329,27 +2443,41 @@ func newLSPPrepareCallHierarchyCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "prepare-call-hierarchy <file> <line> <col>",
+		Use:   "prepare-call-hierarchy (<file> <line> <col> | <symbol>)",
 		Short: "Prepare call hierarchy at a position",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintCallHierarchy,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			items, err := lsp.PrepareCallHierarchy(
 				cmd.Context(), semanticapi.CallHierarchyPrepareParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 				},
@@ -2623,27 +2751,41 @@ func newLSPPrepareTypeHierarchyCmd(a *app) *cobra.Command {
 	var format string
 
 	cmd := &cobra.Command{
-		Use:   "prepare-type-hierarchy <file> <line> <col>",
+		Use:   "prepare-type-hierarchy (<file> <line> <col> | <symbol>)",
 		Short: "Prepare type hierarchy at a position",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(1, 3),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			uri, err := a.resolveURIArg(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			pos, err := parsePosition(args[1], args[2])
-			if err != nil {
-				return err
-			}
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
 			}
+			var uri string
+			var pos semanticapi.Position
+			if len(args) == 3 {
+				u, err := a.resolveURIArg(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				pos, err = parsePosition(args[1], args[2])
+				if err != nil {
+					return err
+				}
+				uri = u.String()
+			} else {
+				sp, err := resolveSymbolBest(
+					cmd.Context(), lsp, args[0], hintTypeHierarchy,
+				)
+				if err != nil {
+					return err
+				}
+				uri = sp.URI
+				pos = sp.Position
+			}
 			items, err := lsp.PrepareTypeHierarchy(
 				cmd.Context(), semanticapi.TypeHierarchyPrepareParams{
 					TextDocument: semanticapi.TextDocumentIdentifier{
-						URI: uri.String(),
+						URI: uri,
 					},
 					Position: pos,
 				},

@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -666,10 +667,10 @@ func (m *mockLSP) WorkspaceSymbol(
 	_ context.Context,
 	req *semanticrpc.WorkspaceSymbolRequest,
 ) (*semanticrpc.WorkspaceSymbolResponse, error) {
-	return &semanticrpc.WorkspaceSymbolResponse{
-		Symbols: []*semanticrpc.SymbolInformation{{
+	allSymbols := []*semanticrpc.SymbolInformation{
+		{
 			Name: "MyFunc",
-			Kind: 12,
+			Kind: 12, // Function
 			Location: &semanticrpc.Location{
 				Uri: "file:///src/main.go",
 				Range: &semanticrpc.Range{
@@ -681,7 +682,77 @@ func (m *mockLSP) WorkspaceSymbol(
 					},
 				},
 			},
-		}},
+		},
+		{
+			Name: "MyInterface",
+			Kind: 11, // Interface
+			Location: &semanticrpc.Location{
+				Uri: "file:///src/types.go",
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 15, Character: 5,
+					},
+					End: &semanticrpc.Position{
+						Line: 18, Character: 1,
+					},
+				},
+			},
+		},
+		{
+			Name: "MyStruct",
+			Kind: 23, // Struct
+			Location: &semanticrpc.Location{
+				Uri: "file:///src/types.go",
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 20, Character: 5,
+					},
+					End: &semanticrpc.Position{
+						Line: 25, Character: 1,
+					},
+				},
+			},
+		},
+		{
+			Name: "myVar",
+			Kind: 13, // Variable
+			Location: &semanticrpc.Location{
+				Uri: "file:///src/main.go",
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 3, Character: 4,
+					},
+					End: &semanticrpc.Position{
+						Line: 3, Character: 9,
+					},
+				},
+			},
+		},
+		{
+			Name: "MyStruct.MyMethod",
+			Kind: 6, // Method
+			Location: &semanticrpc.Location{
+				Uri: "file:///src/types.go",
+				Range: &semanticrpc.Range{
+					Start: &semanticrpc.Position{
+						Line: 30, Character: 0,
+					},
+					End: &semanticrpc.Position{
+						Line: 35, Character: 1,
+					},
+				},
+			},
+		},
+	}
+	query := req.GetQuery()
+	var filtered []*semanticrpc.SymbolInformation
+	for _, s := range allSymbols {
+		if strings.Contains(s.Name, query) {
+			filtered = append(filtered, s)
+		}
+	}
+	return &semanticrpc.WorkspaceSymbolResponse{
+		Symbols: filtered,
 	}, nil
 }
 

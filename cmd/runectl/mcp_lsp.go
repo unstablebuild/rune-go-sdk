@@ -24,13 +24,46 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 )
 
+// symToolOpts returns a single required symbol string
+// parameter for symbol-based tools.
+func symToolOpts(desc string) []mcp.ToolOption {
+	return []mcp.ToolOption{
+		mcp.WithDescription(desc),
+		mcp.WithString("symbol", mcp.Required(),
+			mcp.Description(
+				"Symbol name to look up. "+
+					"Must be an exact match.",
+			),
+		),
+	}
+}
+
+// dedupFlatLocations removes duplicate flatLocation
+// entries by (URI, StartLine, StartChar).
+func dedupFlatLocations(
+	locs []flatLocation,
+) []flatLocation {
+	type key struct {
+		URI       string
+		StartLine uint32
+		StartChar uint32
+	}
+	return dedup(locs, func(l flatLocation) key {
+		return key{
+			URI:       l.URI,
+			StartLine: l.StartLine,
+			StartChar: l.StartChar,
+		}
+	})
+}
+
 func registerLSPTools( //nolint:funlen
 	s *server.MCPServer,
 	w *extensionapi.Workspace,
 	bgCtx context.Context,
 ) {
 	lsp := w.LSP(bgCtx)
-	registerLSPHover(s, lsp, bgCtx)
+	registerLSPDocumentation(s, lsp, bgCtx)
 	registerLSPDefinition(s, lsp, bgCtx)
 	registerLSPDeclaration(s, lsp, bgCtx)
 	registerLSPTypeDefinition(s, lsp, bgCtx)
@@ -157,17 +190,16 @@ func makeRange(r [4]uint32) semanticapi.Range {
 	}
 }
 
-func registerLSPHover(
+func registerLSPDocumentation(
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
 	bgCtx context.Context,
 ) {
 	s.AddTool(
-		mcp.NewTool("lsp_hover",
-			posToolOpts(
+		mcp.NewTool("lsp_documentation",
+			symToolOpts(
 				"Returns type info and docs "+
-					"for the symbol at a "+
-					"position.\n\n"+
+					"for a symbol by name.\n\n"+
 					"Use this tool when:\n"+
 					"- You need type or docs "+
 					"for a symbol\n"+
@@ -186,11 +218,20 @@ func registerLSPHover(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
+			sp, err := resolveSymbolBest(
+				bgCtx, lsp, sym, hintDefault,
+			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			td, pos := makeTextDocPos(
+				sp.URI, sp.Position.Line,
+				sp.Position.Character,
+			)
 			h, err := lsp.Hover(bgCtx,
 				semanticapi.HoverParams{
 					TextDocument: td,
@@ -217,9 +258,9 @@ func registerLSPDefinition(
 ) {
 	s.AddTool(
 		mcp.NewTool("lsp_definition",
-			posToolOpts(
-				"Finds the definition of the "+
-					"symbol at a position.\n\n"+
+			symToolOpts(
+				"Finds the definition of a "+
+					"symbol by name.\n\n"+
 					"Use this tool when:\n"+
 					"- Finding where a function, "+
 					"variable, or type is "+
@@ -242,22 +283,35 @@ func registerLSPDefinition(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
-			locs, err := lsp.Definition(bgCtx,
-				semanticapi.DefinitionParams{
-					TextDocument: td,
-					Position:     pos,
-				})
-			if err != nil {
-				return mcpErr(err), nil
-			}
-			return mcpJSON(
-				toFlatLocationsFromResult(locs),
+			positions, err := resolveSymbol(
+				bgCtx, lsp, sym, hintDefault,
 			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			var all []flatLocation
+			for _, sp := range positions {
+				td, pos := makeTextDocPos(
+					sp.URI, sp.Position.Line,
+					sp.Position.Character,
+				)
+				locs, err := lsp.Definition(bgCtx,
+					semanticapi.DefinitionParams{
+						TextDocument: td,
+						Position:     pos,
+					})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				all = append(all,
+					toFlatLocationsFromResult(locs)...,
+				)
+			}
+			return mcpJSON(dedupFlatLocations(all))
 		},
 	)
 }
@@ -269,9 +323,9 @@ func registerLSPDeclaration(
 ) {
 	s.AddTool(
 		mcp.NewTool("lsp_declaration",
-			posToolOpts(
-				"Finds the declaration of the "+
-					"symbol at a position.\n\n"+
+			symToolOpts(
+				"Finds the declaration of a "+
+					"symbol by name.\n\n"+
 					"Use this tool when:\n"+
 					"- Finding the interface or "+
 					"forward declaration\n"+
@@ -291,22 +345,35 @@ func registerLSPDeclaration(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
-			locs, err := lsp.Declaration(bgCtx,
-				semanticapi.DeclarationParams{
-					TextDocument: td,
-					Position:     pos,
-				})
-			if err != nil {
-				return mcpErr(err), nil
-			}
-			return mcpJSON(
-				toFlatLocationsFromResult(locs),
+			positions, err := resolveSymbol(
+				bgCtx, lsp, sym, hintDefault,
 			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			var all []flatLocation
+			for _, sp := range positions {
+				td, pos := makeTextDocPos(
+					sp.URI, sp.Position.Line,
+					sp.Position.Character,
+				)
+				locs, err := lsp.Declaration(bgCtx,
+					semanticapi.DeclarationParams{
+						TextDocument: td,
+						Position:     pos,
+					})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				all = append(all,
+					toFlatLocationsFromResult(locs)...,
+				)
+			}
+			return mcpJSON(dedupFlatLocations(all))
 		},
 	)
 }
@@ -318,10 +385,9 @@ func registerLSPTypeDefinition(
 ) {
 	s.AddTool(
 		mcp.NewTool("lsp_type_definition",
-			posToolOpts(
+			symToolOpts(
 				"Finds the type definition of "+
-					"the symbol at a "+
-					"position.\n\n"+
+					"a symbol by name.\n\n"+
 					"Use this tool when:\n"+
 					"- Finding the struct or "+
 					"interface behind a value\n"+
@@ -342,22 +408,35 @@ func registerLSPTypeDefinition(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
-			locs, err := lsp.TypeDefinition(bgCtx,
-				semanticapi.TypeDefinitionParams{
-					TextDocument: td,
-					Position:     pos,
-				})
-			if err != nil {
-				return mcpErr(err), nil
-			}
-			return mcpJSON(
-				toFlatLocationsFromResult(locs),
+			positions, err := resolveSymbol(
+				bgCtx, lsp, sym, hintTypeDefinition,
 			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			var all []flatLocation
+			for _, sp := range positions {
+				td, pos := makeTextDocPos(
+					sp.URI, sp.Position.Line,
+					sp.Position.Character,
+				)
+				locs, err := lsp.TypeDefinition(bgCtx,
+					semanticapi.TypeDefinitionParams{
+						TextDocument: td,
+						Position:     pos,
+					})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				all = append(all,
+					toFlatLocationsFromResult(locs)...,
+				)
+			}
+			return mcpJSON(dedupFlatLocations(all))
 		},
 	)
 }
@@ -369,10 +448,9 @@ func registerLSPImplementation(
 ) {
 	s.AddTool(
 		mcp.NewTool("lsp_implementation",
-			posToolOpts(
+			symToolOpts(
 				"Finds all implementations of "+
-					"the symbol at a "+
-					"position.\n\n"+
+					"a symbol by name.\n\n"+
 					"Use this tool when:\n"+
 					"- Finding concrete types "+
 					"implementing an interface\n"+
@@ -392,22 +470,35 @@ func registerLSPImplementation(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
-			locs, err := lsp.Implementation(bgCtx,
-				semanticapi.ImplementationParams{
-					TextDocument: td,
-					Position:     pos,
-				})
-			if err != nil {
-				return mcpErr(err), nil
-			}
-			return mcpJSON(
-				toFlatLocationsFromResult(locs),
+			positions, err := resolveSymbol(
+				bgCtx, lsp, sym, hintImplementation,
 			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			var all []flatLocation
+			for _, sp := range positions {
+				td, pos := makeTextDocPos(
+					sp.URI, sp.Position.Line,
+					sp.Position.Character,
+				)
+				locs, err := lsp.Implementation(bgCtx,
+					semanticapi.ImplementationParams{
+						TextDocument: td,
+						Position:     pos,
+					})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				all = append(all,
+					toFlatLocationsFromResult(locs)...,
+				)
+			}
+			return mcpJSON(dedupFlatLocations(all))
 		},
 	)
 }
@@ -417,9 +508,9 @@ func registerLSPReferences(
 	lsp semanticapi.LSP,
 	bgCtx context.Context,
 ) {
-	opts := posToolOpts(
-		"Finds all references to the " +
-			"symbol at a position.\n\n" +
+	opts := symToolOpts(
+		"Finds all references to a " +
+			"symbol by name.\n\n" +
 			"Use this tool when:\n" +
 			"- Finding all usages of a " +
 			"symbol across the workspace\n" +
@@ -445,26 +536,41 @@ func registerLSPReferences(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
+			positions, err := resolveSymbol(
+				bgCtx, lsp, sym, hintDefault,
+			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
 			inclDecl := req.GetBool(
 				"include_declaration", false,
 			)
-			locs, err := lsp.References(bgCtx,
-				semanticapi.ReferenceParams{
-					TextDocument: td,
-					Position:     pos,
-					Context: semanticapi.ReferenceContext{
-						IncludeDeclaration: inclDecl,
-					},
-				})
-			if err != nil {
-				return mcpErr(err), nil
+			var all []flatLocation
+			for _, sp := range positions {
+				td, pos := makeTextDocPos(
+					sp.URI, sp.Position.Line,
+					sp.Position.Character,
+				)
+				locs, err := lsp.References(bgCtx,
+					semanticapi.ReferenceParams{
+						TextDocument: td,
+						Position:     pos,
+						Context: semanticapi.ReferenceContext{
+							IncludeDeclaration: inclDecl,
+						},
+					})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				all = append(all,
+					toFlatLocations(locs)...,
+				)
 			}
-			return mcpJSON(toFlatLocations(locs))
+			return mcpJSON(dedupFlatLocations(all))
 		},
 	)
 }
@@ -595,7 +701,7 @@ func registerLSPRename(
 	lsp semanticapi.LSP,
 	bgCtx context.Context,
 ) {
-	opts := posToolOpts(
+	opts := symToolOpts(
 		"Renames a symbol across the " +
 			"workspace.\n\n" +
 			"Use this tool when:\n" +
@@ -627,7 +733,7 @@ func registerLSPRename(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
@@ -637,7 +743,16 @@ func registerLSPRename(
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
+			sp, err := resolveSymbolBest(
+				bgCtx, lsp, sym, hintDefault,
+			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			td, pos := makeTextDocPos(
+				sp.URI, sp.Position.Line,
+				sp.Position.Character,
+			)
 			edit, err := lsp.Rename(bgCtx,
 				semanticapi.RenameParams{
 					TextDocument: td,
@@ -666,9 +781,9 @@ func registerLSPPrepareRename(
 ) {
 	s.AddTool(
 		mcp.NewTool("lsp_prepare_rename",
-			posToolOpts(
+			symToolOpts(
 				"Checks if rename is valid "+
-					"at a position.\n\n"+
+					"for a symbol by name.\n\n"+
 					"Use this tool when:\n"+
 					"- Verifying a symbol can be "+
 					"renamed before lsp_rename\n"+
@@ -685,11 +800,20 @@ func registerLSPPrepareRename(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
+			sp, err := resolveSymbolBest(
+				bgCtx, lsp, sym, hintDefault,
+			)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			td, pos := makeTextDocPos(
+				sp.URI, sp.Position.Line,
+				sp.Position.Character,
+			)
 			result, err := lsp.PrepareRename(bgCtx,
 				semanticapi.PrepareRenameParams{
 					TextDocument: td,
@@ -702,10 +826,10 @@ func registerLSPPrepareRename(
 				return mcpJSON(nil)
 			}
 			return mcpJSON(flatPrepareRename{
-				StartLine: result.Range.Start.Line,
-				StartChar: result.Range.Start.Character,
-				EndLine:   result.Range.End.Line,
-				EndChar:   result.Range.End.Character,
+				StartLine:   result.Range.Start.Line,
+				StartChar:   result.Range.Start.Character,
+				EndLine:     result.Range.End.Line,
+				EndChar:     result.Range.End.Character,
 				Placeholder: result.Placeholder,
 			})
 		},
@@ -1487,10 +1611,10 @@ func registerLSPCallHierarchyPrepare(
 ) {
 	s.AddTool(
 		mcp.NewTool("lsp_prepare_call_hierarchy",
-			posToolOpts(
+			symToolOpts(
 				"Prepares call hierarchy "+
-					"info for the symbol at a "+
-					"position.\n\n"+
+					"info for a symbol by "+
+					"name.\n\n"+
 					"Use this tool when:\n"+
 					"- You want to explore the "+
 					"call graph of a function\n"+
@@ -1511,25 +1635,36 @@ func registerLSPCallHierarchyPrepare(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
-			items, err := lsp.PrepareCallHierarchy(
-				bgCtx,
-				semanticapi.CallHierarchyPrepareParams{
-					TextDocument: td,
-					Position:     pos,
-				})
-			if err != nil {
-				return mcpErr(err), nil
-			}
-			flat := make(
-				[]flatCallHierarchyItem, len(items),
+			positions, err := resolveSymbol(
+				bgCtx, lsp, sym, hintCallHierarchy,
 			)
-			for i, item := range items {
-				flat[i] = toFlatCallHierarchyItem(item)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			var flat []flatCallHierarchyItem
+			for _, sp := range positions {
+				td, pos := makeTextDocPos(
+					sp.URI, sp.Position.Line,
+					sp.Position.Character,
+				)
+				items, err := lsp.PrepareCallHierarchy(
+					bgCtx,
+					semanticapi.CallHierarchyPrepareParams{
+						TextDocument: td,
+						Position:     pos,
+					})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				for _, item := range items {
+					flat = append(flat,
+						toFlatCallHierarchyItem(item),
+					)
+				}
 			}
 			return mcpJSON(flat)
 		},
@@ -1705,11 +1840,9 @@ func registerLSPTypeHierarchyPrepare(
 ) {
 	s.AddTool(
 		mcp.NewTool("lsp_prepare_type_hierarchy",
-			posToolOpts(
+			symToolOpts(
 				"Returns type hierarchy items "+
-					"at a position for "+
-					"supertype/subtype "+
-					"exploration.\n\n"+
+					"for a symbol by name.\n\n"+
 					"Use this tool when:\n"+
 					"- Exploring inheritance "+
 					"chains for a type\n"+
@@ -1733,25 +1866,36 @@ func registerLSPTypeHierarchyPrepare(
 			_ context.Context,
 			req mcp.CallToolRequest,
 		) (*mcp.CallToolResult, error) {
-			uri, line, char, err := mcpPos(req)
+			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(uri, line, char)
-			items, err := lsp.PrepareTypeHierarchy(
-				bgCtx,
-				semanticapi.TypeHierarchyPrepareParams{
-					TextDocument: td,
-					Position:     pos,
-				})
-			if err != nil {
-				return mcpErr(err), nil
-			}
-			flat := make(
-				[]flatTypeHierarchyItem, len(items),
+			positions, err := resolveSymbol(
+				bgCtx, lsp, sym, hintTypeHierarchy,
 			)
-			for i, item := range items {
-				flat[i] = toFlatTypeHierarchyItem(item)
+			if err != nil {
+				return mcpErr(err), nil
+			}
+			var flat []flatTypeHierarchyItem
+			for _, sp := range positions {
+				td, pos := makeTextDocPos(
+					sp.URI, sp.Position.Line,
+					sp.Position.Character,
+				)
+				items, err := lsp.PrepareTypeHierarchy(
+					bgCtx,
+					semanticapi.TypeHierarchyPrepareParams{
+						TextDocument: td,
+						Position:     pos,
+					})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				for _, item := range items {
+					flat = append(flat,
+						toFlatTypeHierarchyItem(item),
+					)
+				}
 			}
 			return mcpJSON(flat)
 		},

@@ -156,12 +156,10 @@ func TestMCPLSP(t *testing.T) {
 		check  func(*testing.T, string)
 	}{
 		{
-			name: "hover",
-			tool: "lsp_hover",
+			name: "documentation",
+			tool: "lsp_documentation",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      0,
-				"character": 5,
+				"symbol": "MyFunc",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "func main()")
@@ -171,9 +169,7 @@ func TestMCPLSP(t *testing.T) {
 			name: "definition",
 			tool: "lsp_definition",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      0,
-				"character": 5,
+				"symbol": "MyFunc",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "file:///src/main.go")
@@ -184,9 +180,7 @@ func TestMCPLSP(t *testing.T) {
 			name: "references",
 			tool: "lsp_references",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      0,
-				"character": 5,
+				"symbol": "MyFunc",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "file:///src/main.go")
@@ -255,10 +249,8 @@ func TestMCPLSP(t *testing.T) {
 			name: "rename",
 			tool: "lsp_rename",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      5,
-				"character": 5,
-				"new_name":  "newMain",
+				"symbol":   "MyFunc",
+				"new_name": "newMain",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "file:///src/main.go")
@@ -291,9 +283,7 @@ func TestMCPLSP(t *testing.T) {
 			name: "declaration",
 			tool: "lsp_declaration",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      0,
-				"character": 5,
+				"symbol": "MyFunc",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "file:///src/types.go")
@@ -303,9 +293,7 @@ func TestMCPLSP(t *testing.T) {
 			name: "type_definition",
 			tool: "lsp_type_definition",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      0,
-				"character": 5,
+				"symbol": "myVar",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "file:///src/types.go")
@@ -315,13 +303,21 @@ func TestMCPLSP(t *testing.T) {
 			name: "implementation",
 			tool: "lsp_implementation",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      0,
-				"character": 5,
+				"symbol": "MyInterface",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "file:///src/impl1.go")
 				require.Contains(t, out, "file:///src/impl2.go")
+			},
+		},
+		{
+			name: "prepare_rename",
+			tool: "lsp_prepare_rename",
+			args: map[string]any{
+				"symbol": "MyFunc",
+			},
+			check: func(t *testing.T, out string) {
+				require.Contains(t, out, "main")
 			},
 		},
 		{
@@ -375,9 +371,7 @@ func TestMCPLSP(t *testing.T) {
 			name: "prep_call_hier",
 			tool: "lsp_prepare_call_hierarchy",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      5,
-				"character": 5,
+				"symbol": "MyFunc",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "main")
@@ -388,9 +382,7 @@ func TestMCPLSP(t *testing.T) {
 			name: "prep_type_hier",
 			tool: "lsp_prepare_type_hierarchy",
 			args: map[string]any{
-				"uri":       "file:///src/main.go",
-				"line":      15,
-				"character": 5,
+				"symbol": "MyInterface",
 			},
 			check: func(t *testing.T, out string) {
 				require.Contains(t, out, "Reader")
@@ -432,7 +424,7 @@ func TestMCPToolError(t *testing.T) {
 		"id":      1,
 		"method":  "tools/call",
 		"params": map[string]any{
-			"name":      "lsp_hover",
+			"name":      "lsp_documentation",
 			"arguments": map[string]any{},
 		},
 	}
@@ -450,6 +442,41 @@ func TestMCPToolError(t *testing.T) {
 	err = json.Unmarshal(resultJSON, &toolResult)
 	require.NoError(t, err)
 	require.True(t, toolResult.IsError, "expected tool error for missing params")
+}
+
+func TestMCPSymbolNotFound(t *testing.T) {
+	env := newMCPTestEnv(t)
+	defer env.cleanup()
+
+	msg := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "tools/call",
+		"params": map[string]any{
+			"name": "lsp_definition",
+			"arguments": map[string]any{
+				"symbol": "NonExistent",
+			},
+		},
+	}
+	data, err := json.Marshal(msg)
+	require.NoError(t, err)
+
+	resp := env.srv.HandleMessage(context.Background(), data)
+	jsonResp, ok := resp.(mcp.JSONRPCResponse)
+	require.True(t, ok, "expected JSONRPCResponse, got %T", resp)
+
+	resultJSON, err := json.Marshal(jsonResp.Result)
+	require.NoError(t, err)
+
+	var toolResult mcp.CallToolResult
+	err = json.Unmarshal(resultJSON, &toolResult)
+	require.NoError(t, err)
+	require.True(t, toolResult.IsError, "expected error for unknown symbol")
+
+	text, ok := toolResult.Content[0].(mcp.TextContent)
+	require.True(t, ok)
+	require.Contains(t, text.Text, "not found")
 }
 
 func TestMCPDebug(t *testing.T) {
