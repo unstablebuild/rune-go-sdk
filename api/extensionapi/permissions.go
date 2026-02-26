@@ -80,5 +80,6 @@ func AllPermissions() Permissions {
 		PermissionSyntaxTree:            nil,
 		PermissionConfig:                nil,
 		PermissionLSP:                   nil,
+		PermissionDebugger:              nil,
 	}
 }
