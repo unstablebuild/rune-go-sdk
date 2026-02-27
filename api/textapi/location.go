@@ -37,6 +37,7 @@ type Location struct {
 	From, To term.Coordinates
 	Attr     term.Attributes
 	Message  string
+	Icon     string
 }
 
 type sliceLocations struct {

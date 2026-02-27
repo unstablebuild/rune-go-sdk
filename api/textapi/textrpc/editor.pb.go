@@ -1842,6 +1842,7 @@ type SetLocationListRequest_Location struct {
 	To            *termrpc.Coordinates   `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
 	Attr          *termrpc.Attributes    `protobuf:"bytes,3,opt,name=attr,proto3" json:"attr,omitempty"`
 	Msg           string                 `protobuf:"bytes,4,opt,name=msg,proto3" json:"msg,omitempty"`
+	Icon          string                 `protobuf:"bytes,5,opt,name=icon,proto3" json:"icon,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1904,6 +1905,13 @@ func (x *SetLocationListRequest_Location) GetMsg() string {
 	return ""
 }
 
+func (x *SetLocationListRequest_Location) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
 var File_textrpc_editor_proto protoreflect.FileDescriptor
 
 const file_textrpc_editor_proto_rawDesc = "" +
@@ -1951,17 +1959,18 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\vTypeVisible\x10\x0f\"e\n" +
 	"\x15SubscribeEventRequest\x12*\n" +
 	"\x04type\x18\x01 \x03(\x0e2\x16.text.EditorEvent.TypeR\x04type\x12 \n" +
-	"\vunsubscribe\x18\x03 \x01(\bR\vunsubscribe\"\xd1\x02\n" +
+	"\vunsubscribe\x18\x03 \x01(\bR\vunsubscribe\"\xe5\x02\n" +
 	"\x16SetLocationListRequest\x12.\n" +
 	"\rresource_name\x18\x01 \x01(\v2\t.text.URIR\fresourceName\x12\x17\n" +
 	"\alist_id\x18\x02 \x01(\tR\x06listId\x12C\n" +
 	"\tlocations\x18\x03 \x03(\v2%.text.SetLocationListRequest.LocationR\tlocations\x12\x1a\n" +
-	"\bpriority\x18\x04 \x01(\rR\bpriority\x1a\x8c\x01\n" +
+	"\bpriority\x18\x04 \x01(\rR\bpriority\x1a\xa0\x01\n" +
 	"\bLocation\x12%\n" +
 	"\x04from\x18\x01 \x01(\v2\x11.term.CoordinatesR\x04from\x12!\n" +
 	"\x02to\x18\x02 \x01(\v2\x11.term.CoordinatesR\x02to\x12$\n" +
 	"\x04attr\x18\x03 \x01(\v2\x10.term.AttributesR\x04attr\x12\x10\n" +
-	"\x03msg\x18\x04 \x01(\tR\x03msg\"\x19\n" +
+	"\x03msg\x18\x04 \x01(\tR\x03msg\x12\x12\n" +
+	"\x04icon\x18\x05 \x01(\tR\x04icon\"\x19\n" +
 	"\x17SetLocationListResponse\"\xa1\x01\n" +
 	"\x0fEditCellRequest\x12.\n" +
 	"\rresource_name\x18\x01 \x01(\v2\t.text.URIR\fresourceName\x12'\n" +

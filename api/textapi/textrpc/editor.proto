@@ -60,6 +60,7 @@ message SetLocationListRequest {
 		term.Coordinates to = 2;
 		term.Attributes attr = 3;
 		string msg = 4;
+		string icon = 5;
 	}
     URI resource_name = 1;
 	string list_id = 2;

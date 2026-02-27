@@ -316,6 +316,7 @@ func makeLocationListRequest(
 			To:   &to,
 			Attr: &attr,
 			Msg:  loc.Message,
+			Icon: loc.Icon,
 		})
 	}
 	return req // nolint:govet
