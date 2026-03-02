@@ -19,6 +19,7 @@ import (
 
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/handler"
+	"github.com/unstablebuild/rune-go-sdk/mouse"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/tcell/v3"
 )
@@ -67,6 +68,8 @@ type Handler struct {
 	compTail               string
 	compOriginal           string
 
+	m *mouse.Mouse
+
 	// Highlight range
 	hlStart int
 	hlEnd   int
@@ -92,6 +95,7 @@ func New(opts ...Option) *Handler {
 		o(ret)
 	}
 	ret.historyPos = len(ret.history)
+	ret.m = mouse.New(&mouseDelegate{ret})
 	return ret
 }
 
@@ -461,6 +465,10 @@ func (ib *Handler) drawCompletions(w term.Writer) {
 
 // Handle satisfies tui.Handler
 func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
+	if ev.Type == term.EventMouse {
+		return ib.m.Handle(ev)
+	}
+
 	if ev.Type != term.EventKey {
 		return false, false
 	}

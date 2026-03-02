@@ -1412,3 +1412,151 @@ func TestClearHistory(t *testing.T) {
 	sendKeys(t, ib, "<up>")
 	assert.Equal(t, "", ib.Text())
 }
+
+func TestMouseDoubleClickSelectsWord(t *testing.T) {
+	t.Run("selects word under cursor", func(t *testing.T) {
+		ib := New(WithText("hello world"))
+		ib.Resize(20, 1)
+
+		// Double-click on "world" (text position 6 = screen X 6).
+		clickAt(ib, 6, 0)
+		releaseAt(ib, 6, 0)
+		clickAt(ib, 6, 0)
+
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "world", sel)
+	})
+
+	t.Run("selects first word", func(t *testing.T) {
+		ib := New(WithText("hello world"))
+		ib.Resize(20, 1)
+
+		clickAt(ib, 2, 0)
+		releaseAt(ib, 2, 0)
+		clickAt(ib, 2, 0)
+
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "hello", sel)
+	})
+
+	t.Run("no selection on non-word chars", func(t *testing.T) {
+		ib := New(WithText("hello world"))
+		ib.Resize(20, 1)
+
+		// Double-click on space (position 5).
+		clickAt(ib, 5, 0)
+		releaseAt(ib, 5, 0)
+		clickAt(ib, 5, 0)
+
+		_, ok := ib.Selection()
+		assert.False(t, ok)
+	})
+
+	t.Run("selects URL segment", func(t *testing.T) {
+		ib := New(WithText("http://127.0.0.1:8080/path"))
+		ib.Resize(30, 1)
+
+		// Double-click on '1' of "127" (text position 7).
+		clickAt(ib, 7, 0)
+		releaseAt(ib, 7, 0)
+		clickAt(ib, 7, 0)
+
+		sel, ok := ib.Selection()
+		assert.True(t, ok)
+		assert.Equal(t, "127", sel)
+	})
+}
+
+func TestMouseTripleClickSelectsLine(t *testing.T) {
+	ib := New(WithText("hello world"))
+	ib.Resize(20, 1)
+
+	clickAt(ib, 2, 0)
+	releaseAt(ib, 2, 0)
+	clickAt(ib, 2, 0)
+	releaseAt(ib, 2, 0)
+	clickAt(ib, 2, 0)
+
+	sel, ok := ib.Selection()
+	assert.True(t, ok)
+	assert.Equal(t, "hello world", sel)
+}
+
+func TestMouseSingleClickPositionsCursor(t *testing.T) {
+	ib := New(WithText("hello world"))
+	ib.Resize(20, 1)
+
+	clickAt(ib, 3, 0)
+	releaseAt(ib, 3, 0)
+
+	pos, _, show := ib.Cursor()
+	assert.True(t, show)
+	assert.Equal(t, 3, pos.X)
+	assert.Equal(t, 0, pos.Y)
+}
+
+func TestMouseDragCreatesSelection(t *testing.T) {
+	ib := New(WithText("hello world"))
+	ib.Resize(20, 1)
+
+	// Click at position 2, drag to position 7.
+	clickAt(ib, 2, 0)
+	// Drag (another MouseLeft while pressed).
+	ib.Handle(term.Event{
+		Type: term.EventMouse, Key: term.MouseLeft,
+		MouseX: 7, MouseY: 0,
+	})
+	releaseAt(ib, 7, 0)
+
+	sel, ok := ib.Selection()
+	assert.True(t, ok)
+	assert.Equal(t, "llo w", sel)
+}
+
+func TestMouseClickWithPrompt(t *testing.T) {
+	ib := New(WithPrompt("> "), WithText("hello"))
+	ib.Resize(20, 1)
+
+	// Click on 'e' which is at screen X = 2 (promptWidth) + 1 = 3.
+	clickAt(ib, 3, 0)
+	releaseAt(ib, 3, 0)
+
+	pos, _, show := ib.Cursor()
+	assert.True(t, show)
+	assert.Equal(t, 3, pos.X)
+	assert.Equal(t, 0, pos.Y)
+	// Text position should be 1 ('e' in "hello").
+	assert.Equal(t, 1, ib.cursor)
+}
+
+func TestMouseDoubleClickWithPrompt(t *testing.T) {
+	ib := New(WithPrompt("> "), WithText("hello world"))
+	ib.Resize(20, 1)
+
+	// Double-click on 'w' at screen X = 2 + 6 = 8.
+	clickAt(ib, 8, 0)
+	releaseAt(ib, 8, 0)
+	clickAt(ib, 8, 0)
+
+	sel, ok := ib.Selection()
+	assert.True(t, ok)
+	assert.Equal(t, "world", sel)
+}
+
+// clickAt sends a left mouse button press at the given screen coords.
+func clickAt(ib *Handler, x, y int) {
+	ib.Handle(term.Event{
+		Type: term.EventMouse, Key: term.MouseLeft,
+		MouseX: x, MouseY: y,
+	})
+}
+
+// releaseAt sends a mouse release at the given screen coords.
+func releaseAt(ib *Handler, x, y int) {
+	ib.Handle(term.Event{
+		Type: term.EventMouse, Key: term.MouseRelease,
+		MouseX: x, MouseY: y,
+	})
+}
