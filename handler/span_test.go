@@ -211,3 +211,30 @@ func TestSpanHandle(t *testing.T) {
 		})
 	}
 }
+
+func TestSpanResizesAfterDimensionChange(t *testing.T) {
+	h := NewTestFloating(10, 3)
+	h.Handled = true
+	h.CursorPos = term.Coordinates{X: 5, Y: 0}
+
+	s := NewSpan(h, component.SpanConfig{
+		PadAutoFloating:  true,
+		ContentAlignment: component.AlignmentCentered,
+	})
+	s.Resize(30, 5)
+
+	// Initial: content 10 wide in 30-wide span → padding 20, offset 10.
+	pos, _, _ := s.Cursor()
+	assert.Equal(t, 15, pos.X, "cursor offset by padding/2=10")
+
+	// Simulate content growing (e.g. text typed into an inputbox).
+	h.width = 20
+
+	// Handle an event — the Span should detect the Dimensions
+	// change and re-Resize.
+	s.Handle(term.Event{Type: term.EventKey, Ch: 'a'})
+
+	// After: content 20 wide → padding 10, offset 5.
+	pos, _, _ = s.Cursor()
+	assert.Equal(t, 10, pos.X, "cursor offset by new padding/2=5")
+}

@@ -24,7 +24,12 @@ import (
 // alignment. It is the handler counterpart to component.Span.
 type Span struct {
 	component.Span
+	cfg     component.SpanConfig
 	handler tui.Handler
+	width   int
+	height  int
+	dimh    int
+	dimw    int
 }
 
 var _ Responsive = (*Span)(nil)
@@ -35,8 +40,19 @@ var _ Floating = (*Span)(nil)
 func NewSpan(content tui.Handler, cfg component.SpanConfig) *Span {
 	s := new(Span)
 	s.handler = content
+	s.cfg = cfg
 	s.Init(content, cfg)
 	return s
+}
+
+// Resize satisfies tui.Component
+func (s *Span) Resize(width, height int) {
+	s.width = width
+	s.height = height
+	s.Span.Resize(width, height)
+	if s.cfg.PadAutoFloating {
+		s.dimw, s.dimh = s.Span.Content().(Floating).Dimensions()
+	}
 }
 
 // Handle satisfies tui.Handler by delegating events to the underlying
@@ -48,7 +64,14 @@ func (s *Span) Handle(ev term.Event) (bool, bool) {
 		ev.MouseX = max(0, ev.MouseX-offset.X)
 		ev.MouseY = max(0, ev.MouseY-offset.Y)
 	}
-	return s.handler.Handle(ev)
+	exit, handled := s.handler.Handle(ev)
+	if handled && s.cfg.PadAutoFloating {
+		dimw, dimh := s.Span.Content().(Floating).Dimensions()
+		if dimw != s.dimw || dimh != s.dimh {
+			s.Resize(s.width, s.height)
+		}
+	}
+	return exit, handled
 }
 
 // Cursor satisfies tui.Handler by returning the underlying handler's
