@@ -151,6 +151,92 @@ func TestSpanResizeNegative(t *testing.T) {
 	})
 }
 
+func TestSpanPadAutoFloating(t *testing.T) {
+	t.Run("panics if inner component does not satisfy Floating",
+		func(t *testing.T) {
+			assert.Panics(t, func() {
+				NewSpan(&TestComponent{},
+					SpanConfig{PadAutoFloating: true})
+			})
+		})
+	t.Run("does not panic if inner component satisfies Floating",
+		func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				comp := StaticFloating(
+					&TestComponent{Ch: '*'}, 4, 2)
+				NewSpan(comp,
+					SpanConfig{PadAutoFloating: true})
+			})
+		})
+}
+
+func TestDrawSpanPadAutoFloating(t *testing.T) {
+	inner := StaticFloating(&TestComponent{Ch: '*'}, 4, 2)
+	cfg := DefaultSpanConfig()
+	cfg.PadAutoFloating = true
+	s := NewSpan(inner, cfg)
+	s.Resize(8, 4)
+
+	w := term.NewStringWriter(9, 5)
+
+	tests := []comptest.TestCase{
+		{
+			// inner (4x2) smaller than available (8x4)
+			Action: nil, Expected: "\n" +
+				"         \n" +
+				"  ****   \n" +
+				"  ****   \n" +
+				"         \n" +
+				"         ",
+		}, {
+			// alignment works: right+bottom
+			Action: func() {
+				s.cfg.ContentAlignment =
+					AlignmentRight | AlignmentBottom
+				s.Resize(8, 4)
+			}, Expected: "\n" +
+				"         \n" +
+				"         \n" +
+				"    **** \n" +
+				"    **** \n" +
+				"         ",
+		}, {
+			// inner (4x2) equal to available (4x2)
+			Action: func() {
+				s.cfg.ContentAlignment = AlignmentCentered
+				s.Resize(4, 2)
+			}, Expected: "\n" +
+				"****     \n" +
+				"****     \n" +
+				"         \n" +
+				"         \n" +
+				"         ",
+		}, {
+			// inner (4x2) bigger than available (3x1)
+			Action: func() {
+				s.Resize(3, 1)
+			}, Expected: "\n" +
+				"***      \n" +
+				"         \n" +
+				"         \n" +
+				"         \n" +
+				"         ",
+		}, {
+			// width bigger, height smaller: only h-pad
+			Action: func() {
+				s.Resize(8, 1)
+			}, Expected: "\n" +
+				"  ****   \n" +
+				"         \n" +
+				"         \n" +
+				"         \n" +
+				"         ",
+		},
+	}
+
+	comptest.TestComponent(t, s, w, tests)
+}
+
 func TestDrawDefaultSpan(t *testing.T) {
 	u := &TestComponent{Ch: 'X'}
 	cfg := DefaultSpanConfig()

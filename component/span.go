@@ -39,6 +39,14 @@ type SpanConfig struct {
 	PadHorizontalPerc float64
 	PadVerticalPerc   float64
 
+	// PadAutoFloating calculates horizontal and vertical
+	// padding automatically from the inner component's
+	// Dimensions. The inner component must satisfy Floating
+	// or the constructor will panic. When set, PadHorizontal,
+	// PadVertical, PadHorizontalPerc and PadVerticalPerc are
+	// ignored.
+	PadAutoFloating bool
+
 	ContentAlignment Alignment
 }
 
@@ -73,6 +81,13 @@ func (s *Span) Init(content tui.Component, cfg SpanConfig) {
 	if cfg.PadHorizontalPerc < 0 || cfg.PadHorizontalPerc > 1 ||
 		cfg.PadVerticalPerc < 0 || cfg.PadVerticalPerc > 1 {
 		panic("padding percentage must be between range [0, 1]")
+	}
+
+	if cfg.PadAutoFloating {
+		if _, ok := content.(Floating); !ok {
+			panic("PadAutoFloating requires content " +
+				"to satisfy Floating")
+		}
 	}
 
 	s.cfg = cfg
@@ -120,6 +135,11 @@ func alignContent(
 }
 
 func (s *Span) getPadding(width, height int) (int, int) {
+	if s.cfg.PadAutoFloating {
+		fw, fh := s.content.C.(Floating).Dimensions()
+		return max(0, width-fw), max(0, height-fh)
+	}
+
 	var hPadding, vPadding int
 
 	if s.cfg.PadHorizontal == 0 {
