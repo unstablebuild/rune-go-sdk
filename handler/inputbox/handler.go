@@ -83,7 +83,7 @@ type Handler struct {
 	eof         bool
 }
 
-var _ handler.WithAttributesResponsive = (*Handler)(nil)
+var _ handler.WithAttributesResponsiveFloating = (*Handler)(nil)
 
 // New creates and initializes a new input box with default attributes.
 func New(opts ...Option) *Handler {
@@ -282,6 +282,13 @@ func (ib *Handler) heightNoPrompt(width int) int {
 		textLines += completionGridHeight(ib.completions, width)
 	}
 	return textLines
+}
+
+// Dimensions satisfies component.Floating. It returns
+// the width needed to render the entire input box content
+// on a single line (height is always 1).
+func (ib *Handler) Dimensions() (int, int) {
+	return ib.promptWidth + len(ib.text) + 1, 1
 }
 
 // Draw satisfies tui.Component.

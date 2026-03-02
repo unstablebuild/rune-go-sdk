@@ -916,6 +916,57 @@ func drawHandler(h *Handler, w, hh int) string {
 	return handlertest.DrawHandler(h, w, hh)
 }
 
+func TestDimensions(t *testing.T) {
+	cases := []struct {
+		name   string
+		opts   []Option
+		input  string
+		wantW  int
+		wantH  int
+	}{
+		{
+			name:  "empty no prompt",
+			wantW: 1,
+			wantH: 1,
+		},
+		{
+			name:  "text no prompt",
+			input: "hello",
+			wantW: 6,
+			wantH: 1,
+		},
+		{
+			name:  "empty with prompt",
+			opts:  []Option{WithPrompt("> ")},
+			wantW: 3,
+			wantH: 1,
+		},
+		{
+			name:  "text with prompt",
+			opts:  []Option{WithPrompt("> ")},
+			input: "hello",
+			wantW: 8,
+			wantH: 1,
+		},
+		{
+			name:  "long text",
+			input: "hello world",
+			wantW: 12,
+			wantH: 1,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ib := New(tc.opts...)
+			ib.Resize(20, 1)
+			setText(ib, tc.input)
+			w, h := ib.Dimensions()
+			assert.Equal(t, tc.wantW, w)
+			assert.Equal(t, tc.wantH, h)
+		})
+	}
+}
+
 func TestPromptDisplay(t *testing.T) {
 	t.Run("prompt rendered on first line", func(t *testing.T) {
 		ib := New(WithPrompt("> "))
