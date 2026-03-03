@@ -17,6 +17,7 @@ package workspaceapi
 import (
 	"fmt"
 	"net/url"
+	"os/user"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -173,6 +174,104 @@ func TestRelPath(t *testing.T) {
 			// sut
 			actualOut := RelPath(inWorkspaceURI, inURI)
 			assert.Equal(t, tcase.expectedOut, actualOut)
+		})
+	}
+}
+
+func TestExpandPath(t *testing.T) {
+	stubUser := func() (*user.User, error) {
+		return &user.User{
+			Username: "testuser",
+			HomeDir:  "/home/testuser",
+		}, nil
+	}
+	stubCwd := func() (string, error) {
+		return "/cwd", nil
+	}
+
+	tsuite := []struct {
+		name    string
+		path    string
+		wantOut string
+	}{
+		{"absolute path unchanged", "/tmp/a", "/tmp/a"},
+		{"relative path joined with cwd", "a/b", "/cwd/a/b"},
+		{"tilde expands to home", "~", "/home/testuser"},
+		{
+			"tilde slash expands to home",
+			"~/src", "/home/testuser/src",
+		},
+		{
+			"slash tilde expands to home",
+			"/~/src", "/home/testuser/src",
+		},
+		{
+			"slash tilde alone expands to home",
+			"/~", "/home/testuser",
+		},
+		{
+			"env var $VAR expanded",
+			"$TEST_EXPAND_DIR/file",
+			"/expanded/file",
+		},
+		{
+			"env var ${VAR} expanded",
+			"${TEST_EXPAND_DIR}/file",
+			"/expanded/file",
+		},
+		{
+			"unset env var removed",
+			"$UNSET_VAR_12345/file",
+			"/file",
+		},
+		{
+			"no expansion needed",
+			"/plain/path", "/plain/path",
+		},
+	}
+
+	t.Setenv("TEST_EXPAND_DIR", "/expanded")
+
+	for _, tcase := range tsuite {
+		t.Run(tcase.name, func(t *testing.T) {
+			out, err := ExpandPath(
+				tcase.path, stubUser, stubCwd,
+			)
+			require.NoError(t, err)
+			assert.Equal(t, tcase.wantOut, out)
+		})
+	}
+}
+
+func BenchmarkExpandPath(b *testing.B) {
+	stubUser := func() (*user.User, error) {
+		return &user.User{
+			Username: "testuser",
+			HomeDir:  "/home/testuser",
+		}, nil
+	}
+	stubCwd := func() (string, error) {
+		return "/cwd", nil
+	}
+
+	b.Setenv("BENCH_VAR", "/expanded")
+
+	bsuite := []struct {
+		name string
+		path string
+	}{
+		{"plain_absolute", "/tmp/a/b/c"},
+		{"with_env_var", "$BENCH_VAR/a/b/c"},
+		{"with_tilde", "~/src/project"},
+		{"relative", "a/b/c"},
+	}
+
+	for _, bc := range bsuite {
+		b.Run(bc.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for range b.N {
+				ExpandPath(bc.path, stubUser, stubCwd) //nolint:errcheck
+			}
 		})
 	}
 }

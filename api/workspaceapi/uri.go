@@ -23,8 +23,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-
-	"mvdan.cc/sh/v3/shell"
 )
 
 // URI represents a parsed URI reference.
@@ -160,11 +158,7 @@ func ExpandPath(
 	cwdFn func() (string, error),
 ) (string, error) {
 	// best effort expand with env vars
-	orig := path
-	path, err := shell.Expand(orig, os.Getenv)
-	if err != nil {
-		path = orig
-	}
+	path = os.ExpandEnv(path)
 	if path == "~" || path == "/~" {
 		usr, err := getUser()
 		if err != nil {
