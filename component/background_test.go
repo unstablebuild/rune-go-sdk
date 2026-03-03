@@ -81,6 +81,76 @@ func TestResizeBackground(t *testing.T) {
 	})
 }
 
+func TestResizeBackgroundBufferReuse(t *testing.T) {
+	u := &TestComponent{Ch: 'X'}
+	b := WithBackground(u, term.Cell{Ch: 'O'})
+
+	tsuite := []struct {
+		name           string
+		width, height  int
+		expectW, expectH int
+	}{
+		{"initial", 10, 5, 10, 5},
+		{"shrink both", 5, 3, 5, 3},
+		{"grow back", 10, 5, 10, 5},
+		{"grow width only", 15, 5, 15, 5},
+		{"grow height only", 15, 8, 15, 8},
+		{"shrink to 1x1", 1, 1, 1, 1},
+		{"back to normal", 10, 5, 10, 5},
+	}
+
+	for _, tcase := range tsuite {
+		t.Run(tcase.name, func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				b.Resize(tcase.width, tcase.height)
+				w := term.NewStringWriter(
+					tcase.expectW, tcase.expectH,
+				)
+				b.Draw(w)
+			})
+		})
+	}
+}
+
+func BenchmarkBackgroundResize(b *testing.B) {
+	bsuite := []struct {
+		name          string
+		width, height int
+	}{
+		{"80x24", 80, 24},
+		{"200x50", 200, 50},
+		{"400x100", 400, 100},
+	}
+
+	for _, bc := range bsuite {
+		b.Run(bc.name+"/same_size", func(b *testing.B) {
+			bg := WithBackground(
+				&TestComponent{}, term.Cell{Ch: 'O'},
+			)
+			bg.Resize(bc.width, bc.height)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				bg.Resize(bc.width, bc.height)
+			}
+		})
+		b.Run(bc.name+"/shrink_grow", func(b *testing.B) {
+			bg := WithBackground(
+				&TestComponent{}, term.Cell{Ch: 'O'},
+			)
+			bg.Resize(bc.width, bc.height)
+			half := bc.width / 2
+			halfH := bc.height / 2
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				bg.Resize(half, halfH)
+				bg.Resize(bc.width, bc.height)
+			}
+		})
+	}
+}
+
 func TestDrawBackground(t *testing.T) {
 	u := &TestComponent{Ch: 'X'}
 	s := NewSpan(u, SpanConfig{

@@ -119,10 +119,23 @@ func (b *Background) zeroCells() {
 }
 
 func (b *Background) resizeCells(width, height int) {
-	b.zero = make([]term.Cell, width)
-	b.buffer = make([][]term.Cell, height)
-	for i := 0; i < b.height; i++ {
-		b.buffer[i] = make([]term.Cell, width)
+	if cap(b.zero) >= width {
+		b.zero = b.zero[:width]
+		clear(b.zero)
+	} else {
+		b.zero = make([]term.Cell, width)
+	}
+	if cap(b.buffer) >= height {
+		b.buffer = b.buffer[:height]
+	} else {
+		b.buffer = make([][]term.Cell, height)
+	}
+	for i := range height {
+		if cap(b.buffer[i]) >= width {
+			b.buffer[i] = b.buffer[i][:width]
+		} else {
+			b.buffer[i] = make([]term.Cell, width)
+		}
 	}
 }
 
