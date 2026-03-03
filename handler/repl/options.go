@@ -93,6 +93,15 @@ func WithRunningAnimationFrames(frames []string, sequence []int) Option {
 	}
 }
 
+// WithExitError configures an error that, when
+// returned by HandleCommand (detected via errors.Is),
+// causes the REPL to exit on the next call to Handle.
+func WithExitError(err error) Option {
+	return func(h *Handler) {
+		h.exitError = err
+	}
+}
+
 // defaultSuccessAttr returns the default success attributes.
 func defaultSuccessAttr() term.Attributes {
 	return term.Attributes{Fg: tcell.ColorGreen}

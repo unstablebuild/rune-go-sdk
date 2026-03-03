@@ -17,6 +17,7 @@ package repl
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"testing"
@@ -621,6 +622,116 @@ func TestHistoryPersistence(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"cmd1", "cmd2"}, doc.Items)
+}
+
+func TestExitError(t *testing.T) {
+	exitErr := errors.New("exit")
+	th := &testHandler{
+		handleFn: func(
+			_ context.Context, cmd Command,
+		) (
+			iterator.Iterator[component.Responsive],
+			error,
+		) {
+			if cmd.Name == "quit" {
+				return nil, exitErr
+			}
+			return iterator.FromSlice[component.Responsive](nil), nil
+		},
+	}
+	h := New(
+		th, nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithExitError(exitErr),
+	)
+	h.Resize(40, 10)
+
+	sendKeys(t, h, "quit")
+	exit, handled := h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+	// The command dispatches asynchronously; exit is
+	// not immediate on the same Handle call.
+	assert.False(t, exit)
+	assert.True(t, handled)
+
+	// Wait for the dispatch goroutine to set
+	// exitPending.
+	h.Wait()
+
+	// The next Handle call should return exit.
+	exit, handled = h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+	assert.True(t, exit)
+	assert.True(t, handled)
+}
+
+func TestExitErrorWrapped(t *testing.T) {
+	exitErr := errors.New("exit")
+	th := &testHandler{
+		handleFn: func(
+			_ context.Context, _ Command,
+		) (
+			iterator.Iterator[component.Responsive],
+			error,
+		) {
+			return nil, fmt.Errorf("quitting: %w", exitErr)
+		},
+	}
+	h := New(
+		th, nopSchedule, term.NopInterrupter(),
+		WithExitError(exitErr),
+	)
+	h.Resize(40, 10)
+
+	sendKeys(t, h, "quit")
+	h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+	h.Wait()
+
+	exit, _ := h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+	assert.True(t, exit)
+}
+
+func TestExitErrorNotConfigured(t *testing.T) {
+	th := &testHandler{
+		handleFn: func(
+			_ context.Context, _ Command,
+		) (
+			iterator.Iterator[component.Responsive],
+			error,
+		) {
+			return nil, errors.New("exit")
+		},
+	}
+	h := New(
+		th, nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+	)
+	h.Resize(40, 10)
+
+	sendKeys(t, h, "quit")
+	h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+	h.Wait()
+
+	// Without WithExitError, the error is just
+	// displayed; Handle does not return exit.
+	exit, _ := h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+	assert.False(t, exit)
 }
 
 func TestHistoryPreloaded(t *testing.T) {

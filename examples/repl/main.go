@@ -28,7 +28,13 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/tui"
 )
 
-var commands = []string{"clear", "echo", "exit", "help", "history", "quit"}
+var (
+	commands = []string{
+		"clear", "echo", "exit",
+		"help", "history", "quit",
+	}
+	errExit = errors.New("exit requested")
+)
 
 type interpHandler struct{}
 
@@ -43,7 +49,7 @@ func (interpHandler) HandleCommand(
 	case "history":
 		return stringIter("(use Up/Down to browse history)"), nil
 	case "quit", "exit":
-		return nil, errors.New("bye")
+		return nil, errExit
 	default:
 		return nil, errors.New("Unknown: " + cmd.Name + ". Try 'help'.")
 	}
@@ -82,6 +88,7 @@ func main() {
 		}),
 		repl.WithPrompt("interp> "),
 		repl.WithTabStyle(inputbox.TabPrints),
+		repl.WithExitError(errExit),
 	)
 	if err := tui.Run(r); err != nil {
 		log.Fatal(err)

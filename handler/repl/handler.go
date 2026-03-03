@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagestub"
@@ -67,13 +68,20 @@ type Handler struct {
 	lastCmdValid    bool
 
 	// Spinner animation.
-	spinner     *component.Animation
-	spinnerVirt component.Virtual[*component.Animation]
-	animFrames  []string
+	spinner      *component.Animation
+	spinnerVirt  component.Virtual[*component.Animation]
+	animFrames   []string
 	animSequence []int
 
 	cmdCtx    context.Context
 	cmdCancel context.CancelFunc
+
+	// exitError, when non-nil, is compared with
+	// errors.Is against errors returned by
+	// HandleCommand. A match causes the REPL to
+	// exit on the next call to Handle.
+	exitError   error
+	exitPending atomic.Bool
 
 	// wg tracks in-flight command goroutines launched by
 	// dispatchCommand. Add is only called from Handle
@@ -147,6 +155,9 @@ func (h *Handler) Draw(w term.Writer) {
 
 // Handle satisfies tui.Handler.
 func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
+	if h.exitPending.Load() {
+		return true, true
+	}
 	exit, handled = h.rl.Handle(ev)
 	if !exit {
 		h.updateInputStyle()
@@ -331,10 +342,16 @@ func (h *Handler) dispatchCommand(text string) {
 		})
 		iter, err := h.cmd.HandleCommand(ctx, cmd)
 		if err != nil {
+			isExit := h.exitError != nil && errors.Is(err, h.exitError)
+			if isExit {
+				h.exitPending.Store(true)
+			}
 			h.scheduleNextTick(func() {
 				h.stopSpinner()
-				promptLine.setPromptAttr(h.errorAttr)
-				h.addErrorLine(err.Error())
+				if !isExit {
+					promptLine.setPromptAttr(h.errorAttr)
+					h.addErrorLine(err.Error())
+				}
 				h.output.C.ScrollToBottom()
 				h.layout()
 			})
@@ -387,6 +404,12 @@ func (h *Handler) dispatchCommand(text string) {
 		}
 
 		iterErr := iter.Err()
+		isExit := h.exitError != nil &&
+			iterErr != nil &&
+			errors.Is(iterErr, h.exitError)
+		if isExit {
+			h.exitPending.Store(true)
+		}
 		h.scheduleNextTick(func() {
 			// Flush remaining items that arrived after
 			// the last drain tick.
@@ -400,10 +423,10 @@ func (h *Handler) dispatchCommand(text string) {
 			}
 
 			h.stopSpinner()
-			if iterErr != nil {
+			if iterErr != nil && !isExit {
 				promptLine.setPromptAttr(h.errorAttr)
 				h.addErrorLine(iterErr.Error())
-			} else {
+			} else if iterErr == nil {
 				promptLine.setPromptAttr(h.successAttr)
 			}
 			h.output.C.ScrollToBottom()
