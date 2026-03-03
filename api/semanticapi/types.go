@@ -1891,21 +1891,24 @@ type DidSaveTextDocumentParams struct {
 
 // CompletionParams contains the parameters for a Completion request.
 type CompletionParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
-	Context      *CompletionContext     `json:"context,omitempty"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	Context       *CompletionContext     `json:"context,omitempty"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // HoverParams contains the parameters for a Hover request.
 type HoverParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // SignatureHelpParams contains the parameters for a SignatureHelp request.
 type SignatureHelpParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DefinitionParams contains the parameters for a Definition request.
@@ -1946,13 +1949,15 @@ type ReferenceParams struct {
 
 // DocumentHighlightParams contains the parameters for a DocumentHighlight request.
 type DocumentHighlightParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DocumentSymbolParams contains the parameters for a DocumentSymbol request.
 type DocumentSymbolParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // CodeActionParams contains the parameters for a CodeAction request.
@@ -1965,20 +1970,23 @@ type CodeActionParams struct {
 
 // CodeLensParams contains the parameters for a CodeLens request.
 type CodeLensParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DocumentFormattingParams contains the parameters for a Formatting request.
 type DocumentFormattingParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Options      FormattingOptions      `json:"options"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Options       FormattingOptions      `json:"options"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DocumentRangeFormattingParams contains the parameters for a RangeFormatting request.
 type DocumentRangeFormattingParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Range        Range                  `json:"range"`
-	Options      FormattingOptions      `json:"options"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Range         Range                  `json:"range"`
+	Options       FormattingOptions      `json:"options"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // RenameParams contains the parameters for a Rename request.
@@ -2061,29 +2069,34 @@ func (p *PrepareRenameResult) UnmarshalJSON(data []byte) error {
 
 // FoldingRangeParams contains the parameters for a FoldingRange request.
 type FoldingRangeParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // SelectionRangeParams contains the parameters for a SelectionRange request.
 type SelectionRangeParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Positions    []Position             `json:"positions"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Positions     []Position             `json:"positions"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // SemanticTokensParams contains the parameters for a SemanticTokensFull request.
 type SemanticTokensParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // SemanticTokensRangeParams contains the parameters for a SemanticTokensRange request.
 type SemanticTokensRangeParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Range        Range                  `json:"range"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Range         Range                  `json:"range"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DocumentDiagnosticParams contains the parameters for a Diagnostic request.
 type DocumentDiagnosticParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // PreviousResultID pairs a document URI with a previous diagnostic result ID.
@@ -2096,7 +2109,7 @@ type PreviousResultID struct {
 type WorkspaceDiagnosticParams struct {
 	Identifier        string             `json:"identifier,omitempty"`
 	PreviousResultIDs []PreviousResultID `json:"previousResultIds,omitempty"`
-	WorkDoneToken     string             `json:"workDoneToken,omitempty"`
+	WorkDoneToken     *ProgressToken     `json:"workDoneToken,omitempty"`
 }
 
 // WorkspaceDocumentDiagnosticReport is a per-document diagnostic report
@@ -2129,35 +2142,41 @@ type ExecuteCommandParams struct {
 
 // CallHierarchyPrepareParams contains the parameters for a PrepareCallHierarchy request.
 type CallHierarchyPrepareParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // CallHierarchyIncomingCallsParams contains the parameters for an IncomingCalls request.
 type CallHierarchyIncomingCallsParams struct {
-	Item CallHierarchyItem `json:"item"`
+	Item          CallHierarchyItem `json:"item"`
+	WorkDoneToken *ProgressToken    `json:"workDoneToken,omitempty"`
 }
 
 // CallHierarchyOutgoingCallsParams contains the parameters for an OutgoingCalls request.
 type CallHierarchyOutgoingCallsParams struct {
-	Item CallHierarchyItem `json:"item"`
+	Item          CallHierarchyItem `json:"item"`
+	WorkDoneToken *ProgressToken    `json:"workDoneToken,omitempty"`
 }
 
 // DocumentColorParams contains the parameters for a DocumentColor request.
 type DocumentColorParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // ColorPresentationParams contains the parameters for a ColorPresentation request.
 type ColorPresentationParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Color        Color                  `json:"color"`
-	Range        Range                  `json:"range"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Color         Color                  `json:"color"`
+	Range         Range                  `json:"range"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DocumentLinkParams contains the parameters for a DocumentLink request.
 type DocumentLinkParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DocumentOnTypeFormattingParams contains the parameters for an OnTypeFormatting request.
@@ -2170,14 +2189,16 @@ type DocumentOnTypeFormattingParams struct {
 
 // LinkedEditingRangeParams contains the parameters for a LinkedEditingRange request.
 type LinkedEditingRangeParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // MonikerParams contains the parameters for a Moniker request.
 type MonikerParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // WillSaveTextDocumentParams contains the parameters for a WillSave notification/request.
@@ -2190,34 +2211,40 @@ type WillSaveTextDocumentParams struct {
 type SemanticTokensDeltaParams struct {
 	TextDocument     TextDocumentIdentifier `json:"textDocument"`
 	PreviousResultID string                 `json:"previousResultId"`
+	WorkDoneToken    *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // TypeHierarchyPrepareParams contains the parameters for a PrepareTypeHierarchy request.
 type TypeHierarchyPrepareParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Position      Position               `json:"position"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // TypeHierarchySupertypesParams contains the parameters for a TypeHierarchySupertypes request.
 type TypeHierarchySupertypesParams struct {
-	Item TypeHierarchyItem `json:"item"`
+	Item          TypeHierarchyItem `json:"item"`
+	WorkDoneToken *ProgressToken    `json:"workDoneToken,omitempty"`
 }
 
 // TypeHierarchySubtypesParams contains the parameters for a TypeHierarchySubtypes request.
 type TypeHierarchySubtypesParams struct {
-	Item TypeHierarchyItem `json:"item"`
+	Item          TypeHierarchyItem `json:"item"`
+	WorkDoneToken *ProgressToken    `json:"workDoneToken,omitempty"`
 }
 
 // InlayHintParams contains the parameters for an InlayHint request.
 type InlayHintParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Range        Range                  `json:"range"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Range         Range                  `json:"range"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // InlineValueParams contains the parameters for an InlineValue request.
 type InlineValueParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Range        Range                  `json:"range"`
+	TextDocument  TextDocumentIdentifier `json:"textDocument"`
+	Range         Range                  `json:"range"`
+	WorkDoneToken *ProgressToken         `json:"workDoneToken,omitempty"`
 }
 
 // DidChangeConfigurationParams contains the parameters for a DidChangeConfiguration notification.
