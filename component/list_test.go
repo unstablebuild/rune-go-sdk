@@ -740,3 +740,23 @@ func BenchmarkListSeekEndDraw1000(b *testing.B) {
 func BenchmarkListSeekEndDraw100000(b *testing.B) {
 	benchmarkListSeekEndDraw(b, 100000)
 }
+
+func TestListNodePosition(t *testing.T) {
+	l := NewList(3)
+	a := l.PushBack(&TestComponent{Ch: 'A'})
+	b := l.PushBack(&TestComponent{Ch: 'B'})
+	c := l.PushBack(&TestComponent{Ch: 'C'})
+
+	l.Resize(10, 9)
+	w := term.NewStringWriter(10, 9)
+	l.Draw(w)
+
+	assert.Equal(t, term.Coordinates{X: 0, Y: 0}, a.Position())
+	assert.Equal(t, term.Coordinates{X: 0, Y: 3}, b.Position())
+	assert.Equal(t, term.Coordinates{X: 0, Y: 6}, c.Position())
+}
+
+func TestListNodePositionZeroValue(t *testing.T) {
+	var node ListNode
+	assert.Equal(t, term.Coordinates{}, node.Position())
+}

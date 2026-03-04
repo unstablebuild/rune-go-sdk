@@ -398,6 +398,15 @@ func (e ListNode) Next() (ListNode, bool) {
 	return e.l.listNode(e.el.Next()), true
 }
 
+// Position returns the viewport coordinates of this node,
+// as set during the last Draw call.
+func (e ListNode) Position() term.Coordinates {
+	if e.el == nil || e.el.Value == nil {
+		return term.Coordinates{}
+	}
+	return e.el.Value.(*Virtual[tui.Component]).Position()
+}
+
 // ElementAt returns the element at pos Coordinates or panics if
 // coordinates are out of the bounds of this List.
 func (l *List) ElementAt(pos term.Coordinates) (ListNode, bool) {
