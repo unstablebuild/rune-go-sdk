@@ -30,7 +30,7 @@ func testDrawPrompt(
 	t.Helper()
 	s := NewPrompt(cfg)
 	s.Resize(width, height)
-	w := term.NewStringWriter(width+1, height+1)
+	w := term.NewStringWriter(width, height)
 	tests := []comptest.TestCase{
 		{Expected: expectedOut},
 	}
@@ -42,20 +42,18 @@ func TestDrawPrompt(t *testing.T) {
 		testDrawPrompt(t, PromptConfig{
 			Message: "Do you?",
 			Options: []string{"Yay", "Nay"},
-			// 20 wide: each option span = 10 columns
-			// "Yay" centered in 10: x=3, "Nay" centered in 10: x=13
+			// 20 wide, uniform width=3, gap=4, group=10, startX=5
 		}, 20, 10,
-			"                     \n"+
-				"                     \n"+
-				"      Do you?        \n"+
-				"                     \n"+
-				"                     \n"+
-				"                     \n"+
-				"                     \n"+
-				"                     \n"+
-				"                     \n"+
-				"   Yay       Nay     \n"+
-				"                     ",
+			"                    \n"+
+				"                    \n"+
+				"      Do you?       \n"+
+				"                    \n"+
+				"                    \n"+
+				"                    \n"+
+				"                    \n"+
+				"                    \n"+
+				"                    \n"+
+				"     Yay    Nay     ",
 		)
 	})
 
@@ -64,21 +62,18 @@ func TestDrawPrompt(t *testing.T) {
 			Message: "Do you?",
 			Options: []string{"Yay", "Nay"},
 			Frame:   FrameCharSetDefault(),
-			// 20 wide: each option span = 10 columns
-			// "Yay" frame (7) centered in 10: x=1
-			// "Nay" frame (7) centered in 10: x=11
+			// 20 wide, uniform width=7, gap=2, group=16, startX=2
 		}, 20, 10,
-			"                     \n"+
-				"                     \n"+
-				"      Do you?        \n"+
-				"                     \n"+
-				"                     \n"+
-				"                     \n"+
-				"                     \n"+
-				" ┌─────┐   ┌─────┐   \n"+
-				" │ Yay │   │ Nay │   \n"+
-				" └─────┘   └─────┘   \n"+
-				"                     ",
+			"                    \n"+
+				"                    \n"+
+				"      Do you?       \n"+
+				"                    \n"+
+				"                    \n"+
+				"                    \n"+
+				"                    \n"+
+				"  ┌─────┐  ┌─────┐  \n"+
+				"  │ Yay │  │ Nay │  \n"+
+				"  └─────┘  └─────┘  ",
 		)
 	})
 
@@ -87,33 +82,27 @@ func TestDrawPrompt(t *testing.T) {
 			Message: "Why?",
 			Options: []string{"Yay", "Nay", "Say"},
 			Frame:   FrameCharSetDefault(),
-			// 30 wide: each option span = 10 columns (4 of 12)
-			// Each frame (7) centered in 10: offset=1
-			// Frames at x=1, x=11, x=21
+			// 30 wide, uniform width=7, gaps=3+2, startX=2
 		}, 30, 10,
-			"                               \n"+
-				"                               \n"+
-				"             Why?              \n"+
-				"                               \n"+
-				"                               \n"+
-				"                               \n"+
-				"                               \n"+
-				" ┌─────┐   ┌─────┐   ┌─────┐   \n"+
-				" │ Yay │   │ Nay │   │ Say │   \n"+
-				" └─────┘   └─────┘   └─────┘   \n"+
-				"                               ",
+			"                              \n"+
+				"                              \n"+
+				"             Why?             \n"+
+				"                              \n"+
+				"                              \n"+
+				"                              \n"+
+				"                              \n"+
+				"  ┌─────┐   ┌─────┐  ┌─────┐  \n"+
+				"  │ Yay │   │ Nay │  │ Say │  \n"+
+				"  └─────┘   └─────┘  └─────┘  ",
 		)
 	})
 
-	t.Run("with frame even text centering", func(t *testing.T) {
+	t.Run("with frame uniform width centering", func(t *testing.T) {
 		testDrawPrompt(t, PromptConfig{
 			Message: "Install?",
 			Options: []string{"Go", "Skip"},
 			Frame:   FrameCharSetDefault(),
-			// 24 wide: each option span = 12 columns
-			// "Go" frame (6) centered in 12: x=3
-			// "Skip" frame (8) centered in 12: x=14
-		}, 24, 10,
+		}, 25, 10,
 			"                         \n"+
 				"                         \n"+
 				"        Install?         \n"+
@@ -121,19 +110,40 @@ func TestDrawPrompt(t *testing.T) {
 				"                         \n"+
 				"                         \n"+
 				"                         \n"+
-				"   ┌────┐     ┌──────┐   \n"+
-				"   │ Go │     │ Skip │   \n"+
-				"   └────┘     └──────┘   \n"+
-				"                         ",
+				"   ┌──────┐   ┌──────┐   \n"+
+				"   │  Go  │   │ Skip │   \n"+
+				"   └──────┘   └──────┘   ",
 		)
 	})
 }
 
+func TestDrawPromptFourButtons(t *testing.T) {
+	e80 := "                                                                                "
+	// Message centered in 80 columns.
+	m80 := "                    File is already open by another process.                    "
+
+	// Uniform width = 15 (widest: "Open rdonly"=11+2pad+2frame).
+	// 4 buttons of 15 = 60. Gap = (80-60)/5 = 4. Group = 72.
+	// startX = (80-72)/2 = 4. All gaps equal to 4.
+	testDrawPrompt(t, PromptConfig{
+		Message: "File is already open by another process.",
+		Options: []string{
+			"Recover", "Open rdonly", "force Edit", "Skip",
+		},
+		Frame: FrameCharSetDefault(),
+	}, 80, 10,
+		e80+"\n"+e80+"\n"+m80+"\n"+
+			e80+"\n"+e80+"\n"+e80+"\n"+e80+"\n"+
+			"    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    \n"+
+			"    │   Recover   │    │ Open rdonly │    │ force Edit  │    │    Skip     │    \n"+
+			"    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    ",
+	)
+}
+
 func TestDrawPromptWide(t *testing.T) {
-	// 101-char empty line (width=100 + 1 writer column).
-	e := "                                                                                                     "
+	e := "                                                                                                    "
 	// Message line: "Sure?" centered in 100 columns.
-	m := "                                               Sure?                                                 "
+	m := "                                               Sure?                                                "
 
 	t.Run("single button", func(t *testing.T) {
 		// optCols = 12 (all columns), span = 100 wide
@@ -144,45 +154,39 @@ func TestDrawPromptWide(t *testing.T) {
 			Frame:   FrameCharSetDefault(),
 		}, 100, 10,
 			e+"\n"+e+"\n"+m+"\n"+e+"\n"+e+"\n"+e+"\n"+e+"\n"+
-				"                                               ┌────┐                                                \n"+
-				"                                               │ Ok │                                                \n"+
-				"                                               └────┘                                                \n"+
-				e,
+				"                                               ┌────┐                                               \n"+
+				"                                               │ Ok │                                               \n"+
+				"                                               └────┘                                               ",
 		)
 	})
 
 	t.Run("two buttons", func(t *testing.T) {
-		// optCols = 6, each span = 50 wide
-		// "Ok" frame (6) centered in 50: x=22
-		// "Cancel" frame (10) centered in 50: x=70
+		// uniform width=10 (widest: "Cancel"), gap=26,
+		// group=46, startX=27
 		testDrawPrompt(t, PromptConfig{
 			Message: "Sure?",
 			Options: []string{"Ok", "Cancel"},
 			Frame:   FrameCharSetDefault(),
 		}, 100, 10,
 			e+"\n"+e+"\n"+m+"\n"+e+"\n"+e+"\n"+e+"\n"+e+"\n"+
-				"                      ┌────┐                                          ┌────────┐                     \n"+
-				"                      │ Ok │                                          │ Cancel │                     \n"+
-				"                      └────┘                                          └────────┘                     \n"+
-				e,
+				"                           ┌────────┐                          ┌────────┐                           \n"+
+				"                           │   Ok   │                          │ Cancel │                           \n"+
+				"                           └────────┘                          └────────┘                           ",
 		)
 	})
 
 	t.Run("three buttons", func(t *testing.T) {
-		// optCols = 4, each span = 33 wide (99 of 100 used)
-		// "Ok" frame (6) centered in 33: x=13
-		// "Cancel" frame (10) centered in 33: x=44
-		// "Help" frame (8) centered in 33: x=78
+		// uniform width=10 (widest: "Cancel"), gap=17,
+		// group=64, startX=18
 		testDrawPrompt(t, PromptConfig{
 			Message: "Sure?",
 			Options: []string{"Ok", "Cancel", "Help"},
 			Frame:   FrameCharSetDefault(),
 		}, 100, 10,
 			e+"\n"+e+"\n"+m+"\n"+e+"\n"+e+"\n"+e+"\n"+e+"\n"+
-				"             ┌────┐                         ┌────────┐                        ┌──────┐               \n"+
-				"             │ Ok │                         │ Cancel │                        │ Help │               \n"+
-				"             └────┘                         └────────┘                        └──────┘               \n"+
-				e,
+				"                  ┌────────┐                 ┌────────┐                 ┌────────┐                  \n"+
+				"                  │   Ok   │                 │ Cancel │                 │  Help  │                  \n"+
+				"                  └────────┘                 └────────┘                 └────────┘                  ",
 		)
 	})
 }
@@ -262,9 +266,9 @@ func TestPromptInitReset(t *testing.T) {
 				"                     \n" +
 				"                     \n" +
 				"                     \n" +
-				"  yyyyyy    nnnnnn   \n" +
-				"  yyyyyy    nnnnnn   \n" +
-				"  yyyyyy    nnnnnn   \n" +
+				"   yyyyyy  nnnnnn    \n" +
+				"   yyyyyy  nnnnnn    \n" +
+				"   yyyyyy  nnnnnn    \n" +
 				"                     ",
 			},
 		}
@@ -303,10 +307,10 @@ func TestPromptDimensions(t *testing.T) {
 			Frame:   FrameCharSetDefault(),
 		})
 		w, _ := p.Dimensions()
-		// Each option gets an equal-width span. The widest button
-		// is "Open rdonly" = 11+2pad+2frame = 15. With 4 equal
-		// spans the minimum width is 4*15 = 60.
-		assert.Equal(t, 60, w)
+		// Widest button is "Open rdonly" = 11+2pad+2frame = 15.
+		// 4 buttons × 15 = 60 + 2-cell gaps × 5 = 10 → 70.
+		// Parity: (70-60) % 5 = 0 (even), no adjustment.
+		assert.Equal(t, 70, w)
 	})
 
 	t.Run("respects MinWidth", func(t *testing.T) {
@@ -316,6 +320,23 @@ func TestPromptDimensions(t *testing.T) {
 			MinWidth: 50,
 		})
 		w, _ := p.Dimensions()
-		assert.GreaterOrEqual(t, w, 50)
+		// n=1, maxW=1. optWidth = 1+2*2 = 5. MinWidth=50 wins.
+		// Parity: (50-1) % 2 = 1 (odd), bumped to 51.
+		assert.Equal(t, 51, w)
+	})
+
+	t.Run("parity adjustment for symmetric centering", func(t *testing.T) {
+		p := NewPrompt(PromptConfig{
+			Message: "?",
+			Options: []string{"Aa", "Bb", "Cc"},
+			Frame:   FrameCharSetDefault(),
+		})
+		w, _ := p.Dimensions()
+		// n=3, maxW=6 (2+2pad+2frame). optWidth=18+8=26.
+		// Parity: (26-18) % 4 = 0 (even), no adjustment.
+		assert.Equal(t, 26, w)
+		// Verify centering is symmetric at this width:
+		// innerGap=(26-18)/4=2, group=18+4=22, margin=(26-22)/2=2.
+		// left == right == 2. ✓
 	})
 }

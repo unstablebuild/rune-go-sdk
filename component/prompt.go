@@ -21,14 +21,16 @@ import (
 
 // Prompt implements a prompt / question with options component.
 type Prompt struct {
-	optComp       []WithAttributes
-	optContainer  Virtual[tui.Component]
-	optCols       int
-	message       tui.Component
-	cfg           PromptConfig
-	width, height int
-	msgHeight     int
-	makeOptionFn  func(msg string, cfg PromptConfig) floatingOption
+	optComp      []WithAttributes
+	optVirtuals  []Virtual[tui.Component]
+	optMaxWidth  int
+	optMaxHeight int
+	message      tui.Component
+	cfg          PromptConfig
+	width        int
+	height       int
+	msgHeight    int
+	makeOptionFn func(msg string, cfg PromptConfig) floatingOption
 }
 
 // floatingOption is a Floating component that also supports SetAttr.
@@ -63,13 +65,23 @@ func (p *Prompt) Init(cfg PromptConfig) {
 		}
 		text := &stringComp{cells: cells, attr: textAttr}
 		if !hasFrame {
-			return text
+			return NewSpan(text, SpanConfig{
+				PadAutoFloating:  true,
+				ContentAlignment: AlignmentCentered,
+			})
 		}
-		span := NewSpan(text, SpanConfig{
+		// Inner span provides minimum padding around the text.
+		// Outer span auto-centers the padded text when the
+		// frame is wider than its natural width (uniform sizing).
+		inner := NewSpan(text, SpanConfig{
 			PadHorizontal:    2,
 			ContentAlignment: AlignmentCentered,
 		})
-		frame := NewFrame(span)
+		outer := NewSpan(inner, SpanConfig{
+			PadAutoFloating:  true,
+			ContentAlignment: AlignmentCentered,
+		})
+		frame := NewFrame(outer)
 		frame.FrameCharSet = cfg.Frame
 		frame.Attributes = textAttr
 		return frame
@@ -97,8 +109,39 @@ func (p *Prompt) Resize(width, height int) {
 	p.msgHeight = max(0, height-optHeight)
 	p.message.Resize(width, p.msgHeight)
 
-	p.optContainer.Move(term.Coordinates{Y: p.msgHeight})
-	p.optContainer.Resize(width, optHeight)
+	n := len(p.optVirtuals)
+	if n == 0 {
+		return
+	}
+
+	innerGap := (width - n*p.optMaxWidth) / (n + 1)
+	if innerGap < 0 {
+		innerGap = 0
+	}
+	groupWidth := n*p.optMaxWidth + (n-1)*innerGap
+
+	// Ensure symmetric margins: when (width − groupWidth) is
+	// odd, widen one inner gap by 1 so margins split evenly.
+	extraGap := 0
+	if n > 1 && (width-groupWidth)%2 != 0 {
+		extraGap = 1
+		groupWidth++
+	}
+	startX := (width - groupWidth) / 2
+
+	x := startX
+	for i := range p.optVirtuals {
+		p.optVirtuals[i].Move(
+			term.Coordinates{X: x, Y: p.msgHeight})
+		p.optVirtuals[i].Resize(p.optMaxWidth, optHeight)
+		if i < n-1 {
+			gap := innerGap
+			if i == 0 && extraGap > 0 {
+				gap++
+			}
+			x += p.optMaxWidth + gap
+		}
+	}
 }
 
 // Draw satisfies tui.Component
@@ -115,7 +158,9 @@ func (p *Prompt) Draw(w term.Writer) {
 	}
 
 	p.message.Draw(w)
-	p.optContainer.Draw(w)
+	for i := range p.optVirtuals {
+		p.optVirtuals[i].Draw(w)
+	}
 }
 
 // Dimensions satisfies Floating.
@@ -123,46 +168,35 @@ func (p *Prompt) Dimensions() (int, int) {
 	msgWidth, msgHeight := p.message.(Floating).Dimensions()
 	optWidth, optHeight := p.optsDimensions()
 	width := max(msgWidth, optWidth, p.cfg.MinWidth)
+
+	// Ensure symmetric centering: the remainder
+	// (width − n·maxW) mod (n+1) must be even so that
+	// (width − groupWidth) divides evenly by 2.
+	n := len(p.optComp)
+	if n > 0 && (width-n*p.optMaxWidth)%(n+1)%2 != 0 {
+		width++
+	}
+
 	return width, msgHeight + optHeight
 }
 
-func (p *Prompt) optsDimensions() (totalWidth, maxHeight int) {
-	var maxWidth int
-	for _, opt := range p.optComp {
-		w, h := opt.(Floating).Dimensions()
-		if w > maxWidth {
-			maxWidth = w
-		}
-		if h > maxHeight {
-			maxHeight = h
-		}
-	}
-	// Each option is placed in an equal-width span, so the total
-	// width must be n * maxWidth to fit all buttons centered.
-	totalWidth = len(p.optComp) * maxWidth
-	return
+func (p *Prompt) optsDimensions() (int, int) {
+	n := len(p.optComp)
+	// Minimum width: buttons + 2-cell gap on each edge
+	// and between each pair of buttons.
+	return n*p.optMaxWidth + 2*(n+1), p.optMaxHeight
 }
 
 // OptionAt returns the index of the option at the given coordinates,
 // or -1 if no option is at that position.
 func (p *Prompt) OptionAt(x, y int) int {
-	_, optHeight := p.optsDimensions()
-	if y < p.msgHeight || y >= p.msgHeight+optHeight {
-		return -1
-	}
-
-	colW := rowColWidth(p.width)
-	spanWidth := int(float64(p.optCols) * colW)
-	offset := 0
-	for i := range p.optComp {
-		bw, bh := p.optComp[i].(Floating).Dimensions()
-		hPad := max(0, spanWidth-bw)
-		btnX := offset + hPad/2
-		if x >= btnX && x < btnX+bw &&
-			y >= p.msgHeight && y < p.msgHeight+bh {
+	for i := range p.optVirtuals {
+		pos := p.optVirtuals[i].Position()
+		h := p.optVirtuals[i].Height()
+		if x >= pos.X && x < pos.X+p.optMaxWidth &&
+			y >= pos.Y && y < pos.Y+h {
 			return i
 		}
-		offset += spanWidth
 	}
 	return -1
 }
@@ -172,24 +206,28 @@ func (p *Prompt) initOptions(cfg PromptConfig) {
 		panic("Options should be greater than zero")
 	}
 
-	// allow for Init to be used as reset
-	p.optComp = make([]WithAttributes, 0, len(cfg.Options))
+	n := len(cfg.Options)
+	p.optComp = make([]WithAttributes, 0, n)
+	p.optVirtuals = make([]Virtual[tui.Component], n)
 
-	container := NewContainer()
-	row := container.AddRow()
-	p.optCols = MaxCols / len(cfg.Options)
-
-	for _, opt := range cfg.Options {
+	for i, opt := range cfg.Options {
 		compi := p.makeOptionFn(opt, cfg)
 		p.optComp = append(p.optComp, compi)
-		span := NewSpan(compi, SpanConfig{
-			PadAutoFloating:  true,
-			ContentAlignment: AlignmentCentered,
-		})
-		row.AddComponent(span, p.optCols)
+		p.optVirtuals[i].C = compi
 	}
 
-	p.optContainer.C = container
+	// Compute uniform button dimensions.
+	p.optMaxWidth = 0
+	p.optMaxHeight = 0
+	for _, opt := range p.optComp {
+		w, h := opt.(Floating).Dimensions()
+		if w > p.optMaxWidth {
+			p.optMaxWidth = w
+		}
+		if h > p.optMaxHeight {
+			p.optMaxHeight = h
+		}
+	}
 }
 
 func (p *Prompt) init(
