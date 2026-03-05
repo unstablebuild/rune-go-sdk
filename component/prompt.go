@@ -45,8 +45,13 @@ type PromptConfig struct {
 	Options []string
 	Frame   FrameCharSet
 	// AspectRatio of the floating prompt message. By default
-	// DefaultAspectRatio is used.
-	AspectRatio          float64
+	// DefaultAspectRatio is used. Ignored when NewMessage is set.
+	AspectRatio float64
+	// NewMessage, when non-nil, is called with cfg.Message to
+	// build the prompt's message area. The returned Floating
+	// replaces the default ResponsiveString wrapped with
+	// NewAspectRatioFloatingResponsive.
+	NewMessage           func(msg string) Floating
 	BackgroundAttributes term.Attributes
 	MinWidth             int
 }
@@ -243,29 +248,30 @@ func (p *Prompt) init(
 	p.cfg = cfg
 	p.makeOptionFn = makeOptionFn
 
-	container := NewContainer()
-
-	messageResponsive := NewResponsiveString(cfg.Message,
-		StringResponsiveConfig{
+	var messageComp tui.Component
+	if cfg.NewMessage != nil {
+		messageComp = cfg.NewMessage(cfg.Message)
+	} else {
+		container := NewContainer()
+		messageResponsive := NewResponsiveString(cfg.Message, StringResponsiveConfig{
 			NoSplitWords: true,
 			StringConfig: StringConfig{
-				PaddingVertical:   4,
-				PaddingHorizontal: 4,
-				Alignment:         AlignmentCentered,
+				PaddingVertical:      4,
+				PaddingHorizontal:    4,
+				Alignment:            AlignmentCentered,
 				BackgroundAttributes: p.cfg.BackgroundAttributes,
 				Attributes: term.Attributes{
 					Bg: p.cfg.BackgroundAttributes.Bg,
 				},
 			},
 		})
+		msg := NewAspectRatioFloatingResponsive(messageResponsive, cfg.AspectRatio)
+		row := container.AddRow()
+		row.AddComponent(msg, MaxCols)
+		messageComp = container
+	}
 
-	row := container.AddRow()
-	row.AddComponent(
-		NewAspectRatioFloatingResponsive(
-			messageResponsive, cfg.AspectRatio),
-		MaxCols)
-
-	p.message = NewBackground(container, term.Cell{
+	p.message = NewBackground(messageComp, term.Cell{
 		Attributes: p.cfg.BackgroundAttributes,
 	})
 
