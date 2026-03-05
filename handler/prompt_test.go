@@ -248,6 +248,158 @@ func TestPromptHandler(t *testing.T) {
 	})
 }
 
+func TestPromptMouseClick(t *testing.T) {
+	const width, height = 20, 10
+
+	newPrompt := func(t *testing.T) (
+		*Prompt, *testPromptHandler,
+	) {
+		t.Helper()
+		ph := new(testPromptHandler)
+		p := NewPrompt(PromptConfig{
+			PromptConfig: component.PromptConfig{
+				Message: "Ok?",
+				Options: []string{"Yes", "No"},
+				Frame:   component.FrameCharSetDefault(),
+			},
+			PromptHandler: ph,
+			HighlightAttr: term.Attributes{
+				Bg: tcell.ColorYellow,
+			},
+		})
+		p.Resize(width, height)
+		return p, ph
+	}
+
+	// Helper: draw and return string with BackgroundCh='B'
+	// so any cell with Bg != 0 renders as 'B'.
+	drawBg := func(t *testing.T, p *Prompt) string {
+		t.Helper()
+		w := term.NewStringWriter(width+1, height+1)
+		w.BackgroundCh = 'B'
+		_ = w.Clear(term.Attributes{})
+		p.Draw(w)
+		_ = w.Flush()
+		return w.String()
+	}
+
+	// Each option span = 10 columns (half of 20).
+	// "Yes" frame (7) centered in 10: x=[1,7], y=7..9
+	// "No" frame (6) centered in 10: x=[12,17], y=7..9
+	const (
+		yesX = 4 // inside "Yes" button
+		noX  = 13
+		btnY = 8 // middle row of the button
+	)
+
+	t.Run("click highlights button", func(t *testing.T) {
+		p, _ := newPrompt(t)
+
+		// Before click: only keyboard-focused "Yes"
+		// has HighlightAttr (Bg=Yellow).
+		before := drawBg(t, p)
+
+		// Click on "No" button.
+		exit, handled := p.Handle(term.Event{
+			Type:   term.EventMouse,
+			Key:    term.MouseLeft,
+			MouseX: noX,
+			MouseY: btnY,
+		})
+		assert.False(t, exit)
+		assert.True(t, handled)
+
+		after := drawBg(t, p)
+		assert.NotEqual(t, before, after,
+			"clicking should change button attributes")
+
+		// The "No" button area should now have 'B' chars
+		// (HighlightAttr has Bg=Yellow).
+		assert.Contains(t, after, "BBBBB",
+			"clicked button should show background attr")
+	})
+
+	t.Run("release restores and selects", func(t *testing.T) {
+		p, ph := newPrompt(t)
+
+		// Click on "No" button.
+		p.Handle(term.Event{
+			Type:   term.EventMouse,
+			Key:    term.MouseLeft,
+			MouseX: noX,
+			MouseY: btnY,
+		})
+
+		// Release on "No" button.
+		exit, handled := p.Handle(term.Event{
+			Type:   term.EventMouse,
+			Key:    term.MouseRelease,
+			MouseX: noX,
+			MouseY: btnY,
+		})
+		assert.True(t, exit)
+		assert.True(t, handled)
+		assert.True(t, ph.onSelectCalled)
+		assert.Equal(t, 1, ph.selectedIdx)
+		assert.Equal(t, "No", ph.selectedOption)
+	})
+
+	t.Run("release outside cancels", func(t *testing.T) {
+		p, ph := newPrompt(t)
+		before := drawBg(t, p)
+
+		// Click on "Yes" button.
+		p.Handle(term.Event{
+			Type:   term.EventMouse,
+			Key:    term.MouseLeft,
+			MouseX: yesX,
+			MouseY: btnY,
+		})
+
+		// Release far away (not on any button).
+		exit, handled := p.Handle(term.Event{
+			Type:   term.EventMouse,
+			Key:    term.MouseRelease,
+			MouseX: 0,
+			MouseY: 0,
+		})
+		assert.False(t, exit)
+		assert.True(t, handled)
+		assert.False(t, ph.onSelectCalled)
+
+		// Visual state should be restored.
+		after := drawBg(t, p)
+		assert.Equal(t, before, after,
+			"release outside should restore attrs")
+	})
+
+	t.Run("click outside button is not handled", func(t *testing.T) {
+		p, _ := newPrompt(t)
+
+		exit, handled := p.Handle(term.Event{
+			Type:   term.EventMouse,
+			Key:    term.MouseLeft,
+			MouseX: 0,
+			MouseY: 0,
+		})
+		assert.False(t, exit)
+		assert.False(t, handled)
+	})
+
+	t.Run("release without press is not handled", func(t *testing.T) {
+		p, _ := newPrompt(t)
+
+		exit, handled := p.Handle(term.Event{
+			Type:   term.EventMouse,
+			Key:    term.MouseRelease,
+			MouseX: noX,
+			MouseY: btnY,
+		})
+		assert.False(t, exit)
+		assert.False(t, handled)
+	})
+}
+
 type testPromptHandler struct {
 	onCloseCalled  bool
 	onSelectCalled bool

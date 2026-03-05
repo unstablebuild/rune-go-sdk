@@ -179,6 +179,11 @@ func (s *stringComp) Dimensions() (width, height int) {
 	return
 }
 
+// Height satisfies Responsive.
+func (s *stringComp) Height(int) int {
+	return len(s.cells)
+}
+
 // used to wrap Background and provide SetAttr to underlying stringComp
 type backgroundStrWrapper struct {
 	frame bool

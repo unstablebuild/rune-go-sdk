@@ -69,6 +69,7 @@ type Prompt struct {
 	component.Prompt
 
 	hi       int
+	pressed  int
 	cfg      PromptConfig
 	bindings map[term.KeyComb]int
 }
@@ -86,7 +87,8 @@ func NewPrompt(cfg PromptConfig) (f *Prompt) {
 // length as Options.
 func (f *Prompt) Init(cfg PromptConfig) {
 	f.Prompt.Init(cfg.PromptConfig)
-	f.hi = 0 // allow for Init to be used as reset
+	f.hi = 0       // allow for Init to be used as reset
+	f.pressed = -1 // no button pressed
 
 	if len(cfg.OptionBindings) != 0 &&
 		len(cfg.OptionBindings) != len(cfg.Options) {
@@ -124,6 +126,9 @@ func (f *Prompt) highlightOption() {
 
 // Handle satisfies tui.Handler.
 func (f *Prompt) Handle(ev term.Event) (exit, handled bool) {
+	if ev.Type == term.EventMouse {
+		return f.handleMouse(ev)
+	}
 	if ev.Type != term.EventKey {
 		return
 	}
@@ -163,6 +168,34 @@ func (f *Prompt) Handle(ev term.Event) (exit, handled bool) {
 	case term.KeyEsc:
 		exit = true
 		handled = true
+	}
+	return
+}
+
+func (f *Prompt) handleMouse(
+	ev term.Event,
+) (exit, handled bool) {
+	switch ev.Key {
+	case term.MouseLeft:
+		i := f.OptionAt(ev.MouseX, ev.MouseY)
+		if i < 0 {
+			return
+		}
+		f.pressed = i
+		f.SetOptionAttr(i, f.cfg.HighlightAttr)
+		handled = true
+	case term.MouseRelease:
+		if f.pressed < 0 {
+			return
+		}
+		pressed := f.pressed
+		f.pressed = -1
+		f.highlightOption()
+		handled = true
+		if f.OptionAt(ev.MouseX, ev.MouseY) == pressed {
+			f.cfg.OnSelect(pressed, f.cfg.Options[pressed])
+			exit = true
+		}
 	}
 	return
 }
