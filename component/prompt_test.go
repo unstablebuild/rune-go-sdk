@@ -296,6 +296,19 @@ func TestPromptDimensions(t *testing.T) {
 		assert.Greater(t, h, 0)
 	})
 
+	t.Run("equal span width for different-width buttons", func(t *testing.T) {
+		p := NewPrompt(PromptConfig{
+			Message: "Recover?",
+			Options: []string{"Recover", "Open rdonly", "force Edit", "Skip"},
+			Frame:   FrameCharSetDefault(),
+		})
+		w, _ := p.Dimensions()
+		// Each option gets an equal-width span. The widest button
+		// is "Open rdonly" = 11+2pad+2frame = 15. With 4 equal
+		// spans the minimum width is 4*15 = 60.
+		assert.Equal(t, 60, w)
+	})
+
 	t.Run("respects MinWidth", func(t *testing.T) {
 		p := NewPrompt(PromptConfig{
 			Message:  "Ok?",

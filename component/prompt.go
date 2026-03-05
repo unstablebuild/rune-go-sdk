@@ -127,13 +127,19 @@ func (p *Prompt) Dimensions() (int, int) {
 }
 
 func (p *Prompt) optsDimensions() (totalWidth, maxHeight int) {
+	var maxWidth int
 	for _, opt := range p.optComp {
 		w, h := opt.(Floating).Dimensions()
-		totalWidth += w
+		if w > maxWidth {
+			maxWidth = w
+		}
 		if h > maxHeight {
 			maxHeight = h
 		}
 	}
+	// Each option is placed in an equal-width span, so the total
+	// width must be n * maxWidth to fit all buttons centered.
+	totalWidth = len(p.optComp) * maxWidth
 	return
 }
 
