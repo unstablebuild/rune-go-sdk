@@ -54,8 +54,9 @@ func (c *Client) Init(ctx context.Context, cc grpc.ClientConnInterface) {
 func (c *Client) Search(
 	query string,
 	captureNames []string,
+	languages ...string,
 ) (iterator.Iterator[syntaxapi.Result], error) {
-	req := SearchRequest{Query: query, CaptureNames: captureNames}
+	req := SearchRequest{Query: query, CaptureNames: captureNames, Languages: languages}
 	stream, err := c.pb.Search(c.ctx, &req)
 	if err != nil {
 		return nil, fmt.Errorf("syntax search: %w", err)

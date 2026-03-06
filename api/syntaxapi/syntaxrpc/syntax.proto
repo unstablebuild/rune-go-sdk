@@ -9,6 +9,7 @@ import "term/termrpc/term.proto";
 message SearchRequest {
     string query = 1;
     repeated string capture_names = 2;
+    repeated string languages = 3;
 }
 
 message SearchNodeRequest {

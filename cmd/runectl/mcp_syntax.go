@@ -73,6 +73,14 @@ func registerSyntaxSearch(
 						"[\"definition.function\"]",
 				),
 			),
+			mcp.WithArray("languages",
+				mcp.Description(
+					"Language filters. "+
+						"Only files of the listed "+
+						"languages are searched. "+
+						"Example: [\"go\", \"python\"]",
+				),
+			),
 		),
 		func(
 			_ context.Context,
@@ -85,8 +93,11 @@ func registerSyntaxSearch(
 			captures := req.GetStringSlice(
 				"captures", nil,
 			)
+			languages := req.GetStringSlice(
+				"languages", nil,
+			)
 			sit, err := w.Parser(bgCtx).Search(
-				query, captures,
+				query, captures, languages...,
 			)
 			if err != nil {
 				return mcpErr(err), nil

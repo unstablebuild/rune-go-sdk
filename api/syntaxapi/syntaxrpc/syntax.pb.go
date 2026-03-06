@@ -26,6 +26,7 @@ type SearchRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	CaptureNames  []string               `protobuf:"bytes,2,rep,name=capture_names,json=captureNames,proto3" json:"capture_names,omitempty"`
+	Languages     []string               `protobuf:"bytes,3,rep,name=languages,proto3" json:"languages,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -70,6 +71,13 @@ func (x *SearchRequest) GetQuery() string {
 func (x *SearchRequest) GetCaptureNames() []string {
 	if x != nil {
 		return x.CaptureNames
+	}
+	return nil
+}
+
+func (x *SearchRequest) GetLanguages() []string {
+	if x != nil {
+		return x.Languages
 	}
 	return nil
 }
@@ -438,10 +446,11 @@ var File_syntaxrpc_syntax_proto protoreflect.FileDescriptor
 
 const file_syntaxrpc_syntax_proto_rawDesc = "" +
 	"\n" +
-	"\x16syntaxrpc/syntax.proto\x12\x06syntax\x1a\x17term/termrpc/term.proto\"J\n" +
+	"\x16syntaxrpc/syntax.proto\x12\x06syntax\x1a\x17term/termrpc/term.proto\"h\n" +
 	"\rSearchRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12#\n" +
-	"\rcapture_names\x18\x02 \x03(\tR\fcaptureNames\"2\n" +
+	"\rcapture_names\x18\x02 \x03(\tR\fcaptureNames\x12\x1c\n" +
+	"\tlanguages\x18\x03 \x03(\tR\tlanguages\"2\n" +
 	"\x11SearchNodeRequest\x12\x1d\n" +
 	"\n" +
 	"node_types\x18\x01 \x01(\rR\tnodeTypes\"[\n" +

@@ -51,8 +51,9 @@ type Result struct {
 // Parser provides workspace-wide AST-level search and parsing capabilities.
 type Parser interface {
 	// Search searches for matches in the workspace using the given tree-sitter literal query
-	// and a list of capture names that should be returned.
-	Search(query string, captureNames []string) (iterator.Iterator[Result], error)
+	// and a list of capture names that should be returned. An optional set of language names
+	// (e.g. "go", "python") restricts the search to files of those languages.
+	Search(query string, captureNames []string, languages ...string) (iterator.Iterator[Result], error)
 	// SearchNode is implemented with Search by using an internally provided
 	// query that is able to capture a known set of tree nodes across programming
 	// languages. Multiple node types can be combined using bitwise OR.

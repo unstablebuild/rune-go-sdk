@@ -134,6 +134,7 @@ func newSyntaxCmd(a *app) *cobra.Command {
 func newSyntaxSearchCmd(a *app) *cobra.Command {
 	var format string
 	var captures []string
+	var languages []string
 
 	cmd := &cobra.Command{
 		Use:   "search <query>",
@@ -146,7 +147,7 @@ func newSyntaxSearchCmd(a *app) *cobra.Command {
 				return err
 			}
 			sit, err := w.Parser(cmd.Context()).Search(
-				args[0], captures,
+				args[0], captures, languages...,
 			)
 			if err != nil {
 				return err
@@ -162,6 +163,10 @@ func newSyntaxSearchCmd(a *app) *cobra.Command {
 	cmd.Flags().StringArrayVarP(
 		&captures, "capture", "c", nil,
 		"Capture name filter (repeatable)",
+	)
+	cmd.Flags().StringArrayVarP(
+		&languages, "lang", "L", nil,
+		"Language filter (repeatable, e.g. go, python)",
 	)
 
 	return cmd
