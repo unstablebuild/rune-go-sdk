@@ -17,6 +17,7 @@ package component
 import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
+	"github.com/unstablebuild/tcell/v3"
 )
 
 // Prompt implements a prompt / question with options component.
@@ -55,8 +56,7 @@ func (o *promptOption) Resize(width, height int) {
 func (o *promptOption) Draw(w term.Writer) {
 	for y := range o.height {
 		for x := range o.width {
-			w.UnionAttributes(
-				term.Coordinates{X: x, Y: y}, o.bg)
+			w.UnionAttributes(term.Coordinates{X: x, Y: y}, o.bg)
 		}
 	}
 	o.floatingOption.Draw(w)
@@ -65,7 +65,11 @@ func (o *promptOption) Draw(w term.Writer) {
 func (o *promptOption) SetAttr(
 	attr term.Attributes,
 ) term.Attributes {
-	o.bg = term.Attributes{Bg: attr.Bg}
+	bg := attr.Bg
+	if attr.Attrs&tcell.AttrReverse != 0 {
+		bg = attr.Fg
+	}
+	o.bg = term.Attributes{Bg: bg}
 	return o.floatingOption.SetAttr(attr)
 }
 

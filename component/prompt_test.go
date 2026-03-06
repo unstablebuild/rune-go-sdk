@@ -353,6 +353,101 @@ func TestPromptButtonBackgroundAttributes(t *testing.T) {
 			})
 		})
 	}
+
+	e20 := "                    "
+	msg := "      Do you?       "
+
+	t.Run("switching highlight between framed options",
+		func(t *testing.T) {
+			width, height := 20, 10
+			normal := term.Attributes{}
+			p := NewPrompt(PromptConfig{
+				Message: "Do you?",
+				Options: []string{"Yay", "Nay"},
+				Frame:   FrameCharSetDefault(),
+			})
+			p.Resize(width, height)
+			w := term.NewStringWriter(width, height)
+			w.BackgroundCh = '█'
+			comptest.TestComponent(t, p, w, []comptest.TestCase{
+				{
+					Action: func() {
+						p.SetOptionAttr(0, focus)
+						p.SetOptionAttr(1, normal)
+					},
+					Expected: e20 + "\n" + e20 + "\n" +
+						msg + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						"  ███████  ┌─────┐  \n" +
+						"  ███████  │ Nay │  \n" +
+						"  ███████  └─────┘  ",
+				},
+				{
+					Action: func() {
+						p.SetOptionAttr(0, normal)
+						p.SetOptionAttr(1, focus)
+					},
+					Expected: e20 + "\n" + e20 + "\n" +
+						msg + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						"  ┌─────┐  ███████  \n" +
+						"  │ Yay │  ███████  \n" +
+						"  └─────┘  ███████  ",
+				},
+			})
+		})
+
+	t.Run("AttrReverse highlight uses Fg for interior",
+		func(t *testing.T) {
+			width, height := 20, 10
+			optionAttr := term.Attributes{}
+			highlightAttr := term.Attributes{
+				Fg:    tcell.ColorWhite,
+				Attrs: tcell.AttrReverse,
+			}
+			p := NewPrompt(PromptConfig{
+				Message: "Do you?",
+				Options: []string{"Yay", "Nay"},
+				Frame:   FrameCharSetDefault(),
+			})
+			p.Resize(width, height)
+			w := term.NewStringWriter(width, height)
+			w.BackgroundCh = '█'
+			// Frame borders and text are drawn with SetCell
+			// (Bg=0, AttrReverse), overriding the UnionAttributes
+			// fill. Only the padding cells between the frame and
+			// text keep the Bg from UnionAttributes.
+			comptest.TestComponent(t, p, w, []comptest.TestCase{
+				{
+					Action: func() {
+						p.SetOptionAttr(0, highlightAttr)
+						p.SetOptionAttr(1, optionAttr)
+					},
+					Expected: e20 + "\n" + e20 + "\n" +
+						msg + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						"  ┌─────┐  ┌─────┐  \n" +
+						"  │█Yay█│  │ Nay │  \n" +
+						"  └─────┘  └─────┘  ",
+				},
+				{
+					Action: func() {
+						p.SetOptionAttr(0, optionAttr)
+						p.SetOptionAttr(1, highlightAttr)
+					},
+					Expected: e20 + "\n" + e20 + "\n" +
+						msg + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						e20 + "\n" + e20 + "\n" +
+						"  ┌─────┐  ┌─────┐  \n" +
+						"  │ Yay │  │█Nay█│  \n" +
+						"  └─────┘  └─────┘  ",
+				},
+			})
+		})
 }
 
 func TestPromptDimensions(t *testing.T) {
