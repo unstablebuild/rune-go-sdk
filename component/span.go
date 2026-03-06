@@ -62,7 +62,7 @@ var _ Responsive = (*Span)(nil)
 var _ WithAttributes = (*Span)(nil)
 var _ Floating = (*Span)(nil)
 
-// DefaultSpanConfig returns the default span configuration wich is no padding,
+// DefaultSpanConfig returns the default span configuration which is no padding,
 // and content alignment centered.
 func DefaultSpanConfig() (ret SpanConfig) {
 	ret.ContentAlignment = AlignmentCentered

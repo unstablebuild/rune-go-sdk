@@ -123,7 +123,7 @@ type DroppableService interface {
 // NextTo marshals the next document into the provided argument.
 // It returns an error if marshaling fails. Once marshaled, the
 // given document should not be re-used in the next call to NextTo
-// otherwise map or slice fields could be overriden, depending on the
+// otherwise map or slice fields could be overridden, depending on the
 // implementation.
 type Iterator interface {
 	HasNext() bool

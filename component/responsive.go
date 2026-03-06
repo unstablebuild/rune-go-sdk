@@ -29,7 +29,7 @@ type Responsive interface {
 	tui.Component
 	// Height allows for children components to return a height hint
 	// given a width so a parent component can compose accordingly.
-	// The returned height can be overriden at the parent's discretion
+	// The returned height can be overridden at the parent's discretion
 	// (i.e. there's simply no height left on the screen)
 	// so implementers should expect that on calls to Resize.
 	Height(width int) int

@@ -49,7 +49,7 @@ type FrameCharSet struct {
 }
 
 // FrameCharSetDefault returns the default FrameCharSet
-// used accross the library. It produces the following frame:
+// used across the library. It produces the following frame:
 //
 //	┌─┐
 //	│ │

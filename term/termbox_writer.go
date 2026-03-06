@@ -56,7 +56,7 @@ func (w *TermboxWriter) Flush() error {
 	return termbox.Flush()
 }
 
-// Clear fills the screen with the given attributs and empty cells.
+// Clear fills the screen with the given attributes and empty cells.
 func (w *TermboxWriter) Clear(attr Attributes) (err error) {
 	termbox.Screen().Fill(' ', tcell.Style(attr))
 	return

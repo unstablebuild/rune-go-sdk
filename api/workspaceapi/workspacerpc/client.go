@@ -363,7 +363,7 @@ func (c *Client) StartCommand(
 	ch := make(chan result)
 	go debug.CapturePanicReport(func() {
 		// do not worry about closing stream here something else
-		// should take care of closing the connection if deemed appropiate.
+		// should take care of closing the connection if deemed appropriate.
 		if err := stream.Send(&req); err != nil {
 			res := result{err: fmt.Errorf("send start command request: %v", err)}
 			select {
