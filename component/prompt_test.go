@@ -285,6 +285,76 @@ func TestPromptInitReset(t *testing.T) {
 	})
 }
 
+func TestPromptButtonBackgroundAttributes(t *testing.T) {
+	focus := term.Attributes{Bg: tcell.ColorBlue}
+
+	tests := []struct {
+		name     string
+		cfg      PromptConfig
+		width    int
+		height   int
+		focus    int
+		expected string
+	}{
+		{
+			name: "framed button interior filled on focus",
+			cfg: PromptConfig{
+				Message: "Do you?",
+				Options: []string{"Yay", "Nay"},
+				Frame:   FrameCharSetDefault(),
+			},
+			width: 20, height: 10,
+			focus: 0,
+			expected: "                    \n" +
+				"                    \n" +
+				"      Do you?       \n" +
+				"                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"  ███████  ┌─────┐  \n" +
+				"  ███████  │ Nay │  \n" +
+				"  ███████  └─────┘  ",
+		},
+		{
+			name: "frameless button interior filled on focus",
+			cfg: PromptConfig{
+				Message: "Do you?",
+				Options: []string{"Go", "Skip"},
+			},
+			width: 20, height: 10,
+			focus: 0,
+			expected: "                    \n" +
+				"                    \n" +
+				"      Do you?       \n" +
+				"                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"    ████    Skip    ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(tt.cfg)
+			p.Resize(tt.width, tt.height)
+			w := term.NewStringWriter(tt.width, tt.height)
+			w.BackgroundCh = '█'
+			comptest.TestComponent(t, p, w, []comptest.TestCase{
+				{
+					Action: func() {
+						p.SetOptionAttr(tt.focus, focus)
+					},
+					Expected: tt.expected,
+				},
+			})
+		})
+	}
+}
+
 func TestPromptDimensions(t *testing.T) {
 	t.Run("includes option width with frame", func(t *testing.T) {
 		p := NewPrompt(PromptConfig{

@@ -39,6 +39,36 @@ type floatingOption interface {
 	WithAttributes
 }
 
+// promptOption wraps a floatingOption to fill its background
+// via UnionAttributes before drawing content.
+type promptOption struct {
+	floatingOption
+	width, height int
+	bg            term.Attributes
+}
+
+func (o *promptOption) Resize(width, height int) {
+	o.width, o.height = width, height
+	o.floatingOption.Resize(width, height)
+}
+
+func (o *promptOption) Draw(w term.Writer) {
+	for y := range o.height {
+		for x := range o.width {
+			w.UnionAttributes(
+				term.Coordinates{X: x, Y: y}, o.bg)
+		}
+	}
+	o.floatingOption.Draw(w)
+}
+
+func (o *promptOption) SetAttr(
+	attr term.Attributes,
+) term.Attributes {
+	o.bg = term.Attributes{Bg: attr.Bg}
+	return o.floatingOption.SetAttr(attr)
+}
+
 // PromptConfig holds configuration for initializing a Prompt.
 type PromptConfig struct {
 	Message string
@@ -215,10 +245,15 @@ func (p *Prompt) initOptions(cfg PromptConfig) {
 	p.optComp = make([]WithAttributes, 0, n)
 	p.optVirtuals = make([]Virtual[tui.Component], n)
 
+	bg := term.Attributes{Bg: cfg.BackgroundAttributes.Bg}
 	for i, opt := range cfg.Options {
 		compi := p.makeOptionFn(opt, cfg)
-		p.optComp = append(p.optComp, compi)
-		p.optVirtuals[i].C = compi
+		btn := &promptOption{
+			floatingOption: compi,
+			bg:             bg,
+		}
+		p.optComp = append(p.optComp, btn)
+		p.optVirtuals[i].C = btn
 	}
 
 	// Compute uniform button dimensions.
