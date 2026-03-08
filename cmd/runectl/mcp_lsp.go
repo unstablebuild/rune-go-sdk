@@ -702,13 +702,17 @@ func registerLSPRename(
 	bgCtx context.Context,
 ) {
 	opts := symToolOpts(
-		"Renames a symbol across the " +
-			"workspace.\n\n" +
+		"Dry-run rename: shows which " +
+			"files and how many edits a " +
+			"rename would produce, but " +
+			"does NOT apply any changes." +
+			"\n\n" +
 			"Use this tool when:\n" +
-			"- Renaming a function, variable, " +
-			"type, or other symbol\n" +
-			"- You need a safe rename that " +
-			"updates all references\n\n" +
+			"- Previewing the scope of a " +
+			"rename before editing files " +
+			"yourself\n" +
+			"- Checking which files would " +
+			"be affected by a rename\n\n" +
 			"Before calling:\n" +
 			"- Use lsp_prepare_rename to " +
 			"verify the rename is valid\n\n" +
@@ -720,7 +724,8 @@ func registerLSPRename(
 			"modifying — use " +
 			"lsp_references\n\n" +
 			"Returns {uri: edit_count} map " +
-			"or null.",
+			"or null. Edits are NOT " +
+			"applied.",
 	)
 	opts = append(opts,
 		mcp.WithString("new_name", mcp.Required(),
