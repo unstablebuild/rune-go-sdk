@@ -734,6 +734,67 @@ func TestExitErrorNotConfigured(t *testing.T) {
 	assert.False(t, exit)
 }
 
+func TestClose(t *testing.T) {
+	t.Run("cancels command context", func(t *testing.T) {
+		h := New(
+			&testHandler{},
+			nopSchedule, term.NopInterrupter(),
+		)
+		h.Resize(20, 5)
+
+		assert.NoError(t, h.cmdCtx.Err())
+		err := h.Close()
+		assert.NoError(t, err)
+		assert.Error(t, h.cmdCtx.Err())
+	})
+
+	t.Run("stops blocking command", func(t *testing.T) {
+		started := make(chan struct{})
+		th := &testHandler{
+			handleFn: func(
+				ctx context.Context, _ Command,
+			) (
+				iterator.Iterator[component.Responsive],
+				error,
+			) {
+				close(started)
+				<-ctx.Done()
+				return nil, ctx.Err()
+			},
+		}
+		h := New(
+			th, nopSchedule, term.NopInterrupter(),
+			WithPrompt("$ "),
+		)
+		h.Resize(40, 10)
+
+		sendKeys(t, h, "slow")
+		h.Handle(term.Event{
+			Type: term.EventKey,
+			Key:  term.KeyEnter,
+		})
+
+		// Wait for the command goroutine to start.
+		<-started
+
+		// Close unblocks the command and waits
+		// for it to finish.
+		err := h.Close()
+		assert.NoError(t, err)
+	})
+
+	t.Run("idempotent", func(t *testing.T) {
+		h := New(
+			&testHandler{},
+			nopSchedule, term.NopInterrupter(),
+		)
+		h.Resize(20, 5)
+
+		assert.NoError(t, h.Close())
+		assert.NoError(t, h.Close())
+	})
+}
+
 func TestHistoryPreloaded(t *testing.T) {
 	svc := storagestub.NewInMemoryService()
 	doc := historyDoc{Items: []string{"old1", "old2"}}

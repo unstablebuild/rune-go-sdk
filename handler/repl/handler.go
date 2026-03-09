@@ -73,6 +73,9 @@ type Handler struct {
 	animFrames   []string
 	animSequence []int
 
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	cmdCtx    context.Context
 	cmdCancel context.CancelFunc
 
@@ -131,8 +134,9 @@ func New(
 	if h.animFrames == nil {
 		h.animFrames, h.animSequence = component.ProgressAnimationFrames()
 	}
+	h.ctx, h.cancel = context.WithCancel(context.Background())
 	h.loadHistory()
-	h.cmdCtx, h.cmdCancel = context.WithCancel(context.Background())
+	h.cmdCtx, h.cmdCancel = context.WithCancel(h.ctx)
 	h.rl = h.newInputBox()
 	return h
 }
@@ -171,7 +175,7 @@ func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 		return true, true
 	case errors.Is(err, inputbox.ErrAborted):
 		h.cmdCancel()
-		h.cmdCtx, h.cmdCancel = context.WithCancel(context.Background())
+		h.cmdCtx, h.cmdCancel = context.WithCancel(h.ctx)
 		h.addLine("^C")
 		h.output.C.ScrollToBottom()
 		h.resetInputBox()
@@ -201,6 +205,15 @@ func (h *Handler) Cursor() (term.Coordinates, term.CursorStyle, bool) {
 // Selection satisfies tui.Handler.
 func (h *Handler) Selection() (string, bool) {
 	return "", false
+}
+
+// Close cancels all in-flight commands and animations,
+// then waits for goroutines to finish.
+func (h *Handler) Close() error {
+	h.cancel()
+	h.stopSpinner()
+	h.wg.Wait()
+	return nil
 }
 
 // Wait blocks until all dispatched command goroutines
