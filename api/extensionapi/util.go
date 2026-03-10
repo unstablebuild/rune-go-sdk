@@ -22,12 +22,6 @@ import "strings"
 // It returns the matching Permission and true if found, or
 // an empty Permission and false if the resource is unknown.
 func PermissionForResource(resource string) (Permission, bool) {
-	// Handle method-level overrides first.
-	switch resource {
-	case "/text.Editor/SubscribeCommand":
-		return PermissionCommands, true
-	}
-
 	trimmed := strings.TrimPrefix(resource, "/")
 	service, _, ok := strings.Cut(trimmed, "/")
 	if !ok {
@@ -49,6 +43,8 @@ func PermissionForResource(resource string) (Permission, bool) {
 		return PermissionConfig, true
 	case "text.Editor":
 		return PermissionEditor, true
+	case "command.Command":
+		return PermissionCommands, true
 	case "workspace.Terminal":
 		return PermissionTerminal, true
 	case "workspace.Scheme",

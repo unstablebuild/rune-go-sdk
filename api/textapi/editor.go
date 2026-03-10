@@ -59,12 +59,6 @@ const (
 	LocationPriorityCritical
 )
 
-// CommandRegister abstracts the ability to register new commands.
-type CommandRegister interface {
-	// RegisterCommand registers command to be dispatched to CommandHandler.
-	RegisterCommand(CommandManual, CommandHandler) error
-}
-
 // Editor is the interface that wraps an API to manage a text editor.
 type Editor interface {
 	// SubscribeEvents subscribes EventHandler to events of type EventType.

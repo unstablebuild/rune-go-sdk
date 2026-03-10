@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/commandapi/commandrpc";
+
+package command;
+
+import "term/termrpc/term.proto";
+
+message URI {
+	string uri = 1;
+}
+
+message CommandManual {
+	string name = 1;
+	string summary = 2;
+	string synopsis = 3;
+	repeated CommandManual commands = 4;
+}
+
+// Regular command streaming
+
+message SubscribeCommandRequest {
+	CommandManual command = 1;
+}
+
+message SubscribeCommandResponse {}
+
+message ClientCommandMessage {
+	enum MessageType {
+		Handle = 0;
+		CompleteValue = 1;
+		CompleteDone = 2;
+		Request = 3;
+	}
+	MessageType type = 1;
+	HandleCommandResponse handle = 2;
+	CompleteCommandValue complete_value = 3;
+	CompleteCommandDone complete_done = 4;
+	SubscribeCommandRequest request = 5;
+}
+
+message ServerCommandMessage {
+	enum MessageType {
+		Handle = 0;
+		Complete = 1;
+		Response = 2;
+	}
+	MessageType type = 1;
+	HandleCommandRequest handle = 2;
+	CompleteCommandRequest complete = 3;
+	SubscribeCommandResponse response = 4;
+}
+
+message HandleCommandRequest {
+	string name = 1;
+	repeated string args = 2;
+	URI resource_name = 3;
+	term.Coordinates cursor_content = 4;
+	term.Coordinates cursor_window = 5;
+	uint64 window_id = 6;
+}
+
+message HandleCommandResponse {
+	string error = 1;
+}
+
+message CompleteCommandRequest {
+	int64 id = 1;
+	string name = 2;
+	repeated string args = 3;
+}
+
+message CompleteCommandValue {
+	int64 id = 1;
+	string value = 2;
+}
+
+message CompleteCommandDone {
+	int64 id = 1;
+	string error = 2;
+}
+
+// REPL command streaming
+
+message SubscribeREPLCommandRequest {
+	CommandManual command = 1;
+}
+
+message SubscribeREPLCommandResponse {}
+
+message ClientREPLCommandMessage {
+	enum MessageType {
+		HandleValue = 0;
+		HandleDone = 1;
+		CompleteValue = 2;
+		CompleteDone = 3;
+		HelpValue = 4;
+		HelpDone = 5;
+		Request = 6;
+	}
+	MessageType type = 1;
+	HandleREPLCommandValue handle_value = 2;
+	HandleREPLCommandDone handle_done = 3;
+	CompleteCommandValue complete_value = 4;
+	CompleteCommandDone complete_done = 5;
+	HelpCommandValue help_value = 6;
+	HelpCommandDone help_done = 7;
+	SubscribeREPLCommandRequest request = 8;
+}
+
+message ServerREPLCommandMessage {
+	enum MessageType {
+		Handle = 0;
+		Complete = 1;
+		Help = 2;
+		Response = 3;
+	}
+	MessageType type = 1;
+	HandleREPLCommandRequest handle = 2;
+	CompleteCommandRequest complete = 3;
+	HelpCommandRequest help = 4;
+	SubscribeREPLCommandResponse response = 5;
+}
+
+message HandleREPLCommandRequest {
+	string name = 1;
+	repeated string args = 2;
+	int32 width = 3;
+}
+
+message HandleREPLCommandValue {
+	repeated term.CellRow rows = 1;
+}
+
+message HandleREPLCommandDone {
+	string error = 1;
+}
+
+message HelpCommandRequest {
+	repeated string args = 1;
+	int32 width = 2;
+}
+
+message HelpCommandValue {
+	repeated term.CellRow rows = 1;
+}
+
+message HelpCommandDone {
+	string error = 1;
+}
+
+service Command {
+	rpc SubscribeCommand(stream ClientCommandMessage) returns (stream ServerCommandMessage);
+	rpc SubscribeREPLCommand(stream ClientREPLCommandMessage) returns (stream ServerREPLCommandMessage);
+}

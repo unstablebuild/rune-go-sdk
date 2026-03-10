@@ -16,7 +16,6 @@ package textrpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -150,36 +149,6 @@ func (c *Client) SubscribeEvents(
 	return nil
 }
 
-// SubscribeCommand requests the editor server to register cmd with h.
-func (c *Client) SubscribeCommand(man textapi.CommandManual, h textapi.CommandHandler) error {
-	stream, err := c.ed.SubscribeCommand(c.clientCtx)
-	if err != nil {
-		return err
-	}
-	rpcMan := makeProtoManual(man)
-	req := SubscribeCommandRequest{Command: &rpcMan}
-	sendMsg := ClientCommandMessage{Request: &req, Type: ClientCommandMessage_Request}
-
-	if err := stream.Send(&sendMsg); err != nil {
-		return fmt.Errorf("send subscribe command request: %w", err)
-	}
-
-	var recvMsg ServerCommandMessage
-	err = stream.RecvMsg(&recvMsg)
-	if err != nil {
-		return fmt.Errorf("send subscribe command request: %w", err)
-	}
-
-	if recvMsg.GetType() != ServerCommandMessage_Response || recvMsg.GetResponse() == nil {
-		return errors.New("recv subscribe command response: nil response")
-	}
-
-	srvStream := newCommandServerStream(c.clientCtx, stream, h)
-	go debug.CapturePanicReport(srvStream.receiveMessages)
-
-	return nil
-}
-
 // SetLocationList requests the editor server to set l as the new location list for h.
 // Note that h is expected to be the return valu of Edit or a dispatched event, delivered
 // via an EventHandler.
@@ -277,22 +246,6 @@ func (c *Client) Close() (ret error) {
 func (c *Client) ctxWithTimeout() (context.Context, func()) {
 	ctx, cancel := context.WithTimeout(c.clientCtx, defaultTimeout)
 	return ctx, cancel
-}
-
-func makeProtoManual(man textapi.CommandManual) CommandManual {
-	var cmds []*CommandManual
-	for _, cmd := range man.Commands {
-		childManual := new(CommandManual)
-		*childManual = makeProtoManual(cmd)
-		cmds = append(cmds, childManual)
-	}
-	ret := CommandManual{
-		Name:     man.Name,
-		Summary:  man.Summary,
-		Synopsis: man.Synopsis,
-		Commands: cmds,
-	}
-	return ret // nolint:govet
 }
 
 func makeLocationListRequest(

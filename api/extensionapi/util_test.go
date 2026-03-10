@@ -77,9 +77,8 @@ func TestPermissionForResource(t *testing.T) {
 			wantOK:   true,
 		},
 		{
-			name: "Editor SubscribeCommand " +
-				"overrides to commands",
-			resource: "/text.Editor/SubscribeCommand",
+			name:     "Command service maps to commands",
+			resource: "/command.Command/SubscribeCommand",
 			wantPerm: PermissionCommands,
 			wantOK:   true,
 		},
