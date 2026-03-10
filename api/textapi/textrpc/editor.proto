@@ -153,6 +153,7 @@ service Editor {
 	// streams
 	rpc SubscribeEvent(stream SubscribeEventRequest) returns (stream EditorEvent);
 	rpc SubscribeCommand(stream ClientCommandMessage) returns (stream ServerCommandMessage);
+	rpc SubscribeREPLCommand(stream ClientREPLCommandMessage) returns (stream ServerREPLCommandMessage);
 }
 
 message SubscribeCommandRequest {
@@ -222,4 +223,73 @@ message CompleteCommandValue {
 message CompleteCommandDone {
 	int64 id = 1;
 	string error = 2;
+}
+
+// REPL command streaming
+
+message SubscribeREPLCommandRequest {
+	CommandManual command = 1;
+}
+
+message SubscribeREPLCommandResponse {}
+
+message ClientREPLCommandMessage {
+	enum MessageType {
+		HandleValue = 0;
+		HandleDone = 1;
+		CompleteValue = 2;
+		CompleteDone = 3;
+		HelpValue = 4;
+		HelpDone = 5;
+		Request = 6;
+	}
+	MessageType type = 1;
+	HandleREPLCommandValue handle_value = 2;
+	HandleREPLCommandDone handle_done = 3;
+	CompleteCommandValue complete_value = 4;
+	CompleteCommandDone complete_done = 5;
+	HelpCommandValue help_value = 6;
+	HelpCommandDone help_done = 7;
+	SubscribeREPLCommandRequest request = 8;
+}
+
+message ServerREPLCommandMessage {
+	enum MessageType {
+		Handle = 0;
+		Complete = 1;
+		Help = 2;
+		Response = 3;
+	}
+	MessageType type = 1;
+	HandleREPLCommandRequest handle = 2;
+	CompleteCommandRequest complete = 3;
+	HelpCommandRequest help = 4;
+	SubscribeREPLCommandResponse response = 5;
+}
+
+message HandleREPLCommandRequest {
+	string name = 1;
+	repeated string args = 2;
+	int32 width = 3;
+}
+
+message HandleREPLCommandValue {
+	repeated term.CellRow rows = 1;
+}
+
+message HandleREPLCommandDone {
+	string error = 1;
+}
+
+message HelpCommandRequest {
+	repeated string args = 1;
+	int32 width = 2;
+}
+
+message HelpCommandValue {
+	repeated term.CellRow rows = 1;
+}
+
+message HelpCommandDone {
+	string error = 1;
 }

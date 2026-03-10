@@ -16,6 +16,7 @@ package repl
 
 import (
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
+	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/handler/inputbox"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/tcell/v3"
@@ -90,6 +91,15 @@ func WithRunningAnimationFrames(frames []string, sequence []int) Option {
 	return func(h *Handler) {
 		h.animFrames = frames
 		h.animSequence = sequence
+	}
+}
+
+// WithProgressBarCharSet sets the characters used to
+// render the progress bar. Default:
+// component.DefaultProgressBarCharSet().
+func WithProgressBarCharSet(chars component.ProgressBarCharSet) Option {
+	return func(h *Handler) {
+		h.progressChars = chars
 	}
 }
 

@@ -31,6 +31,7 @@ const (
 	Editor_SetDefaultAttributes_FullMethodName = "/text.Editor/SetDefaultAttributes"
 	Editor_SubscribeEvent_FullMethodName       = "/text.Editor/SubscribeEvent"
 	Editor_SubscribeCommand_FullMethodName     = "/text.Editor/SubscribeCommand"
+	Editor_SubscribeREPLCommand_FullMethodName = "/text.Editor/SubscribeREPLCommand"
 )
 
 // EditorClient is the client API for Editor service.
@@ -53,6 +54,7 @@ type EditorClient interface {
 	// streams
 	SubscribeEvent(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SubscribeEventRequest, EditorEvent], error)
 	SubscribeCommand(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ClientCommandMessage, ServerCommandMessage], error)
+	SubscribeREPLCommand(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ClientREPLCommandMessage, ServerREPLCommandMessage], error)
 }
 
 type editorClient struct {
@@ -189,6 +191,19 @@ func (c *editorClient) SubscribeCommand(ctx context.Context, opts ...grpc.CallOp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Editor_SubscribeCommandClient = grpc.BidiStreamingClient[ClientCommandMessage, ServerCommandMessage]
 
+func (c *editorClient) SubscribeREPLCommand(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ClientREPLCommandMessage, ServerREPLCommandMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Editor_ServiceDesc.Streams[2], Editor_SubscribeREPLCommand_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ClientREPLCommandMessage, ServerREPLCommandMessage]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Editor_SubscribeREPLCommandClient = grpc.BidiStreamingClient[ClientREPLCommandMessage, ServerREPLCommandMessage]
+
 // EditorServer is the server API for Editor service.
 // All implementations must embed UnimplementedEditorServer
 // for forward compatibility.
@@ -209,6 +224,7 @@ type EditorServer interface {
 	// streams
 	SubscribeEvent(grpc.BidiStreamingServer[SubscribeEventRequest, EditorEvent]) error
 	SubscribeCommand(grpc.BidiStreamingServer[ClientCommandMessage, ServerCommandMessage]) error
+	SubscribeREPLCommand(grpc.BidiStreamingServer[ClientREPLCommandMessage, ServerREPLCommandMessage]) error
 	mustEmbedUnimplementedEditorServer()
 }
 
@@ -254,6 +270,9 @@ func (UnimplementedEditorServer) SubscribeEvent(grpc.BidiStreamingServer[Subscri
 }
 func (UnimplementedEditorServer) SubscribeCommand(grpc.BidiStreamingServer[ClientCommandMessage, ServerCommandMessage]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeCommand not implemented")
+}
+func (UnimplementedEditorServer) SubscribeREPLCommand(grpc.BidiStreamingServer[ClientREPLCommandMessage, ServerREPLCommandMessage]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeREPLCommand not implemented")
 }
 func (UnimplementedEditorServer) mustEmbedUnimplementedEditorServer() {}
 func (UnimplementedEditorServer) testEmbeddedByValue()                {}
@@ -470,6 +489,13 @@ func _Editor_SubscribeCommand_Handler(srv interface{}, stream grpc.ServerStream)
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Editor_SubscribeCommandServer = grpc.BidiStreamingServer[ClientCommandMessage, ServerCommandMessage]
 
+func _Editor_SubscribeREPLCommand_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(EditorServer).SubscribeREPLCommand(&grpc.GenericServerStream[ClientREPLCommandMessage, ServerREPLCommandMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Editor_SubscribeREPLCommandServer = grpc.BidiStreamingServer[ClientREPLCommandMessage, ServerREPLCommandMessage]
+
 // Editor_ServiceDesc is the grpc.ServiceDesc for Editor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -528,6 +554,12 @@ var Editor_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeCommand",
 			Handler:       _Editor_SubscribeCommand_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "SubscribeREPLCommand",
+			Handler:       _Editor_SubscribeREPLCommand_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

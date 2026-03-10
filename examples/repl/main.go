@@ -39,7 +39,7 @@ var (
 type interpHandler struct{}
 
 func (interpHandler) HandleCommand(
-	_ context.Context, cmd repl.Command,
+	_ context.Context, cmd repl.Command, _ repl.ProgressWriter,
 ) (iterator.Iterator[component.Responsive], error) {
 	switch cmd.Name {
 	case "help":

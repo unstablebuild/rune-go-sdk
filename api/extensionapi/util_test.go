@@ -84,6 +84,13 @@ func TestPermissionForResource(t *testing.T) {
 			wantOK:   true,
 		},
 		{
+			name: "Editor SubscribeREPLCommand " +
+				"overrides to commands",
+			resource: "/text.Editor/SubscribeREPLCommand",
+			wantPerm: PermissionCommands,
+			wantOK:   true,
+		},
+		{
 			name:     "Terminal maps to terminal",
 			resource: "/workspace.Terminal/NewPty",
 			wantPerm: PermissionTerminal,

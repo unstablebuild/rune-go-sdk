@@ -32,6 +32,22 @@ func (e *ExitError) Error() string { return fmt.Sprintf("exit status %d", e.Code
 // indicate it does not handle the given command.
 var ErrNotFound = errors.New("command not found")
 
+// ProgressWriter allows command handlers to report
+// progress for long-running operations.
+type ProgressWriter interface {
+	Progress(progress, total int64, units string)
+}
+
+// NopProgressWriter returns a ProgressWriter that
+// discards all progress updates.
+func NopProgressWriter() ProgressWriter {
+	return nopProgressWriter{}
+}
+
+type nopProgressWriter struct{}
+
+func (nopProgressWriter) Progress(int64, int64, string) {}
+
 // Command represents a user-issued command.
 type Command struct {
 	Name string
@@ -44,7 +60,7 @@ type CommandHandler interface {
 	// HandleCommand is called when the user submits
 	// a command. It returns an iterator of responsive
 	// components to display as output.
-	HandleCommand(ctx context.Context, cmd Command) (
+	HandleCommand(ctx context.Context, cmd Command, pw ProgressWriter) (
 		iterator.Iterator[component.Responsive], error,
 	)
 
@@ -59,7 +75,7 @@ type CommandHandler interface {
 // calls fn every time HandleCommand is invoked and
 // completer when Complete is invoked.
 func FuncCommandHandler(
-	fn func(context.Context, Command) (iterator.Iterator[component.Responsive], error),
+	fn func(context.Context, Command, ProgressWriter) (iterator.Iterator[component.Responsive], error),
 	completer func(context.Context, string, []string) (iterator.Iterator[string], error),
 ) CommandHandler {
 	return fnCommandHandler{
@@ -72,20 +88,20 @@ func FuncCommandHandler(
 // calls fn every time HandleCommand is invoked, but
 // does not have a completion function.
 func NopCommandCompleter(
-	fn func(context.Context, Command) (iterator.Iterator[component.Responsive], error),
+	fn func(context.Context, Command, ProgressWriter) (iterator.Iterator[component.Responsive], error),
 ) CommandHandler {
 	return fnCommandHandler{cb: fn}
 }
 
 type fnCommandHandler struct {
-	cb         func(context.Context, Command) (iterator.Iterator[component.Responsive], error)
+	cb         func(context.Context, Command, ProgressWriter) (iterator.Iterator[component.Responsive], error)
 	completeFn func(context.Context, string, []string) (iterator.Iterator[string], error)
 }
 
 func (f fnCommandHandler) HandleCommand(
-	ctx context.Context, c Command,
+	ctx context.Context, c Command, pw ProgressWriter,
 ) (iterator.Iterator[component.Responsive], error) {
-	return f.cb(ctx, c)
+	return f.cb(ctx, c, pw)
 }
 
 func (f fnCommandHandler) Complete(

@@ -73,6 +73,11 @@ type Handler struct {
 	animFrames   []string
 	animSequence []int
 
+	// Progress bar.
+	progressBar     *component.ProgressBar
+	progressBarVirt component.Virtual[*component.ProgressBar]
+	progressChars   component.ProgressBarCharSet
+
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -134,6 +139,9 @@ func New(
 	if h.animFrames == nil {
 		h.animFrames, h.animSequence = component.ProgressAnimationFrames()
 	}
+	if h.progressChars == (component.ProgressBarCharSet{}) {
+		h.progressChars = component.DefaultProgressBarCharSet()
+	}
 	h.ctx, h.cancel = context.WithCancel(context.Background())
 	h.loadHistory()
 	h.cmdCtx, h.cmdCancel = context.WithCancel(h.ctx)
@@ -151,7 +159,9 @@ func (h *Handler) Resize(width, height int) {
 // Draw satisfies tui.Component.
 func (h *Handler) Draw(w term.Writer) {
 	h.output.Draw(w)
-	if h.spinner != nil {
+	if h.progressBar != nil {
+		h.progressBarVirt.Draw(w)
+	} else if h.spinner != nil {
 		h.spinnerVirt.Draw(w)
 	}
 	h.rl.Draw(w)
@@ -321,6 +331,13 @@ func (h *Handler) layout() {
 			Y: outH - 1,
 		})
 	}
+	if h.progressBar != nil {
+		h.progressBarVirt.Resize(h.width, 1)
+		h.progressBarVirt.Move(term.Coordinates{
+			X: 0,
+			Y: outH - 1,
+		})
+	}
 
 	h.rl.Resize(h.width, rlH)
 	h.rl.Move(term.Coordinates{Y: outH})
@@ -341,6 +358,35 @@ func (h *Handler) stopSpinner() {
 		h.spinner = nil
 		h.spinnerVirt.C = nil
 	}
+	if h.progressBar != nil {
+		h.progressBar = nil
+		h.progressBarVirt.C = nil
+	}
+}
+
+type progressWriter struct {
+	h *Handler
+}
+
+func (pw *progressWriter) Progress(
+	progress, total int64, units string,
+) {
+	pw.h.scheduleNextTick(func() {
+		pw.h.updateProgress(progress, total, units)
+	})
+}
+
+func (h *Handler) updateProgress(
+	progress, total int64, units string,
+) {
+	if h.progressBar == nil {
+		h.progressBar = component.NewProgressBar(
+			h.progressChars, term.Attributes{},
+		)
+		h.progressBarVirt.C = h.progressBar
+	}
+	h.progressBar.SetProgress(progress, total, units)
+	h.layout()
 }
 
 func (h *Handler) dispatchCommand(text string) {
@@ -353,7 +399,8 @@ func (h *Handler) dispatchCommand(text string) {
 		h.scheduleNextTick(func() {
 			h.startSpinner()
 		})
-		iter, err := h.cmd.HandleCommand(ctx, cmd)
+		pw := &progressWriter{h: h}
+		iter, err := h.cmd.HandleCommand(ctx, cmd, pw)
 		if err != nil {
 			isExit := h.exitError != nil && errors.Is(err, h.exitError)
 			if isExit {

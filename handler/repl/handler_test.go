@@ -36,7 +36,7 @@ var _ tui.Handler = (*Handler)(nil)
 
 type testHandler struct {
 	handleFn func(
-		context.Context, Command,
+		context.Context, Command, ProgressWriter,
 	) (iterator.Iterator[component.Responsive], error)
 	completeFn func(
 		context.Context, string, []string,
@@ -44,10 +44,10 @@ type testHandler struct {
 }
 
 func (t *testHandler) HandleCommand(
-	ctx context.Context, cmd Command,
+	ctx context.Context, cmd Command, pw ProgressWriter,
 ) (iterator.Iterator[component.Responsive], error) {
 	if t.handleFn != nil {
-		return t.handleFn(ctx, cmd)
+		return t.handleFn(ctx, cmd, pw)
 	}
 	return iterator.FromSlice[component.Responsive](nil), nil
 }
@@ -62,6 +62,32 @@ func (t *testHandler) Complete(
 }
 
 func nopSchedule(func()) bool { return false }
+
+type queuedScheduler struct {
+	mu      sync.Mutex
+	pending []func()
+}
+
+func (s *queuedScheduler) ScheduleNextTick(fn func()) bool {
+	s.mu.Lock()
+	s.pending = append(s.pending, fn)
+	s.mu.Unlock()
+	return true
+}
+
+func (s *queuedScheduler) Flush() {
+	for {
+		s.mu.Lock()
+		if len(s.pending) == 0 {
+			s.mu.Unlock()
+			return
+		}
+		fn := s.pending[0]
+		s.pending = s.pending[1:]
+		s.mu.Unlock()
+		fn()
+	}
+}
 
 func sendKeys(t *testing.T, h *Handler, seq string) {
 	t.Helper()
@@ -145,7 +171,7 @@ func TestEmptyInput(t *testing.T) {
 	called := false
 	th := &testHandler{
 		handleFn: func(
-			_ context.Context, _ Command,
+			_ context.Context, _ Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -168,7 +194,7 @@ func TestCommandDispatch(t *testing.T) {
 	ch := make(chan Command, 1)
 	th := &testHandler{
 		handleFn: func(
-			_ context.Context, cmd Command,
+			_ context.Context, cmd Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -255,7 +281,7 @@ func TestCtrlCCancelsContext(t *testing.T) {
 	var capturedCtx context.Context
 	th := &testHandler{
 		handleFn: func(
-			ctx context.Context, _ Command,
+			ctx context.Context, _ Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -325,7 +351,7 @@ func TestLayout(t *testing.T) {
 func TestHandleCommandError(t *testing.T) {
 	th := &testHandler{
 		handleFn: func(
-			_ context.Context, _ Command,
+			_ context.Context, _ Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -344,6 +370,127 @@ func TestHandleCommandError(t *testing.T) {
 
 	// The error is dispatched async via
 	// ScheduleNextTick. We verify no panic occurs.
+}
+
+func TestProgressBarRendersWhileCommandRunning(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	progressSent := make(chan struct{})
+	release := make(chan struct{})
+	th := &testHandler{
+		handleFn: func(
+			ctx context.Context, _ Command, pw ProgressWriter,
+		) (
+			iterator.Iterator[component.Responsive],
+			error,
+		) {
+			pw.Progress(25, 100, "files")
+			close(progressSent)
+			select {
+			case <-release:
+				return iterator.Empty[component.Responsive](), nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		},
+	}
+	h := New(
+		th, scheduler.ScheduleNextTick, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithRunningAnimationFrames([]string{}, []int{}),
+	)
+	t.Cleanup(func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+		_ = h.Close()
+	})
+	h.Resize(30, 5)
+
+	sendKeys(t, h, "sync")
+	h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+
+	<-progressSent
+	scheduler.Flush()
+
+	got := drawHandler(h, 30, 5)
+	expected := "                              \n" +
+		"                              \n" +
+		"                              \n" +
+		"╢░░_________╟ 25% 25/100 files\n" +
+		"$ ▐                           "
+	assert.Equal(t, expected, got)
+
+	close(release)
+	h.Wait()
+	scheduler.Flush()
+}
+
+func TestProgressBarClearsAfterCommandCompletes(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	progressSent := make(chan struct{})
+	release := make(chan struct{})
+	th := &testHandler{
+		handleFn: func(
+			ctx context.Context, _ Command, pw ProgressWriter,
+		) (
+			iterator.Iterator[component.Responsive],
+			error,
+		) {
+			pw.Progress(25, 100, "files")
+			close(progressSent)
+			select {
+			case <-release:
+				return iterator.FromSlice([]component.Responsive{
+					component.NewResponsiveString(
+						"done",
+						component.StringResponsiveConfig{},
+					),
+				}), nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		},
+	}
+	h := New(
+		th, scheduler.ScheduleNextTick, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithRunningAnimationFrames([]string{}, []int{}),
+	)
+	t.Cleanup(func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+		_ = h.Close()
+	})
+	h.Resize(30, 5)
+
+	sendKeys(t, h, "sync")
+	h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+
+	<-progressSent
+	scheduler.Flush()
+	close(release)
+	h.Wait()
+	scheduler.Flush()
+
+	got := drawHandler(h, 30, 5)
+	expected := "                              \n" +
+		"                              \n" +
+		"$ sync                        \n" +
+		"done                          \n" +
+		"$ ▐                           "
+	assert.Equal(t, expected, got)
+	assert.NotContains(t, got, "25% 25/100 files")
 }
 
 func TestMultipleCommands(t *testing.T) {
@@ -477,7 +624,7 @@ func TestFuncCommandHandlerComplete(t *testing.T) {
 	called := false
 	ch := FuncCommandHandler(
 		func(
-			_ context.Context, _ Command,
+			_ context.Context, _ Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -490,7 +637,7 @@ func TestFuncCommandHandlerComplete(t *testing.T) {
 		},
 	)
 
-	_, err := ch.HandleCommand(context.Background(), Command{Name: "test"})
+	_, err := ch.HandleCommand(context.Background(), Command{Name: "test"}, NopProgressWriter())
 	assert.NoError(t, err)
 	assert.True(t, called)
 
@@ -505,7 +652,7 @@ func TestFuncCommandHandlerComplete(t *testing.T) {
 func TestNopCommandCompleterComplete(t *testing.T) {
 	ch := NopCommandCompleter(
 		func(
-			_ context.Context, _ Command,
+			_ context.Context, _ Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -628,7 +775,7 @@ func TestExitError(t *testing.T) {
 	exitErr := errors.New("exit")
 	th := &testHandler{
 		handleFn: func(
-			_ context.Context, cmd Command,
+			_ context.Context, cmd Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -673,7 +820,7 @@ func TestExitErrorWrapped(t *testing.T) {
 	exitErr := errors.New("exit")
 	th := &testHandler{
 		handleFn: func(
-			_ context.Context, _ Command,
+			_ context.Context, _ Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -704,7 +851,7 @@ func TestExitErrorWrapped(t *testing.T) {
 func TestExitErrorNotConfigured(t *testing.T) {
 	th := &testHandler{
 		handleFn: func(
-			_ context.Context, _ Command,
+			_ context.Context, _ Command, _ ProgressWriter,
 		) (
 			iterator.Iterator[component.Responsive],
 			error,
@@ -752,7 +899,7 @@ func TestClose(t *testing.T) {
 		started := make(chan struct{})
 		th := &testHandler{
 			handleFn: func(
-				ctx context.Context, _ Command,
+				ctx context.Context, _ Command, _ ProgressWriter,
 			) (
 				iterator.Iterator[component.Responsive],
 				error,

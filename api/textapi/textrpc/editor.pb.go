@@ -208,6 +208,119 @@ func (ServerCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
 	return file_textrpc_editor_proto_rawDescGZIP(), []int{25, 0}
 }
 
+type ClientREPLCommandMessage_MessageType int32
+
+const (
+	ClientREPLCommandMessage_HandleValue   ClientREPLCommandMessage_MessageType = 0
+	ClientREPLCommandMessage_HandleDone    ClientREPLCommandMessage_MessageType = 1
+	ClientREPLCommandMessage_CompleteValue ClientREPLCommandMessage_MessageType = 2
+	ClientREPLCommandMessage_CompleteDone  ClientREPLCommandMessage_MessageType = 3
+	ClientREPLCommandMessage_HelpValue     ClientREPLCommandMessage_MessageType = 4
+	ClientREPLCommandMessage_HelpDone      ClientREPLCommandMessage_MessageType = 5
+	ClientREPLCommandMessage_Request       ClientREPLCommandMessage_MessageType = 6
+)
+
+// Enum value maps for ClientREPLCommandMessage_MessageType.
+var (
+	ClientREPLCommandMessage_MessageType_name = map[int32]string{
+		0: "HandleValue",
+		1: "HandleDone",
+		2: "CompleteValue",
+		3: "CompleteDone",
+		4: "HelpValue",
+		5: "HelpDone",
+		6: "Request",
+	}
+	ClientREPLCommandMessage_MessageType_value = map[string]int32{
+		"HandleValue":   0,
+		"HandleDone":    1,
+		"CompleteValue": 2,
+		"CompleteDone":  3,
+		"HelpValue":     4,
+		"HelpDone":      5,
+		"Request":       6,
+	}
+)
+
+func (x ClientREPLCommandMessage_MessageType) Enum() *ClientREPLCommandMessage_MessageType {
+	p := new(ClientREPLCommandMessage_MessageType)
+	*p = x
+	return p
+}
+
+func (x ClientREPLCommandMessage_MessageType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ClientREPLCommandMessage_MessageType) Descriptor() protoreflect.EnumDescriptor {
+	return file_textrpc_editor_proto_enumTypes[3].Descriptor()
+}
+
+func (ClientREPLCommandMessage_MessageType) Type() protoreflect.EnumType {
+	return &file_textrpc_editor_proto_enumTypes[3]
+}
+
+func (x ClientREPLCommandMessage_MessageType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ClientREPLCommandMessage_MessageType.Descriptor instead.
+func (ClientREPLCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{33, 0}
+}
+
+type ServerREPLCommandMessage_MessageType int32
+
+const (
+	ServerREPLCommandMessage_Handle   ServerREPLCommandMessage_MessageType = 0
+	ServerREPLCommandMessage_Complete ServerREPLCommandMessage_MessageType = 1
+	ServerREPLCommandMessage_Help     ServerREPLCommandMessage_MessageType = 2
+	ServerREPLCommandMessage_Response ServerREPLCommandMessage_MessageType = 3
+)
+
+// Enum value maps for ServerREPLCommandMessage_MessageType.
+var (
+	ServerREPLCommandMessage_MessageType_name = map[int32]string{
+		0: "Handle",
+		1: "Complete",
+		2: "Help",
+		3: "Response",
+	}
+	ServerREPLCommandMessage_MessageType_value = map[string]int32{
+		"Handle":   0,
+		"Complete": 1,
+		"Help":     2,
+		"Response": 3,
+	}
+)
+
+func (x ServerREPLCommandMessage_MessageType) Enum() *ServerREPLCommandMessage_MessageType {
+	p := new(ServerREPLCommandMessage_MessageType)
+	*p = x
+	return p
+}
+
+func (x ServerREPLCommandMessage_MessageType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ServerREPLCommandMessage_MessageType) Descriptor() protoreflect.EnumDescriptor {
+	return file_textrpc_editor_proto_enumTypes[4].Descriptor()
+}
+
+func (ServerREPLCommandMessage_MessageType) Type() protoreflect.EnumType {
+	return &file_textrpc_editor_proto_enumTypes[4]
+}
+
+func (x ServerREPLCommandMessage_MessageType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ServerREPLCommandMessage_MessageType.Descriptor instead.
+func (ServerREPLCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{34, 0}
+}
+
 type URI struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uri           string                 `protobuf:"bytes,1,opt,name=uri,proto3" json:"uri,omitempty"`
@@ -1836,6 +1949,550 @@ func (x *CompleteCommandDone) GetError() string {
 	return ""
 }
 
+type SubscribeREPLCommandRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Command       *CommandManual         `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeREPLCommandRequest) Reset() {
+	*x = SubscribeREPLCommandRequest{}
+	mi := &file_textrpc_editor_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeREPLCommandRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeREPLCommandRequest) ProtoMessage() {}
+
+func (x *SubscribeREPLCommandRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeREPLCommandRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeREPLCommandRequest) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *SubscribeREPLCommandRequest) GetCommand() *CommandManual {
+	if x != nil {
+		return x.Command
+	}
+	return nil
+}
+
+type SubscribeREPLCommandResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeREPLCommandResponse) Reset() {
+	*x = SubscribeREPLCommandResponse{}
+	mi := &file_textrpc_editor_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeREPLCommandResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeREPLCommandResponse) ProtoMessage() {}
+
+func (x *SubscribeREPLCommandResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeREPLCommandResponse.ProtoReflect.Descriptor instead.
+func (*SubscribeREPLCommandResponse) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{32}
+}
+
+type ClientREPLCommandMessage struct {
+	state         protoimpl.MessageState               `protogen:"open.v1"`
+	Type          ClientREPLCommandMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ClientREPLCommandMessage_MessageType" json:"type,omitempty"`
+	HandleValue   *HandleREPLCommandValue              `protobuf:"bytes,2,opt,name=handle_value,json=handleValue,proto3" json:"handle_value,omitempty"`
+	HandleDone    *HandleREPLCommandDone               `protobuf:"bytes,3,opt,name=handle_done,json=handleDone,proto3" json:"handle_done,omitempty"`
+	CompleteValue *CompleteCommandValue                `protobuf:"bytes,4,opt,name=complete_value,json=completeValue,proto3" json:"complete_value,omitempty"`
+	CompleteDone  *CompleteCommandDone                 `protobuf:"bytes,5,opt,name=complete_done,json=completeDone,proto3" json:"complete_done,omitempty"`
+	HelpValue     *HelpCommandValue                    `protobuf:"bytes,6,opt,name=help_value,json=helpValue,proto3" json:"help_value,omitempty"`
+	HelpDone      *HelpCommandDone                     `protobuf:"bytes,7,opt,name=help_done,json=helpDone,proto3" json:"help_done,omitempty"`
+	Request       *SubscribeREPLCommandRequest         `protobuf:"bytes,8,opt,name=request,proto3" json:"request,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClientREPLCommandMessage) Reset() {
+	*x = ClientREPLCommandMessage{}
+	mi := &file_textrpc_editor_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientREPLCommandMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientREPLCommandMessage) ProtoMessage() {}
+
+func (x *ClientREPLCommandMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientREPLCommandMessage.ProtoReflect.Descriptor instead.
+func (*ClientREPLCommandMessage) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *ClientREPLCommandMessage) GetType() ClientREPLCommandMessage_MessageType {
+	if x != nil {
+		return x.Type
+	}
+	return ClientREPLCommandMessage_HandleValue
+}
+
+func (x *ClientREPLCommandMessage) GetHandleValue() *HandleREPLCommandValue {
+	if x != nil {
+		return x.HandleValue
+	}
+	return nil
+}
+
+func (x *ClientREPLCommandMessage) GetHandleDone() *HandleREPLCommandDone {
+	if x != nil {
+		return x.HandleDone
+	}
+	return nil
+}
+
+func (x *ClientREPLCommandMessage) GetCompleteValue() *CompleteCommandValue {
+	if x != nil {
+		return x.CompleteValue
+	}
+	return nil
+}
+
+func (x *ClientREPLCommandMessage) GetCompleteDone() *CompleteCommandDone {
+	if x != nil {
+		return x.CompleteDone
+	}
+	return nil
+}
+
+func (x *ClientREPLCommandMessage) GetHelpValue() *HelpCommandValue {
+	if x != nil {
+		return x.HelpValue
+	}
+	return nil
+}
+
+func (x *ClientREPLCommandMessage) GetHelpDone() *HelpCommandDone {
+	if x != nil {
+		return x.HelpDone
+	}
+	return nil
+}
+
+func (x *ClientREPLCommandMessage) GetRequest() *SubscribeREPLCommandRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+type ServerREPLCommandMessage struct {
+	state         protoimpl.MessageState               `protogen:"open.v1"`
+	Type          ServerREPLCommandMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerREPLCommandMessage_MessageType" json:"type,omitempty"`
+	Handle        *HandleREPLCommandRequest            `protobuf:"bytes,2,opt,name=handle,proto3" json:"handle,omitempty"`
+	Complete      *CompleteCommandRequest              `protobuf:"bytes,3,opt,name=complete,proto3" json:"complete,omitempty"`
+	Help          *HelpCommandRequest                  `protobuf:"bytes,4,opt,name=help,proto3" json:"help,omitempty"`
+	Response      *SubscribeREPLCommandResponse        `protobuf:"bytes,5,opt,name=response,proto3" json:"response,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServerREPLCommandMessage) Reset() {
+	*x = ServerREPLCommandMessage{}
+	mi := &file_textrpc_editor_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerREPLCommandMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerREPLCommandMessage) ProtoMessage() {}
+
+func (x *ServerREPLCommandMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerREPLCommandMessage.ProtoReflect.Descriptor instead.
+func (*ServerREPLCommandMessage) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ServerREPLCommandMessage) GetType() ServerREPLCommandMessage_MessageType {
+	if x != nil {
+		return x.Type
+	}
+	return ServerREPLCommandMessage_Handle
+}
+
+func (x *ServerREPLCommandMessage) GetHandle() *HandleREPLCommandRequest {
+	if x != nil {
+		return x.Handle
+	}
+	return nil
+}
+
+func (x *ServerREPLCommandMessage) GetComplete() *CompleteCommandRequest {
+	if x != nil {
+		return x.Complete
+	}
+	return nil
+}
+
+func (x *ServerREPLCommandMessage) GetHelp() *HelpCommandRequest {
+	if x != nil {
+		return x.Help
+	}
+	return nil
+}
+
+func (x *ServerREPLCommandMessage) GetResponse() *SubscribeREPLCommandResponse {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
+type HandleREPLCommandRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Args          []string               `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
+	Width         int32                  `protobuf:"varint,3,opt,name=width,proto3" json:"width,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HandleREPLCommandRequest) Reset() {
+	*x = HandleREPLCommandRequest{}
+	mi := &file_textrpc_editor_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandleREPLCommandRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandleREPLCommandRequest) ProtoMessage() {}
+
+func (x *HandleREPLCommandRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandleREPLCommandRequest.ProtoReflect.Descriptor instead.
+func (*HandleREPLCommandRequest) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *HandleREPLCommandRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *HandleREPLCommandRequest) GetArgs() []string {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+func (x *HandleREPLCommandRequest) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+type HandleREPLCommandValue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rows          []*termrpc.CellRow     `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HandleREPLCommandValue) Reset() {
+	*x = HandleREPLCommandValue{}
+	mi := &file_textrpc_editor_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandleREPLCommandValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandleREPLCommandValue) ProtoMessage() {}
+
+func (x *HandleREPLCommandValue) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandleREPLCommandValue.ProtoReflect.Descriptor instead.
+func (*HandleREPLCommandValue) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *HandleREPLCommandValue) GetRows() []*termrpc.CellRow {
+	if x != nil {
+		return x.Rows
+	}
+	return nil
+}
+
+type HandleREPLCommandDone struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         string                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HandleREPLCommandDone) Reset() {
+	*x = HandleREPLCommandDone{}
+	mi := &file_textrpc_editor_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandleREPLCommandDone) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandleREPLCommandDone) ProtoMessage() {}
+
+func (x *HandleREPLCommandDone) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandleREPLCommandDone.ProtoReflect.Descriptor instead.
+func (*HandleREPLCommandDone) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *HandleREPLCommandDone) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type HelpCommandRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Args          []string               `protobuf:"bytes,1,rep,name=args,proto3" json:"args,omitempty"`
+	Width         int32                  `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HelpCommandRequest) Reset() {
+	*x = HelpCommandRequest{}
+	mi := &file_textrpc_editor_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HelpCommandRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HelpCommandRequest) ProtoMessage() {}
+
+func (x *HelpCommandRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HelpCommandRequest.ProtoReflect.Descriptor instead.
+func (*HelpCommandRequest) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *HelpCommandRequest) GetArgs() []string {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+func (x *HelpCommandRequest) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+type HelpCommandValue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rows          []*termrpc.CellRow     `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HelpCommandValue) Reset() {
+	*x = HelpCommandValue{}
+	mi := &file_textrpc_editor_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HelpCommandValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HelpCommandValue) ProtoMessage() {}
+
+func (x *HelpCommandValue) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HelpCommandValue.ProtoReflect.Descriptor instead.
+func (*HelpCommandValue) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *HelpCommandValue) GetRows() []*termrpc.CellRow {
+	if x != nil {
+		return x.Rows
+	}
+	return nil
+}
+
+type HelpCommandDone struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         string                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HelpCommandDone) Reset() {
+	*x = HelpCommandDone{}
+	mi := &file_textrpc_editor_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HelpCommandDone) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HelpCommandDone) ProtoMessage() {}
+
+func (x *HelpCommandDone) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HelpCommandDone.ProtoReflect.Descriptor instead.
+func (*HelpCommandDone) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *HelpCommandDone) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 type SetLocationListRequest_Location struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	From          *termrpc.Coordinates   `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
@@ -1849,7 +2506,7 @@ type SetLocationListRequest_Location struct {
 
 func (x *SetLocationListRequest_Location) Reset() {
 	*x = SetLocationListRequest_Location{}
-	mi := &file_textrpc_editor_proto_msgTypes[31]
+	mi := &file_textrpc_editor_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1861,7 +2518,7 @@ func (x *SetLocationListRequest_Location) String() string {
 func (*SetLocationListRequest_Location) ProtoMessage() {}
 
 func (x *SetLocationListRequest_Location) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[31]
+	mi := &file_textrpc_editor_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2054,7 +2711,57 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value\";\n" +
 	"\x13CompleteCommandDone\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error2\xbc\x06\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"L\n" +
+	"\x1bSubscribeREPLCommandRequest\x12-\n" +
+	"\acommand\x18\x01 \x01(\v2\x13.text.CommandManualR\acommand\"\x1e\n" +
+	"\x1cSubscribeREPLCommandResponse\"\x83\x05\n" +
+	"\x18ClientREPLCommandMessage\x12>\n" +
+	"\x04type\x18\x01 \x01(\x0e2*.text.ClientREPLCommandMessage.MessageTypeR\x04type\x12?\n" +
+	"\fhandle_value\x18\x02 \x01(\v2\x1c.text.HandleREPLCommandValueR\vhandleValue\x12<\n" +
+	"\vhandle_done\x18\x03 \x01(\v2\x1b.text.HandleREPLCommandDoneR\n" +
+	"handleDone\x12A\n" +
+	"\x0ecomplete_value\x18\x04 \x01(\v2\x1a.text.CompleteCommandValueR\rcompleteValue\x12>\n" +
+	"\rcomplete_done\x18\x05 \x01(\v2\x19.text.CompleteCommandDoneR\fcompleteDone\x125\n" +
+	"\n" +
+	"help_value\x18\x06 \x01(\v2\x16.text.HelpCommandValueR\thelpValue\x122\n" +
+	"\thelp_done\x18\a \x01(\v2\x15.text.HelpCommandDoneR\bhelpDone\x12;\n" +
+	"\arequest\x18\b \x01(\v2!.text.SubscribeREPLCommandRequestR\arequest\"}\n" +
+	"\vMessageType\x12\x0f\n" +
+	"\vHandleValue\x10\x00\x12\x0e\n" +
+	"\n" +
+	"HandleDone\x10\x01\x12\x11\n" +
+	"\rCompleteValue\x10\x02\x12\x10\n" +
+	"\fCompleteDone\x10\x03\x12\r\n" +
+	"\tHelpValue\x10\x04\x12\f\n" +
+	"\bHelpDone\x10\x05\x12\v\n" +
+	"\aRequest\x10\x06\"\xfb\x02\n" +
+	"\x18ServerREPLCommandMessage\x12>\n" +
+	"\x04type\x18\x01 \x01(\x0e2*.text.ServerREPLCommandMessage.MessageTypeR\x04type\x126\n" +
+	"\x06handle\x18\x02 \x01(\v2\x1e.text.HandleREPLCommandRequestR\x06handle\x128\n" +
+	"\bcomplete\x18\x03 \x01(\v2\x1c.text.CompleteCommandRequestR\bcomplete\x12,\n" +
+	"\x04help\x18\x04 \x01(\v2\x18.text.HelpCommandRequestR\x04help\x12>\n" +
+	"\bresponse\x18\x05 \x01(\v2\".text.SubscribeREPLCommandResponseR\bresponse\"?\n" +
+	"\vMessageType\x12\n" +
+	"\n" +
+	"\x06Handle\x10\x00\x12\f\n" +
+	"\bComplete\x10\x01\x12\b\n" +
+	"\x04Help\x10\x02\x12\f\n" +
+	"\bResponse\x10\x03\"X\n" +
+	"\x18HandleREPLCommandRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04args\x18\x02 \x03(\tR\x04args\x12\x14\n" +
+	"\x05width\x18\x03 \x01(\x05R\x05width\";\n" +
+	"\x16HandleREPLCommandValue\x12!\n" +
+	"\x04rows\x18\x01 \x03(\v2\r.term.CellRowR\x04rows\"-\n" +
+	"\x15HandleREPLCommandDone\x12\x14\n" +
+	"\x05error\x18\x01 \x01(\tR\x05error\">\n" +
+	"\x12HelpCommandRequest\x12\x12\n" +
+	"\x04args\x18\x01 \x03(\tR\x04args\x12\x14\n" +
+	"\x05width\x18\x02 \x01(\x05R\x05width\"5\n" +
+	"\x10HelpCommandValue\x12!\n" +
+	"\x04rows\x18\x01 \x03(\v2\r.term.CellRowR\x04rows\"'\n" +
+	"\x0fHelpCommandDone\x12\x14\n" +
+	"\x05error\x18\x01 \x01(\tR\x05error2\x98\a\n" +
 	"\x06Editor\x12-\n" +
 	"\x04Edit\x12\x11.text.EditRequest\x1a\x12.text.EditResponse\x12<\n" +
 	"\tSetCursor\x12\x16.text.SetCursorRequest\x1a\x17.text.SetCursorResponse\x123\n" +
@@ -2067,7 +2774,8 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\bRawCells\x12\x15.text.RawCellsRequest\x1a\x16.text.RawCellsResponse\x12]\n" +
 	"\x14SetDefaultAttributes\x12!.text.SetDefaultAttributesRequest\x1a\".text.SetDefaultAttributesResponse\x12D\n" +
 	"\x0eSubscribeEvent\x12\x1b.text.SubscribeEventRequest\x1a\x11.text.EditorEvent(\x010\x01\x12N\n" +
-	"\x10SubscribeCommand\x12\x1a.text.ClientCommandMessage\x1a\x1a.text.ServerCommandMessage(\x010\x01B:Z8github.com/unstablebuild/rune-go-sdk/api/textapi/textrpcb\x06proto3"
+	"\x10SubscribeCommand\x12\x1a.text.ClientCommandMessage\x1a\x1a.text.ServerCommandMessage(\x010\x01\x12Z\n" +
+	"\x14SubscribeREPLCommand\x12\x1e.text.ClientREPLCommandMessage\x1a\x1e.text.ServerREPLCommandMessage(\x010\x01B:Z8github.com/unstablebuild/rune-go-sdk/api/textapi/textrpcb\x06proto3"
 
 var (
 	file_textrpc_editor_proto_rawDescOnce sync.Once
@@ -2081,121 +2789,151 @@ func file_textrpc_editor_proto_rawDescGZIP() []byte {
 	return file_textrpc_editor_proto_rawDescData
 }
 
-var file_textrpc_editor_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_textrpc_editor_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
 var file_textrpc_editor_proto_goTypes = []any{
-	(EditorEvent_Type)(0),                   // 0: text.EditorEvent.Type
-	(ClientCommandMessage_MessageType)(0),   // 1: text.ClientCommandMessage.MessageType
-	(ServerCommandMessage_MessageType)(0),   // 2: text.ServerCommandMessage.MessageType
-	(*URI)(nil),                             // 3: text.URI
-	(*EditRequest)(nil),                     // 4: text.EditRequest
-	(*EditResponse)(nil),                    // 5: text.EditResponse
-	(*EditorEvent)(nil),                     // 6: text.EditorEvent
-	(*SubscribeEventRequest)(nil),           // 7: text.SubscribeEventRequest
-	(*SetLocationListRequest)(nil),          // 8: text.SetLocationListRequest
-	(*SetLocationListResponse)(nil),         // 9: text.SetLocationListResponse
-	(*EditCellRequest)(nil),                 // 10: text.EditCellRequest
-	(*EditCellResponse)(nil),                // 11: text.EditCellResponse
-	(*RawCellsRequest)(nil),                 // 12: text.RawCellsRequest
-	(*RawCellsResponse)(nil),                // 13: text.RawCellsResponse
-	(*MoveToLocationRequest)(nil),           // 14: text.MoveToLocationRequest
-	(*MoveToLocationResponse)(nil),          // 15: text.MoveToLocationResponse
-	(*SetCursorRequest)(nil),                // 16: text.SetCursorRequest
-	(*SetCursorResponse)(nil),               // 17: text.SetCursorResponse
-	(*CursorRequest)(nil),                   // 18: text.CursorRequest
-	(*CursorResponse)(nil),                  // 19: text.CursorResponse
-	(*EditorRequest)(nil),                   // 20: text.EditorRequest
-	(*EditorResponse)(nil),                  // 21: text.EditorResponse
-	(*SetDefaultAttributesRequest)(nil),     // 22: text.SetDefaultAttributesRequest
-	(*SetDefaultAttributesResponse)(nil),    // 23: text.SetDefaultAttributesResponse
-	(*SubscribeCommandRequest)(nil),         // 24: text.SubscribeCommandRequest
-	(*CommandManual)(nil),                   // 25: text.CommandManual
-	(*SubscribeCommandResponse)(nil),        // 26: text.SubscribeCommandResponse
-	(*ClientCommandMessage)(nil),            // 27: text.ClientCommandMessage
-	(*ServerCommandMessage)(nil),            // 28: text.ServerCommandMessage
-	(*HandleCommandRequest)(nil),            // 29: text.HandleCommandRequest
-	(*HandleCommandResponse)(nil),           // 30: text.HandleCommandResponse
-	(*CompleteCommandRequest)(nil),          // 31: text.CompleteCommandRequest
-	(*CompleteCommandValue)(nil),            // 32: text.CompleteCommandValue
-	(*CompleteCommandDone)(nil),             // 33: text.CompleteCommandDone
-	(*SetLocationListRequest_Location)(nil), // 34: text.SetLocationListRequest.Location
-	(*termrpc.CellRow)(nil),                 // 35: term.CellRow
-	(*termrpc.Coordinates)(nil),             // 36: term.Coordinates
-	(*termrpc.Attributes)(nil),              // 37: term.Attributes
+	(EditorEvent_Type)(0),                     // 0: text.EditorEvent.Type
+	(ClientCommandMessage_MessageType)(0),     // 1: text.ClientCommandMessage.MessageType
+	(ServerCommandMessage_MessageType)(0),     // 2: text.ServerCommandMessage.MessageType
+	(ClientREPLCommandMessage_MessageType)(0), // 3: text.ClientREPLCommandMessage.MessageType
+	(ServerREPLCommandMessage_MessageType)(0), // 4: text.ServerREPLCommandMessage.MessageType
+	(*URI)(nil),                             // 5: text.URI
+	(*EditRequest)(nil),                     // 6: text.EditRequest
+	(*EditResponse)(nil),                    // 7: text.EditResponse
+	(*EditorEvent)(nil),                     // 8: text.EditorEvent
+	(*SubscribeEventRequest)(nil),           // 9: text.SubscribeEventRequest
+	(*SetLocationListRequest)(nil),          // 10: text.SetLocationListRequest
+	(*SetLocationListResponse)(nil),         // 11: text.SetLocationListResponse
+	(*EditCellRequest)(nil),                 // 12: text.EditCellRequest
+	(*EditCellResponse)(nil),                // 13: text.EditCellResponse
+	(*RawCellsRequest)(nil),                 // 14: text.RawCellsRequest
+	(*RawCellsResponse)(nil),                // 15: text.RawCellsResponse
+	(*MoveToLocationRequest)(nil),           // 16: text.MoveToLocationRequest
+	(*MoveToLocationResponse)(nil),          // 17: text.MoveToLocationResponse
+	(*SetCursorRequest)(nil),                // 18: text.SetCursorRequest
+	(*SetCursorResponse)(nil),               // 19: text.SetCursorResponse
+	(*CursorRequest)(nil),                   // 20: text.CursorRequest
+	(*CursorResponse)(nil),                  // 21: text.CursorResponse
+	(*EditorRequest)(nil),                   // 22: text.EditorRequest
+	(*EditorResponse)(nil),                  // 23: text.EditorResponse
+	(*SetDefaultAttributesRequest)(nil),     // 24: text.SetDefaultAttributesRequest
+	(*SetDefaultAttributesResponse)(nil),    // 25: text.SetDefaultAttributesResponse
+	(*SubscribeCommandRequest)(nil),         // 26: text.SubscribeCommandRequest
+	(*CommandManual)(nil),                   // 27: text.CommandManual
+	(*SubscribeCommandResponse)(nil),        // 28: text.SubscribeCommandResponse
+	(*ClientCommandMessage)(nil),            // 29: text.ClientCommandMessage
+	(*ServerCommandMessage)(nil),            // 30: text.ServerCommandMessage
+	(*HandleCommandRequest)(nil),            // 31: text.HandleCommandRequest
+	(*HandleCommandResponse)(nil),           // 32: text.HandleCommandResponse
+	(*CompleteCommandRequest)(nil),          // 33: text.CompleteCommandRequest
+	(*CompleteCommandValue)(nil),            // 34: text.CompleteCommandValue
+	(*CompleteCommandDone)(nil),             // 35: text.CompleteCommandDone
+	(*SubscribeREPLCommandRequest)(nil),     // 36: text.SubscribeREPLCommandRequest
+	(*SubscribeREPLCommandResponse)(nil),    // 37: text.SubscribeREPLCommandResponse
+	(*ClientREPLCommandMessage)(nil),        // 38: text.ClientREPLCommandMessage
+	(*ServerREPLCommandMessage)(nil),        // 39: text.ServerREPLCommandMessage
+	(*HandleREPLCommandRequest)(nil),        // 40: text.HandleREPLCommandRequest
+	(*HandleREPLCommandValue)(nil),          // 41: text.HandleREPLCommandValue
+	(*HandleREPLCommandDone)(nil),           // 42: text.HandleREPLCommandDone
+	(*HelpCommandRequest)(nil),              // 43: text.HelpCommandRequest
+	(*HelpCommandValue)(nil),                // 44: text.HelpCommandValue
+	(*HelpCommandDone)(nil),                 // 45: text.HelpCommandDone
+	(*SetLocationListRequest_Location)(nil), // 46: text.SetLocationListRequest.Location
+	(*termrpc.CellRow)(nil),                 // 47: term.CellRow
+	(*termrpc.Coordinates)(nil),             // 48: term.Coordinates
+	(*termrpc.Attributes)(nil),              // 49: term.Attributes
 }
 var file_textrpc_editor_proto_depIdxs = []int32{
-	3,  // 0: text.EditRequest.resource_name:type_name -> text.URI
-	35, // 1: text.EditRequest.buffer:type_name -> term.CellRow
+	5,  // 0: text.EditRequest.resource_name:type_name -> text.URI
+	47, // 1: text.EditRequest.buffer:type_name -> term.CellRow
 	0,  // 2: text.EditorEvent.type:type_name -> text.EditorEvent.Type
-	3,  // 3: text.EditorEvent.resource_name:type_name -> text.URI
-	36, // 4: text.EditorEvent.start:type_name -> term.Coordinates
-	36, // 5: text.EditorEvent.end:type_name -> term.Coordinates
-	36, // 6: text.EditorEvent.from:type_name -> term.Coordinates
-	36, // 7: text.EditorEvent.to:type_name -> term.Coordinates
+	5,  // 3: text.EditorEvent.resource_name:type_name -> text.URI
+	48, // 4: text.EditorEvent.start:type_name -> term.Coordinates
+	48, // 5: text.EditorEvent.end:type_name -> term.Coordinates
+	48, // 6: text.EditorEvent.from:type_name -> term.Coordinates
+	48, // 7: text.EditorEvent.to:type_name -> term.Coordinates
 	0,  // 8: text.SubscribeEventRequest.type:type_name -> text.EditorEvent.Type
-	3,  // 9: text.SetLocationListRequest.resource_name:type_name -> text.URI
-	34, // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
-	3,  // 11: text.EditCellRequest.resource_name:type_name -> text.URI
-	36, // 12: text.EditCellRequest.start:type_name -> term.Coordinates
-	36, // 13: text.EditCellRequest.end:type_name -> term.Coordinates
-	36, // 14: text.EditCellResponse.from:type_name -> term.Coordinates
-	36, // 15: text.EditCellResponse.to:type_name -> term.Coordinates
-	3,  // 16: text.RawCellsRequest.resource_name:type_name -> text.URI
-	35, // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
-	3,  // 18: text.MoveToLocationRequest.resource_name:type_name -> text.URI
-	36, // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
-	3,  // 20: text.SetCursorRequest.resource_name:type_name -> text.URI
-	3,  // 21: text.CursorRequest.resource_name:type_name -> text.URI
-	36, // 22: text.CursorResponse.pos:type_name -> term.Coordinates
-	3,  // 23: text.EditorRequest.resource_name:type_name -> text.URI
-	3,  // 24: text.SetDefaultAttributesRequest.resource_name:type_name -> text.URI
-	37, // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
-	25, // 26: text.SubscribeCommandRequest.command:type_name -> text.CommandManual
-	25, // 27: text.CommandManual.commands:type_name -> text.CommandManual
+	5,  // 9: text.SetLocationListRequest.resource_name:type_name -> text.URI
+	46, // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
+	5,  // 11: text.EditCellRequest.resource_name:type_name -> text.URI
+	48, // 12: text.EditCellRequest.start:type_name -> term.Coordinates
+	48, // 13: text.EditCellRequest.end:type_name -> term.Coordinates
+	48, // 14: text.EditCellResponse.from:type_name -> term.Coordinates
+	48, // 15: text.EditCellResponse.to:type_name -> term.Coordinates
+	5,  // 16: text.RawCellsRequest.resource_name:type_name -> text.URI
+	47, // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
+	5,  // 18: text.MoveToLocationRequest.resource_name:type_name -> text.URI
+	48, // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
+	5,  // 20: text.SetCursorRequest.resource_name:type_name -> text.URI
+	5,  // 21: text.CursorRequest.resource_name:type_name -> text.URI
+	48, // 22: text.CursorResponse.pos:type_name -> term.Coordinates
+	5,  // 23: text.EditorRequest.resource_name:type_name -> text.URI
+	5,  // 24: text.SetDefaultAttributesRequest.resource_name:type_name -> text.URI
+	49, // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
+	27, // 26: text.SubscribeCommandRequest.command:type_name -> text.CommandManual
+	27, // 27: text.CommandManual.commands:type_name -> text.CommandManual
 	1,  // 28: text.ClientCommandMessage.type:type_name -> text.ClientCommandMessage.MessageType
-	30, // 29: text.ClientCommandMessage.handle:type_name -> text.HandleCommandResponse
-	32, // 30: text.ClientCommandMessage.complete_value:type_name -> text.CompleteCommandValue
-	33, // 31: text.ClientCommandMessage.complete_done:type_name -> text.CompleteCommandDone
-	24, // 32: text.ClientCommandMessage.request:type_name -> text.SubscribeCommandRequest
+	32, // 29: text.ClientCommandMessage.handle:type_name -> text.HandleCommandResponse
+	34, // 30: text.ClientCommandMessage.complete_value:type_name -> text.CompleteCommandValue
+	35, // 31: text.ClientCommandMessage.complete_done:type_name -> text.CompleteCommandDone
+	26, // 32: text.ClientCommandMessage.request:type_name -> text.SubscribeCommandRequest
 	2,  // 33: text.ServerCommandMessage.type:type_name -> text.ServerCommandMessage.MessageType
-	29, // 34: text.ServerCommandMessage.handle:type_name -> text.HandleCommandRequest
-	31, // 35: text.ServerCommandMessage.complete:type_name -> text.CompleteCommandRequest
-	26, // 36: text.ServerCommandMessage.response:type_name -> text.SubscribeCommandResponse
-	3,  // 37: text.HandleCommandRequest.resource_name:type_name -> text.URI
-	36, // 38: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
-	36, // 39: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
-	36, // 40: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
-	36, // 41: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
-	37, // 42: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
-	4,  // 43: text.Editor.Edit:input_type -> text.EditRequest
-	16, // 44: text.Editor.SetCursor:input_type -> text.SetCursorRequest
-	18, // 45: text.Editor.Cursor:input_type -> text.CursorRequest
-	20, // 46: text.Editor.Editor:input_type -> text.EditorRequest
-	8,  // 47: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
-	14, // 48: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
-	14, // 49: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
-	10, // 50: text.Editor.EditCell:input_type -> text.EditCellRequest
-	12, // 51: text.Editor.RawCells:input_type -> text.RawCellsRequest
-	22, // 52: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
-	7,  // 53: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
-	27, // 54: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
-	5,  // 55: text.Editor.Edit:output_type -> text.EditResponse
-	17, // 56: text.Editor.SetCursor:output_type -> text.SetCursorResponse
-	19, // 57: text.Editor.Cursor:output_type -> text.CursorResponse
-	21, // 58: text.Editor.Editor:output_type -> text.EditorResponse
-	9,  // 59: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
-	15, // 60: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
-	15, // 61: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
-	11, // 62: text.Editor.EditCell:output_type -> text.EditCellResponse
-	13, // 63: text.Editor.RawCells:output_type -> text.RawCellsResponse
-	23, // 64: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
-	6,  // 65: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
-	28, // 66: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
-	55, // [55:67] is the sub-list for method output_type
-	43, // [43:55] is the sub-list for method input_type
-	43, // [43:43] is the sub-list for extension type_name
-	43, // [43:43] is the sub-list for extension extendee
-	0,  // [0:43] is the sub-list for field type_name
+	31, // 34: text.ServerCommandMessage.handle:type_name -> text.HandleCommandRequest
+	33, // 35: text.ServerCommandMessage.complete:type_name -> text.CompleteCommandRequest
+	28, // 36: text.ServerCommandMessage.response:type_name -> text.SubscribeCommandResponse
+	5,  // 37: text.HandleCommandRequest.resource_name:type_name -> text.URI
+	48, // 38: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
+	48, // 39: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
+	27, // 40: text.SubscribeREPLCommandRequest.command:type_name -> text.CommandManual
+	3,  // 41: text.ClientREPLCommandMessage.type:type_name -> text.ClientREPLCommandMessage.MessageType
+	41, // 42: text.ClientREPLCommandMessage.handle_value:type_name -> text.HandleREPLCommandValue
+	42, // 43: text.ClientREPLCommandMessage.handle_done:type_name -> text.HandleREPLCommandDone
+	34, // 44: text.ClientREPLCommandMessage.complete_value:type_name -> text.CompleteCommandValue
+	35, // 45: text.ClientREPLCommandMessage.complete_done:type_name -> text.CompleteCommandDone
+	44, // 46: text.ClientREPLCommandMessage.help_value:type_name -> text.HelpCommandValue
+	45, // 47: text.ClientREPLCommandMessage.help_done:type_name -> text.HelpCommandDone
+	36, // 48: text.ClientREPLCommandMessage.request:type_name -> text.SubscribeREPLCommandRequest
+	4,  // 49: text.ServerREPLCommandMessage.type:type_name -> text.ServerREPLCommandMessage.MessageType
+	40, // 50: text.ServerREPLCommandMessage.handle:type_name -> text.HandleREPLCommandRequest
+	33, // 51: text.ServerREPLCommandMessage.complete:type_name -> text.CompleteCommandRequest
+	43, // 52: text.ServerREPLCommandMessage.help:type_name -> text.HelpCommandRequest
+	37, // 53: text.ServerREPLCommandMessage.response:type_name -> text.SubscribeREPLCommandResponse
+	47, // 54: text.HandleREPLCommandValue.rows:type_name -> term.CellRow
+	47, // 55: text.HelpCommandValue.rows:type_name -> term.CellRow
+	48, // 56: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
+	48, // 57: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
+	49, // 58: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
+	6,  // 59: text.Editor.Edit:input_type -> text.EditRequest
+	18, // 60: text.Editor.SetCursor:input_type -> text.SetCursorRequest
+	20, // 61: text.Editor.Cursor:input_type -> text.CursorRequest
+	22, // 62: text.Editor.Editor:input_type -> text.EditorRequest
+	10, // 63: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
+	16, // 64: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
+	16, // 65: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
+	12, // 66: text.Editor.EditCell:input_type -> text.EditCellRequest
+	14, // 67: text.Editor.RawCells:input_type -> text.RawCellsRequest
+	24, // 68: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
+	9,  // 69: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
+	29, // 70: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
+	38, // 71: text.Editor.SubscribeREPLCommand:input_type -> text.ClientREPLCommandMessage
+	7,  // 72: text.Editor.Edit:output_type -> text.EditResponse
+	19, // 73: text.Editor.SetCursor:output_type -> text.SetCursorResponse
+	21, // 74: text.Editor.Cursor:output_type -> text.CursorResponse
+	23, // 75: text.Editor.Editor:output_type -> text.EditorResponse
+	11, // 76: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
+	17, // 77: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
+	17, // 78: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
+	13, // 79: text.Editor.EditCell:output_type -> text.EditCellResponse
+	15, // 80: text.Editor.RawCells:output_type -> text.RawCellsResponse
+	25, // 81: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
+	8,  // 82: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
+	30, // 83: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
+	39, // 84: text.Editor.SubscribeREPLCommand:output_type -> text.ServerREPLCommandMessage
+	72, // [72:85] is the sub-list for method output_type
+	59, // [59:72] is the sub-list for method input_type
+	59, // [59:59] is the sub-list for extension type_name
+	59, // [59:59] is the sub-list for extension extendee
+	0,  // [0:59] is the sub-list for field type_name
 }
 
 func init() { file_textrpc_editor_proto_init() }
@@ -2208,8 +2946,8 @@ func file_textrpc_editor_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_textrpc_editor_proto_rawDesc), len(file_textrpc_editor_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   32,
+			NumEnums:      5,
+			NumMessages:   42,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

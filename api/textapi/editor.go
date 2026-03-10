@@ -59,10 +59,25 @@ const (
 	LocationPriorityCritical
 )
 
-// CommandRegister abstracts the ability to register new commands.
-type CommandRegister interface {
-	// RegisterCommand registers command to be dispatched to CommandHandler.
+// CommandRegistry abstracts the ability to register new commands.
+type CommandRegistry interface {
+	// RegisterCommand registers a command to be dispatched
+	// to CommandHandler. Registered commands appear in the
+	// command prompt. Use RegisterCommand for editing and
+	// live-programming actions that operate on the current
+	// file and need no persistent output, such as
+	// navigating to a symbol definition, toggling a fold, or
+	// reformatting a selection.
 	RegisterCommand(CommandManual, CommandHandler) error
+
+	// RegisterREPLCommand registers a REPL command to be
+	// dispatched to REPLHandler. Registered commands appear
+	// in the IDE's shell. Use RegisterREPLCommand for
+	// configuration, monitoring and troubleshooting commands
+	// that produce inspectable output the user wants to
+	// review, such as a debugger, a log viewer, or a status
+	// dashboard.
+	RegisterREPLCommand(CommandManual, REPLHandler) error
 }
 
 // Editor is the interface that wraps an API to manage a text editor.
