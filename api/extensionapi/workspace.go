@@ -48,11 +48,11 @@ import (
 
 // Workspace abstracts resources associated with a Workspace.
 type Workspace struct {
-	dataDir string
-	conn    grpc.ClientConnInterface
-	editor  *textrpc.Client
-	config  config.Config
-	meta    Metadata
+	dataDir  string
+	conn     grpc.ClientConnInterface
+	commands *textrpc.Client
+	config   config.Config
+	meta     Metadata
 }
 
 // DataDir returns the data directory to store data to re-use across sessions.
@@ -117,13 +117,36 @@ func (w *Workspace) Debugger(ctx context.Context) debugapi.Debugger {
 	return debugrpc.NewClient(ctx, w.conn)
 }
 
-// RegisterCommand registers a new command which is to be dispatched to the
-// given CommandHandler. This is the primary mechanism extensions should use
-// to run new functionality.
+// Commands returns the workspace's command registry, which can
+// be used to register commands and REPL commands.
+func (w *Workspace) Commands(
+	ctx context.Context,
+) textapi.CommandRegistry {
+	return textrpc.NewClient(ctx, w.conn)
+}
+
+// RegisterCommand registers a command to be dispatched to the
+// given CommandHandler. Registered commands appear in the command
+// prompt. Use RegisterCommand for editing and live-programming
+// actions that operate on the current file and need no persistent
+// output, such as navigating to a symbol definition, toggling a
+// fold, or reformatting a selection.
 func (w *Workspace) RegisterCommand(
 	cmd textapi.CommandManual, h textapi.CommandHandler,
 ) error {
-	return w.editorClient(context.Background()).SubscribeCommand(cmd, h)
+	return w.editorClient().RegisterCommand(cmd, h)
+}
+
+// RegisterREPLCommand registers a REPL command to be dispatched
+// to the given REPLHandler. Registered commands appear in the
+// IDE's shell. Use RegisterREPLCommand for configuration,
+// monitoring and troubleshooting commands that produce
+// inspectable output the user wants to review, such as a
+// debugger, a log viewer, or a status dashboard.
+func (w *Workspace) RegisterREPLCommand(
+	cmd textapi.CommandManual, h textapi.REPLHandler,
+) error {
+	return w.editorClient().RegisterREPLCommand(cmd, h)
 }
 
 // Parser returns the workspace's syntax parser, which can be used
@@ -211,9 +234,11 @@ func NewWorkspace(req Config, meta Metadata) (*Workspace, error) {
 	return ret, nil
 }
 
-func (w *Workspace) editorClient(ctx context.Context) *textrpc.Client {
-	if w.editor == nil {
-		w.editor = w.Editor(ctx).(*textrpc.Client)
+func (w *Workspace) editorClient() *textrpc.Client {
+	if w.commands == nil {
+		w.commands = textrpc.NewClient(
+			context.Background(), w.conn,
+		)
 	}
-	return w.editor
+	return w.commands
 }

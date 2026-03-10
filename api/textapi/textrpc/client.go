@@ -80,6 +80,7 @@ func (t Token) MaxSeekOffset() int {
 }
 
 var _ textapi.Editor = (*Client)(nil)
+var _ textapi.CommandRegistry = (*Client)(nil)
 
 // Client satisfies textapi.Editor by calling a remote editor over grpc.
 type Client struct {
@@ -146,36 +147,6 @@ func (c *Client) SubscribeEvents(
 
 	handler := newEventStreamServer(c.clientCtx, stream, h)
 	go debug.CapturePanicReport(handler.receiveEvents)
-
-	return nil
-}
-
-// SubscribeCommand requests the editor server to register cmd with h.
-func (c *Client) SubscribeCommand(man textapi.CommandManual, h textapi.CommandHandler) error {
-	stream, err := c.ed.SubscribeCommand(c.clientCtx)
-	if err != nil {
-		return err
-	}
-	rpcMan := makeProtoManual(man)
-	req := SubscribeCommandRequest{Command: &rpcMan}
-	sendMsg := ClientCommandMessage{Request: &req, Type: ClientCommandMessage_Request}
-
-	if err := stream.Send(&sendMsg); err != nil {
-		return fmt.Errorf("send subscribe command request: %w", err)
-	}
-
-	var recvMsg ServerCommandMessage
-	err = stream.RecvMsg(&recvMsg)
-	if err != nil {
-		return fmt.Errorf("send subscribe command request: %w", err)
-	}
-
-	if recvMsg.GetType() != ServerCommandMessage_Response || recvMsg.GetResponse() == nil {
-		return errors.New("recv subscribe command response: nil response")
-	}
-
-	srvStream := newCommandServerStream(c.clientCtx, stream, h)
-	go debug.CapturePanicReport(srvStream.receiveMessages)
 
 	return nil
 }
@@ -264,6 +235,95 @@ func (c *Client) SetDefaultAttributes(h textapi.Handler, attrs term.Attributes) 
 	return err
 }
 
+// RegisterCommand satisfies textapi.CommandRegistry.
+func (c *Client) RegisterCommand(
+	man textapi.CommandManual, h textapi.CommandHandler,
+) error {
+	stream, err := c.ed.SubscribeCommand(c.clientCtx)
+	if err != nil {
+		return err
+	}
+	rpcMan := makeProtoManual(man)
+	req := SubscribeCommandRequest{Command: &rpcMan}
+	sendMsg := ClientCommandMessage{
+		Request: &req,
+		Type:    ClientCommandMessage_Request,
+	}
+
+	if err := stream.Send(&sendMsg); err != nil {
+		return fmt.Errorf(
+			"send subscribe command request: %w", err,
+		)
+	}
+
+	var recvMsg ServerCommandMessage
+	err = stream.RecvMsg(&recvMsg)
+	if err != nil {
+		return fmt.Errorf(
+			"send subscribe command request: %w", err,
+		)
+	}
+
+	if recvMsg.GetType() != ServerCommandMessage_Response ||
+		recvMsg.GetResponse() == nil {
+		return errors.New(
+			"recv subscribe command response: nil response",
+		)
+	}
+
+	srvStream := newCommandServerStream(
+		c.clientCtx, stream, h,
+	)
+	go debug.CapturePanicReport(srvStream.receiveMessages)
+
+	return nil
+}
+
+// RegisterREPLCommand satisfies textapi.CommandRegistry.
+func (c *Client) RegisterREPLCommand(
+	man textapi.CommandManual, h textapi.REPLHandler,
+) error {
+	stream, err := c.ed.SubscribeREPLCommand(c.clientCtx)
+	if err != nil {
+		return err
+	}
+	rpcMan := makeProtoManual(man)
+	req := SubscribeREPLCommandRequest{Command: &rpcMan}
+	sendMsg := ClientREPLCommandMessage{
+		Request: &req,
+		Type:    ClientREPLCommandMessage_Request,
+	}
+
+	if err := stream.Send(&sendMsg); err != nil {
+		return fmt.Errorf(
+			"send subscribe repl command request: %w", err,
+		)
+	}
+
+	var recvMsg ServerREPLCommandMessage
+	err = stream.RecvMsg(&recvMsg)
+	if err != nil {
+		return fmt.Errorf(
+			"recv subscribe repl command response: %w", err,
+		)
+	}
+
+	if recvMsg.GetType() != ServerREPLCommandMessage_Response ||
+		recvMsg.GetResponse() == nil {
+		return errors.New(
+			"recv subscribe repl command response: " +
+				"nil response",
+		)
+	}
+
+	srvStream := newREPLCommandServerStream(
+		c.clientCtx, stream, h,
+	)
+	go debug.CapturePanicReport(srvStream.receiveMessages)
+
+	return nil
+}
+
 // Close closes all resources associated with this client.
 func (c *Client) Close() (ret error) {
 	if c.clientCancelCtx != nil {
@@ -277,22 +337,6 @@ func (c *Client) Close() (ret error) {
 func (c *Client) ctxWithTimeout() (context.Context, func()) {
 	ctx, cancel := context.WithTimeout(c.clientCtx, defaultTimeout)
 	return ctx, cancel
-}
-
-func makeProtoManual(man textapi.CommandManual) CommandManual {
-	var cmds []*CommandManual
-	for _, cmd := range man.Commands {
-		childManual := new(CommandManual)
-		*childManual = makeProtoManual(cmd)
-		cmds = append(cmds, childManual)
-	}
-	ret := CommandManual{
-		Name:     man.Name,
-		Summary:  man.Summary,
-		Synopsis: man.Synopsis,
-		Commands: cmds,
-	}
-	return ret // nolint:govet
 }
 
 func makeLocationListRequest(
@@ -334,4 +378,22 @@ func (c *Client) moveToLocation(h textapi.Handler, ID string, next bool) (err er
 		_, err = c.ed.MoveToPrevLocation(ctx, &req)
 	}
 	return err
+}
+
+func makeProtoManual(
+	man textapi.CommandManual,
+) CommandManual {
+	var cmds []*CommandManual
+	for _, cmd := range man.Commands {
+		childManual := new(CommandManual)
+		*childManual = makeProtoManual(cmd)
+		cmds = append(cmds, childManual)
+	}
+	ret := CommandManual{
+		Name:     man.Name,
+		Summary:  man.Summary,
+		Synopsis: man.Synopsis,
+		Commands: cmds,
+	}
+	return ret // nolint:govet
 }

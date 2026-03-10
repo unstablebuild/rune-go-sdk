@@ -30,7 +30,7 @@ import (
 )
 
 // subset of Editor_SubscribeCommandClient
-type clientStream interface {
+type commandClientStream interface {
 	RecvMsg(any) error
 	Send(*ClientCommandMessage) error
 	CloseSend() error
@@ -39,14 +39,14 @@ type clientStream interface {
 type commandServerStream struct {
 	ctx       context.Context
 	cancelCtx func()
-	stream    clientStream
+	stream    commandClientStream
 	sendChan  chan *ClientCommandMessage
 	h         textapi.CommandHandler
 }
 
 func newCommandServerStream(
 	ctx context.Context,
-	stream clientStream,
+	stream commandClientStream,
 	h textapi.CommandHandler,
 ) *commandServerStream {
 	ctx, cancelCtx := context.WithCancel(ctx)
@@ -71,7 +71,10 @@ func (s *commandServerStream) sendMessages() {
 			err := s.stream.Send(msg)
 			if err != nil {
 				slog.Error(
-					"unable to send stream message back, terminating stream", "error", err)
+					"unable to send stream message back, "+
+						"terminating stream",
+					"error", err,
+				)
 				s.cancelCtx()
 				return
 			}
@@ -86,8 +89,12 @@ func (s *commandServerStream) receiveMessages() {
 		var reqMsg ServerCommandMessage
 		err := s.stream.RecvMsg(&reqMsg)
 		if err != nil {
-			if !errors.Is(err, io.EOF) && status.Code(err) != codes.Canceled {
-				slog.Error("receive server command message", "error", err)
+			if !errors.Is(err, io.EOF) &&
+				status.Code(err) != codes.Canceled {
+				slog.Error(
+					"receive server command message",
+					"error", err,
+				)
 			}
 			return
 		}
@@ -112,7 +119,10 @@ func (s *commandServerStream) receiveMessages() {
 				}
 			}
 		default:
-			slog.Error("extraneous server command message", "type", tpe)
+			slog.Error(
+				"extraneous server command message",
+				"type", tpe,
+			)
 			return
 		}
 	}
@@ -136,30 +146,43 @@ func (s *commandServerStream) handleCommand(
 	}
 }
 
-func (s *commandServerStream) doHandleCommand(req *HandleCommandRequest) error {
+func (s *commandServerStream) doHandleCommand(
+	req *HandleCommandRequest,
+) error {
 	var cmd textapi.Command
 	err := s.commandFromProto(&cmd, req)
 	if err != nil {
 		return fmt.Errorf("command from protobuf: %w", err)
 	}
 
-	// NOTE: commands cancels are not currently being propagated
-	// from client to server. We must add an extra message that
-	// we handle here to do so.
+	// NOTE: commands cancels are not currently being
+	// propagated from client to server. We must add an extra
+	// message that we handle here to do so.
 	return s.h.HandleCommand(s.ctx, cmd)
 }
 
-func (s *commandServerStream) handleComplete(req *CompleteCommandRequest) error {
+func (s *commandServerStream) handleComplete(
+	req *CompleteCommandRequest,
+) error {
 	if req.Name == "" {
-		return errors.New("invalid complete request: missing command name")
+		return errors.New(
+			"invalid complete request: missing command name",
+		)
 	}
 	if req.Id == 0 {
-		return errors.New("invalid complete request: missing request id")
+		return errors.New(
+			"invalid complete request: missing request id",
+		)
 	}
 
-	slog.Debug("streaming completer's iterator", "name", req.Name, "args", req.Args)
-	defer slog.Debug("done streaming completer's iterator", "name",
-		req.Name, "args", req.Args)
+	slog.Debug(
+		"streaming completer's iterator",
+		"name", req.Name, "args", req.Args,
+	)
+	defer slog.Debug(
+		"done streaming completer's iterator",
+		"name", req.Name, "args", req.Args,
+	)
 
 	ctx := s.ctx
 	completer, err := s.h.Complete(ctx, req.Name, req.Args)
@@ -226,6 +249,8 @@ func (s *commandServerStream) commandFromProto(
 	e.Cursor.Content = pe.GetCursorContent().ToModel()
 	e.Args = pe.GetArgs()
 	e.Name = pe.GetName()
-	e.Window = browserrpc.NewWindow(uint64(pe.GetWindowId()))
+	e.Window = browserrpc.NewWindow(
+		uint64(pe.GetWindowId()),
+	)
 	return err
 }
