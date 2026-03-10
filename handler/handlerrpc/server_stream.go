@@ -74,6 +74,11 @@ type StreamMessage interface {
 	SetDimensions(*DimensionsStreamResponse)
 }
 
+type recvResult struct {
+	msg *ServerMessage
+	err error
+}
+
 // ServerStream implements a tui.Handler (+handler.Floating) server over
 // a grpc.ClientStream.
 type ServerStream[T StreamMessage] struct {
@@ -103,6 +108,13 @@ func NewServerStream[T StreamMessage](
 
 // ReceiveMessages receives messages over the grpc stream
 // and responds accordingly.
+//
+// A background goroutine reads messages into a buffered channel.
+// This enables non-blocking peek-ahead so consecutive mouse Handle
+// events can be coalesced: intermediate positions are answered with
+// handled=false and only the latest position is forwarded to the
+// handler, eliminating redundant Draw cycles when the handler is
+// slower than the mouse event rate.
 func (c *ServerStream[T]) ReceiveMessages() {
 	defer func() {
 		// ensure that client doesn't block in case of panic
@@ -110,20 +122,56 @@ func (c *ServerStream[T]) ReceiveMessages() {
 		c.log.Debug("done streaming, closed connection send", "error", err)
 	}()
 	c.log.Debug("streaming messages")
-	for {
-		var recvMsg ServerMessage
-		err := c.stream.RecvMsg(&recvMsg)
-		if err != nil {
-			if strings.Contains(err.Error(), io.EOF.Error()) ||
-				status.Code(err) == codes.Canceled {
-				c.log.Debug("stream is closing", "reason", err)
-			} else {
-				c.log.Error("stream receive", "error", err)
+
+	// Buffer absorbs a burst of mouse events without blocking the
+	// reader goroutine, allowing the processing loop to coalesce them.
+	ch := make(chan recvResult, 32)
+	// The goroutine exits when RecvMsg returns an error (including
+	// stream closure or context cancellation), which closes ch.
+	go func() {
+		defer close(ch)
+		for {
+			msg := new(ServerMessage)
+			err := c.stream.RecvMsg(msg)
+			ch <- recvResult{msg: msg, err: err}
+			if err != nil {
+				return
 			}
-			return
+		}
+	}()
+
+	var pending *ServerMessage
+
+	for {
+		var recvMsg *ServerMessage
+		var err error
+
+		if pending != nil {
+			recvMsg = pending
+			pending = nil
+		} else {
+			r, ok := <-ch
+			if !ok {
+				return
+			}
+			if r.err != nil {
+				c.logRecvError(r.err)
+				return
+			}
+			recvMsg = r.msg
 		}
 
-		c.log.Debug("receive", "message", &recvMsg)
+		c.log.Debug("receive", "message", recvMsg)
+
+		// Coalesce consecutive mouse Handle events: when we receive
+		// a mouse Handle, peek ahead for more with the same button
+		// and modifier, keeping only the latest position.
+		if recvMsg.GetType() == MessageType_Handle {
+			rpcEv := recvMsg.GetHandle().GetEvent()
+			if rpcEv != nil && rpcEv.Type == termrpc.Event_TypeMouse {
+				recvMsg, pending = c.coalesceMouse(recvMsg, rpcEv, ch)
+			}
+		}
 
 		sendMsg := c.newT()
 		switch recvMsg.GetType() {
@@ -214,19 +262,86 @@ func (c *ServerStream[T]) ReceiveMessages() {
 			err = errors.New("stream received invalid message: req/resp")
 		}
 		if err != nil {
-			if !errors.Is(err, io.EOF) && !strings.Contains(err.Error(), "context canceled") {
-				c.log.Error("stream", "error", err.Error())
-			} else if errors.Is(err, io.EOF) {
-				// io.EOF indicates that stream status should be discovered
-				// through RecvMsg. See SendMsg documentation.
-				err = c.stream.RecvMsg(&recvMsg)
-				if !strings.Contains(err.Error(), "context canceled") {
-					c.log.Error("stream EOF", "error", err)
-				} else {
-					c.log.Debug("stream EOF", "error", err)
-				}
-			}
+			c.logSendError(err)
 			return
+		}
+	}
+}
+
+// coalesceMouse drains consecutive mouse Handle events from ch that
+// share the same Key and Mod as rpcEv, sending handled=false responses
+// for each superseded event. It returns the final message to process
+// and an optional pending message of a different type that was consumed
+// during peek-ahead.
+func (c *ServerStream[T]) coalesceMouse(
+	recvMsg *ServerMessage, rpcEv *termrpc.Event,
+	ch <-chan recvResult,
+) (final *ServerMessage, pendingMsg *ServerMessage) {
+	for {
+		var next recvResult
+		var ok bool
+		select {
+		case next, ok = <-ch:
+		default:
+			return recvMsg, nil
+		}
+		if !ok || next.err != nil {
+			return recvMsg, nil
+		}
+		nextEv := next.msg.GetHandle().GetEvent()
+		if next.msg.GetType() == MessageType_Handle &&
+			nextEv != nil &&
+			nextEv.Type == termrpc.Event_TypeMouse &&
+			nextEv.Key == rpcEv.Key &&
+			nextEv.Mod == rpcEv.Mod {
+			// Same button/mod — coalesce: respond to old, keep new.
+			if sendErr := c.sendHandleResponse(rpcEv, false, false); sendErr != nil {
+				c.logSendError(sendErr)
+				return recvMsg, nil
+			}
+			recvMsg = next.msg
+			rpcEv = nextEv
+			continue
+		}
+		// Different message type — save for next iteration.
+		return recvMsg, next.msg
+	}
+}
+
+// sendHandleResponse sends a HandleStreamResponse for the given event.
+func (c *ServerStream[T]) sendHandleResponse(
+	rpcEv *termrpc.Event, handled, quit bool,
+) error {
+	sendMsg := c.newT()
+	var resp HandleStreamResponse
+	resp.Handled = handled
+	resp.Quit = quit
+	resp.Request = rpcEv
+	sendMsg.SetHandle(&resp)
+	return c.stream.SendMsg(sendMsg)
+}
+
+func (c *ServerStream[T]) logRecvError(err error) {
+	if strings.Contains(err.Error(), io.EOF.Error()) ||
+		status.Code(err) == codes.Canceled {
+		c.log.Debug("stream is closing", "reason", err)
+	} else {
+		c.log.Error("stream receive", "error", err)
+	}
+}
+
+func (c *ServerStream[T]) logSendError(err error) {
+	if !errors.Is(err, io.EOF) && !strings.Contains(err.Error(), "context canceled") {
+		c.log.Error("stream", "error", err.Error())
+	} else if errors.Is(err, io.EOF) {
+		// io.EOF indicates that stream status should be discovered
+		// through RecvMsg. See SendMsg documentation.
+		var recvMsg ServerMessage
+		err = c.stream.RecvMsg(&recvMsg)
+		if !strings.Contains(err.Error(), "context canceled") {
+			c.log.Error("stream EOF", "error", err)
+		} else {
+			c.log.Debug("stream EOF", "error", err)
 		}
 	}
 }

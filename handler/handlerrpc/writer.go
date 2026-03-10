@@ -46,6 +46,14 @@ type drawResponseWriter struct {
 	width, height int
 	rows          []*termrpc.CellRow
 	ctx           context.Context
+	// cellSlab is a pre-allocated contiguous block of width*height cells.
+	// SetCell and UnionAttributes allocate from the slab via nextCell
+	// instead of calling new(termrpc.Cell) per cell, reducing heap
+	// allocations from O(cells written) to 1. The counter is a pointer
+	// so that value-receiver methods (required by term.Writer) can
+	// advance it.
+	cellSlab []termrpc.Cell
+	nextCell *int
 }
 
 // SetCell satisfies term.Writer
@@ -56,7 +64,8 @@ func (r drawResponseWriter) SetCell(pos term.Coordinates, c term.Cell) {
 
 	var cell *termrpc.Cell
 	if r.rows[pos.Y].Cells[pos.X] == &zeroCell {
-		cell = new(termrpc.Cell)
+		cell = &r.cellSlab[*r.nextCell]
+		*r.nextCell++
 	} else {
 		cell = r.rows[pos.Y].Cells[pos.X]
 	}
@@ -66,6 +75,7 @@ func (r drawResponseWriter) SetCell(pos term.Coordinates, c term.Cell) {
 	cell.Attrs = int64(c.Attrs)
 	cell.Width = uint32(c.Width)
 	cell.Bytes = uint32(c.Bytes)
+	cell.Combining = cell.Combining[:0]
 	for _, c := range c.Combining {
 		cell.Combining = append(cell.Combining, uint32(c))
 	}
@@ -80,7 +90,8 @@ func (r drawResponseWriter) UnionAttributes(pos term.Coordinates, attr term.Attr
 
 	var cell *termrpc.Cell
 	if r.rows[pos.Y].Cells[pos.X] == &zeroCell {
-		cell = new(termrpc.Cell)
+		cell = &r.cellSlab[*r.nextCell]
+		*r.nextCell++
 	} else {
 		cell = r.rows[pos.Y].Cells[pos.X]
 	}
@@ -117,22 +128,28 @@ func (r drawResponseWriter) Context() context.Context {
 }
 
 func newDrawResponseWriter(ctx context.Context, width, height int) drawResponseWriter {
+	total := width * height
 	cellRowSlab := make([]termrpc.CellRow, height)
-	cellRowWidthSlab := make([]*termrpc.Cell, height*width)
+	cellRowWidthSlab := make([]*termrpc.Cell, total)
+	cellSlab := make([]termrpc.Cell, total)
 	rows := make([]*termrpc.CellRow, height)
 	for i := 0; i < height; i++ {
 		rows[i] = &cellRowSlab[i]
 		rows[i].Cells = cellRowWidthSlab[i*width : (i+1)*width]
 		for j := 0; j < width; j++ {
-			// SetCell substitutes zeroCell for a newly allocated cell;
-			// this allows us to speed up client/server communication
+			// SetCell substitutes zeroCell for a newly allocated cell
+			// from the pre-allocated slab; this avoids per-cell heap
+			// allocations during Draw.
 			rows[i].Cells[j] = &zeroCell
 		}
 	}
+	var n int
 	return drawResponseWriter{
-		ctx:    ctx,
-		width:  width,
-		height: height,
-		rows:   rows,
+		ctx:      ctx,
+		width:    width,
+		height:   height,
+		rows:     rows,
+		cellSlab: cellSlab,
+		nextCell: &n,
 	}
 }
