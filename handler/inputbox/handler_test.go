@@ -1261,16 +1261,25 @@ func TestTabPrints(t *testing.T) {
 	ib.Resize(20, 3)
 
 	sendKeys(t, ib, "ab")
-	// First tab: common prefix
+
+	// First tab: show grid without changing text.
 	sendKeys(t, ib, "<tab>")
 	assert.Equal(t, "ab", ib.Text())
-
-	// Second tab: show grid
-	sendKeys(t, ib, "<tab>")
 	got := drawHandler(ib, 20, 3)
 	assert.Contains(t, got, "abc")
 	assert.Contains(t, got, "abd")
 	assert.Contains(t, got, "abe")
+
+	// Second tab: apply first candidate.
+	sendKeys(t, ib, "<tab>")
+	assert.Equal(t, "abc", ib.Text())
+
+	// Third+ tab: cycle through remaining candidates.
+	sendKeys(t, ib, "<tab>")
+	assert.Equal(t, "abd", ib.Text())
+
+	sendKeys(t, ib, "<tab>")
+	assert.Equal(t, "abe", ib.Text())
 }
 
 func TestWordCompleter(t *testing.T) {

@@ -20,6 +20,11 @@ func (ib *Handler) handleTab(reverse bool) {
 	}
 
 	if ib.completionOn {
+		if ib.completionPrintPending {
+			// TabPrints second tab: apply common prefix.
+			ib.handleTabPrintsPrefix()
+			return
+		}
 		ib.cycleCompletion(reverse)
 		return
 	}
@@ -41,7 +46,7 @@ func (ib *Handler) handleTab(reverse bool) {
 	}
 
 	if ib.tabStyle == TabPrints {
-		ib.handleTabPrints(candidates, reverse)
+		ib.handleTabPrints(candidates)
 		return
 	}
 
@@ -54,23 +59,18 @@ func (ib *Handler) handleTab(reverse bool) {
 	ib.applyCompletion(ib.completions[ib.completionIdx])
 }
 
-func (ib *Handler) handleTabPrints(candidates []string, _ bool) {
-	if !ib.completionPrintPending {
-		prefix := commonPrefix(candidates)
-		currentWord := string(ib.text)
-		if len(ib.compHead) > 0 || len(ib.compTail) > 0 {
-			currentWord = currentWord[len([]rune(ib.compHead)) : len(ib.text)-len([]rune(ib.compTail))]
-		}
-		if len(prefix) > len(currentWord) {
-			ib.applyCompletion(prefix)
-		}
-		ib.completionPrintPending = true
-		ib.completions = candidates
-		return
-	}
-
+func (ib *Handler) handleTabPrints(candidates []string) {
+	// First tab: show the completion grid without changing text.
+	ib.completions = candidates
 	ib.completionOn = true
+	ib.completionPrintPending = true
+}
+
+func (ib *Handler) handleTabPrintsPrefix() {
+	// Second tab: apply first candidate, start cycling.
 	ib.completionPrintPending = false
+	ib.completionIdx = 0
+	ib.applyCompletion(ib.completions[0])
 }
 
 func (ib *Handler) cycleCompletion(reverse bool) {
@@ -113,22 +113,6 @@ func (ib *Handler) clearCompletion() {
 	ib.compTail = ""
 	ib.compOriginal = ""
 	ib.completionPrintPending = false
-}
-
-func commonPrefix(ss []string) string {
-	if len(ss) == 0 {
-		return ""
-	}
-	prefix := ss[0]
-	for _, s := range ss[1:] {
-		for i := range prefix {
-			if i >= len(s) || prefix[i] != s[i] {
-				prefix = prefix[:i]
-				break
-			}
-		}
-	}
-	return prefix
 }
 
 func completionGridHeight(completions []string, width int) int {
