@@ -34,13 +34,18 @@ func FromDocumentIterator[T any](it storageapi.Iterator) Iterator[T] {
 	quitCh := make(chan struct{})
 	go debug.CapturePanicReport(func() {
 		defer close(ch) // signal ok = false below
-		var err error
-		var data T
 		for {
 			if !it.HasNext() {
 				return
 			}
-			err = it.NextTo(&data)
+			// Declare data inside the loop so each iteration gets a fresh
+			// zero-value T. Reusing a single variable across calls to NextTo
+			// violates the storageapi.Iterator contract ("the given document
+			// should not be re-used in the next call to NextTo") and causes a
+			// data race: the decoder overwrites slice backing arrays while the
+			// consumer goroutine is still reading the previously sent value.
+			var data T
+			err := it.NextTo(&data)
 			select {
 			case ch <- msg{data: data, err: err}:
 			case <-quitCh:

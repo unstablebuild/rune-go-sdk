@@ -17,6 +17,7 @@ package iterator
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -79,6 +80,42 @@ func TestDocumentIterator(t *testing.T) {
 		_, ok := it.Next(context.Background())
 		assert.False(t, ok)
 		assert.EqualError(t, it.Err(), "1 error occurred: kaboom")
+		require.NoError(t, it.Close())
+	})
+
+	// Regression: the goroutine in FromDocumentIterator reused a single
+	// `var data T` across iterations. After sending data[i] on the channel the
+	// goroutine immediately called NextTo(&data) for data[i+1], which caused the
+	// TOML decoder to overwrite the slice backing arrays of the already-returned
+	// value while the consumer was still reading them.
+	t.Run("no data race on slice fields across successive Next calls", func(t *testing.T) {
+		defer goleak.VerifyNone(t)
+
+		type record struct {
+			Tags []string
+		}
+		a := record{Tags: []string{"go", "sdk"}}
+		b := record{Tags: []string{"fix", "race"}}
+		dit := storageapi.NewListIterator(doctoml.Marshaler(), a, b)
+		it := FromDocumentIterator[record](dit)
+
+		r0, ok := it.Next(context.Background())
+		require.True(t, ok)
+
+		// Read r0.Tags in a goroutine while the iterator fetches r1.
+		// With the old shared-variable implementation the background goroutine
+		// would decode r1 into the same Tags backing array concurrently.
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for _, tag := range r0.Tags {
+				_ = tag
+			}
+		}()
+
+		_, _ = it.Next(context.Background())
+		wg.Wait()
 		require.NoError(t, it.Close())
 	})
 
