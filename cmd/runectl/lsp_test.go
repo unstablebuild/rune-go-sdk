@@ -137,14 +137,10 @@ func TestLSP(t *testing.T) {
 		{
 			name: "rename",
 			args: []string{
-				"lsp", "rename", "--dry-run", "--no-color",
+				"lsp", "rename", "--dry-run",
 				"$FILE", "5", "5", "newName",
 			},
-			wantOut: "--- a/src/main.go\n" +
-				"+++ b/src/main.go\n" +
-				"@@ -1,1 +1,1 @@\n" +
-				"-hello world\n" +
-				"+helnenewNameeorld\n",
+			wantOut: "file:///src/main.go 2\n",
 		},
 
 		// code-actions
@@ -712,14 +708,10 @@ func TestLSP(t *testing.T) {
 		{
 			name: "rename/sym",
 			args: []string{
-				"lsp", "rename", "--dry-run", "--no-color",
+				"lsp", "rename", "--dry-run",
 				"MyFunc", "newName",
 			},
-			wantOut: "--- a/src/main.go\n" +
-				"+++ b/src/main.go\n" +
-				"@@ -1,1 +1,1 @@\n" +
-				"-hello world\n" +
-				"+helnenewNameeorld\n",
+			wantOut: "file:///src/main.go 2\n",
 		},
 		{
 			name:    "declaration/sym",

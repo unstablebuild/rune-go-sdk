@@ -69,7 +69,19 @@ func printSyntaxResults(
 	it := syntaxIterToGeneric(sit)
 	defer func() { _ = it.Close() }()
 	if format == "" {
-		format = "json"
+		for {
+			r, ok := it.Next(ctx)
+			if !ok {
+				return it.Err()
+			}
+			fmt.Printf(
+				"%s %s %d:%d-%d:%d %s\n",
+				r.File, r.Text,
+				r.FromY, r.FromX,
+				r.ToY, r.ToX,
+				r.CaptureName,
+			)
+		}
 	}
 	return printIterator(ctx, format, it, []string{
 		"File", "Text",

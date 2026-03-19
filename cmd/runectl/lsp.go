@@ -922,13 +922,19 @@ func newLSPRenameCmd(a *app) *cobra.Command {
 				)
 			}
 			fe := workspaceEditToFileEdits(edit)
-			if dryRun && format != "" {
+			if dryRun {
 				var flat []flatRenameEdit
 				for u, edits := range edit.Changes {
 					flat = append(flat, flatRenameEdit{
 						URI:   u,
 						Edits: len(edits),
 					})
+				}
+				if format == "" {
+					for _, f := range flat {
+						fmt.Printf("%s %d\n", f.URI, f.Edits)
+					}
+					return nil
 				}
 				it := iterator.FromSlice(flat)
 				return printIterator(
