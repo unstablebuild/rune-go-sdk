@@ -145,104 +145,25 @@ that the test passes.
 3. Implement service logic in `api/<name>/`
 4. Add test helpers in `api/<name>/<name>test/`
 
-## Rune MCP Tools
+## Builtin Skills
 
-When the Rune MCP server is connected (`runectl mcp`), prefer
-these tools over the built-in alternatives. They provide
-precise and semantically accurate results from Rune's
-language servers and tree-sitter parser, which are more
-precise than text-based search.
+Six skills are available for semantic code navigation via `runectl`.
+They use the language server and tree-sitter parser — prefer them over
+text-based alternatives when applicable.
 
-### Code Navigation (prefer over Grep)
-
-Instead of using Grep to find where something is defined or
-used, use the suite LSP tools which understand the code
-semantically. These tools accept a `symbol` name and
-internally resolve it via workspace symbol lookup:
-
-- **`lsp_definition`** — Jump to where a symbol is defined.
-  Use instead of grepping for a function or type name.
-- **`lsp_references`** — Find all usages of a symbol across
-  the workspace. Use instead of grepping for callers or
-  consumers.
-- **`lsp_declaration`** — Find the interface or forward
-  declaration of a symbol.
-- **`lsp_type_definition`** — Find the type behind a value
-  (e.g., the struct that a variable holds).
-- **`lsp_implementation`** — Find concrete types implementing
-  an interface. Use instead of grepping for implementors.
-
-### Code Structure (prefer over Glob + Grep)
-
-Instead of globbing for files and grepping for patterns to
-understand code structure, use these tools:
-
-- **`lsp_document_symbols`** — List all functions, types, and
-  variables in a single file. Use instead of reading an entire
-  file to understand its structure.
-- **`lsp_workspace_symbols`** — Search for symbols by name
-  across the entire workspace. Use instead of Glob + Grep to
-  locate a function or type.
-- **`syntax_search_node`** — Find all functions, methods,
-  types, or variables workspace-wide. Use when you need
-  "all functions in the project"
-  without knowing exact names.
-- **`syntax_query_node`** — Same as above but scoped to a
-  single file.
-
-### Code Searching (prefer over regex Grep)
-
-When you need to find variables, functions, methods, references,
-namespaces or types, use rune's search node tools:
-
-- **`syntax_search_node`** — Run a tree-sitter query across all
-  workspace files. Use for searching variables, functions, methods
-  references, namespaces, or types across the workspace.
-- **`syntax_query_node`** — Same as above but scoped to a single
-  known file.
-
-When you need to search for a custom node you can provide
-your own tree-sitter query to find it use rune's search syntax tools:
-
-- **`syntax_search`** — Run a tree-sitter query across all
-  workspace files. Use for structural patterns like "all
-  function calls with two arguments" or "all composite literals
-  of type X". More precise than regex.
-- **`syntax_query`** — Same as above but scoped to a single
-  known file.
-
-### Understanding Code (prefer over reading whole files)
-
-- **`lsp_documentation`** — Get type info and documentation
-  for a symbol by name. Use instead of reading source to
-  understand what a symbol is.
-- **`lsp_signature_help`** — Get function parameter names and
-  types. Use when you need to know a function's signature
-  without reading its definition.
-- **`lsp_completion`** — Discover available methods and fields
-  on a type at a cursor position.
-
-### Error Checking (prefer over go build / go vet)
-
-- **`lsp_workspace_diagnostics`** — Get compilation errors, warnings,
-  and linter diagnostics for the whole workspace. Use instead of running
-  `go build` or `go vet` to check for errors.
-
-- **`lsp_diagnostics`** — Get compilation errors, warnings,
-  and linter diagnostics for a file. Use instead of running
-  `go build` or `go vet` to check for errors.
-
-### Refactoring (prefer over manual find-and-replace)
-
-- **`lsp_rename`** — Safely rename a symbol by name across the
-  entire workspace, updating all references. Use instead of
-  Grep + Edit for renaming.
-- **`lsp_prepare_rename`** — Check if a rename is valid for a
-  symbol by name before performing it.
-- **`lsp_code_actions`** — Discover available refactorings and
-  quick fixes at a position (extract variable, organize
-  imports, etc.).
-- **`lsp_formatting`** — Format an entire file using the
-  language server. Use instead of running `go fmt`.
-- **`lsp_range_formatting`** — Format a specific range within
-  a file.
+- **`code-navigation`** — Jump to definitions, find all references,
+  locate declarations, resolve type definitions, find implementations.
+  Prefer over Grep when navigating to where a symbol is defined or used.
+- **`code-structure`** — List all symbols in a file or search for
+  functions, types, and methods across the workspace. Prefer over
+  reading an entire file to understand its structure.
+- **`code-search`** — Structural search using tree-sitter queries.
+  Use for AST patterns (e.g. "all composite literals of type X").
+  More precise than regex for structural patterns.
+- **`code-understanding`** — Get type info, documentation, and
+  function signatures for any symbol without reading source files.
+- **`code-diagnostics`** — Get compilation errors and linter
+  diagnostics from the language server. Prefer over `go vet`/`go build`.
+- **`code-refactoring`** — Rename symbols across the workspace,
+  discover code actions, format files. Prefer over find-and-replace
+  or `go fmt`.
