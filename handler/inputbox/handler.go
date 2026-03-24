@@ -946,10 +946,12 @@ func (ib *Handler) selectionRange() (int, int) {
 	if ib.selAnchor < 0 {
 		return 0, 0
 	}
-	if ib.selAnchor < ib.cursor {
-		return ib.selAnchor, ib.cursor
-	}
-	return ib.cursor, ib.selAnchor
+	n := len(ib.text)
+	start := min(ib.selAnchor, ib.cursor)
+	end := max(ib.selAnchor, ib.cursor)
+	start = max(0, min(start, n))
+	end = max(start, min(end, n))
+	return start, end
 }
 
 func (ib *Handler) clearSelection() {

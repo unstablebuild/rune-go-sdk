@@ -1620,3 +1620,17 @@ func releaseAt(ib *Handler, x, y int) {
 		MouseX: x, MouseY: y,
 	})
 }
+
+func TestDeleteSelectionStaleAnchor(t *testing.T) {
+	ib := New()
+	ib.Resize(80, 1)
+	setText(ib, "hello world, this is a long input string")
+
+	sendKeys(t, ib, "<shift-home>")
+
+	ib.text = []rune("short")
+
+	require.NotPanics(t, func() {
+		sendKeys(t, ib, "<backspace>")
+	})
+}
