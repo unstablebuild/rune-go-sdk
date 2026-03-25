@@ -41,6 +41,7 @@ message ListDocumentRequest {
 	}
 
 	repeated Filter filters = 1;
+	repeated string fields = 2;
 }
 
 message DocumentResponse {

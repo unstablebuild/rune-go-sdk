@@ -276,6 +276,7 @@ func (x *DeleteDocumentRequest) GetId() string {
 type ListDocumentRequest struct {
 	state         protoimpl.MessageState        `protogen:"open.v1"`
 	Filters       []*ListDocumentRequest_Filter `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
+	Fields        []string                      `protobuf:"bytes,2,rep,name=fields,proto3" json:"fields,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -313,6 +314,13 @@ func (*ListDocumentRequest) Descriptor() ([]byte, []int) {
 func (x *ListDocumentRequest) GetFilters() []*ListDocumentRequest_Filter {
 	if x != nil {
 		return x.Filters
+	}
+	return nil
+}
+
+func (x *ListDocumentRequest) GetFields() []string {
+	if x != nil {
+		return x.Fields
 	}
 	return nil
 }
@@ -687,9 +695,10 @@ const file_docpb_datastore_proto_rawDesc = "" +
 	"\x12GetDocumentRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"'\n" +
 	"\x15DeleteDocumentRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xad\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xc5\x01\n" +
 	"\x13ListDocumentRequest\x12;\n" +
-	"\afilters\x18\x01 \x03(\v2!.proto.ListDocumentRequest.FilterR\afilters\x1aY\n" +
+	"\afilters\x18\x01 \x03(\v2!.proto.ListDocumentRequest.FilterR\afilters\x12\x16\n" +
+	"\x06fields\x18\x02 \x03(\tR\x06fields\x1aY\n" +
 	"\x06Filter\x12\x1d\n" +
 	"\n" +
 	"field_path\x18\x01 \x03(\tR\tfieldPath\x12\x12\n" +
