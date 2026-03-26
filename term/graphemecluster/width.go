@@ -56,7 +56,7 @@ func graphemeClusterWidth(cluster string, boundaries int) uint8 {
 		"󱫆", "", "", "", "", "", "", "", "", "", "", "",
 		"", "󰌾", "󰗻", "󱄋", "", "", "", "", "", "",
 		"", "", "", "", "", "", "", "", "󰝤", "", "", "󰅗", "",
-		"", "󱡓" , "󰄳":
+		"", "󱡓" , "󰄳", "󰗠","󰐌", "󰏥":
 		return 2
 	default:
 		return uint8(unisegWidth)
