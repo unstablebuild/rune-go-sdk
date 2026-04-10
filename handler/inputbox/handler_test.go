@@ -918,11 +918,11 @@ func drawHandler(h *Handler, w, hh int) string {
 
 func TestDimensions(t *testing.T) {
 	cases := []struct {
-		name   string
-		opts   []Option
-		input  string
-		wantW  int
-		wantH  int
+		name  string
+		opts  []Option
+		input string
+		wantW int
+		wantH int
 	}{
 		{
 			name:  "empty no prompt",
@@ -1440,6 +1440,25 @@ func TestNonKeyEventIgnored(t *testing.T) {
 	})
 	assert.False(t, exit)
 	assert.False(t, handled)
+}
+
+func TestUnsupportedModifiedKeyEventIgnored(t *testing.T) {
+	ib := New()
+	ib.Resize(20, 1)
+	setText(ib, "hello")
+
+	for _, ev := range []term.Event{
+		{Type: term.EventKey, Key: term.KeyArrowLeft, Mod: term.ModMeta},
+		{Type: term.EventKey, Key: term.KeyArrowRight, Mod: term.ModCtrlMeta},
+		{Type: term.EventKey, Key: term.KeyEnter, Mod: term.ModMeta},
+		{Type: term.EventKey, Key: term.KeyBackspace, Mod: term.ModMeta},
+		{Type: term.EventKey, Key: term.KeyEsc, Mod: term.ModAltShiftMeta},
+	} {
+		exit, handled := ib.Handle(ev)
+		assert.False(t, exit)
+		assert.False(t, handled)
+		assert.Equal(t, "hello", ib.Text())
+	}
 }
 
 func TestAppendHistory(t *testing.T) {

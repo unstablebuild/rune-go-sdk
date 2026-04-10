@@ -489,22 +489,22 @@ func (ib *Handler) Handle(ev term.Event) (exit, handled bool) {
 
 func (ib *Handler) handleSearch(ev term.Event) (exit, handled bool) {
 	switch {
-	case ev.Key == term.KeyEnter:
+	case ev.Key == term.KeyEnter && ev.Mod == 0:
 		ib.acceptSearch()
 		ib.done = true
 		return true, true
 
-	case ev.Key == term.KeyEsc,
+	case ev.Key == term.KeyEsc && ev.Mod == 0,
 		ev.Ch == 'g' && ev.Mod == term.ModCtrl,
 		ev.Ch == 'c' && ev.Mod == term.ModCtrl:
 		ib.cancelSearch()
 		return false, true
 
-	case ev.Key == term.KeyTab:
+	case ev.Key == term.KeyTab && ev.Mod == 0:
 		ib.acceptSearch()
 		return false, true
 
-	case ev.Key == term.KeyBackspace,
+	case ev.Key == term.KeyBackspace && ev.Mod == 0,
 		ev.Ch == 'h' && ev.Mod == term.ModCtrl:
 		ib.searchBackspace()
 		return false, true
@@ -536,7 +536,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 	}
 
 	switch {
-	case ev.Key == term.KeyEnter:
+	case ev.Key == term.KeyEnter && ev.Mod == 0:
 		ib.clearCompletion()
 		ib.done = true
 		return true, true
@@ -549,7 +549,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		ib.handleTab(true)
 		return false, true
 
-	case ev.Key == term.KeyEsc:
+	case ev.Key == term.KeyEsc && ev.Mod == 0:
 		if clearComp {
 			ib.cancelCompletion()
 			return false, true
@@ -594,7 +594,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		ib.enterSearch()
 		return false, true
 
-	case ev.Key == term.KeyArrowUp,
+	case ev.Key == term.KeyArrowUp && ev.Mod == 0,
 		ev.Ch == 'p' && ev.Mod == term.ModCtrl:
 		if clearComp {
 			ib.clearCompletion()
@@ -604,7 +604,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		ib.updateVoffset()
 		return false, true
 
-	case ev.Key == term.KeyArrowDown,
+	case ev.Key == term.KeyArrowDown && ev.Mod == 0,
 		ev.Ch == 'n' && ev.Mod == term.ModCtrl:
 		if clearComp {
 			ib.clearCompletion()
@@ -736,7 +736,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		ib.cursor = len(ib.text)
 		return false, true
 
-	case ev.Key == term.KeyBackspace,
+	case ev.Key == term.KeyBackspace && ev.Mod == 0,
 		ev.Ch == 'h' && ev.Mod == term.ModCtrl:
 		if clearComp {
 			ib.clearCompletion()
@@ -752,7 +752,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		}
 		return false, true
 
-	case ev.Key == term.KeyDelete:
+	case ev.Key == term.KeyDelete && ev.Mod == 0:
 		if clearComp {
 			ib.clearCompletion()
 		}
@@ -766,7 +766,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		}
 		return false, true
 
-	case ev.Key == term.KeyArrowLeft:
+	case ev.Key == term.KeyArrowLeft && ev.Mod == 0:
 		if clearComp {
 			ib.clearCompletion()
 		}
@@ -776,7 +776,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		}
 		return false, true
 
-	case ev.Key == term.KeyArrowRight:
+	case ev.Key == term.KeyArrowRight && ev.Mod == 0:
 		if clearComp {
 			ib.clearCompletion()
 		}
@@ -786,7 +786,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		}
 		return false, true
 
-	case ev.Key == term.KeyHome,
+	case ev.Key == term.KeyHome && ev.Mod == 0,
 		ev.Ch == 'a' && ev.Mod == term.ModCtrl:
 		if clearComp {
 			ib.clearCompletion()
@@ -795,7 +795,7 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		ib.cursor = 0
 		return false, true
 
-	case ev.Key == term.KeyEnd,
+	case ev.Key == term.KeyEnd && ev.Mod == 0,
 		ev.Ch == 'e' && ev.Mod == term.ModCtrl:
 		if clearComp {
 			ib.clearCompletion()
