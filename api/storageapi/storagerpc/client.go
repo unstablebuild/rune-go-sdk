@@ -36,6 +36,8 @@ type Client struct {
 	cc             grpc.ClientConnInterface
 	pb             docpb.DocumentStoreClient
 	ownsConnection bool
+	partitions     []string
+	closeFn        func() error
 }
 
 // NewClient returns a grpc-based client that satisfies Service
@@ -77,6 +79,17 @@ func (c *Client) Init(cc grpc.ClientConnInterface, m docmarshal.Marshaler) {
 	c.cc = cc
 	c.pb = docpb.NewDocumentStoreClient(cc)
 	c.marshaler = m
+	c.partitions = nil
+	c.closeFn = func() error {
+		if closer, ok := c.cc.(io.Closer); ok && c.ownsConnection {
+			return closer.Close()
+		}
+		return nil
+	}
+}
+
+func (c *Client) partitionContext(ctx context.Context) context.Context {
+	return ContextWithPartitions(ctx, c.partitions...)
 }
 
 func (c *Client) Create(
@@ -88,7 +101,7 @@ func (c *Client) Create(
 	}
 
 	req := docpb.CreateDocumentRequest{Id: ID, Data: bytes}
-	res, err := c.pb.Create(ctx, &req)
+	res, err := c.pb.Create(c.partitionContext(ctx), &req)
 	if err != nil {
 		return convertRpcError(err)
 	}
@@ -107,7 +120,7 @@ func (c *Client) Set(
 	}
 
 	req := docpb.SetDocumentRequest{Id: ID, Data: bytes}
-	_, err = c.pb.Set(ctx, &req)
+	_, err = c.pb.Set(c.partitionContext(ctx), &req)
 	if err != nil {
 		return convertRpcError(err)
 	}
@@ -124,7 +137,7 @@ func (c *Client) Update(
 	u := makeProtoUpdates(c.marshaler, updates)
 	p := makeProtoPreconditions(c.marshaler, preconds...)
 	req := docpb.UpdateDocumentRequest{Id: ID, Updates: u, Preconditions: p}
-	res, err := c.pb.Update(ctx, &req)
+	res, err := c.pb.Update(c.partitionContext(ctx), &req)
 	if err != nil {
 		return convertRpcError(err)
 	}
@@ -141,7 +154,7 @@ func (c *Client) Get(
 	ctx context.Context, ID string, doc interface{},
 ) error {
 	req := docpb.GetDocumentRequest{Id: ID}
-	res, err := c.pb.Get(ctx, &req)
+	res, err := c.pb.Get(c.partitionContext(ctx), &req)
 	if err != nil {
 		return convertRpcError(err)
 	}
@@ -161,7 +174,7 @@ func (c *Client) Delete(
 	ctx context.Context, ID string,
 ) error {
 	req := docpb.DeleteDocumentRequest{Id: ID}
-	_, err := c.pb.Delete(ctx, &req)
+	_, err := c.pb.Delete(c.partitionContext(ctx), &req)
 	if err != nil {
 		return convertRpcError(err)
 	}
@@ -233,7 +246,7 @@ func (c *Client) List(
 	}
 	req := docpb.ListDocumentRequest{Filters: f}
 	req.Fields = fieldsFromContext(ctx)
-	res, err := c.pb.List(ctx, &req)
+	res, err := c.pb.List(c.partitionContext(ctx), &req)
 	if err != nil {
 		return nil, convertRpcError(err)
 	}
@@ -241,10 +254,16 @@ func (c *Client) List(
 }
 
 func (c *Client) Close() error {
-	if closer, ok := c.cc.(io.Closer); ok && c.ownsConnection {
-		return closer.Close()
+	if c.closeFn != nil {
+		return c.closeFn()
 	}
 	return nil
+}
+
+func (c *Client) Partition(name string) (storageapi.Service, error) {
+	ret := *c
+	ret.partitions = append(append([]string(nil), c.partitions...), name)
+	return &ret, nil
 }
 
 func (c *Client) encodeCreateData(data interface{}) ([]byte, error) {

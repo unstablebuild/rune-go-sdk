@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,9 +24,10 @@ import (
 )
 
 type inMemoryService struct {
-	marshaler docmarshal.Marshaler
-	m         sync.Locker
-	storage   map[string][]byte
+	marshaler  docmarshal.Marshaler
+	m          sync.Locker
+	storage    map[string][]byte
+	partitions map[string]*inMemoryService
 }
 
 // NewInMemoryService returns an instance of storageapi.Service backed
@@ -39,10 +40,24 @@ func NewInMemoryService() storageapi.DroppableService {
 // by the given marshaler.
 func NewInMemoryServiceWithMarshaler(m docmarshal.Marshaler) storageapi.DroppableService {
 	return &inMemoryService{
-		marshaler: m,
-		m:         new(sync.Mutex),
-		storage:   make(map[string][]byte),
+		marshaler:  m,
+		m:          new(sync.Mutex),
+		storage:    make(map[string][]byte),
+		partitions: make(map[string]*inMemoryService),
 	}
+}
+
+func (c *inMemoryService) Partition(name string) (storageapi.Service, error) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if child, ok := c.partitions[name]; ok {
+		return child, nil
+	}
+	child := NewInMemoryServiceWithMarshaler(c.marshaler).(*inMemoryService)
+	child.m = c.m
+	c.partitions[name] = child
+	return child, nil
 }
 
 func (c *inMemoryService) Set(
@@ -166,5 +181,6 @@ func (c *inMemoryService) Drop(ctx context.Context) error {
 	defer c.m.Unlock()
 
 	c.storage = make(map[string][]byte)
+	c.partitions = make(map[string]*inMemoryService)
 	return nil
 }

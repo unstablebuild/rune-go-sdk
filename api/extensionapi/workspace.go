@@ -160,7 +160,11 @@ func (w *Workspace) Parser(ctx context.Context) syntaxapi.Parser {
 func (w *Workspace) Storage(ctx context.Context) storageapi.Service {
 	c := new(storagerpc.Client)
 	c.Init(w.conn, doctoml.Marshaler())
-	return storageapi.WithPartition(c, w.meta.ExtensionID)
+	svc, err := c.Partition(w.meta.ExtensionID)
+	if err != nil {
+		return storageapi.WithPartition(c, w.meta.ExtensionID)
+	}
+	return svc
 }
 
 // Interrupter returns the workspace's event loop interrupter, which

@@ -14,9 +14,15 @@
 
 package storagerpc
 
-import "context"
+import (
+	"context"
+
+	"google.golang.org/grpc/metadata"
+)
 
 type fieldsKey struct{}
+
+const PartitionMetadataKey = "x-rune-storage-partition"
 
 // WithFields returns a new context that carries the given field names
 // for projection. When passed to Client.List, only the specified
@@ -31,4 +37,31 @@ func WithFields(ctx context.Context, fields ...string) context.Context {
 func fieldsFromContext(ctx context.Context) []string {
 	fields, _ := ctx.Value(fieldsKey{}).([]string)
 	return fields
+}
+
+// ContextWithPartitions returns a context that sends partition names over gRPC.
+func ContextWithPartitions(ctx context.Context, partitions ...string) context.Context {
+	if len(partitions) == 0 {
+		return ctx
+	}
+	args := make([]string, 0, len(partitions)*2)
+	for _, partition := range partitions {
+		args = append(args, PartitionMetadataKey, partition)
+	}
+	return metadata.AppendToOutgoingContext(ctx, args...)
+}
+
+// PartitionsFromIncomingContext extracts partition names sent over gRPC.
+func PartitionsFromIncomingContext(ctx context.Context) []string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
+	}
+	partitions := md.Get(PartitionMetadataKey)
+	if len(partitions) == 0 {
+		return nil
+	}
+	ret := make([]string, len(partitions))
+	copy(ret, partitions)
+	return ret
 }

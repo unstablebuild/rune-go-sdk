@@ -101,6 +101,10 @@ type Service interface {
 	// To return a subset of the collection, you can provide a set of filters.
 	List(ctx context.Context, filters []Filter) (Iterator, error)
 
+	// Partition returns a child Service whose records are isolated from sibling
+	// partitions created from the same underlying Service.
+	Partition(name string) (Service, error)
+
 	io.Closer
 }
 
