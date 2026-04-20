@@ -141,7 +141,8 @@ func (s *replCommandServerStream) handleCommand(
 	}
 	width := int(req.GetWidth())
 
-	iter, err := s.h.HandleCommand(s.ctx, cmd, repl.NopProgressWriter())
+	pw := &grpcProgressWriter{stream: s}
+	iter, err := s.h.HandleCommand(s.ctx, cmd, pw)
 	if err != nil {
 		s.sendHandleDone(err)
 		return
@@ -160,6 +161,34 @@ func (s *replCommandServerStream) handleCommand(
 		},
 	)
 	s.sendHandleDone(err)
+}
+
+// grpcProgressWriter is a repl.ProgressWriter that forwards Progress
+// calls to the client over the REPL gRPC stream, allowing the editor's
+// real progress bar to render progress reported by an out-of-process
+// extension's command handler.
+type grpcProgressWriter struct {
+	stream *replCommandServerStream
+}
+
+func (w *grpcProgressWriter) Progress(
+	progress, total int64, units string,
+) {
+	msg := &ClientREPLCommandMessage{
+		Type: ClientREPLCommandMessage_HandleProgress,
+		HandleProgress: &HandleREPLCommandProgress{
+			Progress: progress,
+			Total:    total,
+			Units:    units,
+		},
+	}
+	// Non-blocking send: progress is informational. If the client falls
+	// behind or the stream is shutting down, drop the sample rather than
+	// stall the handler goroutine.
+	select {
+	case w.stream.sendChan <- msg:
+	case <-w.stream.ctx.Done():
+	}
 }
 
 func (s *replCommandServerStream) sendHandleDone(err error) {

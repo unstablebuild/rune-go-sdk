@@ -242,6 +242,7 @@ message ClientREPLCommandMessage {
 		HelpValue = 4;
 		HelpDone = 5;
 		Request = 6;
+		HandleProgress = 7;
 	}
 	MessageType type = 1;
 	HandleREPLCommandValue handle_value = 2;
@@ -251,6 +252,7 @@ message ClientREPLCommandMessage {
 	HelpCommandValue help_value = 6;
 	HelpCommandDone help_done = 7;
 	SubscribeREPLCommandRequest request = 8;
+	HandleREPLCommandProgress handle_progress = 9;
 }
 
 message ServerREPLCommandMessage {
@@ -279,6 +281,12 @@ message HandleREPLCommandValue {
 
 message HandleREPLCommandDone {
 	string error = 1;
+}
+
+message HandleREPLCommandProgress {
+	int64 progress = 1;
+	int64 total = 2;
+	string units = 3;
 }
 
 message HelpCommandRequest {

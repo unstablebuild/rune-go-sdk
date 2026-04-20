@@ -854,8 +854,100 @@ func TestRegisterREPLCommand(t *testing.T) {
 				assert.Contains(
 					t,
 					resp.GetHandleDone().GetError(),
-					"repl handler error",
+						"repl handler error",
+					)
+			},
+		},
+		{
+			name: "handle REPL command forwards progress to client",
+			manual: textapi.CommandManual{
+				Name:    "dl",
+				Summary: "download",
+			},
+			handler: func(t *testing.T) (
+				textapi.REPLHandler, <-chan struct{},
+			) {
+				done := make(chan struct{})
+				return &testREPLHandler{
+					handleFn: func(
+						_ context.Context, _ repl.Command, pw repl.ProgressWriter,
+					) (
+						iterator.Iterator[component.Responsive],
+						error,
+					) {
+						defer close(done)
+						// Report progress before yielding any
+						// rows so the server-side wrapper must
+						// send a HandleProgress message.
+						pw.Progress(25, 100, "B")
+						pw.Progress(75, 100, "B")
+						return iterator.FromSlice[component.Responsive](
+							nil,
+						), nil
+					},
+					completeFn: func(
+						_ context.Context, _ string,
+						_ []string,
+					) (iterator.Iterator[string], error) {
+						return iterator.FromSlice[string](nil), nil
+					},
+					helpFn: func(
+						_ context.Context, _ []string,
+					) (
+						iterator.Iterator[component.Responsive],
+						error,
+					) {
+						return iterator.FromSlice[component.Responsive](
+							nil,
+						), nil
+					},
+				}, done
+			},
+			serverAction: func(
+				t *testing.T,
+				_ *textrpc.CommandManual,
+				stream grpc.BidiStreamingServer[
+					textrpc.ClientREPLCommandMessage,
+					textrpc.ServerREPLCommandMessage,
+				],
+			) {
+				err := stream.Send(
+					&textrpc.ServerREPLCommandMessage{
+						Type: textrpc.ServerREPLCommandMessage_Handle,
+						Handle: &textrpc.HandleREPLCommandRequest{
+							Name:  "dl",
+							Width: 80,
+						},
+					},
 				)
+				require.NoError(t, err)
+
+				var progresses []*textrpc.HandleREPLCommandProgress
+				for {
+					resp, err := stream.Recv()
+					require.NoError(t, err)
+					if resp.GetType() ==
+						textrpc.ClientREPLCommandMessage_HandleDone {
+						assert.Empty(
+							t,
+							resp.GetHandleDone().GetError(),
+						)
+						break
+					}
+					if resp.GetType() ==
+						textrpc.ClientREPLCommandMessage_HandleProgress {
+						progresses = append(
+							progresses,
+							resp.GetHandleProgress(),
+						)
+					}
+				}
+				require.Len(t, progresses, 2)
+				assert.Equal(t, int64(25), progresses[0].GetProgress())
+				assert.Equal(t, int64(100), progresses[0].GetTotal())
+				assert.Equal(t, "B", progresses[0].GetUnits())
+				assert.Equal(t, int64(75), progresses[1].GetProgress())
+				assert.Equal(t, int64(100), progresses[1].GetTotal())
 			},
 		},
 		{
