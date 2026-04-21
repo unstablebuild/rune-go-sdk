@@ -31,8 +31,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const defaultTimeout = 5 * time.Second
-
 // for extension-side
 var _ workspaceapi.FileSystem = (*Client)(nil)
 var _ workspaceapi.Executor = (*Client)(nil)
@@ -76,11 +74,8 @@ func (c *Client) Init(ctx context.Context, cc grpc.ClientConnInterface) {
 
 // URI satisfies schemeapi.Scheme.
 func (c *Client) URI(path string) (workspaceapi.URI, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := URIRequest{Root: c.root, Path: path}
-	resp, err := c.scheme.URI(ctx, &req)
+	resp, err := c.scheme.URI(c.ctx, &req)
 	if err != nil {
 		return workspaceapi.URI{}, err
 	}
@@ -108,11 +103,8 @@ func (c *Client) Root() string {
 	if c.root != "" {
 		return c.root
 	}
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := RootRequest{}
-	resp, err := c.scheme.Root(ctx, &req)
+	resp, err := c.scheme.Root(c.ctx, &req)
 	if err != nil {
 		// valid, not useful; best effort
 		return "."
@@ -122,21 +114,15 @@ func (c *Client) Root() string {
 
 // Symlink satisfies schemeapi.Scheme.
 func (c *Client) Symlink(target, link string) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := SymlinkRequest{Root: c.root, Target: target, Link: link}
-	_, err := c.scheme.Symlink(ctx, &req)
+	_, err := c.scheme.Symlink(c.ctx, &req)
 	return err
 }
 
 // TempFile satisfies schemeapi.Scheme.
 func (c *Client) TempFile(dir, prefix string) (workspaceapi.File, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := TempFileRequest{Root: c.root, Dir: dir, Prefix: prefix}
-	resp, err := c.scheme.TempFile(ctx, &req)
+	resp, err := c.scheme.TempFile(c.ctx, &req)
 	if err != nil {
 		return nil, err
 	}
@@ -147,11 +133,8 @@ func (c *Client) TempFile(dir, prefix string) (workspaceapi.File, error) {
 
 // Join satisfies schemeapi.Scheme.
 func (c *Client) Join(elem ...string) string {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := JoinRequest{Elem: elem}
-	resp, err := c.scheme.Join(ctx, &req)
+	resp, err := c.scheme.Join(c.ctx, &req)
 	if err != nil {
 		// best effort
 		return filepath.Join(elem...)
@@ -173,11 +156,8 @@ func (c *Client) Open(filename string) (workspaceapi.File, error) {
 func (c *Client) OpenFile(path string, flag int, mode os.FileMode) (
 	workspaceapi.File, error,
 ) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := makeOpenRequest(c.root, path, flag, mode)
-	resp, err := c.scheme.Open(ctx, req)
+	resp, err := c.scheme.Open(c.ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -191,11 +171,8 @@ func (c *Client) OpenFile(path string, flag int, mode os.FileMode) (
 
 // Stat returns a FileInfo describing the named file.
 func (c *Client) Stat(name string) (os.FileInfo, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := StatRequest{Root: c.root, Filename: name}
-	resp, err := c.scheme.Stat(ctx, &req)
+	resp, err := c.scheme.Stat(c.ctx, &req)
 	if err != nil {
 		return nil, err
 	}
@@ -207,11 +184,8 @@ func (c *Client) Stat(name string) (os.FileInfo, error) {
 
 // ReadDir reads the named directory, returning all its directory entries.
 func (c *Client) ReadDir(name string) ([]os.DirEntry, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := ReadDirRequest{Dir: name, Root: c.root}
-	resp, err := c.scheme.ReadDir(ctx, &req)
+	resp, err := c.scheme.ReadDir(c.ctx, &req)
 	if err != nil {
 		return nil, err
 	}
@@ -234,11 +208,8 @@ func (c *Client) ReadDir(name string) ([]os.DirEntry, error) {
 
 // Remove satisfies schemeapi.Scheme.
 func (c *Client) Remove(path string) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := RemoveRequest{Root: c.root, Filename: path}
-	resp, err := c.scheme.Remove(ctx, &req)
+	resp, err := c.scheme.Remove(c.ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -250,11 +221,8 @@ func (c *Client) Remove(path string) error {
 
 // Rename satisfies schemeapi.Scheme.
 func (c *Client) Rename(oldpath, newpath string) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := RenameRequest{Root: c.root, Filename: oldpath, Newfilename: newpath}
-	resp, err := c.scheme.Rename(ctx, &req)
+	resp, err := c.scheme.Rename(c.ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -266,11 +234,8 @@ func (c *Client) Rename(oldpath, newpath string) error {
 
 // Lstat satisfies schemeapi.Scheme.
 func (c *Client) Lstat(name string) (os.FileInfo, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := StatRequest{Root: c.root, Filename: name, Lstat: true}
-	resp, err := c.scheme.Stat(ctx, &req)
+	resp, err := c.scheme.Stat(c.ctx, &req)
 	if err != nil {
 		return nil, err
 	}
@@ -282,11 +247,8 @@ func (c *Client) Lstat(name string) (os.FileInfo, error) {
 
 // Readlink satisfies schemeapi.Scheme.
 func (c *Client) Readlink(filename string) (string, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := ReadLinkRequest{Root: c.root, Filename: filename}
-	resp, err := c.scheme.ReadLink(ctx, &req)
+	resp, err := c.scheme.ReadLink(c.ctx, &req)
 	if err != nil {
 		return "", err
 	}
@@ -295,11 +257,8 @@ func (c *Client) Readlink(filename string) (string, error) {
 
 // MkdirAll satisfies schemeapi.Scheme.
 func (c *Client) MkdirAll(path string, perm os.FileMode) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := MkdirAllRequest{Root: c.root, Path: path, Mode: int32(perm)}
-	resp, err := c.scheme.MkdirAll(ctx, &req)
+	resp, err := c.scheme.MkdirAll(c.ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -356,10 +315,6 @@ func (c *Client) StartCommand(
 		err error
 	}
 
-	// implement rpc timeout
-	handshakeCtx, cancel := context.WithTimeout(commandCtx, defaultTimeout)
-	defer cancel()
-
 	ch := make(chan result)
 	go debug.CapturePanicReport(func() {
 		// do not worry about closing stream here something else
@@ -368,7 +323,7 @@ func (c *Client) StartCommand(
 			res := result{err: fmt.Errorf("send start command request: %v", err)}
 			select {
 			case ch <- res:
-			case <-handshakeCtx.Done():
+			case <-commandCtx.Done():
 			}
 			return
 		}
@@ -378,13 +333,13 @@ func (c *Client) StartCommand(
 			res := result{err: fmt.Errorf("error waiting for pid: %v", err)}
 			select {
 			case ch <- res:
-			case <-handshakeCtx.Done():
+			case <-commandCtx.Done():
 			}
 			return
 		}
 		select {
 		case ch <- result{pid: pid}:
-		case <-handshakeCtx.Done():
+		case <-commandCtx.Done():
 		}
 	})
 
@@ -398,19 +353,16 @@ func (c *Client) StartCommand(
 			streamer.streamCommandData(cancelFn)
 		})
 		return res.pid, nil
-	case <-handshakeCtx.Done():
+	case <-commandCtx.Done():
 		cancelFn()
-		return 0, handshakeCtx.Err()
+		return 0, commandCtx.Err()
 	}
 }
 
 // Signal sends a signal to the running process.
 func (c *Client) Signal(p workspaceapi.Pid, s syscall.Signal) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := SignalRequest{Pid: int64(p), Sig: int32(s)}
-	_, err := c.exec.Signal(ctx, &req)
+	_, err := c.exec.Signal(c.ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -447,9 +399,6 @@ func (c *Client) NewPty(ctx context.Context) (workspaceapi.Pty, error) {
 // SetPtySize sets the width and height in columns and rows of
 // a pseudoterminal.
 func (c *Client) SetPtySize(p workspaceapi.Pty, width, height int) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := SetPtySizeRequest{
 		Master:   p.Master.Name(),
 		MasterFd: uint32(p.Master.Fd()),
@@ -458,7 +407,7 @@ func (c *Client) SetPtySize(p workspaceapi.Pty, width, height int) error {
 		Width:    int32(width),
 		Height:   int32(height),
 	}
-	_, err := c.term.SetPtySize(ctx, &req)
+	_, err := c.term.SetPtySize(c.ctx, &req)
 	return err
 }
 
@@ -539,14 +488,11 @@ func (c *Client) Watch(
 
 // StopWatch satisfies schemeapi.Scheme.
 func (c *Client) StopWatch(id int) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := StopWatchRequest{
 		Root: c.root,
 		Id:   int64(id),
 	}
-	_, err := c.scheme.StopWatch(ctx, &req)
+	_, err := c.scheme.StopWatch(c.ctx, &req)
 	return err
 }
 
@@ -639,11 +585,6 @@ func isTypedError(resp errResponse) (error, bool) {
 	default:
 		return nil, false
 	}
-}
-
-func ctxWithTimeout(resourceCtx context.Context) (context.Context, func()) {
-	ctx, cancel := context.WithTimeout(resourceCtx, defaultTimeout)
-	return ctx, cancel
 }
 
 func tryUnwrapFile(ifc interface{}) (uint32, string) {

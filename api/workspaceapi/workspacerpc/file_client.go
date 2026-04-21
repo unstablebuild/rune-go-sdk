@@ -161,9 +161,6 @@ func sendCloseRequest(
 	ctx context.Context, client FilesClient,
 	root string, fd uintptr, filename string,
 ) error {
-	ctx, cleanup := ctxWithTimeout(ctx)
-	defer cleanup()
-
 	req := CloseFileRequest{Root: root, Fd: uint32(fd), Filename: filename}
 	_, err := client.Close(ctx, &req)
 	if err != nil {
@@ -180,11 +177,8 @@ func (c *FileClient) Name() string {
 
 // Stat satisfies workspaceapi.File.
 func (c *FileClient) Stat() (os.FileInfo, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := StatRequest{Root: c.root, Filename: c.filename}
-	resp, err := c.client.Stat(ctx, &req)
+	resp, err := c.client.Stat(c.ctx, &req)
 	runtime.KeepAlive(c)
 	if err != nil {
 		return nil, err
@@ -197,11 +191,8 @@ func (c *FileClient) Stat() (os.FileInfo, error) {
 
 // Sync satisfies workspaceapi.File.
 func (c *FileClient) Sync() error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := SyncRequest{Root: c.root, Fd: uint32(c.fd), Filename: c.filename}
-	_, err := c.client.Sync(ctx, &req)
+	_, err := c.client.Sync(c.ctx, &req)
 	runtime.KeepAlive(c)
 	if err != nil {
 		return err
@@ -211,11 +202,8 @@ func (c *FileClient) Sync() error {
 
 // Truncate satisfies workspaceapi.File.
 func (c *FileClient) Truncate(size int64) error {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := TruncateRequest{Root: c.root, Fd: uint32(c.fd), Filename: c.filename, Size: size}
-	_, err := c.client.Truncate(ctx, &req)
+	_, err := c.client.Truncate(c.ctx, &req)
 	runtime.KeepAlive(c)
 	if err != nil {
 		return err
@@ -225,9 +213,6 @@ func (c *FileClient) Truncate(size int64) error {
 
 // Seek satisfies workspaceapi.File.
 func (c *FileClient) Seek(offset int64, whence int) (int64, error) {
-	ctx, cleanup := ctxWithTimeout(c.ctx)
-	defer cleanup()
-
 	req := SeekRequest{
 		Root:     c.root,
 		Fd:       uint32(c.fd),
@@ -235,7 +220,7 @@ func (c *FileClient) Seek(offset int64, whence int) (int64, error) {
 		Offset:   offset,
 		Whence:   int64(whence),
 	}
-	resp, err := c.client.Seek(ctx, &req)
+	resp, err := c.client.Seek(c.ctx, &req)
 	runtime.KeepAlive(c)
 	if err != nil {
 		return 0, err
