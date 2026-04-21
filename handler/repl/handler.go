@@ -31,6 +31,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/handler"
 	"github.com/unstablebuild/rune-go-sdk/handler/inputbox"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
+	"github.com/unstablebuild/rune-go-sdk/mouse"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
 
@@ -42,6 +43,7 @@ import (
 type Handler struct {
 	output *component.Virtual[*component.Container]
 	rl     *handler.Virtual[*inputbox.Handler]
+	m      *mouse.Mouse
 	cmd    CommandHandler
 	prompt string
 
@@ -101,6 +103,50 @@ type Handler struct {
 	width, height int
 }
 
+type outputMouseDelegate struct {
+	h *Handler
+}
+
+var _ mouse.Delegate = (*outputMouseDelegate)(nil)
+
+func (d *outputMouseDelegate) OnAction(term.Event, term.Coordinates, mouse.Action) bool {
+	return false
+}
+
+func (d *outputMouseDelegate) ScrollUp(n int) bool {
+	handled := false
+	for range n {
+		if !d.h.output.C.ScrollUp() {
+			break
+		}
+		handled = true
+	}
+	return handled
+}
+
+func (d *outputMouseDelegate) ScrollDown(n int) bool {
+	handled := false
+	for range n {
+		if !d.h.output.C.ScrollDown() {
+			break
+		}
+		handled = true
+	}
+	return handled
+}
+
+func (d *outputMouseDelegate) SetSelectionEnd(term.Coordinates)   {}
+func (d *outputMouseDelegate) SetSelectionStart(term.Coordinates) {}
+func (d *outputMouseDelegate) ClearSelection()                    {}
+func (d *outputMouseDelegate) SelectWordAt(term.Coordinates)      {}
+func (d *outputMouseDelegate) SelectLine(int)                     {}
+func (d *outputMouseDelegate) Width() int                         { return d.h.width }
+
+func (d *outputMouseDelegate) Height() int {
+	_, outH := d.h.layoutHeights()
+	return outH
+}
+
 // New creates a new Handler with the given command
 // handler and options. The scheduleNextTick function
 // schedules a callback on the next event-loop tick.
@@ -146,6 +192,7 @@ func New(
 	h.loadHistory()
 	h.cmdCtx, h.cmdCancel = context.WithCancel(h.ctx)
 	h.rl = h.newInputBox()
+	h.m = mouse.New(&outputMouseDelegate{h: h})
 	return h
 }
 
@@ -171,6 +218,9 @@ func (h *Handler) Draw(w term.Writer) {
 func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 	if h.exitPending.Load() {
 		return true, true
+	}
+	if ev.Type == term.EventMouse {
+		return h.handleMouse(ev)
 	}
 	exit, handled = h.rl.Handle(ev)
 	if !exit {
@@ -205,6 +255,19 @@ func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 	h.dispatchCommand(text)
 	h.resetInputBox()
 	return false, true
+}
+
+func (h *Handler) handleMouse(ev term.Event) (exit, handled bool) {
+	rlH, outH := h.layoutHeights()
+	switch {
+	case ev.MouseY >= 0 && ev.MouseY < outH:
+		return h.m.Handle(ev)
+	case ev.MouseY >= outH && ev.MouseY < outH+rlH:
+		ev.MouseY -= outH
+		return h.rl.Handle(ev)
+	default:
+		return false, false
+	}
 }
 
 // Cursor satisfies tui.Handler.
@@ -312,8 +375,7 @@ func (h *Handler) layout() {
 	if h.width == 0 || h.height == 0 {
 		return
 	}
-	rlH := min(h.rl.C.Height(h.width), h.height)
-	outH := h.height - rlH
+	rlH, outH := h.layoutHeights()
 
 	contentH := h.output.C.Height(h.width)
 	if contentH < outH {
@@ -341,6 +403,15 @@ func (h *Handler) layout() {
 
 	h.rl.Resize(h.width, rlH)
 	h.rl.Move(term.Coordinates{Y: outH})
+}
+
+func (h *Handler) layoutHeights() (rlH, outH int) {
+	if h.width == 0 || h.height == 0 {
+		return 0, 0
+	}
+	rlH = min(h.rl.C.Height(h.width), h.height)
+	outH = h.height - rlH
+	return rlH, outH
 }
 
 func (h *Handler) startSpinner() {
@@ -438,6 +509,8 @@ func (h *Handler) dispatchCommand(text string) {
 				row := h.output.C.AddRow()
 				row.AddComponent(it, component.MaxCols)
 			}
+			// New output always snaps the REPL viewport back to the bottom,
+			// even after manual mouse-wheel scrolling.
 			h.output.C.ScrollToBottom()
 			h.layout()
 
@@ -489,6 +562,8 @@ func (h *Handler) dispatchCommand(text string) {
 			} else if iterErr == nil {
 				promptLine.setPromptAttr(h.successAttr)
 			}
+			// Final command output follows the same snap-to-bottom behavior as
+			// streamed output above.
 			h.output.C.ScrollToBottom()
 			h.layout()
 		})

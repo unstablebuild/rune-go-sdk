@@ -68,6 +68,38 @@ type queuedScheduler struct {
 	pending []func()
 }
 
+type channelIterator[T any] struct {
+	once    sync.Once
+	started chan struct{}
+	ch      <-chan T
+}
+
+func newChannelIterator[T any](ch <-chan T) *channelIterator[T] {
+	return &channelIterator[T]{
+		started: make(chan struct{}),
+		ch:      ch,
+	}
+}
+
+func (it *channelIterator[T]) Next(ctx context.Context) (T, bool) {
+	it.once.Do(func() { close(it.started) })
+	select {
+	case item, ok := <-it.ch:
+		return item, ok
+	case <-ctx.Done():
+		var zero T
+		return zero, false
+	}
+}
+
+func (it *channelIterator[T]) Err() error {
+	return nil
+}
+
+func (it *channelIterator[T]) Close() error {
+	return nil
+}
+
 func (s *queuedScheduler) ScheduleNextTick(fn func()) bool {
 	s.mu.Lock()
 	s.pending = append(s.pending, fn)
@@ -105,6 +137,15 @@ func sendKeys(t *testing.T, h *Handler, seq string) {
 
 func drawHandler(h *Handler, w, ht int) string {
 	return handlertest.DrawHandler(h, w, ht)
+}
+
+func wheelUpAt(h *Handler, x, y int) (exit, handled bool) {
+	return h.Handle(term.Event{
+		Type:   term.EventMouse,
+		Key:    term.MouseWheelUp,
+		MouseX: x,
+		MouseY: y,
+	})
 }
 
 func TestBasicInput(t *testing.T) {
@@ -739,6 +780,223 @@ func TestLayoutOverflowContent(t *testing.T) {
 		"$ d                 \n" +
 		"$ ▐                 "
 	assert.Equal(t, expected, got)
+}
+
+func TestMouseWheelScrollsOutputPane(t *testing.T) {
+	h := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+	)
+	h.Resize(20, 3)
+
+	for _, cmd := range []string{"a", "b", "c", "d"} {
+		sendKeys(t, h, cmd)
+		h.Handle(term.Event{
+			Type: term.EventKey,
+			Key:  term.KeyEnter,
+		})
+	}
+
+	exit, handled := wheelUpAt(h, 0, 1)
+	assert.False(t, exit)
+	assert.True(t, handled)
+
+	got := drawHandler(h, 20, 3)
+	expected := "$ b                 \n" +
+		"$ c                 \n" +
+		"$ ▐                 "
+	assert.Equal(t, expected, got)
+}
+
+func TestMouseWheelInInputRegionDoesNotScrollOutput(t *testing.T) {
+	h := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+	)
+	h.Resize(20, 5)
+
+	for _, cmd := range []string{"a", "b", "c", "d", "e"} {
+		sendKeys(t, h, cmd)
+		h.Handle(term.Event{
+			Type: term.EventKey,
+			Key:  term.KeyEnter,
+		})
+	}
+	sendKeys(t, h, "abcdefghijklmnopqrst")
+
+	before := drawHandler(h, 20, 5)
+	exit, handled := wheelUpAt(h, 0, 3)
+	assert.False(t, exit)
+	assert.False(t, handled)
+	assert.Equal(t, before, drawHandler(h, 20, 5))
+	assert.Contains(t, before, "$ b")
+	assert.Contains(t, before, "$ c")
+	assert.Contains(t, before, "$ d")
+}
+
+func TestMouseWheelAtPaneBoundaryTargetsCorrectPane(t *testing.T) {
+	newHandler := func() *Handler {
+		h := New(
+			&testHandler{},
+			nopSchedule, term.NopInterrupter(),
+			WithPrompt("$ "),
+		)
+		h.Resize(20, 5)
+		for _, cmd := range []string{"a", "b", "c", "d", "e"} {
+			sendKeys(t, h, cmd)
+			h.Handle(term.Event{
+				Type: term.EventKey,
+				Key:  term.KeyEnter,
+			})
+		}
+		sendKeys(t, h, "abcdefghijklmnopqrst")
+		return h
+	}
+
+	t.Run("last output row scrolls output", func(t *testing.T) {
+		h := newHandler()
+		exit, handled := wheelUpAt(h, 0, 2)
+		assert.False(t, exit)
+		assert.True(t, handled)
+
+		got := drawHandler(h, 20, 5)
+		assert.Contains(t, got, "$ a")
+		assert.Contains(t, got, "$ b")
+		assert.Contains(t, got, "$ c")
+		assert.NotContains(t, got, "$ d")
+	})
+
+	t.Run("first input row does not scroll output", func(t *testing.T) {
+		h := newHandler()
+		before := drawHandler(h, 20, 5)
+		exit, handled := wheelUpAt(h, 0, 3)
+		assert.False(t, exit)
+		assert.False(t, handled)
+		assert.Equal(t, before, drawHandler(h, 20, 5))
+	})
+}
+
+func TestMouseWheelScrollsOutputViaHandleSequence(t *testing.T) {
+	h := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+	)
+	cases := []handlertest.SequenceTestCase{
+		{
+			InputSequence: "a<enter>b<enter>c<enter>d<enter>",
+			Expected: "$ c                 \n" +
+				"$ d                 \n" +
+				"$ ▐                 ",
+		},
+		{
+			InputSequence: "<mouse-wheel-up>",
+			Expected: "$ b                 \n" +
+				"$ c                 \n" +
+				"$ ▐                 ",
+		},
+		{
+			InputSequence: "<mouse-wheel-up>",
+			Expected: "$ a                 \n" +
+				"$ b                 \n" +
+				"$ ▐                 ",
+		},
+		{
+			InputSequence: "<mouse-wheel-up>",
+			Expected: "$ a                 \n" +
+				"$ b                 \n" +
+				"$ ▐                 ",
+		},
+		{
+			InputSequence: "<mouse-wheel-down>",
+			Expected: "$ b                 \n" +
+				"$ c                 \n" +
+				"$ ▐                 ",
+		},
+		{
+			InputSequence: "<mouse-wheel-down><mouse-wheel-down>",
+			Expected: "$ c                 \n" +
+				"$ d                 \n" +
+				"$ ▐                 ",
+		},
+	}
+	handlertest.RunHandlerSequence(t, h, 20, 3, cases)
+}
+
+func TestNewOutputSnapsToBottomAfterManualScroll(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	items := make(chan component.Responsive, 2)
+	var closeItems sync.Once
+	stream := newChannelIterator(items)
+	th := &testHandler{
+		handleFn: func(
+			_ context.Context, cmd Command, _ ProgressWriter,
+		) (
+			iterator.Iterator[component.Responsive],
+			error,
+		) {
+			if cmd.Name == "stream" {
+				return stream, nil
+			}
+			return iterator.Empty[component.Responsive](), nil
+		},
+	}
+	h := New(
+		th, scheduler.ScheduleNextTick, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithRunningAnimationFrames([]string{}, []int{}),
+	)
+	t.Cleanup(func() {
+		closeItems.Do(func() { close(items) })
+		_ = h.Close()
+	})
+	h.Resize(20, 3)
+
+	sendKeys(t, h, "prev")
+	h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+
+	items <- component.NewResponsiveString(
+		"first",
+		component.StringResponsiveConfig{},
+	)
+	sendKeys(t, h, "stream")
+	h.Handle(term.Event{
+		Type: term.EventKey,
+		Key:  term.KeyEnter,
+	})
+
+	<-stream.started
+	scheduler.Flush()
+
+	got := drawHandler(h, 20, 3)
+	assert.Contains(t, got, "$ stream")
+	assert.Contains(t, got, "first")
+
+	_, handled := wheelUpAt(h, 0, 1)
+	assert.True(t, handled)
+	got = drawHandler(h, 20, 3)
+	assert.Contains(t, got, "$ prev")
+	assert.Contains(t, got, "$ stream")
+	assert.NotContains(t, got, "second")
+
+	items <- component.NewResponsiveString(
+		"second",
+		component.StringResponsiveConfig{},
+	)
+	closeItems.Do(func() { close(items) })
+	h.Wait()
+	scheduler.Flush()
+
+	got = drawHandler(h, 20, 3)
+	assert.Contains(t, got, "first")
+	assert.Contains(t, got, "second")
+	assert.NotContains(t, got, "$ prev")
+	assert.NotContains(t, got, "$ stream")
 }
 
 func TestHistoryPersistence(t *testing.T) {

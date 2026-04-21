@@ -108,7 +108,11 @@ func runTestCase(
 	require.NoError(t, err)
 
 	for _, key := range keys {
-		h.Handle(term.Event{Ch: key.Ch, Mod: key.Mod, Key: key.Key, Type: term.EventKey})
+		evType := term.EventKey
+		if isMouseKey(key.Key) {
+			evType = term.EventMouse
+		}
+		h.Handle(term.Event{Ch: key.Ch, Mod: key.Mod, Key: key.Key, Type: evType})
 	}
 	h.Draw(w)
 
@@ -122,4 +126,13 @@ func runTestCase(
 
 	out := w.String()
 	assert.Equal(t, tcase.Expected, out, "test case %d (input: %s)", i, tcase.InputSequence)
+}
+
+func isMouseKey(k term.Key) bool {
+	switch k {
+	case term.MouseLeft, term.MouseMiddle, term.MouseRight,
+		term.MouseRelease, term.MouseWheelUp, term.MouseWheelDown:
+		return true
+	}
+	return false
 }
