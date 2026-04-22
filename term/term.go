@@ -70,6 +70,7 @@ func Init() error {
 	screen.EnablePaste()
 	screen.EnableFocus()
 	publishEvent.Store(termbox.PublishEvent)
+	DefaultWriter.SetScreen(screen)
 	return nil
 }
 

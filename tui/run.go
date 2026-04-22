@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/signal"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
@@ -42,16 +41,50 @@ func Run(root Handler, opts ...Option) (err error) {
 	term.SetAttr(cfg.defAttr)
 	term.SetInputMode(cfg.inputMode)
 	defer term.Close()
-	return run(root, cfg.locker, cfg.writer)
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt)
+	defer signal.Stop(sigs)
+
+	return run(root, cfg.locker, cfg.writer, cfg.defAttr, sigs)
+}
+
+// RunScreen runs the TUI event loop against a caller-owned Screen.
+//
+// The caller is responsible for:
+//   - Initializing and finalizing the Screen (Init/Fini).
+//   - Enabling paste/focus/mouse and setting any input modes as desired.
+//   - Terminating the loop by closing the Screen (which closes the event
+//     channel returned by Screen.Poll) or by having a Handler return
+//     exit=true.
+//
+// RunScreen does NOT install any OS signal handlers and does NOT touch
+// the process-wide term.Init/Close lifecycle.
+//
+// Example:
+//
+//	screen, err := tcell.NewTerminfoScreenFromTty(tty)
+//	if err != nil { return err }
+//	if err := screen.Init(); err != nil { return err }
+//	defer screen.Fini()
+//	screen.EnablePaste()
+//	return tui.RunScreen(root, screen)
+func RunScreen(root Handler, screen term.Screen, opts ...Option) error {
+	cfg := defaultConfig()
+	for _, o := range opts {
+		o(&cfg)
+	}
+	w := term.NewTermboxWriterFromScreen(screen)
+	return run(root, cfg.locker, w, cfg.defAttr, nil)
 }
 
 const exitSignalDuration = 1 * time.Second
 
 func redraw(
 	root Handler, lock sync.Locker, termw *term.TermboxWriter,
-	prevCursor term.CursorStyle,
+	prevCursor term.CursorStyle, defAttr term.Attributes,
 ) (term.CursorStyle, error) {
-	if err := termw.Clear(term.Attr()); err != nil {
+	if err := termw.Clear(defAttr); err != nil {
 		return 0, err
 	}
 
@@ -66,7 +99,7 @@ func redraw(
 		termw.SetCursor(term.Coordinates{X: -1, Y: -1})
 	}
 	if style != prevCursor {
-		term.SetCursorStyle(style)
+		termw.SetCursorStyle(style)
 	}
 
 	if err := termw.Flush(); err != nil {
@@ -86,20 +119,12 @@ func drain(evs <-chan tcell.Event) {
 	}
 }
 
-// batch interrupt events such that we deliver exactly one more
-// after every call to publish interrupt.
-// This serves as a pressure valve when something is abusing
-// the interrupt mechanism.
-var interruptPending atomic.Bool
-
 // PublishEvent publishes the given event to the event loop.
+// It targets the process-wide default writer; callers that run the
+// loop via RunScreen should use (*term.TermboxWriter).PublishEvent
+// directly on their writer so events don't leak between loops.
 func PublishEvent(ev term.Event) bool {
-	// only conflate interrupts that have no payload
-	if ev.Type == term.EventInterrupt && ev.Raw == nil &&
-		ev.UserFunc == nil && !interruptPending.CompareAndSwap(false, true) {
-		return true
-	}
-	return term.PublishEvent(ev)
+	return term.DefaultWriter.PublishEvent(ev)
 }
 
 func handleInterruptSignal(
@@ -114,18 +139,18 @@ func handleInterruptSignal(
 	}
 }
 
-func run(root Handler, lock sync.Locker, termw *term.TermboxWriter) (err error) {
+func run(
+	root Handler, lock sync.Locker, termw *term.TermboxWriter,
+	defAttr term.Attributes, sigs <-chan os.Signal,
+) (err error) {
 	ctx := context.Background()
-	width, height := term.Size()
+	width, height := termw.Size()
 
 	lock.Lock()
 	root.Resize(width, height)
 	lock.Unlock()
 
-	evs := term.Poll()
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt)
-	defer signal.Stop(sigs)
+	evs := termw.Poll()
 
 	var exit bool
 	var lastSignalAt time.Time
@@ -135,7 +160,7 @@ func run(root Handler, lock sync.Locker, termw *term.TermboxWriter) (err error) 
 
 loop:
 	for !exit && err == nil {
-		if prevCursor, err = redraw(root, lock, termw, prevCursor); err != nil {
+		if prevCursor, err = redraw(root, lock, termw, prevCursor, defAttr); err != nil {
 			return
 		}
 
@@ -143,7 +168,11 @@ loop:
 			select {
 			case <-sigs:
 				handleInterruptSignal(&lastSignalAt, &exit, evs)
-			case tev := <-evs:
+			case tev, ok := <-evs:
+				if !ok {
+					exit = true
+					break
+				}
 				ev := term.FromTcellEvent(tev)
 				switch ev.Type {
 				case term.EventInterrupt:
@@ -164,7 +193,7 @@ loop:
 					if ev.UserFunc != nil {
 						ev.UserFunc()
 					}
-					interruptPending.Store(false)
+					termw.ClearInterruptPending()
 					// ensure that i is not incremented
 					// and context is not overwritten
 					continue loop
