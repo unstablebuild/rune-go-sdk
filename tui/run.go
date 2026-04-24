@@ -49,33 +49,24 @@ func Run(root Handler, opts ...Option) (err error) {
 	return run(root, cfg.locker, cfg.writer, cfg.defAttr, sigs)
 }
 
-// RunScreen runs the TUI event loop against a caller-owned Screen.
+// RunWriter runs the TUI event loop against a caller-owned TermboxWriter.
 //
 // The caller is responsible for:
-//   - Initializing and finalizing the Screen (Init/Fini).
+//   - Attaching a Screen to the writer (e.g. via term.NewTermboxWriterFromScreen).
+//   - Initializing and finalizing that Screen.
 //   - Enabling paste/focus/mouse and setting any input modes as desired.
-//   - Terminating the loop by closing the Screen (which closes the event
-//     channel returned by Screen.Poll) or by having a Handler return
+//   - Terminating the loop by closing the underlying Screen (which closes the
+//     event channel returned by writer.Poll) or by having a Handler return
 //     exit=true.
-//
-// RunScreen does NOT install any OS signal handlers and does NOT touch
-// the process-wide term.Init/Close lifecycle.
-//
-// Example:
-//
-//	screen, err := tcell.NewTerminfoScreenFromTty(tty)
-//	if err != nil { return err }
-//	if err := screen.Init(); err != nil { return err }
-//	defer screen.Fini()
-//	screen.EnablePaste()
-//	return tui.RunScreen(root, screen)
-func RunScreen(root Handler, screen term.Screen, opts ...Option) error {
+func RunWriter(root Handler, writer *term.TermboxWriter, opts ...Option) error {
+	if writer == nil {
+		panic("tui: RunWriter called with nil writer")
+	}
 	cfg := defaultConfig()
 	for _, o := range opts {
 		o(&cfg)
 	}
-	w := term.NewTermboxWriterFromScreen(screen)
-	return run(root, cfg.locker, w, cfg.defAttr, nil)
+	return run(root, cfg.locker, writer, cfg.defAttr, nil)
 }
 
 const exitSignalDuration = 1 * time.Second
