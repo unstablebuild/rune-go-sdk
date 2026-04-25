@@ -57,6 +57,14 @@ func WithStorage(key string, s storageapi.Service) Option {
 	}
 }
 
+// WithMaxHistory sets the maximum number of command history entries
+// retained in memory and persisted in storage.
+func WithMaxHistory(max int) Option {
+	return func(h *Handler) {
+		h.maxHistory = max
+	}
+}
+
 // WithSuccessAttributes sets the prompt prefix color on
 // command success. Default: green foreground.
 func WithSuccessAttributes(attr term.Attributes) Option {

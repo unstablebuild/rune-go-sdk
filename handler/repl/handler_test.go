@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -293,6 +295,250 @@ func TestHistory(t *testing.T) {
 		Key:  term.KeyArrowUp,
 	})
 	assert.Equal(t, "first", h.rl.C.Text())
+}
+
+func TestHistoryPersistsAcrossSharedStorageHandlers(t *testing.T) {
+	store := storagestub.NewInMemoryService()
+	const historyKey = "shared-history"
+
+	h1 := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithStorage(historyKey, store),
+	)
+	h2 := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithStorage(historyKey, store),
+	)
+	t.Cleanup(func() { _ = h1.Close() })
+	t.Cleanup(func() { _ = h2.Close() })
+
+	h1.Resize(30, 5)
+	h2.Resize(30, 5)
+
+	sendKeys(t, h1, "first")
+	h1.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+
+	sendKeys(t, h2, "second")
+	h2.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+
+	var doc historyDoc
+	require.NoError(t, store.Get(context.Background(), historyKey, &doc))
+	assert.Equal(t, []string{"first", "second"}, doc.Items)
+
+	h3 := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithStorage(historyKey, store),
+	)
+	t.Cleanup(func() { _ = h3.Close() })
+	h3.Resize(30, 5)
+
+	h3.Handle(term.Event{Type: term.EventKey, Key: term.KeyArrowUp})
+	assert.Equal(t, "second", h3.rl.C.Text())
+	h3.Handle(term.Event{Type: term.EventKey, Key: term.KeyArrowUp})
+	assert.Equal(t, "first", h3.rl.C.Text())
+}
+
+func TestHistoryRespectsMaxHistory(t *testing.T) {
+	h := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithMaxHistory(2),
+	)
+	h.Resize(30, 5)
+
+	for _, cmd := range []string{"first", "second", "third"} {
+		sendKeys(t, h, cmd)
+		h.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+	}
+
+	assert.Equal(t, []string{"second", "third"}, h.history)
+	h.Handle(term.Event{Type: term.EventKey, Key: term.KeyArrowUp})
+	assert.Equal(t, "third", h.rl.C.Text())
+	h.Handle(term.Event{Type: term.EventKey, Key: term.KeyArrowUp})
+	assert.Equal(t, "second", h.rl.C.Text())
+}
+
+func TestHistoryPersistsAcrossSharedStorageHandlersConcurrentCreate(t *testing.T) {
+	store := storagestub.NewInMemoryService()
+	const historyKey = "shared-history-concurrent-create"
+
+	const total = 16
+	var (
+		start sync.WaitGroup
+		wg    sync.WaitGroup
+	)
+	start.Add(1)
+
+	for i := range total {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			h := New(
+				&testHandler{},
+				nopSchedule, term.NopInterrupter(),
+				WithPrompt("$ "),
+				WithStorage(historyKey, store),
+			)
+			defer func() { _ = h.Close() }()
+			h.Resize(30, 5)
+			start.Wait()
+			cmd := "cmd-" + strconv.Itoa(i)
+			sendKeys(t, h, cmd)
+			h.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+		}(i)
+	}
+	start.Done()
+	wg.Wait()
+
+	var doc historyDoc
+	require.NoError(t, store.Get(context.Background(), historyKey, &doc))
+	require.Len(t, doc.Items, total)
+	assert.Equal(t, int64(total), doc.Version)
+
+	got := append([]string(nil), doc.Items...)
+	want := make([]string, total)
+	for i := range total {
+		want[i] = "cmd-" + strconv.Itoa(i)
+	}
+	assert.ElementsMatch(t, want, got)
+}
+
+func TestHistoryPersistsAcrossSharedStorageHandlersConcurrentCreateWithMaxHistory(t *testing.T) {
+	store := storagestub.NewInMemoryService()
+	const historyKey = "shared-history-concurrent-max"
+	const total = 12
+	const maxHistory = 5
+	var (
+		start sync.WaitGroup
+		wg    sync.WaitGroup
+	)
+	start.Add(1)
+
+	for i := range total {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			h := New(
+				&testHandler{},
+				nopSchedule, term.NopInterrupter(),
+				WithPrompt("$ "),
+				WithMaxHistory(maxHistory),
+				WithStorage(historyKey, store),
+			)
+			defer func() { _ = h.Close() }()
+			h.Resize(30, 5)
+			start.Wait()
+			cmd := "cmd-" + strconv.Itoa(i)
+			sendKeys(t, h, cmd)
+			h.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+		}(i)
+	}
+	start.Done()
+	wg.Wait()
+
+	var doc historyDoc
+	require.NoError(t, store.Get(context.Background(), historyKey, &doc))
+	require.Len(t, doc.Items, maxHistory)
+	assert.Equal(t, int64(total), doc.Version)
+
+	seen := make(map[string]struct{}, len(doc.Items))
+	for _, item := range doc.Items {
+		_, ok := seen[item]
+		assert.False(t, ok, "duplicate item persisted: %s", item)
+		seen[item] = struct{}{}
+		assert.True(t, strings.HasPrefix(item, "cmd-"), "unexpected item: %s", item)
+		n, err := strconv.Atoi(strings.TrimPrefix(item, "cmd-"))
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, n, 0)
+		assert.Less(t, n, total)
+	}
+}
+
+func TestHistoryPersistsAcrossSharedStorageHandlersConcurrentVersionedDoc(t *testing.T) {
+	store := storagestub.NewInMemoryService()
+	const historyKey = "versioned-history-concurrent"
+	require.NoError(t, store.Create(context.Background(), historyKey, &historyDoc{
+		Items:   []string{"seed"},
+		Version: 1,
+	}))
+
+	const total = 10
+	var (
+		start sync.WaitGroup
+		wg    sync.WaitGroup
+	)
+	start.Add(1)
+
+	for i := range total {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			h := New(
+				&testHandler{},
+				nopSchedule, term.NopInterrupter(),
+				WithPrompt("$ "),
+				WithStorage(historyKey, store),
+			)
+			defer func() { _ = h.Close() }()
+			h.Resize(30, 5)
+			start.Wait()
+			cmd := "v-" + strconv.Itoa(i)
+			sendKeys(t, h, cmd)
+			h.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+		}(i)
+	}
+	start.Done()
+	wg.Wait()
+
+	var doc historyDoc
+	require.NoError(t, store.Get(context.Background(), historyKey, &doc))
+	require.Len(t, doc.Items, total+1)
+	assert.Equal(t, int64(total+1), doc.Version)
+	assert.Contains(t, doc.Items, "seed")
+
+	got := make([]string, 0, total)
+	for _, item := range doc.Items {
+		if item != "seed" {
+			got = append(got, item)
+		}
+	}
+	want := make([]string, total)
+	for i := range total {
+		want[i] = "v-" + strconv.Itoa(i)
+	}
+	assert.ElementsMatch(t, want, got)
+}
+
+func TestHistoryLoadRespectsMaxHistory(t *testing.T) {
+	store := storagestub.NewInMemoryService()
+	const historyKey = "load-max-history"
+	require.NoError(t, store.Create(context.Background(), historyKey, &historyDoc{
+		Items:   []string{"one", "two", "three", "four"},
+		Version: 4,
+	}))
+
+	h := New(
+		&testHandler{},
+		nopSchedule, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithMaxHistory(2),
+		WithStorage(historyKey, store),
+	)
+	t.Cleanup(func() { _ = h.Close() })
+	h.Resize(30, 5)
+
+	assert.Equal(t, []string{"three", "four"}, h.history)
+	h.Handle(term.Event{Type: term.EventKey, Key: term.KeyArrowUp})
+	assert.Equal(t, "four", h.rl.C.Text())
+	h.Handle(term.Event{Type: term.EventKey, Key: term.KeyArrowUp})
+	assert.Equal(t, "three", h.rl.C.Text())
 }
 
 func TestTabCompletion(t *testing.T) {

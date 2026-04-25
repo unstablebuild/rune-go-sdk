@@ -23,6 +23,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagestub"
@@ -32,8 +33,13 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/handler/inputbox"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"github.com/unstablebuild/rune-go-sdk/mouse"
+	"github.com/unstablebuild/rune-go-sdk/retry"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
+
+var historyRetryStrategy = retry.SequentialStrategy(30 * time.Millisecond)
+
+const defaultMaxHistory = 2000
 
 // Handler is a read-eval-print loop handler that owns
 // an output container (top) and an inputbox handler
@@ -53,6 +59,7 @@ type Handler struct {
 	storage    storageapi.Service
 	storageKey string
 	history    []string
+	maxHistory int
 
 	tabStyle inputbox.TabStyle
 	attr     term.Attributes
@@ -173,6 +180,9 @@ func New(
 		h.storage = storagestub.NewInMemoryService()
 		h.storageKey = "repl-history"
 	}
+	if h.maxHistory <= 0 {
+		h.maxHistory = defaultMaxHistory
+	}
 	if h.successAttr == (term.Attributes{}) {
 		h.successAttr = defaultSuccessAttr()
 	}
@@ -249,7 +259,7 @@ func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 		return false, true
 	}
 	h.history = append(h.history, text)
-	h.saveHistory()
+	h.saveHistory(text)
 	h.addPromptLine(text)
 	h.output.C.ScrollToBottom()
 	h.dispatchCommand(text)
@@ -328,11 +338,53 @@ func (h *Handler) loadHistory() {
 	if err := h.storage.Get(context.Background(), h.storageKey, &doc); err != nil {
 		return
 	}
-	h.history = doc.Items
+	h.history = h.boundHistory(doc.Items)
 }
 
-func (h *Handler) saveHistory() {
-	_ = h.storage.Set(context.Background(), h.storageKey, &historyDoc{Items: h.history})
+func (h *Handler) saveHistory(text string) {
+	ctx := context.Background()
+	bounded := h.boundHistory(h.history)
+	for {
+		doc := historyDoc{}
+		err := storageapi.ConsistentUpdate(
+			ctx, h.storage, h.storageKey, &doc, historyRetryStrategy,
+			func() ([]storageapi.Update, []storageapi.Precondition) {
+				items := h.boundHistory(append(slices.Clone(doc.Items), text))
+				updates := []storageapi.Update{
+					{FieldPath: []string{"Items"}, Value: items},
+					{FieldPath: []string{"Version"}, Value: effectiveHistoryVersion(doc) + 1},
+				}
+
+				preconds := make([]storageapi.Precondition, 0, 1)
+				if doc.Version > 0 {
+					preconds = append(preconds, storageapi.Precondition{
+						FieldPath: []string{"Version"},
+						Value:     doc.Version,
+					})
+				}
+				return updates, preconds
+			},
+		)
+		if err == nil {
+			h.history = doc.Items
+			return
+		}
+		if errors.Is(err, storageapi.ErrNotFound) {
+			err = h.storage.Create(ctx, h.storageKey, &historyDoc{
+				Items:   bounded,
+				Version: 1,
+			})
+			if err == nil {
+				h.history = bounded
+				return
+			}
+			if errors.Is(err, storageapi.ErrAlreadyExists) {
+				continue
+			}
+			return
+		}
+		return
+	}
 }
 
 func (h *Handler) addLine(msg string) {
@@ -653,5 +705,20 @@ func parseCommand(text string) Command {
 }
 
 type historyDoc struct {
-	Items []string
+	Items   []string
+	Version int64
+}
+
+func (h *Handler) boundHistory(items []string) []string {
+	if h.maxHistory > 0 && len(items) > h.maxHistory {
+		items = items[len(items)-h.maxHistory:]
+	}
+	return slices.Clone(items)
+}
+
+func effectiveHistoryVersion(doc historyDoc) int64 {
+	if doc.Version > 0 {
+		return doc.Version
+	}
+	return 0
 }
