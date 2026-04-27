@@ -21,8 +21,18 @@ package debug;
 // DebugService provides Debug Adapter Protocol operations over gRPC.
 // See: https://microsoft.github.io/debug-adapter-protocol/specification
 service Debugger {
+  // Session lifecycle
+  //
+  // CreateSession mints a new debug session for the requested
+  // langID, spawns the adapter, performs the DAP Initialize
+  // handshake, and streams DAP events for the session back to
+  // the caller. The first message MUST be a SessionOpened
+  // carrying the session_id and adapter capabilities. Subsequent
+  // messages carry DAP events. The stream ends when the session
+  // is terminated, disconnected, or the adapter fails permanently.
+  rpc CreateSession(CreateSessionRequest) returns (stream SessionEvent);
+
   // Session Management
-  rpc Initialize(InitializeRequest) returns (InitializeResponse);
   rpc Launch(LaunchRequest) returns (LaunchResponse);
   rpc Attach(AttachRequest) returns (AttachResponse);
   rpc ConfigurationDone(ConfigurationDoneRequest) returns (ConfigurationDoneResponse);
@@ -245,26 +255,53 @@ message Capabilities {
   bool supports_single_thread_execution_requests = 37;
 }
 
-message InitializeRequest {
-  string client_id = 1;
-  string client_name = 2;
-  string adapter_id = 3;
-  string locale = 4;
-  bool lines_start_at_1 = 5;
-  bool columns_start_at_1 = 6;
-  string path_format = 7;
-  bool supports_variable_type = 8;
-  bool supports_variable_paging = 9;
-  bool supports_run_in_terminal_request = 10;
-  bool supports_memory_references = 11;
-  bool supports_progress_reporting = 12;
-  bool supports_invalidated_event = 13;
-  bool supports_memory_event = 14;
-  bytes initialize_options = 15;
+message CreateSessionRequest {
+  // lang_id selects the debug adapter registered under
+  // debugger.<lang_id> in the workspace rune.star.
+  string lang_id = 1;
+  // Optional client capabilities, forwarded into the DAP
+  // Initialize request the IDE issues to the adapter on behalf
+  // of the caller.
+  ClientCapabilities client = 2;
 }
 
-message InitializeResponse {
-  Capabilities capabilities = 1;
+message ClientCapabilities {
+  string client_id = 1;
+  string client_name = 2;
+  string locale = 3;
+  bool lines_start_at_1 = 4;
+  bool columns_start_at_1 = 5;
+  string path_format = 6;
+  bool supports_variable_type = 7;
+  bool supports_variable_paging = 8;
+  bool supports_run_in_terminal_request = 9;
+  bool supports_memory_references = 10;
+  bool supports_progress_reporting = 11;
+  bool supports_invalidated_event = 12;
+  bool supports_memory_event = 13;
+}
+
+// SessionEvent is multiplexed over the CreateSession stream.
+// The first message is always a SessionOpened; subsequent
+// messages are DAP Event payloads. A SessionClosed closes
+// the stream.
+message SessionEvent {
+  oneof payload {
+    SessionOpened opened = 1;
+    Event dap_event = 2;
+    SessionClosed closed = 3;
+  }
+}
+
+message SessionOpened {
+  string session_id = 1;
+  Capabilities capabilities = 2;
+}
+
+message SessionClosed {
+  // Reason is one of "terminated", "disconnected",
+  // "adapter_failed", "canceled".
+  string reason = 1;
 }
 
 message LaunchRequest {
@@ -274,6 +311,7 @@ message LaunchRequest {
   map<string, string> env = 4;
   bool stop_on_entry = 5;
   bool no_debug = 6;
+  string session_id = 100;
 }
 
 message LaunchResponse {}
@@ -281,34 +319,42 @@ message LaunchResponse {}
 message AttachRequest {
   int32 pid = 1;
   string program = 2;
+  string session_id = 100;
 }
 
 message AttachResponse {}
 
-message ConfigurationDoneRequest {}
+message ConfigurationDoneRequest {
+  string session_id = 100;
+}
 message ConfigurationDoneResponse {}
 
 message DisconnectRequest {
   bool restart = 1;
   bool terminate_debuggee = 2;
   bool suspend_debuggee = 3;
+  string session_id = 100;
 }
 
 message DisconnectResponse {}
 
 message TerminateRequest {
   bool restart = 1;
+  string session_id = 100;
 }
 
 message TerminateResponse {}
 
-message RestartRequest {}
+message RestartRequest {
+  string session_id = 100;
+}
 message RestartResponse {}
 
 message SetBreakpointsRequest {
   Source source = 1;
   repeated SourceBreakpoint breakpoints = 2;
   bool source_modified = 3;
+  string session_id = 100;
 }
 
 message SetBreakpointsResponse {
@@ -317,6 +363,7 @@ message SetBreakpointsResponse {
 
 message SetFunctionBreakpointsRequest {
   repeated FunctionBreakpoint breakpoints = 1;
+  string session_id = 100;
 }
 
 message SetFunctionBreakpointsResponse {
@@ -325,6 +372,7 @@ message SetFunctionBreakpointsResponse {
 
 message SetExceptionBreakpointsRequest {
   repeated string filters = 1;
+  string session_id = 100;
 }
 
 message SetExceptionBreakpointsResponse {
@@ -334,6 +382,7 @@ message SetExceptionBreakpointsResponse {
 message ContinueRequest {
   int32 thread_id = 1;
   bool single_thread = 2;
+  string session_id = 100;
 }
 
 message ContinueResponse {
@@ -344,6 +393,7 @@ message NextRequest {
   int32 thread_id = 1;
   bool single_thread = 2;
   string granularity = 3;
+  string session_id = 100;
 }
 
 message NextResponse {}
@@ -353,6 +403,7 @@ message StepInRequest {
   bool single_thread = 2;
   int32 target_id = 3;
   string granularity = 4;
+  string session_id = 100;
 }
 
 message StepInResponse {}
@@ -361,6 +412,7 @@ message StepOutRequest {
   int32 thread_id = 1;
   bool single_thread = 2;
   string granularity = 3;
+  string session_id = 100;
 }
 
 message StepOutResponse {}
@@ -369,6 +421,7 @@ message StepBackRequest {
   int32 thread_id = 1;
   bool single_thread = 2;
   string granularity = 3;
+  string session_id = 100;
 }
 
 message StepBackResponse {}
@@ -376,17 +429,21 @@ message StepBackResponse {}
 message ReverseContinueRequest {
   int32 thread_id = 1;
   bool single_thread = 2;
+  string session_id = 100;
 }
 
 message ReverseContinueResponse {}
 
 message PauseRequest {
   int32 thread_id = 1;
+  string session_id = 100;
 }
 
 message PauseResponse {}
 
-message ThreadsRequest {}
+message ThreadsRequest {
+  string session_id = 100;
+}
 
 message ThreadsResponse {
   repeated Thread threads = 1;
@@ -396,6 +453,7 @@ message StackTraceRequest {
   int32 thread_id = 1;
   int32 start_frame = 2;
   int32 levels = 3;
+  string session_id = 100;
 }
 
 message StackTraceResponse {
@@ -405,6 +463,7 @@ message StackTraceResponse {
 
 message ScopesRequest {
   int32 frame_id = 1;
+  string session_id = 100;
 }
 
 message ScopesResponse {
@@ -416,6 +475,7 @@ message VariablesRequest {
   string filter = 2;
   int32 start = 3;
   int32 count = 4;
+  string session_id = 100;
 }
 
 message VariablesResponse {
@@ -426,6 +486,7 @@ message SetVariableRequest {
   int32 variables_reference = 1;
   string name = 2;
   string value = 3;
+  string session_id = 100;
 }
 
 message SetVariableResponse {
@@ -439,6 +500,7 @@ message SetVariableResponse {
 message SourceRequest {
   int32 source_reference = 1;
   Source source = 2;
+  string session_id = 100;
 }
 
 message SourceResponse {
@@ -450,6 +512,7 @@ message EvaluateRequest {
   string expression = 1;
   int32 frame_id = 2;
   string context = 3;
+  string session_id = 100;
 }
 
 message EvaluateResponse {
@@ -465,6 +528,7 @@ message SetExpressionRequest {
   string expression = 1;
   string value = 2;
   int32 frame_id = 3;
+  string session_id = 100;
 }
 
 message SetExpressionResponse {
@@ -480,6 +544,7 @@ message CompletionsRequest {
   string text = 2;
   int32 column = 3;
   int32 line = 4;
+  string session_id = 100;
 }
 
 message CompletionsResponse {
@@ -488,6 +553,7 @@ message CompletionsResponse {
 
 message ExceptionInfoRequest {
   int32 thread_id = 1;
+  string session_id = 100;
 }
 
 message ExceptionInfoResponse {
@@ -499,6 +565,7 @@ message ExceptionInfoResponse {
 message ModulesRequest {
   int32 start_module = 1;
   int32 module_count = 2;
+  string session_id = 100;
 }
 
 message ModulesResponse {
@@ -506,7 +573,9 @@ message ModulesResponse {
   int32 total_modules = 2;
 }
 
-message LoadedSourcesRequest {}
+message LoadedSourcesRequest {
+  string session_id = 100;
+}
 
 message LoadedSourcesResponse {
   repeated Source sources = 1;
@@ -516,6 +585,7 @@ message ReadMemoryRequest {
   string memory_reference = 1;
   int64 offset = 2;
   int32 count = 3;
+  string session_id = 100;
 }
 
 message ReadMemoryResponse {
@@ -529,6 +599,7 @@ message WriteMemoryRequest {
   int64 offset = 2;
   bytes data = 3;
   bool allow_partial = 4;
+  string session_id = 100;
 }
 
 message WriteMemoryResponse {
@@ -542,6 +613,7 @@ message DisassembleRequest {
   int32 instruction_offset = 3;
   int32 instruction_count = 4;
   bool resolve_symbols = 5;
+  string session_id = 100;
 }
 
 message DisassembleResponse {
@@ -552,6 +624,7 @@ message GotoTargetsRequest {
   Source source = 1;
   int32 line = 2;
   int32 column = 3;
+  string session_id = 100;
 }
 
 message GotoTargetsResponse {
@@ -561,11 +634,10 @@ message GotoTargetsResponse {
 message GotoRequest {
   int32 thread_id = 1;
   int32 target_id = 2;
+  string session_id = 100;
 }
 
 message GotoResponse {}
-
-message SubscribeEventsRequest {}
 
 message Event {
   string event = 1;

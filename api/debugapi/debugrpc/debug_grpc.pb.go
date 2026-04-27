@@ -33,7 +33,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Debugger_Initialize_FullMethodName              = "/debug.Debugger/Initialize"
+	Debugger_CreateSession_FullMethodName           = "/debug.Debugger/CreateSession"
 	Debugger_Launch_FullMethodName                  = "/debug.Debugger/Launch"
 	Debugger_Attach_FullMethodName                  = "/debug.Debugger/Attach"
 	Debugger_ConfigurationDone_FullMethodName       = "/debug.Debugger/ConfigurationDone"
@@ -76,8 +76,17 @@ const (
 // DebugService provides Debug Adapter Protocol operations over gRPC.
 // See: https://microsoft.github.io/debug-adapter-protocol/specification
 type DebuggerClient interface {
+	// Session lifecycle
+	//
+	// CreateSession mints a new debug session for the requested
+	// langID, spawns the adapter, performs the DAP Initialize
+	// handshake, and streams DAP events for the session back to
+	// the caller. The first message MUST be a SessionOpened
+	// carrying the session_id and adapter capabilities. Subsequent
+	// messages carry DAP events. The stream ends when the session
+	// is terminated, disconnected, or the adapter fails permanently.
+	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SessionEvent], error)
 	// Session Management
-	Initialize(ctx context.Context, in *InitializeRequest, opts ...grpc.CallOption) (*InitializeResponse, error)
 	Launch(ctx context.Context, in *LaunchRequest, opts ...grpc.CallOption) (*LaunchResponse, error)
 	Attach(ctx context.Context, in *AttachRequest, opts ...grpc.CallOption) (*AttachResponse, error)
 	ConfigurationDone(ctx context.Context, in *ConfigurationDoneRequest, opts ...grpc.CallOption) (*ConfigurationDoneResponse, error)
@@ -126,15 +135,24 @@ func NewDebuggerClient(cc grpc.ClientConnInterface) DebuggerClient {
 	return &debuggerClient{cc}
 }
 
-func (c *debuggerClient) Initialize(ctx context.Context, in *InitializeRequest, opts ...grpc.CallOption) (*InitializeResponse, error) {
+func (c *debuggerClient) CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SessionEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InitializeResponse)
-	err := c.cc.Invoke(ctx, Debugger_Initialize_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Debugger_ServiceDesc.Streams[0], Debugger_CreateSession_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[CreateSessionRequest, SessionEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Debugger_CreateSessionClient = grpc.ServerStreamingClient[SessionEvent]
 
 func (c *debuggerClient) Launch(ctx context.Context, in *LaunchRequest, opts ...grpc.CallOption) (*LaunchResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -473,8 +491,17 @@ func (c *debuggerClient) Goto(ctx context.Context, in *GotoRequest, opts ...grpc
 // DebugService provides Debug Adapter Protocol operations over gRPC.
 // See: https://microsoft.github.io/debug-adapter-protocol/specification
 type DebuggerServer interface {
+	// Session lifecycle
+	//
+	// CreateSession mints a new debug session for the requested
+	// langID, spawns the adapter, performs the DAP Initialize
+	// handshake, and streams DAP events for the session back to
+	// the caller. The first message MUST be a SessionOpened
+	// carrying the session_id and adapter capabilities. Subsequent
+	// messages carry DAP events. The stream ends when the session
+	// is terminated, disconnected, or the adapter fails permanently.
+	CreateSession(*CreateSessionRequest, grpc.ServerStreamingServer[SessionEvent]) error
 	// Session Management
-	Initialize(context.Context, *InitializeRequest) (*InitializeResponse, error)
 	Launch(context.Context, *LaunchRequest) (*LaunchResponse, error)
 	Attach(context.Context, *AttachRequest) (*AttachResponse, error)
 	ConfigurationDone(context.Context, *ConfigurationDoneRequest) (*ConfigurationDoneResponse, error)
@@ -523,8 +550,8 @@ type DebuggerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDebuggerServer struct{}
 
-func (UnimplementedDebuggerServer) Initialize(context.Context, *InitializeRequest) (*InitializeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Initialize not implemented")
+func (UnimplementedDebuggerServer) CreateSession(*CreateSessionRequest, grpc.ServerStreamingServer[SessionEvent]) error {
+	return status.Error(codes.Unimplemented, "method CreateSession not implemented")
 }
 func (UnimplementedDebuggerServer) Launch(context.Context, *LaunchRequest) (*LaunchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Launch not implemented")
@@ -646,23 +673,16 @@ func RegisterDebuggerServer(s grpc.ServiceRegistrar, srv DebuggerServer) {
 	s.RegisterService(&Debugger_ServiceDesc, srv)
 }
 
-func _Debugger_Initialize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InitializeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _Debugger_CreateSession_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(CreateSessionRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(DebuggerServer).Initialize(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Debugger_Initialize_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebuggerServer).Initialize(ctx, req.(*InitializeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(DebuggerServer).CreateSession(m, &grpc.GenericServerStream[CreateSessionRequest, SessionEvent]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Debugger_CreateSessionServer = grpc.ServerStreamingServer[SessionEvent]
 
 func _Debugger_Launch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LaunchRequest)
@@ -1266,10 +1286,6 @@ var Debugger_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DebuggerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Initialize",
-			Handler:    _Debugger_Initialize_Handler,
-		},
-		{
 			MethodName: "Launch",
 			Handler:    _Debugger_Launch_Handler,
 		},
@@ -1402,6 +1418,12 @@ var Debugger_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Debugger_Goto_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "CreateSession",
+			Handler:       _Debugger_CreateSession_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "debugrpc/debug.proto",
 }

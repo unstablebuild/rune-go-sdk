@@ -1619,41 +1619,33 @@ func (x *Capabilities) GetSupportsSingleThreadExecutionRequests() bool {
 	return false
 }
 
-type InitializeRequest struct {
-	state                        protoimpl.MessageState `protogen:"open.v1"`
-	ClientId                     string                 `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	ClientName                   string                 `protobuf:"bytes,2,opt,name=client_name,json=clientName,proto3" json:"client_name,omitempty"`
-	AdapterId                    string                 `protobuf:"bytes,3,opt,name=adapter_id,json=adapterId,proto3" json:"adapter_id,omitempty"`
-	Locale                       string                 `protobuf:"bytes,4,opt,name=locale,proto3" json:"locale,omitempty"`
-	LinesStartAt_1               bool                   `protobuf:"varint,5,opt,name=lines_start_at_1,json=linesStartAt1,proto3" json:"lines_start_at_1,omitempty"`
-	ColumnsStartAt_1             bool                   `protobuf:"varint,6,opt,name=columns_start_at_1,json=columnsStartAt1,proto3" json:"columns_start_at_1,omitempty"`
-	PathFormat                   string                 `protobuf:"bytes,7,opt,name=path_format,json=pathFormat,proto3" json:"path_format,omitempty"`
-	SupportsVariableType         bool                   `protobuf:"varint,8,opt,name=supports_variable_type,json=supportsVariableType,proto3" json:"supports_variable_type,omitempty"`
-	SupportsVariablePaging       bool                   `protobuf:"varint,9,opt,name=supports_variable_paging,json=supportsVariablePaging,proto3" json:"supports_variable_paging,omitempty"`
-	SupportsRunInTerminalRequest bool                   `protobuf:"varint,10,opt,name=supports_run_in_terminal_request,json=supportsRunInTerminalRequest,proto3" json:"supports_run_in_terminal_request,omitempty"`
-	SupportsMemoryReferences     bool                   `protobuf:"varint,11,opt,name=supports_memory_references,json=supportsMemoryReferences,proto3" json:"supports_memory_references,omitempty"`
-	SupportsProgressReporting    bool                   `protobuf:"varint,12,opt,name=supports_progress_reporting,json=supportsProgressReporting,proto3" json:"supports_progress_reporting,omitempty"`
-	SupportsInvalidatedEvent     bool                   `protobuf:"varint,13,opt,name=supports_invalidated_event,json=supportsInvalidatedEvent,proto3" json:"supports_invalidated_event,omitempty"`
-	SupportsMemoryEvent          bool                   `protobuf:"varint,14,opt,name=supports_memory_event,json=supportsMemoryEvent,proto3" json:"supports_memory_event,omitempty"`
-	InitializeOptions            []byte                 `protobuf:"bytes,15,opt,name=initialize_options,json=initializeOptions,proto3" json:"initialize_options,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+type CreateSessionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// lang_id selects the debug adapter registered under
+	// debugger.<lang_id> in the workspace rune.star.
+	LangId string `protobuf:"bytes,1,opt,name=lang_id,json=langId,proto3" json:"lang_id,omitempty"`
+	// Optional client capabilities, forwarded into the DAP
+	// Initialize request the IDE issues to the adapter on behalf
+	// of the caller.
+	Client        *ClientCapabilities `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *InitializeRequest) Reset() {
-	*x = InitializeRequest{}
+func (x *CreateSessionRequest) Reset() {
+	*x = CreateSessionRequest{}
 	mi := &file_debugrpc_debug_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *InitializeRequest) String() string {
+func (x *CreateSessionRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InitializeRequest) ProtoMessage() {}
+func (*CreateSessionRequest) ProtoMessage() {}
 
-func (x *InitializeRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateSessionRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_debugrpc_debug_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1665,138 +1657,196 @@ func (x *InitializeRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InitializeRequest.ProtoReflect.Descriptor instead.
-func (*InitializeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateSessionRequest.ProtoReflect.Descriptor instead.
+func (*CreateSessionRequest) Descriptor() ([]byte, []int) {
 	return file_debugrpc_debug_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *InitializeRequest) GetClientId() string {
+func (x *CreateSessionRequest) GetLangId() string {
+	if x != nil {
+		return x.LangId
+	}
+	return ""
+}
+
+func (x *CreateSessionRequest) GetClient() *ClientCapabilities {
+	if x != nil {
+		return x.Client
+	}
+	return nil
+}
+
+type ClientCapabilities struct {
+	state                        protoimpl.MessageState `protogen:"open.v1"`
+	ClientId                     string                 `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	ClientName                   string                 `protobuf:"bytes,2,opt,name=client_name,json=clientName,proto3" json:"client_name,omitempty"`
+	Locale                       string                 `protobuf:"bytes,3,opt,name=locale,proto3" json:"locale,omitempty"`
+	LinesStartAt_1               bool                   `protobuf:"varint,4,opt,name=lines_start_at_1,json=linesStartAt1,proto3" json:"lines_start_at_1,omitempty"`
+	ColumnsStartAt_1             bool                   `protobuf:"varint,5,opt,name=columns_start_at_1,json=columnsStartAt1,proto3" json:"columns_start_at_1,omitempty"`
+	PathFormat                   string                 `protobuf:"bytes,6,opt,name=path_format,json=pathFormat,proto3" json:"path_format,omitempty"`
+	SupportsVariableType         bool                   `protobuf:"varint,7,opt,name=supports_variable_type,json=supportsVariableType,proto3" json:"supports_variable_type,omitempty"`
+	SupportsVariablePaging       bool                   `protobuf:"varint,8,opt,name=supports_variable_paging,json=supportsVariablePaging,proto3" json:"supports_variable_paging,omitempty"`
+	SupportsRunInTerminalRequest bool                   `protobuf:"varint,9,opt,name=supports_run_in_terminal_request,json=supportsRunInTerminalRequest,proto3" json:"supports_run_in_terminal_request,omitempty"`
+	SupportsMemoryReferences     bool                   `protobuf:"varint,10,opt,name=supports_memory_references,json=supportsMemoryReferences,proto3" json:"supports_memory_references,omitempty"`
+	SupportsProgressReporting    bool                   `protobuf:"varint,11,opt,name=supports_progress_reporting,json=supportsProgressReporting,proto3" json:"supports_progress_reporting,omitempty"`
+	SupportsInvalidatedEvent     bool                   `protobuf:"varint,12,opt,name=supports_invalidated_event,json=supportsInvalidatedEvent,proto3" json:"supports_invalidated_event,omitempty"`
+	SupportsMemoryEvent          bool                   `protobuf:"varint,13,opt,name=supports_memory_event,json=supportsMemoryEvent,proto3" json:"supports_memory_event,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
+}
+
+func (x *ClientCapabilities) Reset() {
+	*x = ClientCapabilities{}
+	mi := &file_debugrpc_debug_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientCapabilities) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientCapabilities) ProtoMessage() {}
+
+func (x *ClientCapabilities) ProtoReflect() protoreflect.Message {
+	mi := &file_debugrpc_debug_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientCapabilities.ProtoReflect.Descriptor instead.
+func (*ClientCapabilities) Descriptor() ([]byte, []int) {
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ClientCapabilities) GetClientId() string {
 	if x != nil {
 		return x.ClientId
 	}
 	return ""
 }
 
-func (x *InitializeRequest) GetClientName() string {
+func (x *ClientCapabilities) GetClientName() string {
 	if x != nil {
 		return x.ClientName
 	}
 	return ""
 }
 
-func (x *InitializeRequest) GetAdapterId() string {
-	if x != nil {
-		return x.AdapterId
-	}
-	return ""
-}
-
-func (x *InitializeRequest) GetLocale() string {
+func (x *ClientCapabilities) GetLocale() string {
 	if x != nil {
 		return x.Locale
 	}
 	return ""
 }
 
-func (x *InitializeRequest) GetLinesStartAt_1() bool {
+func (x *ClientCapabilities) GetLinesStartAt_1() bool {
 	if x != nil {
 		return x.LinesStartAt_1
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetColumnsStartAt_1() bool {
+func (x *ClientCapabilities) GetColumnsStartAt_1() bool {
 	if x != nil {
 		return x.ColumnsStartAt_1
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetPathFormat() string {
+func (x *ClientCapabilities) GetPathFormat() string {
 	if x != nil {
 		return x.PathFormat
 	}
 	return ""
 }
 
-func (x *InitializeRequest) GetSupportsVariableType() bool {
+func (x *ClientCapabilities) GetSupportsVariableType() bool {
 	if x != nil {
 		return x.SupportsVariableType
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetSupportsVariablePaging() bool {
+func (x *ClientCapabilities) GetSupportsVariablePaging() bool {
 	if x != nil {
 		return x.SupportsVariablePaging
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetSupportsRunInTerminalRequest() bool {
+func (x *ClientCapabilities) GetSupportsRunInTerminalRequest() bool {
 	if x != nil {
 		return x.SupportsRunInTerminalRequest
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetSupportsMemoryReferences() bool {
+func (x *ClientCapabilities) GetSupportsMemoryReferences() bool {
 	if x != nil {
 		return x.SupportsMemoryReferences
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetSupportsProgressReporting() bool {
+func (x *ClientCapabilities) GetSupportsProgressReporting() bool {
 	if x != nil {
 		return x.SupportsProgressReporting
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetSupportsInvalidatedEvent() bool {
+func (x *ClientCapabilities) GetSupportsInvalidatedEvent() bool {
 	if x != nil {
 		return x.SupportsInvalidatedEvent
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetSupportsMemoryEvent() bool {
+func (x *ClientCapabilities) GetSupportsMemoryEvent() bool {
 	if x != nil {
 		return x.SupportsMemoryEvent
 	}
 	return false
 }
 
-func (x *InitializeRequest) GetInitializeOptions() []byte {
-	if x != nil {
-		return x.InitializeOptions
-	}
-	return nil
-}
-
-type InitializeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Capabilities  *Capabilities          `protobuf:"bytes,1,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+// SessionEvent is multiplexed over the CreateSession stream.
+// The first message is always a SessionOpened; subsequent
+// messages are DAP Event payloads. A SessionClosed closes
+// the stream.
+type SessionEvent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Payload:
+	//
+	//	*SessionEvent_Opened
+	//	*SessionEvent_DapEvent
+	//	*SessionEvent_Closed
+	Payload       isSessionEvent_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *InitializeResponse) Reset() {
-	*x = InitializeResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[15]
+func (x *SessionEvent) Reset() {
+	*x = SessionEvent{}
+	mi := &file_debugrpc_debug_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *InitializeResponse) String() string {
+func (x *SessionEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InitializeResponse) ProtoMessage() {}
+func (*SessionEvent) ProtoMessage() {}
 
-func (x *InitializeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[15]
+func (x *SessionEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_debugrpc_debug_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1807,16 +1857,163 @@ func (x *InitializeResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InitializeResponse.ProtoReflect.Descriptor instead.
-func (*InitializeResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{15}
+// Deprecated: Use SessionEvent.ProtoReflect.Descriptor instead.
+func (*SessionEvent) Descriptor() ([]byte, []int) {
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *InitializeResponse) GetCapabilities() *Capabilities {
+func (x *SessionEvent) GetPayload() isSessionEvent_Payload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetOpened() *SessionOpened {
+	if x != nil {
+		if x, ok := x.Payload.(*SessionEvent_Opened); ok {
+			return x.Opened
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetDapEvent() *Event {
+	if x != nil {
+		if x, ok := x.Payload.(*SessionEvent_DapEvent); ok {
+			return x.DapEvent
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetClosed() *SessionClosed {
+	if x != nil {
+		if x, ok := x.Payload.(*SessionEvent_Closed); ok {
+			return x.Closed
+		}
+	}
+	return nil
+}
+
+type isSessionEvent_Payload interface {
+	isSessionEvent_Payload()
+}
+
+type SessionEvent_Opened struct {
+	Opened *SessionOpened `protobuf:"bytes,1,opt,name=opened,proto3,oneof"`
+}
+
+type SessionEvent_DapEvent struct {
+	DapEvent *Event `protobuf:"bytes,2,opt,name=dap_event,json=dapEvent,proto3,oneof"`
+}
+
+type SessionEvent_Closed struct {
+	Closed *SessionClosed `protobuf:"bytes,3,opt,name=closed,proto3,oneof"`
+}
+
+func (*SessionEvent_Opened) isSessionEvent_Payload() {}
+
+func (*SessionEvent_DapEvent) isSessionEvent_Payload() {}
+
+func (*SessionEvent_Closed) isSessionEvent_Payload() {}
+
+type SessionOpened struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Capabilities  *Capabilities          `protobuf:"bytes,2,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionOpened) Reset() {
+	*x = SessionOpened{}
+	mi := &file_debugrpc_debug_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionOpened) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionOpened) ProtoMessage() {}
+
+func (x *SessionOpened) ProtoReflect() protoreflect.Message {
+	mi := &file_debugrpc_debug_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionOpened.ProtoReflect.Descriptor instead.
+func (*SessionOpened) Descriptor() ([]byte, []int) {
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SessionOpened) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *SessionOpened) GetCapabilities() *Capabilities {
 	if x != nil {
 		return x.Capabilities
 	}
 	return nil
+}
+
+type SessionClosed struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Reason is one of "terminated", "disconnected",
+	// "adapter_failed", "canceled".
+	Reason        string `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionClosed) Reset() {
+	*x = SessionClosed{}
+	mi := &file_debugrpc_debug_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionClosed) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionClosed) ProtoMessage() {}
+
+func (x *SessionClosed) ProtoReflect() protoreflect.Message {
+	mi := &file_debugrpc_debug_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionClosed.ProtoReflect.Descriptor instead.
+func (*SessionClosed) Descriptor() ([]byte, []int) {
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SessionClosed) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
 }
 
 type LaunchRequest struct {
@@ -1827,13 +2024,14 @@ type LaunchRequest struct {
 	Env           map[string]string      `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	StopOnEntry   bool                   `protobuf:"varint,5,opt,name=stop_on_entry,json=stopOnEntry,proto3" json:"stop_on_entry,omitempty"`
 	NoDebug       bool                   `protobuf:"varint,6,opt,name=no_debug,json=noDebug,proto3" json:"no_debug,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LaunchRequest) Reset() {
 	*x = LaunchRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[16]
+	mi := &file_debugrpc_debug_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1845,7 +2043,7 @@ func (x *LaunchRequest) String() string {
 func (*LaunchRequest) ProtoMessage() {}
 
 func (x *LaunchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[16]
+	mi := &file_debugrpc_debug_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1858,7 +2056,7 @@ func (x *LaunchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LaunchRequest.ProtoReflect.Descriptor instead.
 func (*LaunchRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{16}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LaunchRequest) GetProgram() string {
@@ -1903,6 +2101,13 @@ func (x *LaunchRequest) GetNoDebug() bool {
 	return false
 }
 
+func (x *LaunchRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type LaunchResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1911,7 +2116,7 @@ type LaunchResponse struct {
 
 func (x *LaunchResponse) Reset() {
 	*x = LaunchResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[17]
+	mi := &file_debugrpc_debug_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1923,7 +2128,7 @@ func (x *LaunchResponse) String() string {
 func (*LaunchResponse) ProtoMessage() {}
 
 func (x *LaunchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[17]
+	mi := &file_debugrpc_debug_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1936,20 +2141,21 @@ func (x *LaunchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LaunchResponse.ProtoReflect.Descriptor instead.
 func (*LaunchResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{17}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{20}
 }
 
 type AttachRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Pid           int32                  `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"`
 	Program       string                 `protobuf:"bytes,2,opt,name=program,proto3" json:"program,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AttachRequest) Reset() {
 	*x = AttachRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[18]
+	mi := &file_debugrpc_debug_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1961,7 +2167,7 @@ func (x *AttachRequest) String() string {
 func (*AttachRequest) ProtoMessage() {}
 
 func (x *AttachRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[18]
+	mi := &file_debugrpc_debug_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1974,7 +2180,7 @@ func (x *AttachRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttachRequest.ProtoReflect.Descriptor instead.
 func (*AttachRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{18}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *AttachRequest) GetPid() int32 {
@@ -1991,6 +2197,13 @@ func (x *AttachRequest) GetProgram() string {
 	return ""
 }
 
+func (x *AttachRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type AttachResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1999,7 +2212,7 @@ type AttachResponse struct {
 
 func (x *AttachResponse) Reset() {
 	*x = AttachResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[19]
+	mi := &file_debugrpc_debug_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2011,7 +2224,7 @@ func (x *AttachResponse) String() string {
 func (*AttachResponse) ProtoMessage() {}
 
 func (x *AttachResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[19]
+	mi := &file_debugrpc_debug_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2024,18 +2237,19 @@ func (x *AttachResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttachResponse.ProtoReflect.Descriptor instead.
 func (*AttachResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{19}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{22}
 }
 
 type ConfigurationDoneRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConfigurationDoneRequest) Reset() {
 	*x = ConfigurationDoneRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[20]
+	mi := &file_debugrpc_debug_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2047,7 +2261,7 @@ func (x *ConfigurationDoneRequest) String() string {
 func (*ConfigurationDoneRequest) ProtoMessage() {}
 
 func (x *ConfigurationDoneRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[20]
+	mi := &file_debugrpc_debug_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2060,7 +2274,14 @@ func (x *ConfigurationDoneRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigurationDoneRequest.ProtoReflect.Descriptor instead.
 func (*ConfigurationDoneRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{20}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ConfigurationDoneRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type ConfigurationDoneResponse struct {
@@ -2071,7 +2292,7 @@ type ConfigurationDoneResponse struct {
 
 func (x *ConfigurationDoneResponse) Reset() {
 	*x = ConfigurationDoneResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[21]
+	mi := &file_debugrpc_debug_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2083,7 +2304,7 @@ func (x *ConfigurationDoneResponse) String() string {
 func (*ConfigurationDoneResponse) ProtoMessage() {}
 
 func (x *ConfigurationDoneResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[21]
+	mi := &file_debugrpc_debug_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2096,7 +2317,7 @@ func (x *ConfigurationDoneResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigurationDoneResponse.ProtoReflect.Descriptor instead.
 func (*ConfigurationDoneResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{21}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{24}
 }
 
 type DisconnectRequest struct {
@@ -2104,13 +2325,14 @@ type DisconnectRequest struct {
 	Restart           bool                   `protobuf:"varint,1,opt,name=restart,proto3" json:"restart,omitempty"`
 	TerminateDebuggee bool                   `protobuf:"varint,2,opt,name=terminate_debuggee,json=terminateDebuggee,proto3" json:"terminate_debuggee,omitempty"`
 	SuspendDebuggee   bool                   `protobuf:"varint,3,opt,name=suspend_debuggee,json=suspendDebuggee,proto3" json:"suspend_debuggee,omitempty"`
+	SessionId         string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *DisconnectRequest) Reset() {
 	*x = DisconnectRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[22]
+	mi := &file_debugrpc_debug_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2122,7 +2344,7 @@ func (x *DisconnectRequest) String() string {
 func (*DisconnectRequest) ProtoMessage() {}
 
 func (x *DisconnectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[22]
+	mi := &file_debugrpc_debug_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2135,7 +2357,7 @@ func (x *DisconnectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectRequest.ProtoReflect.Descriptor instead.
 func (*DisconnectRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{22}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *DisconnectRequest) GetRestart() bool {
@@ -2159,6 +2381,13 @@ func (x *DisconnectRequest) GetSuspendDebuggee() bool {
 	return false
 }
 
+func (x *DisconnectRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type DisconnectResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2167,7 +2396,7 @@ type DisconnectResponse struct {
 
 func (x *DisconnectResponse) Reset() {
 	*x = DisconnectResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[23]
+	mi := &file_debugrpc_debug_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2179,7 +2408,7 @@ func (x *DisconnectResponse) String() string {
 func (*DisconnectResponse) ProtoMessage() {}
 
 func (x *DisconnectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[23]
+	mi := &file_debugrpc_debug_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2192,19 +2421,20 @@ func (x *DisconnectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectResponse.ProtoReflect.Descriptor instead.
 func (*DisconnectResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{23}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{26}
 }
 
 type TerminateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Restart       bool                   `protobuf:"varint,1,opt,name=restart,proto3" json:"restart,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TerminateRequest) Reset() {
 	*x = TerminateRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[24]
+	mi := &file_debugrpc_debug_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2216,7 +2446,7 @@ func (x *TerminateRequest) String() string {
 func (*TerminateRequest) ProtoMessage() {}
 
 func (x *TerminateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[24]
+	mi := &file_debugrpc_debug_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2229,7 +2459,7 @@ func (x *TerminateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateRequest.ProtoReflect.Descriptor instead.
 func (*TerminateRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{24}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *TerminateRequest) GetRestart() bool {
@@ -2237,6 +2467,13 @@ func (x *TerminateRequest) GetRestart() bool {
 		return x.Restart
 	}
 	return false
+}
+
+func (x *TerminateRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type TerminateResponse struct {
@@ -2247,7 +2484,7 @@ type TerminateResponse struct {
 
 func (x *TerminateResponse) Reset() {
 	*x = TerminateResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[25]
+	mi := &file_debugrpc_debug_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2259,7 +2496,7 @@ func (x *TerminateResponse) String() string {
 func (*TerminateResponse) ProtoMessage() {}
 
 func (x *TerminateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[25]
+	mi := &file_debugrpc_debug_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2272,18 +2509,19 @@ func (x *TerminateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateResponse.ProtoReflect.Descriptor instead.
 func (*TerminateResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{25}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{28}
 }
 
 type RestartRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RestartRequest) Reset() {
 	*x = RestartRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[26]
+	mi := &file_debugrpc_debug_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2295,7 +2533,7 @@ func (x *RestartRequest) String() string {
 func (*RestartRequest) ProtoMessage() {}
 
 func (x *RestartRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[26]
+	mi := &file_debugrpc_debug_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2308,7 +2546,14 @@ func (x *RestartRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartRequest.ProtoReflect.Descriptor instead.
 func (*RestartRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{26}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *RestartRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type RestartResponse struct {
@@ -2319,7 +2564,7 @@ type RestartResponse struct {
 
 func (x *RestartResponse) Reset() {
 	*x = RestartResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[27]
+	mi := &file_debugrpc_debug_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2331,7 +2576,7 @@ func (x *RestartResponse) String() string {
 func (*RestartResponse) ProtoMessage() {}
 
 func (x *RestartResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[27]
+	mi := &file_debugrpc_debug_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2344,7 +2589,7 @@ func (x *RestartResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartResponse.ProtoReflect.Descriptor instead.
 func (*RestartResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{27}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{30}
 }
 
 type SetBreakpointsRequest struct {
@@ -2352,13 +2597,14 @@ type SetBreakpointsRequest struct {
 	Source         *Source                `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	Breakpoints    []*SourceBreakpoint    `protobuf:"bytes,2,rep,name=breakpoints,proto3" json:"breakpoints,omitempty"`
 	SourceModified bool                   `protobuf:"varint,3,opt,name=source_modified,json=sourceModified,proto3" json:"source_modified,omitempty"`
+	SessionId      string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SetBreakpointsRequest) Reset() {
 	*x = SetBreakpointsRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[28]
+	mi := &file_debugrpc_debug_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2370,7 +2616,7 @@ func (x *SetBreakpointsRequest) String() string {
 func (*SetBreakpointsRequest) ProtoMessage() {}
 
 func (x *SetBreakpointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[28]
+	mi := &file_debugrpc_debug_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2383,7 +2629,7 @@ func (x *SetBreakpointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBreakpointsRequest.ProtoReflect.Descriptor instead.
 func (*SetBreakpointsRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{28}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SetBreakpointsRequest) GetSource() *Source {
@@ -2407,6 +2653,13 @@ func (x *SetBreakpointsRequest) GetSourceModified() bool {
 	return false
 }
 
+func (x *SetBreakpointsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type SetBreakpointsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Breakpoints   []*Breakpoint          `protobuf:"bytes,1,rep,name=breakpoints,proto3" json:"breakpoints,omitempty"`
@@ -2416,7 +2669,7 @@ type SetBreakpointsResponse struct {
 
 func (x *SetBreakpointsResponse) Reset() {
 	*x = SetBreakpointsResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[29]
+	mi := &file_debugrpc_debug_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2428,7 +2681,7 @@ func (x *SetBreakpointsResponse) String() string {
 func (*SetBreakpointsResponse) ProtoMessage() {}
 
 func (x *SetBreakpointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[29]
+	mi := &file_debugrpc_debug_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2441,7 +2694,7 @@ func (x *SetBreakpointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBreakpointsResponse.ProtoReflect.Descriptor instead.
 func (*SetBreakpointsResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{29}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *SetBreakpointsResponse) GetBreakpoints() []*Breakpoint {
@@ -2454,13 +2707,14 @@ func (x *SetBreakpointsResponse) GetBreakpoints() []*Breakpoint {
 type SetFunctionBreakpointsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Breakpoints   []*FunctionBreakpoint  `protobuf:"bytes,1,rep,name=breakpoints,proto3" json:"breakpoints,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SetFunctionBreakpointsRequest) Reset() {
 	*x = SetFunctionBreakpointsRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[30]
+	mi := &file_debugrpc_debug_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2472,7 +2726,7 @@ func (x *SetFunctionBreakpointsRequest) String() string {
 func (*SetFunctionBreakpointsRequest) ProtoMessage() {}
 
 func (x *SetFunctionBreakpointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[30]
+	mi := &file_debugrpc_debug_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2485,7 +2739,7 @@ func (x *SetFunctionBreakpointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFunctionBreakpointsRequest.ProtoReflect.Descriptor instead.
 func (*SetFunctionBreakpointsRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{30}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *SetFunctionBreakpointsRequest) GetBreakpoints() []*FunctionBreakpoint {
@@ -2493,6 +2747,13 @@ func (x *SetFunctionBreakpointsRequest) GetBreakpoints() []*FunctionBreakpoint {
 		return x.Breakpoints
 	}
 	return nil
+}
+
+func (x *SetFunctionBreakpointsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type SetFunctionBreakpointsResponse struct {
@@ -2504,7 +2765,7 @@ type SetFunctionBreakpointsResponse struct {
 
 func (x *SetFunctionBreakpointsResponse) Reset() {
 	*x = SetFunctionBreakpointsResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[31]
+	mi := &file_debugrpc_debug_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2516,7 +2777,7 @@ func (x *SetFunctionBreakpointsResponse) String() string {
 func (*SetFunctionBreakpointsResponse) ProtoMessage() {}
 
 func (x *SetFunctionBreakpointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[31]
+	mi := &file_debugrpc_debug_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2529,7 +2790,7 @@ func (x *SetFunctionBreakpointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFunctionBreakpointsResponse.ProtoReflect.Descriptor instead.
 func (*SetFunctionBreakpointsResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{31}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SetFunctionBreakpointsResponse) GetBreakpoints() []*Breakpoint {
@@ -2542,13 +2803,14 @@ func (x *SetFunctionBreakpointsResponse) GetBreakpoints() []*Breakpoint {
 type SetExceptionBreakpointsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Filters       []string               `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SetExceptionBreakpointsRequest) Reset() {
 	*x = SetExceptionBreakpointsRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[32]
+	mi := &file_debugrpc_debug_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2560,7 +2822,7 @@ func (x *SetExceptionBreakpointsRequest) String() string {
 func (*SetExceptionBreakpointsRequest) ProtoMessage() {}
 
 func (x *SetExceptionBreakpointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[32]
+	mi := &file_debugrpc_debug_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2573,7 +2835,7 @@ func (x *SetExceptionBreakpointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetExceptionBreakpointsRequest.ProtoReflect.Descriptor instead.
 func (*SetExceptionBreakpointsRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{32}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *SetExceptionBreakpointsRequest) GetFilters() []string {
@@ -2581,6 +2843,13 @@ func (x *SetExceptionBreakpointsRequest) GetFilters() []string {
 		return x.Filters
 	}
 	return nil
+}
+
+func (x *SetExceptionBreakpointsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type SetExceptionBreakpointsResponse struct {
@@ -2592,7 +2861,7 @@ type SetExceptionBreakpointsResponse struct {
 
 func (x *SetExceptionBreakpointsResponse) Reset() {
 	*x = SetExceptionBreakpointsResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[33]
+	mi := &file_debugrpc_debug_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2604,7 +2873,7 @@ func (x *SetExceptionBreakpointsResponse) String() string {
 func (*SetExceptionBreakpointsResponse) ProtoMessage() {}
 
 func (x *SetExceptionBreakpointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[33]
+	mi := &file_debugrpc_debug_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2617,7 +2886,7 @@ func (x *SetExceptionBreakpointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetExceptionBreakpointsResponse.ProtoReflect.Descriptor instead.
 func (*SetExceptionBreakpointsResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{33}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *SetExceptionBreakpointsResponse) GetBreakpoints() []*Breakpoint {
@@ -2631,13 +2900,14 @@ type ContinueRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
 	SingleThread  bool                   `protobuf:"varint,2,opt,name=single_thread,json=singleThread,proto3" json:"single_thread,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ContinueRequest) Reset() {
 	*x = ContinueRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[34]
+	mi := &file_debugrpc_debug_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2649,7 +2919,7 @@ func (x *ContinueRequest) String() string {
 func (*ContinueRequest) ProtoMessage() {}
 
 func (x *ContinueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[34]
+	mi := &file_debugrpc_debug_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2662,7 +2932,7 @@ func (x *ContinueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContinueRequest.ProtoReflect.Descriptor instead.
 func (*ContinueRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{34}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ContinueRequest) GetThreadId() int32 {
@@ -2679,6 +2949,13 @@ func (x *ContinueRequest) GetSingleThread() bool {
 	return false
 }
 
+func (x *ContinueRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type ContinueResponse struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	AllThreadsContinued bool                   `protobuf:"varint,1,opt,name=all_threads_continued,json=allThreadsContinued,proto3" json:"all_threads_continued,omitempty"`
@@ -2688,7 +2965,7 @@ type ContinueResponse struct {
 
 func (x *ContinueResponse) Reset() {
 	*x = ContinueResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[35]
+	mi := &file_debugrpc_debug_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2700,7 +2977,7 @@ func (x *ContinueResponse) String() string {
 func (*ContinueResponse) ProtoMessage() {}
 
 func (x *ContinueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[35]
+	mi := &file_debugrpc_debug_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2713,7 +2990,7 @@ func (x *ContinueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContinueResponse.ProtoReflect.Descriptor instead.
 func (*ContinueResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{35}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ContinueResponse) GetAllThreadsContinued() bool {
@@ -2728,13 +3005,14 @@ type NextRequest struct {
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
 	SingleThread  bool                   `protobuf:"varint,2,opt,name=single_thread,json=singleThread,proto3" json:"single_thread,omitempty"`
 	Granularity   string                 `protobuf:"bytes,3,opt,name=granularity,proto3" json:"granularity,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NextRequest) Reset() {
 	*x = NextRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[36]
+	mi := &file_debugrpc_debug_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2746,7 +3024,7 @@ func (x *NextRequest) String() string {
 func (*NextRequest) ProtoMessage() {}
 
 func (x *NextRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[36]
+	mi := &file_debugrpc_debug_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2759,7 +3037,7 @@ func (x *NextRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NextRequest.ProtoReflect.Descriptor instead.
 func (*NextRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{36}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *NextRequest) GetThreadId() int32 {
@@ -2783,6 +3061,13 @@ func (x *NextRequest) GetGranularity() string {
 	return ""
 }
 
+func (x *NextRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type NextResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2791,7 +3076,7 @@ type NextResponse struct {
 
 func (x *NextResponse) Reset() {
 	*x = NextResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[37]
+	mi := &file_debugrpc_debug_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2803,7 +3088,7 @@ func (x *NextResponse) String() string {
 func (*NextResponse) ProtoMessage() {}
 
 func (x *NextResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[37]
+	mi := &file_debugrpc_debug_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2816,7 +3101,7 @@ func (x *NextResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NextResponse.ProtoReflect.Descriptor instead.
 func (*NextResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{37}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{40}
 }
 
 type StepInRequest struct {
@@ -2825,13 +3110,14 @@ type StepInRequest struct {
 	SingleThread  bool                   `protobuf:"varint,2,opt,name=single_thread,json=singleThread,proto3" json:"single_thread,omitempty"`
 	TargetId      int32                  `protobuf:"varint,3,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	Granularity   string                 `protobuf:"bytes,4,opt,name=granularity,proto3" json:"granularity,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StepInRequest) Reset() {
 	*x = StepInRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[38]
+	mi := &file_debugrpc_debug_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2843,7 +3129,7 @@ func (x *StepInRequest) String() string {
 func (*StepInRequest) ProtoMessage() {}
 
 func (x *StepInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[38]
+	mi := &file_debugrpc_debug_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2856,7 +3142,7 @@ func (x *StepInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepInRequest.ProtoReflect.Descriptor instead.
 func (*StepInRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{38}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *StepInRequest) GetThreadId() int32 {
@@ -2887,6 +3173,13 @@ func (x *StepInRequest) GetGranularity() string {
 	return ""
 }
 
+func (x *StepInRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type StepInResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2895,7 +3188,7 @@ type StepInResponse struct {
 
 func (x *StepInResponse) Reset() {
 	*x = StepInResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[39]
+	mi := &file_debugrpc_debug_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2907,7 +3200,7 @@ func (x *StepInResponse) String() string {
 func (*StepInResponse) ProtoMessage() {}
 
 func (x *StepInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[39]
+	mi := &file_debugrpc_debug_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2920,7 +3213,7 @@ func (x *StepInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepInResponse.ProtoReflect.Descriptor instead.
 func (*StepInResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{39}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{42}
 }
 
 type StepOutRequest struct {
@@ -2928,13 +3221,14 @@ type StepOutRequest struct {
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
 	SingleThread  bool                   `protobuf:"varint,2,opt,name=single_thread,json=singleThread,proto3" json:"single_thread,omitempty"`
 	Granularity   string                 `protobuf:"bytes,3,opt,name=granularity,proto3" json:"granularity,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StepOutRequest) Reset() {
 	*x = StepOutRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[40]
+	mi := &file_debugrpc_debug_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2946,7 +3240,7 @@ func (x *StepOutRequest) String() string {
 func (*StepOutRequest) ProtoMessage() {}
 
 func (x *StepOutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[40]
+	mi := &file_debugrpc_debug_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2959,7 +3253,7 @@ func (x *StepOutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepOutRequest.ProtoReflect.Descriptor instead.
 func (*StepOutRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{40}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *StepOutRequest) GetThreadId() int32 {
@@ -2983,6 +3277,13 @@ func (x *StepOutRequest) GetGranularity() string {
 	return ""
 }
 
+func (x *StepOutRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type StepOutResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2991,7 +3292,7 @@ type StepOutResponse struct {
 
 func (x *StepOutResponse) Reset() {
 	*x = StepOutResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[41]
+	mi := &file_debugrpc_debug_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3003,7 +3304,7 @@ func (x *StepOutResponse) String() string {
 func (*StepOutResponse) ProtoMessage() {}
 
 func (x *StepOutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[41]
+	mi := &file_debugrpc_debug_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3016,7 +3317,7 @@ func (x *StepOutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepOutResponse.ProtoReflect.Descriptor instead.
 func (*StepOutResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{41}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{44}
 }
 
 type StepBackRequest struct {
@@ -3024,13 +3325,14 @@ type StepBackRequest struct {
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
 	SingleThread  bool                   `protobuf:"varint,2,opt,name=single_thread,json=singleThread,proto3" json:"single_thread,omitempty"`
 	Granularity   string                 `protobuf:"bytes,3,opt,name=granularity,proto3" json:"granularity,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StepBackRequest) Reset() {
 	*x = StepBackRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[42]
+	mi := &file_debugrpc_debug_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3042,7 +3344,7 @@ func (x *StepBackRequest) String() string {
 func (*StepBackRequest) ProtoMessage() {}
 
 func (x *StepBackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[42]
+	mi := &file_debugrpc_debug_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3055,7 +3357,7 @@ func (x *StepBackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepBackRequest.ProtoReflect.Descriptor instead.
 func (*StepBackRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{42}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *StepBackRequest) GetThreadId() int32 {
@@ -3079,6 +3381,13 @@ func (x *StepBackRequest) GetGranularity() string {
 	return ""
 }
 
+func (x *StepBackRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type StepBackResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3087,7 +3396,7 @@ type StepBackResponse struct {
 
 func (x *StepBackResponse) Reset() {
 	*x = StepBackResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[43]
+	mi := &file_debugrpc_debug_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3099,7 +3408,7 @@ func (x *StepBackResponse) String() string {
 func (*StepBackResponse) ProtoMessage() {}
 
 func (x *StepBackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[43]
+	mi := &file_debugrpc_debug_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3112,20 +3421,21 @@ func (x *StepBackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepBackResponse.ProtoReflect.Descriptor instead.
 func (*StepBackResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{43}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{46}
 }
 
 type ReverseContinueRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
 	SingleThread  bool                   `protobuf:"varint,2,opt,name=single_thread,json=singleThread,proto3" json:"single_thread,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReverseContinueRequest) Reset() {
 	*x = ReverseContinueRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[44]
+	mi := &file_debugrpc_debug_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3137,7 +3447,7 @@ func (x *ReverseContinueRequest) String() string {
 func (*ReverseContinueRequest) ProtoMessage() {}
 
 func (x *ReverseContinueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[44]
+	mi := &file_debugrpc_debug_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3150,7 +3460,7 @@ func (x *ReverseContinueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReverseContinueRequest.ProtoReflect.Descriptor instead.
 func (*ReverseContinueRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{44}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ReverseContinueRequest) GetThreadId() int32 {
@@ -3167,6 +3477,13 @@ func (x *ReverseContinueRequest) GetSingleThread() bool {
 	return false
 }
 
+func (x *ReverseContinueRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type ReverseContinueResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3175,7 +3492,7 @@ type ReverseContinueResponse struct {
 
 func (x *ReverseContinueResponse) Reset() {
 	*x = ReverseContinueResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[45]
+	mi := &file_debugrpc_debug_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3187,7 +3504,7 @@ func (x *ReverseContinueResponse) String() string {
 func (*ReverseContinueResponse) ProtoMessage() {}
 
 func (x *ReverseContinueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[45]
+	mi := &file_debugrpc_debug_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3200,19 +3517,20 @@ func (x *ReverseContinueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReverseContinueResponse.ProtoReflect.Descriptor instead.
 func (*ReverseContinueResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{45}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{48}
 }
 
 type PauseRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PauseRequest) Reset() {
 	*x = PauseRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[46]
+	mi := &file_debugrpc_debug_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3224,7 +3542,7 @@ func (x *PauseRequest) String() string {
 func (*PauseRequest) ProtoMessage() {}
 
 func (x *PauseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[46]
+	mi := &file_debugrpc_debug_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3237,7 +3555,7 @@ func (x *PauseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseRequest.ProtoReflect.Descriptor instead.
 func (*PauseRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{46}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *PauseRequest) GetThreadId() int32 {
@@ -3245,6 +3563,13 @@ func (x *PauseRequest) GetThreadId() int32 {
 		return x.ThreadId
 	}
 	return 0
+}
+
+func (x *PauseRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type PauseResponse struct {
@@ -3255,7 +3580,7 @@ type PauseResponse struct {
 
 func (x *PauseResponse) Reset() {
 	*x = PauseResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[47]
+	mi := &file_debugrpc_debug_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3267,7 +3592,7 @@ func (x *PauseResponse) String() string {
 func (*PauseResponse) ProtoMessage() {}
 
 func (x *PauseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[47]
+	mi := &file_debugrpc_debug_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3280,18 +3605,19 @@ func (x *PauseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseResponse.ProtoReflect.Descriptor instead.
 func (*PauseResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{47}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{50}
 }
 
 type ThreadsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ThreadsRequest) Reset() {
 	*x = ThreadsRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[48]
+	mi := &file_debugrpc_debug_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3303,7 +3629,7 @@ func (x *ThreadsRequest) String() string {
 func (*ThreadsRequest) ProtoMessage() {}
 
 func (x *ThreadsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[48]
+	mi := &file_debugrpc_debug_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3316,7 +3642,14 @@ func (x *ThreadsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThreadsRequest.ProtoReflect.Descriptor instead.
 func (*ThreadsRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{48}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *ThreadsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type ThreadsResponse struct {
@@ -3328,7 +3661,7 @@ type ThreadsResponse struct {
 
 func (x *ThreadsResponse) Reset() {
 	*x = ThreadsResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[49]
+	mi := &file_debugrpc_debug_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3340,7 +3673,7 @@ func (x *ThreadsResponse) String() string {
 func (*ThreadsResponse) ProtoMessage() {}
 
 func (x *ThreadsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[49]
+	mi := &file_debugrpc_debug_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3353,7 +3686,7 @@ func (x *ThreadsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThreadsResponse.ProtoReflect.Descriptor instead.
 func (*ThreadsResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{49}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ThreadsResponse) GetThreads() []*Thread {
@@ -3368,13 +3701,14 @@ type StackTraceRequest struct {
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
 	StartFrame    int32                  `protobuf:"varint,2,opt,name=start_frame,json=startFrame,proto3" json:"start_frame,omitempty"`
 	Levels        int32                  `protobuf:"varint,3,opt,name=levels,proto3" json:"levels,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StackTraceRequest) Reset() {
 	*x = StackTraceRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[50]
+	mi := &file_debugrpc_debug_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3386,7 +3720,7 @@ func (x *StackTraceRequest) String() string {
 func (*StackTraceRequest) ProtoMessage() {}
 
 func (x *StackTraceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[50]
+	mi := &file_debugrpc_debug_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3399,7 +3733,7 @@ func (x *StackTraceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StackTraceRequest.ProtoReflect.Descriptor instead.
 func (*StackTraceRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{50}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *StackTraceRequest) GetThreadId() int32 {
@@ -3423,6 +3757,13 @@ func (x *StackTraceRequest) GetLevels() int32 {
 	return 0
 }
 
+func (x *StackTraceRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type StackTraceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StackFrames   []*StackFrame          `protobuf:"bytes,1,rep,name=stack_frames,json=stackFrames,proto3" json:"stack_frames,omitempty"`
@@ -3433,7 +3774,7 @@ type StackTraceResponse struct {
 
 func (x *StackTraceResponse) Reset() {
 	*x = StackTraceResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[51]
+	mi := &file_debugrpc_debug_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3445,7 +3786,7 @@ func (x *StackTraceResponse) String() string {
 func (*StackTraceResponse) ProtoMessage() {}
 
 func (x *StackTraceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[51]
+	mi := &file_debugrpc_debug_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3458,7 +3799,7 @@ func (x *StackTraceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StackTraceResponse.ProtoReflect.Descriptor instead.
 func (*StackTraceResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{51}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *StackTraceResponse) GetStackFrames() []*StackFrame {
@@ -3478,13 +3819,14 @@ func (x *StackTraceResponse) GetTotalFrames() int32 {
 type ScopesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FrameId       int32                  `protobuf:"varint,1,opt,name=frame_id,json=frameId,proto3" json:"frame_id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ScopesRequest) Reset() {
 	*x = ScopesRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[52]
+	mi := &file_debugrpc_debug_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3496,7 +3838,7 @@ func (x *ScopesRequest) String() string {
 func (*ScopesRequest) ProtoMessage() {}
 
 func (x *ScopesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[52]
+	mi := &file_debugrpc_debug_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3509,7 +3851,7 @@ func (x *ScopesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScopesRequest.ProtoReflect.Descriptor instead.
 func (*ScopesRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{52}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ScopesRequest) GetFrameId() int32 {
@@ -3517,6 +3859,13 @@ func (x *ScopesRequest) GetFrameId() int32 {
 		return x.FrameId
 	}
 	return 0
+}
+
+func (x *ScopesRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type ScopesResponse struct {
@@ -3528,7 +3877,7 @@ type ScopesResponse struct {
 
 func (x *ScopesResponse) Reset() {
 	*x = ScopesResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[53]
+	mi := &file_debugrpc_debug_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3540,7 +3889,7 @@ func (x *ScopesResponse) String() string {
 func (*ScopesResponse) ProtoMessage() {}
 
 func (x *ScopesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[53]
+	mi := &file_debugrpc_debug_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3553,7 +3902,7 @@ func (x *ScopesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScopesResponse.ProtoReflect.Descriptor instead.
 func (*ScopesResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{53}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ScopesResponse) GetScopes() []*Scope {
@@ -3569,13 +3918,14 @@ type VariablesRequest struct {
 	Filter             string                 `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	Start              int32                  `protobuf:"varint,3,opt,name=start,proto3" json:"start,omitempty"`
 	Count              int32                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	SessionId          string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
 func (x *VariablesRequest) Reset() {
 	*x = VariablesRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[54]
+	mi := &file_debugrpc_debug_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3587,7 +3937,7 @@ func (x *VariablesRequest) String() string {
 func (*VariablesRequest) ProtoMessage() {}
 
 func (x *VariablesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[54]
+	mi := &file_debugrpc_debug_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3600,7 +3950,7 @@ func (x *VariablesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VariablesRequest.ProtoReflect.Descriptor instead.
 func (*VariablesRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{54}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *VariablesRequest) GetVariablesReference() int32 {
@@ -3631,6 +3981,13 @@ func (x *VariablesRequest) GetCount() int32 {
 	return 0
 }
 
+func (x *VariablesRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type VariablesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Variables     []*Variable            `protobuf:"bytes,1,rep,name=variables,proto3" json:"variables,omitempty"`
@@ -3640,7 +3997,7 @@ type VariablesResponse struct {
 
 func (x *VariablesResponse) Reset() {
 	*x = VariablesResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[55]
+	mi := &file_debugrpc_debug_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3652,7 +4009,7 @@ func (x *VariablesResponse) String() string {
 func (*VariablesResponse) ProtoMessage() {}
 
 func (x *VariablesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[55]
+	mi := &file_debugrpc_debug_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3665,7 +4022,7 @@ func (x *VariablesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VariablesResponse.ProtoReflect.Descriptor instead.
 func (*VariablesResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{55}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *VariablesResponse) GetVariables() []*Variable {
@@ -3680,13 +4037,14 @@ type SetVariableRequest struct {
 	VariablesReference int32                  `protobuf:"varint,1,opt,name=variables_reference,json=variablesReference,proto3" json:"variables_reference,omitempty"`
 	Name               string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Value              string                 `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	SessionId          string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SetVariableRequest) Reset() {
 	*x = SetVariableRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[56]
+	mi := &file_debugrpc_debug_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3698,7 +4056,7 @@ func (x *SetVariableRequest) String() string {
 func (*SetVariableRequest) ProtoMessage() {}
 
 func (x *SetVariableRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[56]
+	mi := &file_debugrpc_debug_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3711,7 +4069,7 @@ func (x *SetVariableRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetVariableRequest.ProtoReflect.Descriptor instead.
 func (*SetVariableRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{56}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *SetVariableRequest) GetVariablesReference() int32 {
@@ -3735,6 +4093,13 @@ func (x *SetVariableRequest) GetValue() string {
 	return ""
 }
 
+func (x *SetVariableRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type SetVariableResponse struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Value              string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
@@ -3748,7 +4113,7 @@ type SetVariableResponse struct {
 
 func (x *SetVariableResponse) Reset() {
 	*x = SetVariableResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[57]
+	mi := &file_debugrpc_debug_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3760,7 +4125,7 @@ func (x *SetVariableResponse) String() string {
 func (*SetVariableResponse) ProtoMessage() {}
 
 func (x *SetVariableResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[57]
+	mi := &file_debugrpc_debug_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3773,7 +4138,7 @@ func (x *SetVariableResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetVariableResponse.ProtoReflect.Descriptor instead.
 func (*SetVariableResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{57}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *SetVariableResponse) GetValue() string {
@@ -3815,13 +4180,14 @@ type SourceRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	SourceReference int32                  `protobuf:"varint,1,opt,name=source_reference,json=sourceReference,proto3" json:"source_reference,omitempty"`
 	Source          *Source                `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	SessionId       string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SourceRequest) Reset() {
 	*x = SourceRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[58]
+	mi := &file_debugrpc_debug_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3833,7 +4199,7 @@ func (x *SourceRequest) String() string {
 func (*SourceRequest) ProtoMessage() {}
 
 func (x *SourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[58]
+	mi := &file_debugrpc_debug_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3846,7 +4212,7 @@ func (x *SourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceRequest.ProtoReflect.Descriptor instead.
 func (*SourceRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{58}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *SourceRequest) GetSourceReference() int32 {
@@ -3863,6 +4229,13 @@ func (x *SourceRequest) GetSource() *Source {
 	return nil
 }
 
+func (x *SourceRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type SourceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
@@ -3873,7 +4246,7 @@ type SourceResponse struct {
 
 func (x *SourceResponse) Reset() {
 	*x = SourceResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[59]
+	mi := &file_debugrpc_debug_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3885,7 +4258,7 @@ func (x *SourceResponse) String() string {
 func (*SourceResponse) ProtoMessage() {}
 
 func (x *SourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[59]
+	mi := &file_debugrpc_debug_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3898,7 +4271,7 @@ func (x *SourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceResponse.ProtoReflect.Descriptor instead.
 func (*SourceResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{59}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *SourceResponse) GetContent() string {
@@ -3920,13 +4293,14 @@ type EvaluateRequest struct {
 	Expression    string                 `protobuf:"bytes,1,opt,name=expression,proto3" json:"expression,omitempty"`
 	FrameId       int32                  `protobuf:"varint,2,opt,name=frame_id,json=frameId,proto3" json:"frame_id,omitempty"`
 	Context       string                 `protobuf:"bytes,3,opt,name=context,proto3" json:"context,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EvaluateRequest) Reset() {
 	*x = EvaluateRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[60]
+	mi := &file_debugrpc_debug_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3938,7 +4312,7 @@ func (x *EvaluateRequest) String() string {
 func (*EvaluateRequest) ProtoMessage() {}
 
 func (x *EvaluateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[60]
+	mi := &file_debugrpc_debug_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3951,7 +4325,7 @@ func (x *EvaluateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateRequest.ProtoReflect.Descriptor instead.
 func (*EvaluateRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{60}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *EvaluateRequest) GetExpression() string {
@@ -3975,6 +4349,13 @@ func (x *EvaluateRequest) GetContext() string {
 	return ""
 }
 
+func (x *EvaluateRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type EvaluateResponse struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Result             string                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -3989,7 +4370,7 @@ type EvaluateResponse struct {
 
 func (x *EvaluateResponse) Reset() {
 	*x = EvaluateResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[61]
+	mi := &file_debugrpc_debug_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4001,7 +4382,7 @@ func (x *EvaluateResponse) String() string {
 func (*EvaluateResponse) ProtoMessage() {}
 
 func (x *EvaluateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[61]
+	mi := &file_debugrpc_debug_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4014,7 +4395,7 @@ func (x *EvaluateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateResponse.ProtoReflect.Descriptor instead.
 func (*EvaluateResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{61}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *EvaluateResponse) GetResult() string {
@@ -4064,13 +4445,14 @@ type SetExpressionRequest struct {
 	Expression    string                 `protobuf:"bytes,1,opt,name=expression,proto3" json:"expression,omitempty"`
 	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	FrameId       int32                  `protobuf:"varint,3,opt,name=frame_id,json=frameId,proto3" json:"frame_id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SetExpressionRequest) Reset() {
 	*x = SetExpressionRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[62]
+	mi := &file_debugrpc_debug_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4082,7 +4464,7 @@ func (x *SetExpressionRequest) String() string {
 func (*SetExpressionRequest) ProtoMessage() {}
 
 func (x *SetExpressionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[62]
+	mi := &file_debugrpc_debug_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4095,7 +4477,7 @@ func (x *SetExpressionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetExpressionRequest.ProtoReflect.Descriptor instead.
 func (*SetExpressionRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{62}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *SetExpressionRequest) GetExpression() string {
@@ -4119,6 +4501,13 @@ func (x *SetExpressionRequest) GetFrameId() int32 {
 	return 0
 }
 
+func (x *SetExpressionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type SetExpressionResponse struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Value              string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
@@ -4132,7 +4521,7 @@ type SetExpressionResponse struct {
 
 func (x *SetExpressionResponse) Reset() {
 	*x = SetExpressionResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[63]
+	mi := &file_debugrpc_debug_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4144,7 +4533,7 @@ func (x *SetExpressionResponse) String() string {
 func (*SetExpressionResponse) ProtoMessage() {}
 
 func (x *SetExpressionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[63]
+	mi := &file_debugrpc_debug_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4157,7 +4546,7 @@ func (x *SetExpressionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetExpressionResponse.ProtoReflect.Descriptor instead.
 func (*SetExpressionResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{63}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *SetExpressionResponse) GetValue() string {
@@ -4201,13 +4590,14 @@ type CompletionsRequest struct {
 	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
 	Column        int32                  `protobuf:"varint,3,opt,name=column,proto3" json:"column,omitempty"`
 	Line          int32                  `protobuf:"varint,4,opt,name=line,proto3" json:"line,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CompletionsRequest) Reset() {
 	*x = CompletionsRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[64]
+	mi := &file_debugrpc_debug_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4219,7 +4609,7 @@ func (x *CompletionsRequest) String() string {
 func (*CompletionsRequest) ProtoMessage() {}
 
 func (x *CompletionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[64]
+	mi := &file_debugrpc_debug_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4232,7 +4622,7 @@ func (x *CompletionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompletionsRequest.ProtoReflect.Descriptor instead.
 func (*CompletionsRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{64}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *CompletionsRequest) GetFrameId() int32 {
@@ -4263,6 +4653,13 @@ func (x *CompletionsRequest) GetLine() int32 {
 	return 0
 }
 
+func (x *CompletionsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type CompletionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Targets       []*CompletionItem      `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
@@ -4272,7 +4669,7 @@ type CompletionsResponse struct {
 
 func (x *CompletionsResponse) Reset() {
 	*x = CompletionsResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[65]
+	mi := &file_debugrpc_debug_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4284,7 +4681,7 @@ func (x *CompletionsResponse) String() string {
 func (*CompletionsResponse) ProtoMessage() {}
 
 func (x *CompletionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[65]
+	mi := &file_debugrpc_debug_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4297,7 +4694,7 @@ func (x *CompletionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompletionsResponse.ProtoReflect.Descriptor instead.
 func (*CompletionsResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{65}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *CompletionsResponse) GetTargets() []*CompletionItem {
@@ -4310,13 +4707,14 @@ func (x *CompletionsResponse) GetTargets() []*CompletionItem {
 type ExceptionInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ExceptionInfoRequest) Reset() {
 	*x = ExceptionInfoRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[66]
+	mi := &file_debugrpc_debug_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4328,7 +4726,7 @@ func (x *ExceptionInfoRequest) String() string {
 func (*ExceptionInfoRequest) ProtoMessage() {}
 
 func (x *ExceptionInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[66]
+	mi := &file_debugrpc_debug_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4341,7 +4739,7 @@ func (x *ExceptionInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExceptionInfoRequest.ProtoReflect.Descriptor instead.
 func (*ExceptionInfoRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{66}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *ExceptionInfoRequest) GetThreadId() int32 {
@@ -4349,6 +4747,13 @@ func (x *ExceptionInfoRequest) GetThreadId() int32 {
 		return x.ThreadId
 	}
 	return 0
+}
+
+func (x *ExceptionInfoRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type ExceptionInfoResponse struct {
@@ -4362,7 +4767,7 @@ type ExceptionInfoResponse struct {
 
 func (x *ExceptionInfoResponse) Reset() {
 	*x = ExceptionInfoResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[67]
+	mi := &file_debugrpc_debug_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4374,7 +4779,7 @@ func (x *ExceptionInfoResponse) String() string {
 func (*ExceptionInfoResponse) ProtoMessage() {}
 
 func (x *ExceptionInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[67]
+	mi := &file_debugrpc_debug_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4387,7 +4792,7 @@ func (x *ExceptionInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExceptionInfoResponse.ProtoReflect.Descriptor instead.
 func (*ExceptionInfoResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{67}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *ExceptionInfoResponse) GetExceptionId() string {
@@ -4415,13 +4820,14 @@ type ModulesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StartModule   int32                  `protobuf:"varint,1,opt,name=start_module,json=startModule,proto3" json:"start_module,omitempty"`
 	ModuleCount   int32                  `protobuf:"varint,2,opt,name=module_count,json=moduleCount,proto3" json:"module_count,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ModulesRequest) Reset() {
 	*x = ModulesRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[68]
+	mi := &file_debugrpc_debug_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4433,7 +4839,7 @@ func (x *ModulesRequest) String() string {
 func (*ModulesRequest) ProtoMessage() {}
 
 func (x *ModulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[68]
+	mi := &file_debugrpc_debug_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4446,7 +4852,7 @@ func (x *ModulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModulesRequest.ProtoReflect.Descriptor instead.
 func (*ModulesRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{68}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ModulesRequest) GetStartModule() int32 {
@@ -4463,6 +4869,13 @@ func (x *ModulesRequest) GetModuleCount() int32 {
 	return 0
 }
 
+func (x *ModulesRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type ModulesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Modules       []*Module              `protobuf:"bytes,1,rep,name=modules,proto3" json:"modules,omitempty"`
@@ -4473,7 +4886,7 @@ type ModulesResponse struct {
 
 func (x *ModulesResponse) Reset() {
 	*x = ModulesResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[69]
+	mi := &file_debugrpc_debug_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4485,7 +4898,7 @@ func (x *ModulesResponse) String() string {
 func (*ModulesResponse) ProtoMessage() {}
 
 func (x *ModulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[69]
+	mi := &file_debugrpc_debug_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4498,7 +4911,7 @@ func (x *ModulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModulesResponse.ProtoReflect.Descriptor instead.
 func (*ModulesResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{69}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *ModulesResponse) GetModules() []*Module {
@@ -4517,13 +4930,14 @@ func (x *ModulesResponse) GetTotalModules() int32 {
 
 type LoadedSourcesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoadedSourcesRequest) Reset() {
 	*x = LoadedSourcesRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[70]
+	mi := &file_debugrpc_debug_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4535,7 +4949,7 @@ func (x *LoadedSourcesRequest) String() string {
 func (*LoadedSourcesRequest) ProtoMessage() {}
 
 func (x *LoadedSourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[70]
+	mi := &file_debugrpc_debug_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4548,7 +4962,14 @@ func (x *LoadedSourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadedSourcesRequest.ProtoReflect.Descriptor instead.
 func (*LoadedSourcesRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{70}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{73}
+}
+
+func (x *LoadedSourcesRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type LoadedSourcesResponse struct {
@@ -4560,7 +4981,7 @@ type LoadedSourcesResponse struct {
 
 func (x *LoadedSourcesResponse) Reset() {
 	*x = LoadedSourcesResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[71]
+	mi := &file_debugrpc_debug_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4572,7 +4993,7 @@ func (x *LoadedSourcesResponse) String() string {
 func (*LoadedSourcesResponse) ProtoMessage() {}
 
 func (x *LoadedSourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[71]
+	mi := &file_debugrpc_debug_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4585,7 +5006,7 @@ func (x *LoadedSourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadedSourcesResponse.ProtoReflect.Descriptor instead.
 func (*LoadedSourcesResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{71}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *LoadedSourcesResponse) GetSources() []*Source {
@@ -4600,13 +5021,14 @@ type ReadMemoryRequest struct {
 	MemoryReference string                 `protobuf:"bytes,1,opt,name=memory_reference,json=memoryReference,proto3" json:"memory_reference,omitempty"`
 	Offset          int64                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	Count           int32                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	SessionId       string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ReadMemoryRequest) Reset() {
 	*x = ReadMemoryRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[72]
+	mi := &file_debugrpc_debug_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4618,7 +5040,7 @@ func (x *ReadMemoryRequest) String() string {
 func (*ReadMemoryRequest) ProtoMessage() {}
 
 func (x *ReadMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[72]
+	mi := &file_debugrpc_debug_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4631,7 +5053,7 @@ func (x *ReadMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadMemoryRequest.ProtoReflect.Descriptor instead.
 func (*ReadMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{72}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *ReadMemoryRequest) GetMemoryReference() string {
@@ -4655,6 +5077,13 @@ func (x *ReadMemoryRequest) GetCount() int32 {
 	return 0
 }
 
+func (x *ReadMemoryRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type ReadMemoryResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Address         string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
@@ -4666,7 +5095,7 @@ type ReadMemoryResponse struct {
 
 func (x *ReadMemoryResponse) Reset() {
 	*x = ReadMemoryResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[73]
+	mi := &file_debugrpc_debug_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4678,7 +5107,7 @@ func (x *ReadMemoryResponse) String() string {
 func (*ReadMemoryResponse) ProtoMessage() {}
 
 func (x *ReadMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[73]
+	mi := &file_debugrpc_debug_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4691,7 +5120,7 @@ func (x *ReadMemoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadMemoryResponse.ProtoReflect.Descriptor instead.
 func (*ReadMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{73}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *ReadMemoryResponse) GetAddress() string {
@@ -4721,13 +5150,14 @@ type WriteMemoryRequest struct {
 	Offset          int64                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	Data            []byte                 `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
 	AllowPartial    bool                   `protobuf:"varint,4,opt,name=allow_partial,json=allowPartial,proto3" json:"allow_partial,omitempty"`
+	SessionId       string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *WriteMemoryRequest) Reset() {
 	*x = WriteMemoryRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[74]
+	mi := &file_debugrpc_debug_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4739,7 +5169,7 @@ func (x *WriteMemoryRequest) String() string {
 func (*WriteMemoryRequest) ProtoMessage() {}
 
 func (x *WriteMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[74]
+	mi := &file_debugrpc_debug_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4752,7 +5182,7 @@ func (x *WriteMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteMemoryRequest.ProtoReflect.Descriptor instead.
 func (*WriteMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{74}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *WriteMemoryRequest) GetMemoryReference() string {
@@ -4783,6 +5213,13 @@ func (x *WriteMemoryRequest) GetAllowPartial() bool {
 	return false
 }
 
+func (x *WriteMemoryRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type WriteMemoryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Offset        int64                  `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
@@ -4793,7 +5230,7 @@ type WriteMemoryResponse struct {
 
 func (x *WriteMemoryResponse) Reset() {
 	*x = WriteMemoryResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[75]
+	mi := &file_debugrpc_debug_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4805,7 +5242,7 @@ func (x *WriteMemoryResponse) String() string {
 func (*WriteMemoryResponse) ProtoMessage() {}
 
 func (x *WriteMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[75]
+	mi := &file_debugrpc_debug_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4818,7 +5255,7 @@ func (x *WriteMemoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteMemoryResponse.ProtoReflect.Descriptor instead.
 func (*WriteMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{75}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *WriteMemoryResponse) GetOffset() int64 {
@@ -4842,13 +5279,14 @@ type DisassembleRequest struct {
 	InstructionOffset int32                  `protobuf:"varint,3,opt,name=instruction_offset,json=instructionOffset,proto3" json:"instruction_offset,omitempty"`
 	InstructionCount  int32                  `protobuf:"varint,4,opt,name=instruction_count,json=instructionCount,proto3" json:"instruction_count,omitempty"`
 	ResolveSymbols    bool                   `protobuf:"varint,5,opt,name=resolve_symbols,json=resolveSymbols,proto3" json:"resolve_symbols,omitempty"`
+	SessionId         string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *DisassembleRequest) Reset() {
 	*x = DisassembleRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[76]
+	mi := &file_debugrpc_debug_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4860,7 +5298,7 @@ func (x *DisassembleRequest) String() string {
 func (*DisassembleRequest) ProtoMessage() {}
 
 func (x *DisassembleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[76]
+	mi := &file_debugrpc_debug_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4873,7 +5311,7 @@ func (x *DisassembleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisassembleRequest.ProtoReflect.Descriptor instead.
 func (*DisassembleRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{76}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *DisassembleRequest) GetMemoryReference() string {
@@ -4911,6 +5349,13 @@ func (x *DisassembleRequest) GetResolveSymbols() bool {
 	return false
 }
 
+func (x *DisassembleRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type DisassembleResponse struct {
 	state         protoimpl.MessageState     `protogen:"open.v1"`
 	Instructions  []*DisassembledInstruction `protobuf:"bytes,1,rep,name=instructions,proto3" json:"instructions,omitempty"`
@@ -4920,7 +5365,7 @@ type DisassembleResponse struct {
 
 func (x *DisassembleResponse) Reset() {
 	*x = DisassembleResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[77]
+	mi := &file_debugrpc_debug_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4932,7 +5377,7 @@ func (x *DisassembleResponse) String() string {
 func (*DisassembleResponse) ProtoMessage() {}
 
 func (x *DisassembleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[77]
+	mi := &file_debugrpc_debug_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4945,7 +5390,7 @@ func (x *DisassembleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisassembleResponse.ProtoReflect.Descriptor instead.
 func (*DisassembleResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{77}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *DisassembleResponse) GetInstructions() []*DisassembledInstruction {
@@ -4960,13 +5405,14 @@ type GotoTargetsRequest struct {
 	Source        *Source                `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	Line          int32                  `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
 	Column        int32                  `protobuf:"varint,3,opt,name=column,proto3" json:"column,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GotoTargetsRequest) Reset() {
 	*x = GotoTargetsRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[78]
+	mi := &file_debugrpc_debug_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4978,7 +5424,7 @@ func (x *GotoTargetsRequest) String() string {
 func (*GotoTargetsRequest) ProtoMessage() {}
 
 func (x *GotoTargetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[78]
+	mi := &file_debugrpc_debug_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4991,7 +5437,7 @@ func (x *GotoTargetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GotoTargetsRequest.ProtoReflect.Descriptor instead.
 func (*GotoTargetsRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{78}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *GotoTargetsRequest) GetSource() *Source {
@@ -5015,6 +5461,13 @@ func (x *GotoTargetsRequest) GetColumn() int32 {
 	return 0
 }
 
+func (x *GotoTargetsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type GotoTargetsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Targets       []*GotoTarget          `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
@@ -5024,7 +5477,7 @@ type GotoTargetsResponse struct {
 
 func (x *GotoTargetsResponse) Reset() {
 	*x = GotoTargetsResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[79]
+	mi := &file_debugrpc_debug_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5036,7 +5489,7 @@ func (x *GotoTargetsResponse) String() string {
 func (*GotoTargetsResponse) ProtoMessage() {}
 
 func (x *GotoTargetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[79]
+	mi := &file_debugrpc_debug_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5049,7 +5502,7 @@ func (x *GotoTargetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GotoTargetsResponse.ProtoReflect.Descriptor instead.
 func (*GotoTargetsResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{79}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *GotoTargetsResponse) GetTargets() []*GotoTarget {
@@ -5063,13 +5516,14 @@ type GotoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ThreadId      int32                  `protobuf:"varint,1,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
 	TargetId      int32                  `protobuf:"varint,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,100,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GotoRequest) Reset() {
 	*x = GotoRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[80]
+	mi := &file_debugrpc_debug_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5081,7 +5535,7 @@ func (x *GotoRequest) String() string {
 func (*GotoRequest) ProtoMessage() {}
 
 func (x *GotoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[80]
+	mi := &file_debugrpc_debug_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5094,7 +5548,7 @@ func (x *GotoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GotoRequest.ProtoReflect.Descriptor instead.
 func (*GotoRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{80}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *GotoRequest) GetThreadId() int32 {
@@ -5111,6 +5565,13 @@ func (x *GotoRequest) GetTargetId() int32 {
 	return 0
 }
 
+func (x *GotoRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 type GotoResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -5119,7 +5580,7 @@ type GotoResponse struct {
 
 func (x *GotoResponse) Reset() {
 	*x = GotoResponse{}
-	mi := &file_debugrpc_debug_proto_msgTypes[81]
+	mi := &file_debugrpc_debug_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5131,7 +5592,7 @@ func (x *GotoResponse) String() string {
 func (*GotoResponse) ProtoMessage() {}
 
 func (x *GotoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[81]
+	mi := &file_debugrpc_debug_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5144,43 +5605,7 @@ func (x *GotoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GotoResponse.ProtoReflect.Descriptor instead.
 func (*GotoResponse) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{81}
-}
-
-type SubscribeEventsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeEventsRequest) Reset() {
-	*x = SubscribeEventsRequest{}
-	mi := &file_debugrpc_debug_proto_msgTypes[82]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeEventsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeEventsRequest) ProtoMessage() {}
-
-func (x *SubscribeEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[82]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeEventsRequest.ProtoReflect.Descriptor instead.
-func (*SubscribeEventsRequest) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{82}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{84}
 }
 
 type Event struct {
@@ -5193,7 +5618,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_debugrpc_debug_proto_msgTypes[83]
+	mi := &file_debugrpc_debug_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5205,7 +5630,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_debugrpc_debug_proto_msgTypes[83]
+	mi := &file_debugrpc_debug_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5218,7 +5643,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_debugrpc_debug_proto_rawDescGZIP(), []int{83}
+	return file_debugrpc_debug_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *Event) GetEvent() string {
@@ -5404,230 +5829,303 @@ const file_debugrpc_debug_proto_rawDesc = "" +
 	"\x1dsupports_stepping_granularity\x18\" \x01(\bR\x1bsupportsSteppingGranularity\x12H\n" +
 	" supports_instruction_breakpoints\x18# \x01(\bR\x1esupportsInstructionBreakpoints\x12I\n" +
 	"!supports_exception_filter_options\x18$ \x01(\bR\x1esupportsExceptionFilterOptions\x12X\n" +
-	")supports_single_thread_execution_requests\x18% \x01(\bR%supportsSingleThreadExecutionRequests\"\xd6\x05\n" +
-	"\x11InitializeRequest\x12\x1b\n" +
+	")supports_single_thread_execution_requests\x18% \x01(\bR%supportsSingleThreadExecutionRequests\"b\n" +
+	"\x14CreateSessionRequest\x12\x17\n" +
+	"\alang_id\x18\x01 \x01(\tR\x06langId\x121\n" +
+	"\x06client\x18\x02 \x01(\v2\x19.debug.ClientCapabilitiesR\x06client\"\x89\x05\n" +
+	"\x12ClientCapabilities\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x1f\n" +
 	"\vclient_name\x18\x02 \x01(\tR\n" +
-	"clientName\x12\x1d\n" +
-	"\n" +
-	"adapter_id\x18\x03 \x01(\tR\tadapterId\x12\x16\n" +
-	"\x06locale\x18\x04 \x01(\tR\x06locale\x12'\n" +
-	"\x10lines_start_at_1\x18\x05 \x01(\bR\rlinesStartAt1\x12+\n" +
-	"\x12columns_start_at_1\x18\x06 \x01(\bR\x0fcolumnsStartAt1\x12\x1f\n" +
-	"\vpath_format\x18\a \x01(\tR\n" +
+	"clientName\x12\x16\n" +
+	"\x06locale\x18\x03 \x01(\tR\x06locale\x12'\n" +
+	"\x10lines_start_at_1\x18\x04 \x01(\bR\rlinesStartAt1\x12+\n" +
+	"\x12columns_start_at_1\x18\x05 \x01(\bR\x0fcolumnsStartAt1\x12\x1f\n" +
+	"\vpath_format\x18\x06 \x01(\tR\n" +
 	"pathFormat\x124\n" +
-	"\x16supports_variable_type\x18\b \x01(\bR\x14supportsVariableType\x128\n" +
-	"\x18supports_variable_paging\x18\t \x01(\bR\x16supportsVariablePaging\x12F\n" +
-	" supports_run_in_terminal_request\x18\n" +
-	" \x01(\bR\x1csupportsRunInTerminalRequest\x12<\n" +
-	"\x1asupports_memory_references\x18\v \x01(\bR\x18supportsMemoryReferences\x12>\n" +
-	"\x1bsupports_progress_reporting\x18\f \x01(\bR\x19supportsProgressReporting\x12<\n" +
-	"\x1asupports_invalidated_event\x18\r \x01(\bR\x18supportsInvalidatedEvent\x122\n" +
-	"\x15supports_memory_event\x18\x0e \x01(\bR\x13supportsMemoryEvent\x12-\n" +
-	"\x12initialize_options\x18\x0f \x01(\fR\x11initializeOptions\"M\n" +
-	"\x12InitializeResponse\x127\n" +
-	"\fcapabilities\x18\x01 \x01(\v2\x13.debug.CapabilitiesR\fcapabilities\"\xf7\x01\n" +
+	"\x16supports_variable_type\x18\a \x01(\bR\x14supportsVariableType\x128\n" +
+	"\x18supports_variable_paging\x18\b \x01(\bR\x16supportsVariablePaging\x12F\n" +
+	" supports_run_in_terminal_request\x18\t \x01(\bR\x1csupportsRunInTerminalRequest\x12<\n" +
+	"\x1asupports_memory_references\x18\n" +
+	" \x01(\bR\x18supportsMemoryReferences\x12>\n" +
+	"\x1bsupports_progress_reporting\x18\v \x01(\bR\x19supportsProgressReporting\x12<\n" +
+	"\x1asupports_invalidated_event\x18\f \x01(\bR\x18supportsInvalidatedEvent\x122\n" +
+	"\x15supports_memory_event\x18\r \x01(\bR\x13supportsMemoryEvent\"\xa6\x01\n" +
+	"\fSessionEvent\x12.\n" +
+	"\x06opened\x18\x01 \x01(\v2\x14.debug.SessionOpenedH\x00R\x06opened\x12+\n" +
+	"\tdap_event\x18\x02 \x01(\v2\f.debug.EventH\x00R\bdapEvent\x12.\n" +
+	"\x06closed\x18\x03 \x01(\v2\x14.debug.SessionClosedH\x00R\x06closedB\t\n" +
+	"\apayload\"g\n" +
+	"\rSessionOpened\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x127\n" +
+	"\fcapabilities\x18\x02 \x01(\v2\x13.debug.CapabilitiesR\fcapabilities\"'\n" +
+	"\rSessionClosed\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\"\x96\x02\n" +
 	"\rLaunchRequest\x12\x18\n" +
 	"\aprogram\x18\x01 \x01(\tR\aprogram\x12\x12\n" +
 	"\x04args\x18\x02 \x03(\tR\x04args\x12\x10\n" +
 	"\x03cwd\x18\x03 \x01(\tR\x03cwd\x12/\n" +
 	"\x03env\x18\x04 \x03(\v2\x1d.debug.LaunchRequest.EnvEntryR\x03env\x12\"\n" +
 	"\rstop_on_entry\x18\x05 \x01(\bR\vstopOnEntry\x12\x19\n" +
-	"\bno_debug\x18\x06 \x01(\bR\anoDebug\x1a6\n" +
+	"\bno_debug\x18\x06 \x01(\bR\anoDebug\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x10\n" +
-	"\x0eLaunchResponse\";\n" +
+	"\x0eLaunchResponse\"Z\n" +
 	"\rAttachRequest\x12\x10\n" +
 	"\x03pid\x18\x01 \x01(\x05R\x03pid\x12\x18\n" +
-	"\aprogram\x18\x02 \x01(\tR\aprogram\"\x10\n" +
-	"\x0eAttachResponse\"\x1a\n" +
-	"\x18ConfigurationDoneRequest\"\x1b\n" +
-	"\x19ConfigurationDoneResponse\"\x87\x01\n" +
+	"\aprogram\x18\x02 \x01(\tR\aprogram\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x10\n" +
+	"\x0eAttachResponse\"9\n" +
+	"\x18ConfigurationDoneRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x1b\n" +
+	"\x19ConfigurationDoneResponse\"\xa6\x01\n" +
 	"\x11DisconnectRequest\x12\x18\n" +
 	"\arestart\x18\x01 \x01(\bR\arestart\x12-\n" +
 	"\x12terminate_debuggee\x18\x02 \x01(\bR\x11terminateDebuggee\x12)\n" +
-	"\x10suspend_debuggee\x18\x03 \x01(\bR\x0fsuspendDebuggee\"\x14\n" +
-	"\x12DisconnectResponse\",\n" +
+	"\x10suspend_debuggee\x18\x03 \x01(\bR\x0fsuspendDebuggee\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x14\n" +
+	"\x12DisconnectResponse\"K\n" +
 	"\x10TerminateRequest\x12\x18\n" +
-	"\arestart\x18\x01 \x01(\bR\arestart\"\x13\n" +
-	"\x11TerminateResponse\"\x10\n" +
-	"\x0eRestartRequest\"\x11\n" +
-	"\x0fRestartResponse\"\xa2\x01\n" +
+	"\arestart\x18\x01 \x01(\bR\arestart\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x13\n" +
+	"\x11TerminateResponse\"/\n" +
+	"\x0eRestartRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x11\n" +
+	"\x0fRestartResponse\"\xc1\x01\n" +
 	"\x15SetBreakpointsRequest\x12%\n" +
 	"\x06source\x18\x01 \x01(\v2\r.debug.SourceR\x06source\x129\n" +
 	"\vbreakpoints\x18\x02 \x03(\v2\x17.debug.SourceBreakpointR\vbreakpoints\x12'\n" +
-	"\x0fsource_modified\x18\x03 \x01(\bR\x0esourceModified\"M\n" +
+	"\x0fsource_modified\x18\x03 \x01(\bR\x0esourceModified\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"M\n" +
 	"\x16SetBreakpointsResponse\x123\n" +
-	"\vbreakpoints\x18\x01 \x03(\v2\x11.debug.BreakpointR\vbreakpoints\"\\\n" +
+	"\vbreakpoints\x18\x01 \x03(\v2\x11.debug.BreakpointR\vbreakpoints\"{\n" +
 	"\x1dSetFunctionBreakpointsRequest\x12;\n" +
-	"\vbreakpoints\x18\x01 \x03(\v2\x19.debug.FunctionBreakpointR\vbreakpoints\"U\n" +
+	"\vbreakpoints\x18\x01 \x03(\v2\x19.debug.FunctionBreakpointR\vbreakpoints\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"U\n" +
 	"\x1eSetFunctionBreakpointsResponse\x123\n" +
-	"\vbreakpoints\x18\x01 \x03(\v2\x11.debug.BreakpointR\vbreakpoints\":\n" +
+	"\vbreakpoints\x18\x01 \x03(\v2\x11.debug.BreakpointR\vbreakpoints\"Y\n" +
 	"\x1eSetExceptionBreakpointsRequest\x12\x18\n" +
-	"\afilters\x18\x01 \x03(\tR\afilters\"V\n" +
+	"\afilters\x18\x01 \x03(\tR\afilters\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"V\n" +
 	"\x1fSetExceptionBreakpointsResponse\x123\n" +
-	"\vbreakpoints\x18\x01 \x03(\v2\x11.debug.BreakpointR\vbreakpoints\"S\n" +
+	"\vbreakpoints\x18\x01 \x03(\v2\x11.debug.BreakpointR\vbreakpoints\"r\n" +
 	"\x0fContinueRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12#\n" +
-	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\"F\n" +
+	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"F\n" +
 	"\x10ContinueResponse\x122\n" +
-	"\x15all_threads_continued\x18\x01 \x01(\bR\x13allThreadsContinued\"q\n" +
+	"\x15all_threads_continued\x18\x01 \x01(\bR\x13allThreadsContinued\"\x90\x01\n" +
 	"\vNextRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12#\n" +
 	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\x12 \n" +
-	"\vgranularity\x18\x03 \x01(\tR\vgranularity\"\x0e\n" +
-	"\fNextResponse\"\x90\x01\n" +
+	"\vgranularity\x18\x03 \x01(\tR\vgranularity\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x0e\n" +
+	"\fNextResponse\"\xaf\x01\n" +
 	"\rStepInRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12#\n" +
 	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\x12\x1b\n" +
 	"\ttarget_id\x18\x03 \x01(\x05R\btargetId\x12 \n" +
-	"\vgranularity\x18\x04 \x01(\tR\vgranularity\"\x10\n" +
-	"\x0eStepInResponse\"t\n" +
+	"\vgranularity\x18\x04 \x01(\tR\vgranularity\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x10\n" +
+	"\x0eStepInResponse\"\x93\x01\n" +
 	"\x0eStepOutRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12#\n" +
 	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\x12 \n" +
-	"\vgranularity\x18\x03 \x01(\tR\vgranularity\"\x11\n" +
-	"\x0fStepOutResponse\"u\n" +
+	"\vgranularity\x18\x03 \x01(\tR\vgranularity\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x11\n" +
+	"\x0fStepOutResponse\"\x94\x01\n" +
 	"\x0fStepBackRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12#\n" +
 	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\x12 \n" +
-	"\vgranularity\x18\x03 \x01(\tR\vgranularity\"\x12\n" +
-	"\x10StepBackResponse\"Z\n" +
+	"\vgranularity\x18\x03 \x01(\tR\vgranularity\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x12\n" +
+	"\x10StepBackResponse\"y\n" +
 	"\x16ReverseContinueRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12#\n" +
-	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\"\x19\n" +
-	"\x17ReverseContinueResponse\"+\n" +
+	"\rsingle_thread\x18\x02 \x01(\bR\fsingleThread\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x19\n" +
+	"\x17ReverseContinueResponse\"J\n" +
 	"\fPauseRequest\x12\x1b\n" +
-	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\"\x0f\n" +
-	"\rPauseResponse\"\x10\n" +
-	"\x0eThreadsRequest\":\n" +
+	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x0f\n" +
+	"\rPauseResponse\"/\n" +
+	"\x0eThreadsRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\":\n" +
 	"\x0fThreadsResponse\x12'\n" +
-	"\athreads\x18\x01 \x03(\v2\r.debug.ThreadR\athreads\"i\n" +
+	"\athreads\x18\x01 \x03(\v2\r.debug.ThreadR\athreads\"\x88\x01\n" +
 	"\x11StackTraceRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12\x1f\n" +
 	"\vstart_frame\x18\x02 \x01(\x05R\n" +
 	"startFrame\x12\x16\n" +
-	"\x06levels\x18\x03 \x01(\x05R\x06levels\"m\n" +
+	"\x06levels\x18\x03 \x01(\x05R\x06levels\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"m\n" +
 	"\x12StackTraceResponse\x124\n" +
 	"\fstack_frames\x18\x01 \x03(\v2\x11.debug.StackFrameR\vstackFrames\x12!\n" +
-	"\ftotal_frames\x18\x02 \x01(\x05R\vtotalFrames\"*\n" +
+	"\ftotal_frames\x18\x02 \x01(\x05R\vtotalFrames\"I\n" +
 	"\rScopesRequest\x12\x19\n" +
-	"\bframe_id\x18\x01 \x01(\x05R\aframeId\"6\n" +
+	"\bframe_id\x18\x01 \x01(\x05R\aframeId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"6\n" +
 	"\x0eScopesResponse\x12$\n" +
-	"\x06scopes\x18\x01 \x03(\v2\f.debug.ScopeR\x06scopes\"\x87\x01\n" +
+	"\x06scopes\x18\x01 \x03(\v2\f.debug.ScopeR\x06scopes\"\xa6\x01\n" +
 	"\x10VariablesRequest\x12/\n" +
 	"\x13variables_reference\x18\x01 \x01(\x05R\x12variablesReference\x12\x16\n" +
 	"\x06filter\x18\x02 \x01(\tR\x06filter\x12\x14\n" +
 	"\x05start\x18\x03 \x01(\x05R\x05start\x12\x14\n" +
-	"\x05count\x18\x04 \x01(\x05R\x05count\"B\n" +
+	"\x05count\x18\x04 \x01(\x05R\x05count\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"B\n" +
 	"\x11VariablesResponse\x12-\n" +
-	"\tvariables\x18\x01 \x03(\v2\x0f.debug.VariableR\tvariables\"o\n" +
+	"\tvariables\x18\x01 \x03(\v2\x0f.debug.VariableR\tvariables\"\x8e\x01\n" +
 	"\x12SetVariableRequest\x12/\n" +
 	"\x13variables_reference\x18\x01 \x01(\x05R\x12variablesReference\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05value\x18\x03 \x01(\tR\x05value\"\xc6\x01\n" +
+	"\x05value\x18\x03 \x01(\tR\x05value\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\xc6\x01\n" +
 	"\x13SetVariableResponse\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12/\n" +
 	"\x13variables_reference\x18\x03 \x01(\x05R\x12variablesReference\x12'\n" +
 	"\x0fnamed_variables\x18\x04 \x01(\x05R\x0enamedVariables\x12+\n" +
-	"\x11indexed_variables\x18\x05 \x01(\x05R\x10indexedVariables\"a\n" +
+	"\x11indexed_variables\x18\x05 \x01(\x05R\x10indexedVariables\"\x80\x01\n" +
 	"\rSourceRequest\x12)\n" +
 	"\x10source_reference\x18\x01 \x01(\x05R\x0fsourceReference\x12%\n" +
-	"\x06source\x18\x02 \x01(\v2\r.debug.SourceR\x06source\"G\n" +
+	"\x06source\x18\x02 \x01(\v2\r.debug.SourceR\x06source\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"G\n" +
 	"\x0eSourceResponse\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12\x1b\n" +
-	"\tmime_type\x18\x02 \x01(\tR\bmimeType\"f\n" +
+	"\tmime_type\x18\x02 \x01(\tR\bmimeType\"\x85\x01\n" +
 	"\x0fEvaluateRequest\x12\x1e\n" +
 	"\n" +
 	"expression\x18\x01 \x01(\tR\n" +
 	"expression\x12\x19\n" +
 	"\bframe_id\x18\x02 \x01(\x05R\aframeId\x12\x18\n" +
-	"\acontext\x18\x03 \x01(\tR\acontext\"\xf0\x01\n" +
+	"\acontext\x18\x03 \x01(\tR\acontext\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\xf0\x01\n" +
 	"\x10EvaluateResponse\x12\x16\n" +
 	"\x06result\x18\x01 \x01(\tR\x06result\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12/\n" +
 	"\x13variables_reference\x18\x03 \x01(\x05R\x12variablesReference\x12'\n" +
 	"\x0fnamed_variables\x18\x04 \x01(\x05R\x0enamedVariables\x12+\n" +
 	"\x11indexed_variables\x18\x05 \x01(\x05R\x10indexedVariables\x12)\n" +
-	"\x10memory_reference\x18\x06 \x01(\tR\x0fmemoryReference\"g\n" +
+	"\x10memory_reference\x18\x06 \x01(\tR\x0fmemoryReference\"\x86\x01\n" +
 	"\x14SetExpressionRequest\x12\x1e\n" +
 	"\n" +
 	"expression\x18\x01 \x01(\tR\n" +
 	"expression\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x12\x19\n" +
-	"\bframe_id\x18\x03 \x01(\x05R\aframeId\"\xc8\x01\n" +
+	"\bframe_id\x18\x03 \x01(\x05R\aframeId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\xc8\x01\n" +
 	"\x15SetExpressionResponse\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12/\n" +
 	"\x13variables_reference\x18\x03 \x01(\x05R\x12variablesReference\x12'\n" +
 	"\x0fnamed_variables\x18\x04 \x01(\x05R\x0enamedVariables\x12+\n" +
-	"\x11indexed_variables\x18\x05 \x01(\x05R\x10indexedVariables\"o\n" +
+	"\x11indexed_variables\x18\x05 \x01(\x05R\x10indexedVariables\"\x8e\x01\n" +
 	"\x12CompletionsRequest\x12\x19\n" +
 	"\bframe_id\x18\x01 \x01(\x05R\aframeId\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x12\x16\n" +
 	"\x06column\x18\x03 \x01(\x05R\x06column\x12\x12\n" +
-	"\x04line\x18\x04 \x01(\x05R\x04line\"F\n" +
+	"\x04line\x18\x04 \x01(\x05R\x04line\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"F\n" +
 	"\x13CompletionsResponse\x12/\n" +
-	"\atargets\x18\x01 \x03(\v2\x15.debug.CompletionItemR\atargets\"3\n" +
+	"\atargets\x18\x01 \x03(\v2\x15.debug.CompletionItemR\atargets\"R\n" +
 	"\x14ExceptionInfoRequest\x12\x1b\n" +
-	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\"{\n" +
+	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"{\n" +
 	"\x15ExceptionInfoResponse\x12!\n" +
 	"\fexception_id\x18\x01 \x01(\tR\vexceptionId\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
-	"break_mode\x18\x03 \x01(\tR\tbreakMode\"V\n" +
+	"break_mode\x18\x03 \x01(\tR\tbreakMode\"u\n" +
 	"\x0eModulesRequest\x12!\n" +
 	"\fstart_module\x18\x01 \x01(\x05R\vstartModule\x12!\n" +
-	"\fmodule_count\x18\x02 \x01(\x05R\vmoduleCount\"_\n" +
+	"\fmodule_count\x18\x02 \x01(\x05R\vmoduleCount\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"_\n" +
 	"\x0fModulesResponse\x12'\n" +
 	"\amodules\x18\x01 \x03(\v2\r.debug.ModuleR\amodules\x12#\n" +
-	"\rtotal_modules\x18\x02 \x01(\x05R\ftotalModules\"\x16\n" +
-	"\x14LoadedSourcesRequest\"@\n" +
+	"\rtotal_modules\x18\x02 \x01(\x05R\ftotalModules\"5\n" +
+	"\x14LoadedSourcesRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"@\n" +
 	"\x15LoadedSourcesResponse\x12'\n" +
-	"\asources\x18\x01 \x03(\v2\r.debug.SourceR\asources\"l\n" +
+	"\asources\x18\x01 \x03(\v2\r.debug.SourceR\asources\"\x8b\x01\n" +
 	"\x11ReadMemoryRequest\x12)\n" +
 	"\x10memory_reference\x18\x01 \x01(\tR\x0fmemoryReference\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x03R\x06offset\x12\x14\n" +
-	"\x05count\x18\x03 \x01(\x05R\x05count\"m\n" +
+	"\x05count\x18\x03 \x01(\x05R\x05count\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"m\n" +
 	"\x12ReadMemoryResponse\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12)\n" +
 	"\x10unreadable_bytes\x18\x02 \x01(\x05R\x0funreadableBytes\x12\x12\n" +
-	"\x04data\x18\x03 \x01(\fR\x04data\"\x90\x01\n" +
+	"\x04data\x18\x03 \x01(\fR\x04data\"\xaf\x01\n" +
 	"\x12WriteMemoryRequest\x12)\n" +
 	"\x10memory_reference\x18\x01 \x01(\tR\x0fmemoryReference\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x03R\x06offset\x12\x12\n" +
 	"\x04data\x18\x03 \x01(\fR\x04data\x12#\n" +
-	"\rallow_partial\x18\x04 \x01(\bR\fallowPartial\"R\n" +
+	"\rallow_partial\x18\x04 \x01(\bR\fallowPartial\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"R\n" +
 	"\x13WriteMemoryResponse\x12\x16\n" +
 	"\x06offset\x18\x01 \x01(\x03R\x06offset\x12#\n" +
-	"\rbytes_written\x18\x02 \x01(\x05R\fbytesWritten\"\xdc\x01\n" +
+	"\rbytes_written\x18\x02 \x01(\x05R\fbytesWritten\"\xfb\x01\n" +
 	"\x12DisassembleRequest\x12)\n" +
 	"\x10memory_reference\x18\x01 \x01(\tR\x0fmemoryReference\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x03R\x06offset\x12-\n" +
 	"\x12instruction_offset\x18\x03 \x01(\x05R\x11instructionOffset\x12+\n" +
 	"\x11instruction_count\x18\x04 \x01(\x05R\x10instructionCount\x12'\n" +
-	"\x0fresolve_symbols\x18\x05 \x01(\bR\x0eresolveSymbols\"Y\n" +
+	"\x0fresolve_symbols\x18\x05 \x01(\bR\x0eresolveSymbols\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"Y\n" +
 	"\x13DisassembleResponse\x12B\n" +
-	"\finstructions\x18\x01 \x03(\v2\x1e.debug.DisassembledInstructionR\finstructions\"g\n" +
+	"\finstructions\x18\x01 \x03(\v2\x1e.debug.DisassembledInstructionR\finstructions\"\x86\x01\n" +
 	"\x12GotoTargetsRequest\x12%\n" +
 	"\x06source\x18\x01 \x01(\v2\r.debug.SourceR\x06source\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\x05R\x04line\x12\x16\n" +
-	"\x06column\x18\x03 \x01(\x05R\x06column\"B\n" +
+	"\x06column\x18\x03 \x01(\x05R\x06column\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"B\n" +
 	"\x13GotoTargetsResponse\x12+\n" +
-	"\atargets\x18\x01 \x03(\v2\x11.debug.GotoTargetR\atargets\"G\n" +
+	"\atargets\x18\x01 \x03(\v2\x11.debug.GotoTargetR\atargets\"f\n" +
 	"\vGotoRequest\x12\x1b\n" +
 	"\tthread_id\x18\x01 \x01(\x05R\bthreadId\x12\x1b\n" +
-	"\ttarget_id\x18\x02 \x01(\x05R\btargetId\"\x0e\n" +
-	"\fGotoResponse\"\x18\n" +
-	"\x16SubscribeEventsRequest\"1\n" +
+	"\ttarget_id\x18\x02 \x01(\x05R\btargetId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18d \x01(\tR\tsessionId\"\x0e\n" +
+	"\fGotoResponse\"1\n" +
 	"\x05Event\x12\x14\n" +
 	"\x05event\x18\x01 \x01(\tR\x05event\x12\x12\n" +
-	"\x04body\x18\x02 \x01(\fR\x04body2\xea\x11\n" +
-	"\bDebugger\x12A\n" +
-	"\n" +
-	"Initialize\x12\x18.debug.InitializeRequest\x1a\x19.debug.InitializeResponse\x125\n" +
+	"\x04body\x18\x02 \x01(\fR\x04body2\xec\x11\n" +
+	"\bDebugger\x12C\n" +
+	"\rCreateSession\x12\x1b.debug.CreateSessionRequest\x1a\x13.debug.SessionEvent0\x01\x125\n" +
 	"\x06Launch\x12\x14.debug.LaunchRequest\x1a\x15.debug.LaunchResponse\x125\n" +
 	"\x06Attach\x12\x14.debug.AttachRequest\x1a\x15.debug.AttachResponse\x12V\n" +
 	"\x11ConfigurationDone\x12\x1f.debug.ConfigurationDoneRequest\x1a .debug.ConfigurationDoneResponse\x12A\n" +
@@ -5677,7 +6175,7 @@ func file_debugrpc_debug_proto_rawDescGZIP() []byte {
 	return file_debugrpc_debug_proto_rawDescData
 }
 
-var file_debugrpc_debug_proto_msgTypes = make([]protoimpl.MessageInfo, 85)
+var file_debugrpc_debug_proto_msgTypes = make([]protoimpl.MessageInfo, 87)
 var file_debugrpc_debug_proto_goTypes = []any{
 	(*Source)(nil),                          // 0: debug.Source
 	(*SourceBreakpoint)(nil),                // 1: debug.SourceBreakpoint
@@ -5693,77 +6191,79 @@ var file_debugrpc_debug_proto_goTypes = []any{
 	(*CompletionItem)(nil),                  // 11: debug.CompletionItem
 	(*ExceptionBreakpointsFilter)(nil),      // 12: debug.ExceptionBreakpointsFilter
 	(*Capabilities)(nil),                    // 13: debug.Capabilities
-	(*InitializeRequest)(nil),               // 14: debug.InitializeRequest
-	(*InitializeResponse)(nil),              // 15: debug.InitializeResponse
-	(*LaunchRequest)(nil),                   // 16: debug.LaunchRequest
-	(*LaunchResponse)(nil),                  // 17: debug.LaunchResponse
-	(*AttachRequest)(nil),                   // 18: debug.AttachRequest
-	(*AttachResponse)(nil),                  // 19: debug.AttachResponse
-	(*ConfigurationDoneRequest)(nil),        // 20: debug.ConfigurationDoneRequest
-	(*ConfigurationDoneResponse)(nil),       // 21: debug.ConfigurationDoneResponse
-	(*DisconnectRequest)(nil),               // 22: debug.DisconnectRequest
-	(*DisconnectResponse)(nil),              // 23: debug.DisconnectResponse
-	(*TerminateRequest)(nil),                // 24: debug.TerminateRequest
-	(*TerminateResponse)(nil),               // 25: debug.TerminateResponse
-	(*RestartRequest)(nil),                  // 26: debug.RestartRequest
-	(*RestartResponse)(nil),                 // 27: debug.RestartResponse
-	(*SetBreakpointsRequest)(nil),           // 28: debug.SetBreakpointsRequest
-	(*SetBreakpointsResponse)(nil),          // 29: debug.SetBreakpointsResponse
-	(*SetFunctionBreakpointsRequest)(nil),   // 30: debug.SetFunctionBreakpointsRequest
-	(*SetFunctionBreakpointsResponse)(nil),  // 31: debug.SetFunctionBreakpointsResponse
-	(*SetExceptionBreakpointsRequest)(nil),  // 32: debug.SetExceptionBreakpointsRequest
-	(*SetExceptionBreakpointsResponse)(nil), // 33: debug.SetExceptionBreakpointsResponse
-	(*ContinueRequest)(nil),                 // 34: debug.ContinueRequest
-	(*ContinueResponse)(nil),                // 35: debug.ContinueResponse
-	(*NextRequest)(nil),                     // 36: debug.NextRequest
-	(*NextResponse)(nil),                    // 37: debug.NextResponse
-	(*StepInRequest)(nil),                   // 38: debug.StepInRequest
-	(*StepInResponse)(nil),                  // 39: debug.StepInResponse
-	(*StepOutRequest)(nil),                  // 40: debug.StepOutRequest
-	(*StepOutResponse)(nil),                 // 41: debug.StepOutResponse
-	(*StepBackRequest)(nil),                 // 42: debug.StepBackRequest
-	(*StepBackResponse)(nil),                // 43: debug.StepBackResponse
-	(*ReverseContinueRequest)(nil),          // 44: debug.ReverseContinueRequest
-	(*ReverseContinueResponse)(nil),         // 45: debug.ReverseContinueResponse
-	(*PauseRequest)(nil),                    // 46: debug.PauseRequest
-	(*PauseResponse)(nil),                   // 47: debug.PauseResponse
-	(*ThreadsRequest)(nil),                  // 48: debug.ThreadsRequest
-	(*ThreadsResponse)(nil),                 // 49: debug.ThreadsResponse
-	(*StackTraceRequest)(nil),               // 50: debug.StackTraceRequest
-	(*StackTraceResponse)(nil),              // 51: debug.StackTraceResponse
-	(*ScopesRequest)(nil),                   // 52: debug.ScopesRequest
-	(*ScopesResponse)(nil),                  // 53: debug.ScopesResponse
-	(*VariablesRequest)(nil),                // 54: debug.VariablesRequest
-	(*VariablesResponse)(nil),               // 55: debug.VariablesResponse
-	(*SetVariableRequest)(nil),              // 56: debug.SetVariableRequest
-	(*SetVariableResponse)(nil),             // 57: debug.SetVariableResponse
-	(*SourceRequest)(nil),                   // 58: debug.SourceRequest
-	(*SourceResponse)(nil),                  // 59: debug.SourceResponse
-	(*EvaluateRequest)(nil),                 // 60: debug.EvaluateRequest
-	(*EvaluateResponse)(nil),                // 61: debug.EvaluateResponse
-	(*SetExpressionRequest)(nil),            // 62: debug.SetExpressionRequest
-	(*SetExpressionResponse)(nil),           // 63: debug.SetExpressionResponse
-	(*CompletionsRequest)(nil),              // 64: debug.CompletionsRequest
-	(*CompletionsResponse)(nil),             // 65: debug.CompletionsResponse
-	(*ExceptionInfoRequest)(nil),            // 66: debug.ExceptionInfoRequest
-	(*ExceptionInfoResponse)(nil),           // 67: debug.ExceptionInfoResponse
-	(*ModulesRequest)(nil),                  // 68: debug.ModulesRequest
-	(*ModulesResponse)(nil),                 // 69: debug.ModulesResponse
-	(*LoadedSourcesRequest)(nil),            // 70: debug.LoadedSourcesRequest
-	(*LoadedSourcesResponse)(nil),           // 71: debug.LoadedSourcesResponse
-	(*ReadMemoryRequest)(nil),               // 72: debug.ReadMemoryRequest
-	(*ReadMemoryResponse)(nil),              // 73: debug.ReadMemoryResponse
-	(*WriteMemoryRequest)(nil),              // 74: debug.WriteMemoryRequest
-	(*WriteMemoryResponse)(nil),             // 75: debug.WriteMemoryResponse
-	(*DisassembleRequest)(nil),              // 76: debug.DisassembleRequest
-	(*DisassembleResponse)(nil),             // 77: debug.DisassembleResponse
-	(*GotoTargetsRequest)(nil),              // 78: debug.GotoTargetsRequest
-	(*GotoTargetsResponse)(nil),             // 79: debug.GotoTargetsResponse
-	(*GotoRequest)(nil),                     // 80: debug.GotoRequest
-	(*GotoResponse)(nil),                    // 81: debug.GotoResponse
-	(*SubscribeEventsRequest)(nil),          // 82: debug.SubscribeEventsRequest
-	(*Event)(nil),                           // 83: debug.Event
-	nil,                                     // 84: debug.LaunchRequest.EnvEntry
+	(*CreateSessionRequest)(nil),            // 14: debug.CreateSessionRequest
+	(*ClientCapabilities)(nil),              // 15: debug.ClientCapabilities
+	(*SessionEvent)(nil),                    // 16: debug.SessionEvent
+	(*SessionOpened)(nil),                   // 17: debug.SessionOpened
+	(*SessionClosed)(nil),                   // 18: debug.SessionClosed
+	(*LaunchRequest)(nil),                   // 19: debug.LaunchRequest
+	(*LaunchResponse)(nil),                  // 20: debug.LaunchResponse
+	(*AttachRequest)(nil),                   // 21: debug.AttachRequest
+	(*AttachResponse)(nil),                  // 22: debug.AttachResponse
+	(*ConfigurationDoneRequest)(nil),        // 23: debug.ConfigurationDoneRequest
+	(*ConfigurationDoneResponse)(nil),       // 24: debug.ConfigurationDoneResponse
+	(*DisconnectRequest)(nil),               // 25: debug.DisconnectRequest
+	(*DisconnectResponse)(nil),              // 26: debug.DisconnectResponse
+	(*TerminateRequest)(nil),                // 27: debug.TerminateRequest
+	(*TerminateResponse)(nil),               // 28: debug.TerminateResponse
+	(*RestartRequest)(nil),                  // 29: debug.RestartRequest
+	(*RestartResponse)(nil),                 // 30: debug.RestartResponse
+	(*SetBreakpointsRequest)(nil),           // 31: debug.SetBreakpointsRequest
+	(*SetBreakpointsResponse)(nil),          // 32: debug.SetBreakpointsResponse
+	(*SetFunctionBreakpointsRequest)(nil),   // 33: debug.SetFunctionBreakpointsRequest
+	(*SetFunctionBreakpointsResponse)(nil),  // 34: debug.SetFunctionBreakpointsResponse
+	(*SetExceptionBreakpointsRequest)(nil),  // 35: debug.SetExceptionBreakpointsRequest
+	(*SetExceptionBreakpointsResponse)(nil), // 36: debug.SetExceptionBreakpointsResponse
+	(*ContinueRequest)(nil),                 // 37: debug.ContinueRequest
+	(*ContinueResponse)(nil),                // 38: debug.ContinueResponse
+	(*NextRequest)(nil),                     // 39: debug.NextRequest
+	(*NextResponse)(nil),                    // 40: debug.NextResponse
+	(*StepInRequest)(nil),                   // 41: debug.StepInRequest
+	(*StepInResponse)(nil),                  // 42: debug.StepInResponse
+	(*StepOutRequest)(nil),                  // 43: debug.StepOutRequest
+	(*StepOutResponse)(nil),                 // 44: debug.StepOutResponse
+	(*StepBackRequest)(nil),                 // 45: debug.StepBackRequest
+	(*StepBackResponse)(nil),                // 46: debug.StepBackResponse
+	(*ReverseContinueRequest)(nil),          // 47: debug.ReverseContinueRequest
+	(*ReverseContinueResponse)(nil),         // 48: debug.ReverseContinueResponse
+	(*PauseRequest)(nil),                    // 49: debug.PauseRequest
+	(*PauseResponse)(nil),                   // 50: debug.PauseResponse
+	(*ThreadsRequest)(nil),                  // 51: debug.ThreadsRequest
+	(*ThreadsResponse)(nil),                 // 52: debug.ThreadsResponse
+	(*StackTraceRequest)(nil),               // 53: debug.StackTraceRequest
+	(*StackTraceResponse)(nil),              // 54: debug.StackTraceResponse
+	(*ScopesRequest)(nil),                   // 55: debug.ScopesRequest
+	(*ScopesResponse)(nil),                  // 56: debug.ScopesResponse
+	(*VariablesRequest)(nil),                // 57: debug.VariablesRequest
+	(*VariablesResponse)(nil),               // 58: debug.VariablesResponse
+	(*SetVariableRequest)(nil),              // 59: debug.SetVariableRequest
+	(*SetVariableResponse)(nil),             // 60: debug.SetVariableResponse
+	(*SourceRequest)(nil),                   // 61: debug.SourceRequest
+	(*SourceResponse)(nil),                  // 62: debug.SourceResponse
+	(*EvaluateRequest)(nil),                 // 63: debug.EvaluateRequest
+	(*EvaluateResponse)(nil),                // 64: debug.EvaluateResponse
+	(*SetExpressionRequest)(nil),            // 65: debug.SetExpressionRequest
+	(*SetExpressionResponse)(nil),           // 66: debug.SetExpressionResponse
+	(*CompletionsRequest)(nil),              // 67: debug.CompletionsRequest
+	(*CompletionsResponse)(nil),             // 68: debug.CompletionsResponse
+	(*ExceptionInfoRequest)(nil),            // 69: debug.ExceptionInfoRequest
+	(*ExceptionInfoResponse)(nil),           // 70: debug.ExceptionInfoResponse
+	(*ModulesRequest)(nil),                  // 71: debug.ModulesRequest
+	(*ModulesResponse)(nil),                 // 72: debug.ModulesResponse
+	(*LoadedSourcesRequest)(nil),            // 73: debug.LoadedSourcesRequest
+	(*LoadedSourcesResponse)(nil),           // 74: debug.LoadedSourcesResponse
+	(*ReadMemoryRequest)(nil),               // 75: debug.ReadMemoryRequest
+	(*ReadMemoryResponse)(nil),              // 76: debug.ReadMemoryResponse
+	(*WriteMemoryRequest)(nil),              // 77: debug.WriteMemoryRequest
+	(*WriteMemoryResponse)(nil),             // 78: debug.WriteMemoryResponse
+	(*DisassembleRequest)(nil),              // 79: debug.DisassembleRequest
+	(*DisassembleResponse)(nil),             // 80: debug.DisassembleResponse
+	(*GotoTargetsRequest)(nil),              // 81: debug.GotoTargetsRequest
+	(*GotoTargetsResponse)(nil),             // 82: debug.GotoTargetsResponse
+	(*GotoRequest)(nil),                     // 83: debug.GotoRequest
+	(*GotoResponse)(nil),                    // 84: debug.GotoResponse
+	(*Event)(nil),                           // 85: debug.Event
+	nil,                                     // 86: debug.LaunchRequest.EnvEntry
 }
 var file_debugrpc_debug_proto_depIdxs = []int32{
 	0,  // 0: debug.Source.sources:type_name -> debug.Source
@@ -5772,98 +6272,102 @@ var file_debugrpc_debug_proto_depIdxs = []int32{
 	0,  // 3: debug.Scope.source:type_name -> debug.Source
 	0,  // 4: debug.DisassembledInstruction.location:type_name -> debug.Source
 	12, // 5: debug.Capabilities.exception_breakpoint_filters:type_name -> debug.ExceptionBreakpointsFilter
-	13, // 6: debug.InitializeResponse.capabilities:type_name -> debug.Capabilities
-	84, // 7: debug.LaunchRequest.env:type_name -> debug.LaunchRequest.EnvEntry
-	0,  // 8: debug.SetBreakpointsRequest.source:type_name -> debug.Source
-	1,  // 9: debug.SetBreakpointsRequest.breakpoints:type_name -> debug.SourceBreakpoint
-	3,  // 10: debug.SetBreakpointsResponse.breakpoints:type_name -> debug.Breakpoint
-	2,  // 11: debug.SetFunctionBreakpointsRequest.breakpoints:type_name -> debug.FunctionBreakpoint
-	3,  // 12: debug.SetFunctionBreakpointsResponse.breakpoints:type_name -> debug.Breakpoint
-	3,  // 13: debug.SetExceptionBreakpointsResponse.breakpoints:type_name -> debug.Breakpoint
-	4,  // 14: debug.ThreadsResponse.threads:type_name -> debug.Thread
-	5,  // 15: debug.StackTraceResponse.stack_frames:type_name -> debug.StackFrame
-	6,  // 16: debug.ScopesResponse.scopes:type_name -> debug.Scope
-	7,  // 17: debug.VariablesResponse.variables:type_name -> debug.Variable
-	0,  // 18: debug.SourceRequest.source:type_name -> debug.Source
-	11, // 19: debug.CompletionsResponse.targets:type_name -> debug.CompletionItem
-	10, // 20: debug.ModulesResponse.modules:type_name -> debug.Module
-	0,  // 21: debug.LoadedSourcesResponse.sources:type_name -> debug.Source
-	8,  // 22: debug.DisassembleResponse.instructions:type_name -> debug.DisassembledInstruction
-	0,  // 23: debug.GotoTargetsRequest.source:type_name -> debug.Source
-	9,  // 24: debug.GotoTargetsResponse.targets:type_name -> debug.GotoTarget
-	14, // 25: debug.Debugger.Initialize:input_type -> debug.InitializeRequest
-	16, // 26: debug.Debugger.Launch:input_type -> debug.LaunchRequest
-	18, // 27: debug.Debugger.Attach:input_type -> debug.AttachRequest
-	20, // 28: debug.Debugger.ConfigurationDone:input_type -> debug.ConfigurationDoneRequest
-	22, // 29: debug.Debugger.Disconnect:input_type -> debug.DisconnectRequest
-	24, // 30: debug.Debugger.Terminate:input_type -> debug.TerminateRequest
-	26, // 31: debug.Debugger.Restart:input_type -> debug.RestartRequest
-	28, // 32: debug.Debugger.SetBreakpoints:input_type -> debug.SetBreakpointsRequest
-	30, // 33: debug.Debugger.SetFunctionBreakpoints:input_type -> debug.SetFunctionBreakpointsRequest
-	32, // 34: debug.Debugger.SetExceptionBreakpoints:input_type -> debug.SetExceptionBreakpointsRequest
-	34, // 35: debug.Debugger.Continue:input_type -> debug.ContinueRequest
-	36, // 36: debug.Debugger.Next:input_type -> debug.NextRequest
-	38, // 37: debug.Debugger.StepIn:input_type -> debug.StepInRequest
-	40, // 38: debug.Debugger.StepOut:input_type -> debug.StepOutRequest
-	42, // 39: debug.Debugger.StepBack:input_type -> debug.StepBackRequest
-	44, // 40: debug.Debugger.ReverseContinue:input_type -> debug.ReverseContinueRequest
-	46, // 41: debug.Debugger.Pause:input_type -> debug.PauseRequest
-	48, // 42: debug.Debugger.Threads:input_type -> debug.ThreadsRequest
-	50, // 43: debug.Debugger.StackTrace:input_type -> debug.StackTraceRequest
-	52, // 44: debug.Debugger.Scopes:input_type -> debug.ScopesRequest
-	54, // 45: debug.Debugger.Variables:input_type -> debug.VariablesRequest
-	56, // 46: debug.Debugger.SetVariable:input_type -> debug.SetVariableRequest
-	58, // 47: debug.Debugger.Source:input_type -> debug.SourceRequest
-	60, // 48: debug.Debugger.Evaluate:input_type -> debug.EvaluateRequest
-	62, // 49: debug.Debugger.SetExpression:input_type -> debug.SetExpressionRequest
-	64, // 50: debug.Debugger.Completions:input_type -> debug.CompletionsRequest
-	66, // 51: debug.Debugger.ExceptionInfo:input_type -> debug.ExceptionInfoRequest
-	68, // 52: debug.Debugger.Modules:input_type -> debug.ModulesRequest
-	70, // 53: debug.Debugger.LoadedSources:input_type -> debug.LoadedSourcesRequest
-	72, // 54: debug.Debugger.ReadMemory:input_type -> debug.ReadMemoryRequest
-	74, // 55: debug.Debugger.WriteMemory:input_type -> debug.WriteMemoryRequest
-	76, // 56: debug.Debugger.Disassemble:input_type -> debug.DisassembleRequest
-	78, // 57: debug.Debugger.GotoTargets:input_type -> debug.GotoTargetsRequest
-	80, // 58: debug.Debugger.Goto:input_type -> debug.GotoRequest
-	15, // 59: debug.Debugger.Initialize:output_type -> debug.InitializeResponse
-	17, // 60: debug.Debugger.Launch:output_type -> debug.LaunchResponse
-	19, // 61: debug.Debugger.Attach:output_type -> debug.AttachResponse
-	21, // 62: debug.Debugger.ConfigurationDone:output_type -> debug.ConfigurationDoneResponse
-	23, // 63: debug.Debugger.Disconnect:output_type -> debug.DisconnectResponse
-	25, // 64: debug.Debugger.Terminate:output_type -> debug.TerminateResponse
-	27, // 65: debug.Debugger.Restart:output_type -> debug.RestartResponse
-	29, // 66: debug.Debugger.SetBreakpoints:output_type -> debug.SetBreakpointsResponse
-	31, // 67: debug.Debugger.SetFunctionBreakpoints:output_type -> debug.SetFunctionBreakpointsResponse
-	33, // 68: debug.Debugger.SetExceptionBreakpoints:output_type -> debug.SetExceptionBreakpointsResponse
-	35, // 69: debug.Debugger.Continue:output_type -> debug.ContinueResponse
-	37, // 70: debug.Debugger.Next:output_type -> debug.NextResponse
-	39, // 71: debug.Debugger.StepIn:output_type -> debug.StepInResponse
-	41, // 72: debug.Debugger.StepOut:output_type -> debug.StepOutResponse
-	43, // 73: debug.Debugger.StepBack:output_type -> debug.StepBackResponse
-	45, // 74: debug.Debugger.ReverseContinue:output_type -> debug.ReverseContinueResponse
-	47, // 75: debug.Debugger.Pause:output_type -> debug.PauseResponse
-	49, // 76: debug.Debugger.Threads:output_type -> debug.ThreadsResponse
-	51, // 77: debug.Debugger.StackTrace:output_type -> debug.StackTraceResponse
-	53, // 78: debug.Debugger.Scopes:output_type -> debug.ScopesResponse
-	55, // 79: debug.Debugger.Variables:output_type -> debug.VariablesResponse
-	57, // 80: debug.Debugger.SetVariable:output_type -> debug.SetVariableResponse
-	59, // 81: debug.Debugger.Source:output_type -> debug.SourceResponse
-	61, // 82: debug.Debugger.Evaluate:output_type -> debug.EvaluateResponse
-	63, // 83: debug.Debugger.SetExpression:output_type -> debug.SetExpressionResponse
-	65, // 84: debug.Debugger.Completions:output_type -> debug.CompletionsResponse
-	67, // 85: debug.Debugger.ExceptionInfo:output_type -> debug.ExceptionInfoResponse
-	69, // 86: debug.Debugger.Modules:output_type -> debug.ModulesResponse
-	71, // 87: debug.Debugger.LoadedSources:output_type -> debug.LoadedSourcesResponse
-	73, // 88: debug.Debugger.ReadMemory:output_type -> debug.ReadMemoryResponse
-	75, // 89: debug.Debugger.WriteMemory:output_type -> debug.WriteMemoryResponse
-	77, // 90: debug.Debugger.Disassemble:output_type -> debug.DisassembleResponse
-	79, // 91: debug.Debugger.GotoTargets:output_type -> debug.GotoTargetsResponse
-	81, // 92: debug.Debugger.Goto:output_type -> debug.GotoResponse
-	59, // [59:93] is the sub-list for method output_type
-	25, // [25:59] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	15, // 6: debug.CreateSessionRequest.client:type_name -> debug.ClientCapabilities
+	17, // 7: debug.SessionEvent.opened:type_name -> debug.SessionOpened
+	85, // 8: debug.SessionEvent.dap_event:type_name -> debug.Event
+	18, // 9: debug.SessionEvent.closed:type_name -> debug.SessionClosed
+	13, // 10: debug.SessionOpened.capabilities:type_name -> debug.Capabilities
+	86, // 11: debug.LaunchRequest.env:type_name -> debug.LaunchRequest.EnvEntry
+	0,  // 12: debug.SetBreakpointsRequest.source:type_name -> debug.Source
+	1,  // 13: debug.SetBreakpointsRequest.breakpoints:type_name -> debug.SourceBreakpoint
+	3,  // 14: debug.SetBreakpointsResponse.breakpoints:type_name -> debug.Breakpoint
+	2,  // 15: debug.SetFunctionBreakpointsRequest.breakpoints:type_name -> debug.FunctionBreakpoint
+	3,  // 16: debug.SetFunctionBreakpointsResponse.breakpoints:type_name -> debug.Breakpoint
+	3,  // 17: debug.SetExceptionBreakpointsResponse.breakpoints:type_name -> debug.Breakpoint
+	4,  // 18: debug.ThreadsResponse.threads:type_name -> debug.Thread
+	5,  // 19: debug.StackTraceResponse.stack_frames:type_name -> debug.StackFrame
+	6,  // 20: debug.ScopesResponse.scopes:type_name -> debug.Scope
+	7,  // 21: debug.VariablesResponse.variables:type_name -> debug.Variable
+	0,  // 22: debug.SourceRequest.source:type_name -> debug.Source
+	11, // 23: debug.CompletionsResponse.targets:type_name -> debug.CompletionItem
+	10, // 24: debug.ModulesResponse.modules:type_name -> debug.Module
+	0,  // 25: debug.LoadedSourcesResponse.sources:type_name -> debug.Source
+	8,  // 26: debug.DisassembleResponse.instructions:type_name -> debug.DisassembledInstruction
+	0,  // 27: debug.GotoTargetsRequest.source:type_name -> debug.Source
+	9,  // 28: debug.GotoTargetsResponse.targets:type_name -> debug.GotoTarget
+	14, // 29: debug.Debugger.CreateSession:input_type -> debug.CreateSessionRequest
+	19, // 30: debug.Debugger.Launch:input_type -> debug.LaunchRequest
+	21, // 31: debug.Debugger.Attach:input_type -> debug.AttachRequest
+	23, // 32: debug.Debugger.ConfigurationDone:input_type -> debug.ConfigurationDoneRequest
+	25, // 33: debug.Debugger.Disconnect:input_type -> debug.DisconnectRequest
+	27, // 34: debug.Debugger.Terminate:input_type -> debug.TerminateRequest
+	29, // 35: debug.Debugger.Restart:input_type -> debug.RestartRequest
+	31, // 36: debug.Debugger.SetBreakpoints:input_type -> debug.SetBreakpointsRequest
+	33, // 37: debug.Debugger.SetFunctionBreakpoints:input_type -> debug.SetFunctionBreakpointsRequest
+	35, // 38: debug.Debugger.SetExceptionBreakpoints:input_type -> debug.SetExceptionBreakpointsRequest
+	37, // 39: debug.Debugger.Continue:input_type -> debug.ContinueRequest
+	39, // 40: debug.Debugger.Next:input_type -> debug.NextRequest
+	41, // 41: debug.Debugger.StepIn:input_type -> debug.StepInRequest
+	43, // 42: debug.Debugger.StepOut:input_type -> debug.StepOutRequest
+	45, // 43: debug.Debugger.StepBack:input_type -> debug.StepBackRequest
+	47, // 44: debug.Debugger.ReverseContinue:input_type -> debug.ReverseContinueRequest
+	49, // 45: debug.Debugger.Pause:input_type -> debug.PauseRequest
+	51, // 46: debug.Debugger.Threads:input_type -> debug.ThreadsRequest
+	53, // 47: debug.Debugger.StackTrace:input_type -> debug.StackTraceRequest
+	55, // 48: debug.Debugger.Scopes:input_type -> debug.ScopesRequest
+	57, // 49: debug.Debugger.Variables:input_type -> debug.VariablesRequest
+	59, // 50: debug.Debugger.SetVariable:input_type -> debug.SetVariableRequest
+	61, // 51: debug.Debugger.Source:input_type -> debug.SourceRequest
+	63, // 52: debug.Debugger.Evaluate:input_type -> debug.EvaluateRequest
+	65, // 53: debug.Debugger.SetExpression:input_type -> debug.SetExpressionRequest
+	67, // 54: debug.Debugger.Completions:input_type -> debug.CompletionsRequest
+	69, // 55: debug.Debugger.ExceptionInfo:input_type -> debug.ExceptionInfoRequest
+	71, // 56: debug.Debugger.Modules:input_type -> debug.ModulesRequest
+	73, // 57: debug.Debugger.LoadedSources:input_type -> debug.LoadedSourcesRequest
+	75, // 58: debug.Debugger.ReadMemory:input_type -> debug.ReadMemoryRequest
+	77, // 59: debug.Debugger.WriteMemory:input_type -> debug.WriteMemoryRequest
+	79, // 60: debug.Debugger.Disassemble:input_type -> debug.DisassembleRequest
+	81, // 61: debug.Debugger.GotoTargets:input_type -> debug.GotoTargetsRequest
+	83, // 62: debug.Debugger.Goto:input_type -> debug.GotoRequest
+	16, // 63: debug.Debugger.CreateSession:output_type -> debug.SessionEvent
+	20, // 64: debug.Debugger.Launch:output_type -> debug.LaunchResponse
+	22, // 65: debug.Debugger.Attach:output_type -> debug.AttachResponse
+	24, // 66: debug.Debugger.ConfigurationDone:output_type -> debug.ConfigurationDoneResponse
+	26, // 67: debug.Debugger.Disconnect:output_type -> debug.DisconnectResponse
+	28, // 68: debug.Debugger.Terminate:output_type -> debug.TerminateResponse
+	30, // 69: debug.Debugger.Restart:output_type -> debug.RestartResponse
+	32, // 70: debug.Debugger.SetBreakpoints:output_type -> debug.SetBreakpointsResponse
+	34, // 71: debug.Debugger.SetFunctionBreakpoints:output_type -> debug.SetFunctionBreakpointsResponse
+	36, // 72: debug.Debugger.SetExceptionBreakpoints:output_type -> debug.SetExceptionBreakpointsResponse
+	38, // 73: debug.Debugger.Continue:output_type -> debug.ContinueResponse
+	40, // 74: debug.Debugger.Next:output_type -> debug.NextResponse
+	42, // 75: debug.Debugger.StepIn:output_type -> debug.StepInResponse
+	44, // 76: debug.Debugger.StepOut:output_type -> debug.StepOutResponse
+	46, // 77: debug.Debugger.StepBack:output_type -> debug.StepBackResponse
+	48, // 78: debug.Debugger.ReverseContinue:output_type -> debug.ReverseContinueResponse
+	50, // 79: debug.Debugger.Pause:output_type -> debug.PauseResponse
+	52, // 80: debug.Debugger.Threads:output_type -> debug.ThreadsResponse
+	54, // 81: debug.Debugger.StackTrace:output_type -> debug.StackTraceResponse
+	56, // 82: debug.Debugger.Scopes:output_type -> debug.ScopesResponse
+	58, // 83: debug.Debugger.Variables:output_type -> debug.VariablesResponse
+	60, // 84: debug.Debugger.SetVariable:output_type -> debug.SetVariableResponse
+	62, // 85: debug.Debugger.Source:output_type -> debug.SourceResponse
+	64, // 86: debug.Debugger.Evaluate:output_type -> debug.EvaluateResponse
+	66, // 87: debug.Debugger.SetExpression:output_type -> debug.SetExpressionResponse
+	68, // 88: debug.Debugger.Completions:output_type -> debug.CompletionsResponse
+	70, // 89: debug.Debugger.ExceptionInfo:output_type -> debug.ExceptionInfoResponse
+	72, // 90: debug.Debugger.Modules:output_type -> debug.ModulesResponse
+	74, // 91: debug.Debugger.LoadedSources:output_type -> debug.LoadedSourcesResponse
+	76, // 92: debug.Debugger.ReadMemory:output_type -> debug.ReadMemoryResponse
+	78, // 93: debug.Debugger.WriteMemory:output_type -> debug.WriteMemoryResponse
+	80, // 94: debug.Debugger.Disassemble:output_type -> debug.DisassembleResponse
+	82, // 95: debug.Debugger.GotoTargets:output_type -> debug.GotoTargetsResponse
+	84, // 96: debug.Debugger.Goto:output_type -> debug.GotoResponse
+	63, // [63:97] is the sub-list for method output_type
+	29, // [29:63] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_debugrpc_debug_proto_init() }
@@ -5871,13 +6375,18 @@ func file_debugrpc_debug_proto_init() {
 	if File_debugrpc_debug_proto != nil {
 		return
 	}
+	file_debugrpc_debug_proto_msgTypes[16].OneofWrappers = []any{
+		(*SessionEvent_Opened)(nil),
+		(*SessionEvent_DapEvent)(nil),
+		(*SessionEvent_Closed)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_debugrpc_debug_proto_rawDesc), len(file_debugrpc_debug_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   85,
+			NumMessages:   87,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -16,6 +16,9 @@ package debugrpc
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
 
 	"github.com/google/go-dap"
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
@@ -52,43 +55,116 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// Initialize implements debugapi.Debugger.
-func (c *Client) Initialize(ctx context.Context, args *debugapi.InitializeRequestArguments) (*dap.Capabilities, error) {
-	ctx, cancel := joincontext.New(ctx, c.clientCtx)
-	defer cancel()
-
-	req := &InitializeRequest{
-		ClientId:                     args.ClientID,
-		ClientName:                   args.ClientName,
-		AdapterId:                    args.AdapterID,
-		Locale:                       args.Locale,
-		LinesStartAt_1:               args.LinesStartAt1,
-		ColumnsStartAt_1:             args.ColumnsStartAt1,
-		PathFormat:                   args.PathFormat,
-		SupportsVariableType:         args.SupportsVariableType,
-		SupportsVariablePaging:       args.SupportsVariablePaging,
-		SupportsRunInTerminalRequest: args.SupportsRunInTerminalRequest,
-		SupportsMemoryReferences:     args.SupportsMemoryReferences,
-		SupportsProgressReporting:    args.SupportsProgressReporting,
-		SupportsInvalidatedEvent:     args.SupportsInvalidatedEvent,
-		SupportsMemoryEvent:          args.SupportsMemoryEvent,
-		InitializeOptions:            args.InitializeOptions,
-	}
-
-	resp, err := c.client.Initialize(ctx, req)
+// CreateSession implements debugapi.Debugger. It opens a
+// server-streaming RPC, reads the initial SessionOpened message
+// (blocking until it arrives), then spawns a goroutine that
+// drains the stream and forwards events to subscriber. The
+// goroutine exits when the stream is closed by the server or
+// when the client context is cancelled.
+func (c *Client) CreateSession(
+	ctx context.Context, langID string,
+	client debugapi.ClientCapabilities,
+	subscriber debugapi.EventSubscriber,
+) (string, *dap.Capabilities, error) {
+	// The stream must outlive ctx (which typically belongs to
+	// the caller's single request), so we bind it to
+	// c.clientCtx only. The initial handshake respects ctx via
+	// a short-lived joined context.
+	stream, err := c.client.CreateSession(c.clientCtx, &CreateSessionRequest{
+		LangId: langID,
+		Client: clientCapabilitiesToProto(client),
+	})
 	if err != nil {
-		return nil, err
+		return "", nil, fmt.Errorf("create session: %w", err)
 	}
 
-	return capabilitiesFromProto(resp.GetCapabilities()), nil
+	// Wait for the first SessionOpened message, respecting the
+	// caller's ctx so slow adapter startup can be aborted.
+	opened, err := recvSessionOpened(ctx, stream)
+	if err != nil {
+		return "", nil, err
+	}
+
+	go drainSessionEvents(stream, subscriber)
+
+	return opened.GetSessionId(),
+		capabilitiesFromProto(opened.GetCapabilities()), nil
+}
+
+// recvSessionOpened receives messages until the first
+// SessionOpened arrives, or ctx/stream terminates.
+func recvSessionOpened(
+	ctx context.Context, stream grpc.ServerStreamingClient[SessionEvent],
+) (*SessionOpened, error) {
+	type result struct {
+		msg *SessionEvent
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		msg, err := stream.Recv()
+		ch <- result{msg, err}
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case r := <-ch:
+		if r.err != nil {
+			return nil, fmt.Errorf("recv session opened: %w", r.err)
+		}
+		opened, ok := r.msg.GetPayload().(*SessionEvent_Opened)
+		if !ok || opened == nil {
+			return nil, errors.New(
+				"first session event must be SessionOpened")
+		}
+		return opened.Opened, nil
+	}
+}
+
+// drainSessionEvents reads the remainder of the session stream,
+// forwarding DAP events and terminating on SessionClosed or
+// stream EOF/error.
+func drainSessionEvents(
+	stream grpc.ServerStreamingClient[SessionEvent],
+	subscriber debugapi.EventSubscriber,
+) {
+	reason := "canceled"
+	defer func() {
+		subscriber.OnClose(reason)
+	}()
+	for {
+		msg, err := stream.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) && reason == "canceled" {
+				reason = "terminated"
+			}
+			return
+		}
+		switch p := msg.GetPayload().(type) {
+		case *SessionEvent_DapEvent:
+			if ev := dapEventFromProto(p.DapEvent); ev != nil {
+				subscriber.OnEvent(ev)
+			}
+		case *SessionEvent_Closed:
+			if r := p.Closed.GetReason(); r != "" {
+				reason = r
+			} else {
+				reason = "terminated"
+			}
+			return
+		case *SessionEvent_Opened:
+			// Protocol error: Opened must be first. Ignore.
+		}
+	}
 }
 
 // Launch implements debugapi.Debugger.
-func (c *Client) Launch(ctx context.Context, args debugapi.LaunchRequestArguments) error {
+func (c *Client) Launch(ctx context.Context, sessionID string, args debugapi.LaunchRequestArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &LaunchRequest{
+		SessionId:   sessionID,
 		Program:     args.Program,
 		Args:        args.Args,
 		Cwd:         args.Cwd,
@@ -102,13 +178,14 @@ func (c *Client) Launch(ctx context.Context, args debugapi.LaunchRequestArgument
 }
 
 // Attach implements debugapi.Debugger.
-func (c *Client) Attach(ctx context.Context, args debugapi.AttachRequestArguments) error {
+func (c *Client) Attach(ctx context.Context, sessionID string, args debugapi.AttachRequestArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &AttachRequest{
-		Pid:     int32(args.PID),
-		Program: args.Program,
+		SessionId: sessionID,
+		Pid:       int32(args.PID),
+		Program:   args.Program,
 	}
 
 	_, err := c.client.Attach(ctx, req)
@@ -116,20 +193,23 @@ func (c *Client) Attach(ctx context.Context, args debugapi.AttachRequestArgument
 }
 
 // ConfigurationDone implements debugapi.Debugger.
-func (c *Client) ConfigurationDone(ctx context.Context) error {
+func (c *Client) ConfigurationDone(ctx context.Context, sessionID string) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
-	_, err := c.client.ConfigurationDone(ctx, &ConfigurationDoneRequest{})
+	_, err := c.client.ConfigurationDone(ctx, &ConfigurationDoneRequest{
+		SessionId: sessionID,
+	})
 	return err
 }
 
 // Disconnect implements debugapi.Debugger.
-func (c *Client) Disconnect(ctx context.Context, args *dap.DisconnectArguments) error {
+func (c *Client) Disconnect(ctx context.Context, sessionID string, args *dap.DisconnectArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DisconnectRequest{
+		SessionId:         sessionID,
 		Restart:           args.Restart,
 		TerminateDebuggee: args.TerminateDebuggee,
 		SuspendDebuggee:   args.SuspendDebuggee,
@@ -140,12 +220,13 @@ func (c *Client) Disconnect(ctx context.Context, args *dap.DisconnectArguments) 
 }
 
 // Terminate implements debugapi.Debugger.
-func (c *Client) Terminate(ctx context.Context, args *dap.TerminateArguments) error {
+func (c *Client) Terminate(ctx context.Context, sessionID string, args *dap.TerminateArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &TerminateRequest{
-		Restart: args.Restart,
+		SessionId: sessionID,
+		Restart:   args.Restart,
 	}
 
 	_, err := c.client.Terminate(ctx, req)
@@ -153,20 +234,21 @@ func (c *Client) Terminate(ctx context.Context, args *dap.TerminateArguments) er
 }
 
 // Restart implements debugapi.Debugger.
-func (c *Client) Restart(ctx context.Context) error {
+func (c *Client) Restart(ctx context.Context, sessionID string) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
-	_, err := c.client.Restart(ctx, &RestartRequest{})
+	_, err := c.client.Restart(ctx, &RestartRequest{SessionId: sessionID})
 	return err
 }
 
 // SetBreakpoints implements debugapi.Debugger.
-func (c *Client) SetBreakpoints(ctx context.Context, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error) {
+func (c *Client) SetBreakpoints(ctx context.Context, sessionID string, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SetBreakpointsRequest{
+		SessionId:      sessionID,
 		Source:         sourceToProtoFromDap(&args.Source),
 		Breakpoints:    sourceBreakpointsToProto(args.Breakpoints),
 		SourceModified: args.SourceModified,
@@ -181,11 +263,12 @@ func (c *Client) SetBreakpoints(ctx context.Context, args *dap.SetBreakpointsArg
 }
 
 // SetFunctionBreakpoints implements debugapi.Debugger.
-func (c *Client) SetFunctionBreakpoints(ctx context.Context, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error) {
+func (c *Client) SetFunctionBreakpoints(ctx context.Context, sessionID string, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SetFunctionBreakpointsRequest{
+		SessionId:   sessionID,
 		Breakpoints: functionBreakpointsToProto(args.Breakpoints),
 	}
 
@@ -198,12 +281,13 @@ func (c *Client) SetFunctionBreakpoints(ctx context.Context, args *dap.SetFuncti
 }
 
 // SetExceptionBreakpoints implements debugapi.Debugger.
-func (c *Client) SetExceptionBreakpoints(ctx context.Context, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error) {
+func (c *Client) SetExceptionBreakpoints(ctx context.Context, sessionID string, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SetExceptionBreakpointsRequest{
-		Filters: args.Filters,
+		SessionId: sessionID,
+		Filters:   args.Filters,
 	}
 
 	resp, err := c.client.SetExceptionBreakpoints(ctx, req)
@@ -215,11 +299,12 @@ func (c *Client) SetExceptionBreakpoints(ctx context.Context, args *dap.SetExcep
 }
 
 // Continue implements debugapi.Debugger.
-func (c *Client) Continue(ctx context.Context, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error) {
+func (c *Client) Continue(ctx context.Context, sessionID string, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ContinueRequest{
+		SessionId:    sessionID,
 		ThreadId:     int32(args.ThreadId),
 		SingleThread: args.SingleThread,
 	}
@@ -235,11 +320,12 @@ func (c *Client) Continue(ctx context.Context, args *dap.ContinueArguments) (*da
 }
 
 // Next implements debugapi.Debugger.
-func (c *Client) Next(ctx context.Context, args *dap.NextArguments) error {
+func (c *Client) Next(ctx context.Context, sessionID string, args *dap.NextArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &NextRequest{
+		SessionId:    sessionID,
 		ThreadId:     int32(args.ThreadId),
 		SingleThread: args.SingleThread,
 		Granularity:  string(args.Granularity),
@@ -250,11 +336,12 @@ func (c *Client) Next(ctx context.Context, args *dap.NextArguments) error {
 }
 
 // StepIn implements debugapi.Debugger.
-func (c *Client) StepIn(ctx context.Context, args *dap.StepInArguments) error {
+func (c *Client) StepIn(ctx context.Context, sessionID string, args *dap.StepInArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &StepInRequest{
+		SessionId:    sessionID,
 		ThreadId:     int32(args.ThreadId),
 		SingleThread: args.SingleThread,
 		TargetId:     int32(args.TargetId),
@@ -266,11 +353,12 @@ func (c *Client) StepIn(ctx context.Context, args *dap.StepInArguments) error {
 }
 
 // StepOut implements debugapi.Debugger.
-func (c *Client) StepOut(ctx context.Context, args *dap.StepOutArguments) error {
+func (c *Client) StepOut(ctx context.Context, sessionID string, args *dap.StepOutArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &StepOutRequest{
+		SessionId:    sessionID,
 		ThreadId:     int32(args.ThreadId),
 		SingleThread: args.SingleThread,
 		Granularity:  string(args.Granularity),
@@ -281,11 +369,12 @@ func (c *Client) StepOut(ctx context.Context, args *dap.StepOutArguments) error 
 }
 
 // StepBack implements debugapi.Debugger.
-func (c *Client) StepBack(ctx context.Context, args *dap.StepBackArguments) error {
+func (c *Client) StepBack(ctx context.Context, sessionID string, args *dap.StepBackArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &StepBackRequest{
+		SessionId:    sessionID,
 		ThreadId:     int32(args.ThreadId),
 		SingleThread: args.SingleThread,
 		Granularity:  string(args.Granularity),
@@ -296,11 +385,12 @@ func (c *Client) StepBack(ctx context.Context, args *dap.StepBackArguments) erro
 }
 
 // ReverseContinue implements debugapi.Debugger.
-func (c *Client) ReverseContinue(ctx context.Context, args *dap.ReverseContinueArguments) error {
+func (c *Client) ReverseContinue(ctx context.Context, sessionID string, args *dap.ReverseContinueArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ReverseContinueRequest{
+		SessionId:    sessionID,
 		ThreadId:     int32(args.ThreadId),
 		SingleThread: args.SingleThread,
 	}
@@ -310,20 +400,23 @@ func (c *Client) ReverseContinue(ctx context.Context, args *dap.ReverseContinueA
 }
 
 // Pause implements debugapi.Debugger.
-func (c *Client) Pause(ctx context.Context, args *dap.PauseArguments) error {
+func (c *Client) Pause(ctx context.Context, sessionID string, args *dap.PauseArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
-	_, err := c.client.Pause(ctx, &PauseRequest{ThreadId: int32(args.ThreadId)})
+	_, err := c.client.Pause(ctx, &PauseRequest{
+		SessionId: sessionID,
+		ThreadId:  int32(args.ThreadId),
+	})
 	return err
 }
 
 // Threads implements debugapi.Debugger.
-func (c *Client) Threads(ctx context.Context) ([]dap.Thread, error) {
+func (c *Client) Threads(ctx context.Context, sessionID string) ([]dap.Thread, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
-	resp, err := c.client.Threads(ctx, &ThreadsRequest{})
+	resp, err := c.client.Threads(ctx, &ThreadsRequest{SessionId: sessionID})
 	if err != nil {
 		return nil, err
 	}
@@ -332,11 +425,12 @@ func (c *Client) Threads(ctx context.Context) ([]dap.Thread, error) {
 }
 
 // StackTrace implements debugapi.Debugger.
-func (c *Client) StackTrace(ctx context.Context, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error) {
+func (c *Client) StackTrace(ctx context.Context, sessionID string, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &StackTraceRequest{
+		SessionId:  sessionID,
 		ThreadId:   int32(args.ThreadId),
 		StartFrame: int32(args.StartFrame),
 		Levels:     int32(args.Levels),
@@ -354,11 +448,14 @@ func (c *Client) StackTrace(ctx context.Context, args *dap.StackTraceArguments) 
 }
 
 // Scopes implements debugapi.Debugger.
-func (c *Client) Scopes(ctx context.Context, args *dap.ScopesArguments) ([]dap.Scope, error) {
+func (c *Client) Scopes(ctx context.Context, sessionID string, args *dap.ScopesArguments) ([]dap.Scope, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
-	resp, err := c.client.Scopes(ctx, &ScopesRequest{FrameId: int32(args.FrameId)})
+	resp, err := c.client.Scopes(ctx, &ScopesRequest{
+		SessionId: sessionID,
+		FrameId:   int32(args.FrameId),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -367,11 +464,12 @@ func (c *Client) Scopes(ctx context.Context, args *dap.ScopesArguments) ([]dap.S
 }
 
 // Variables implements debugapi.Debugger.
-func (c *Client) Variables(ctx context.Context, args *dap.VariablesArguments) ([]dap.Variable, error) {
+func (c *Client) Variables(ctx context.Context, sessionID string, args *dap.VariablesArguments) ([]dap.Variable, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &VariablesRequest{
+		SessionId:          sessionID,
 		VariablesReference: int32(args.VariablesReference),
 		Filter:             string(args.Filter),
 		Start:              int32(args.Start),
@@ -387,11 +485,12 @@ func (c *Client) Variables(ctx context.Context, args *dap.VariablesArguments) ([
 }
 
 // SetVariable implements debugapi.Debugger.
-func (c *Client) SetVariable(ctx context.Context, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error) {
+func (c *Client) SetVariable(ctx context.Context, sessionID string, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SetVariableRequest{
+		SessionId:          sessionID,
 		VariablesReference: int32(args.VariablesReference),
 		Name:               args.Name,
 		Value:              args.Value,
@@ -412,11 +511,12 @@ func (c *Client) SetVariable(ctx context.Context, args *dap.SetVariableArguments
 }
 
 // Source implements debugapi.Debugger.
-func (c *Client) Source(ctx context.Context, args *dap.SourceArguments) (*dap.SourceResponseBody, error) {
+func (c *Client) Source(ctx context.Context, sessionID string, args *dap.SourceArguments) (*dap.SourceResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SourceRequest{
+		SessionId:       sessionID,
 		SourceReference: int32(args.SourceReference),
 		Source:          sourceToProtoFromDapPtr(args.Source),
 	}
@@ -433,11 +533,12 @@ func (c *Client) Source(ctx context.Context, args *dap.SourceArguments) (*dap.So
 }
 
 // Evaluate implements debugapi.Debugger.
-func (c *Client) Evaluate(ctx context.Context, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error) {
+func (c *Client) Evaluate(ctx context.Context, sessionID string, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &EvaluateRequest{
+		SessionId:  sessionID,
 		Expression: args.Expression,
 		FrameId:    int32(args.FrameId),
 		Context:    string(args.Context),
@@ -459,11 +560,12 @@ func (c *Client) Evaluate(ctx context.Context, args *dap.EvaluateArguments) (*da
 }
 
 // SetExpression implements debugapi.Debugger.
-func (c *Client) SetExpression(ctx context.Context, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error) {
+func (c *Client) SetExpression(ctx context.Context, sessionID string, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &SetExpressionRequest{
+		SessionId:  sessionID,
 		Expression: args.Expression,
 		Value:      args.Value,
 		FrameId:    int32(args.FrameId),
@@ -484,15 +586,16 @@ func (c *Client) SetExpression(ctx context.Context, args *dap.SetExpressionArgum
 }
 
 // Completions implements debugapi.Debugger.
-func (c *Client) Completions(ctx context.Context, args *dap.CompletionsArguments) ([]dap.CompletionItem, error) {
+func (c *Client) Completions(ctx context.Context, sessionID string, args *dap.CompletionsArguments) ([]dap.CompletionItem, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &CompletionsRequest{
-		FrameId: int32(args.FrameId),
-		Text:    args.Text,
-		Column:  int32(args.Column),
-		Line:    int32(args.Line),
+		SessionId: sessionID,
+		FrameId:   int32(args.FrameId),
+		Text:      args.Text,
+		Column:    int32(args.Column),
+		Line:      int32(args.Line),
 	}
 
 	resp, err := c.client.Completions(ctx, req)
@@ -504,12 +607,13 @@ func (c *Client) Completions(ctx context.Context, args *dap.CompletionsArguments
 }
 
 // ExceptionInfo implements debugapi.Debugger.
-func (c *Client) ExceptionInfo(ctx context.Context, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error) {
+func (c *Client) ExceptionInfo(ctx context.Context, sessionID string, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ExceptionInfoRequest{
-		ThreadId: int32(args.ThreadId),
+		SessionId: sessionID,
+		ThreadId:  int32(args.ThreadId),
 	}
 
 	resp, err := c.client.ExceptionInfo(ctx, req)
@@ -525,11 +629,12 @@ func (c *Client) ExceptionInfo(ctx context.Context, args *dap.ExceptionInfoArgum
 }
 
 // Modules implements debugapi.Debugger.
-func (c *Client) Modules(ctx context.Context, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error) {
+func (c *Client) Modules(ctx context.Context, sessionID string, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ModulesRequest{
+		SessionId:   sessionID,
 		StartModule: int32(args.StartModule),
 		ModuleCount: int32(args.ModuleCount),
 	}
@@ -546,11 +651,13 @@ func (c *Client) Modules(ctx context.Context, args *dap.ModulesArguments) (*dap.
 }
 
 // LoadedSources implements debugapi.Debugger.
-func (c *Client) LoadedSources(ctx context.Context) ([]dap.Source, error) {
+func (c *Client) LoadedSources(ctx context.Context, sessionID string) ([]dap.Source, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
-	resp, err := c.client.LoadedSources(ctx, &LoadedSourcesRequest{})
+	resp, err := c.client.LoadedSources(ctx, &LoadedSourcesRequest{
+		SessionId: sessionID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -559,11 +666,12 @@ func (c *Client) LoadedSources(ctx context.Context) ([]dap.Source, error) {
 }
 
 // ReadMemory implements debugapi.Debugger.
-func (c *Client) ReadMemory(ctx context.Context, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error) {
+func (c *Client) ReadMemory(ctx context.Context, sessionID string, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &ReadMemoryRequest{
+		SessionId:       sessionID,
 		MemoryReference: args.MemoryReference,
 		Offset:          int64(args.Offset),
 		Count:           int32(args.Count),
@@ -582,11 +690,12 @@ func (c *Client) ReadMemory(ctx context.Context, args *dap.ReadMemoryArguments) 
 }
 
 // WriteMemory implements debugapi.Debugger.
-func (c *Client) WriteMemory(ctx context.Context, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error) {
+func (c *Client) WriteMemory(ctx context.Context, sessionID string, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &WriteMemoryRequest{
+		SessionId:       sessionID,
 		MemoryReference: args.MemoryReference,
 		Offset:          int64(args.Offset),
 		Data:            []byte(args.Data),
@@ -605,11 +714,12 @@ func (c *Client) WriteMemory(ctx context.Context, args *dap.WriteMemoryArguments
 }
 
 // Disassemble implements debugapi.Debugger.
-func (c *Client) Disassemble(ctx context.Context, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error) {
+func (c *Client) Disassemble(ctx context.Context, sessionID string, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &DisassembleRequest{
+		SessionId:         sessionID,
 		MemoryReference:   args.MemoryReference,
 		Offset:            int64(args.Offset),
 		InstructionOffset: int32(args.InstructionOffset),
@@ -626,14 +736,15 @@ func (c *Client) Disassemble(ctx context.Context, args *dap.DisassembleArguments
 }
 
 // GotoTargets implements debugapi.Debugger.
-func (c *Client) GotoTargets(ctx context.Context, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error) {
+func (c *Client) GotoTargets(ctx context.Context, sessionID string, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error) {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &GotoTargetsRequest{
-		Source: sourceToProtoFromDap(&args.Source),
-		Line:   int32(args.Line),
-		Column: int32(args.Column),
+		SessionId: sessionID,
+		Source:    sourceToProtoFromDap(&args.Source),
+		Line:      int32(args.Line),
+		Column:    int32(args.Column),
 	}
 
 	resp, err := c.client.GotoTargets(ctx, req)
@@ -645,13 +756,14 @@ func (c *Client) GotoTargets(ctx context.Context, args *dap.GotoTargetsArguments
 }
 
 // Goto implements debugapi.Debugger.
-func (c *Client) Goto(ctx context.Context, args *dap.GotoArguments) error {
+func (c *Client) Goto(ctx context.Context, sessionID string, args *dap.GotoArguments) error {
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
 	req := &GotoRequest{
-		ThreadId: int32(args.ThreadId),
-		TargetId: int32(args.TargetId),
+		SessionId: sessionID,
+		ThreadId:  int32(args.ThreadId),
+		TargetId:  int32(args.TargetId),
 	}
 
 	_, err := c.client.Goto(ctx, req)
@@ -937,4 +1049,39 @@ func gotoTargetsFromProto(targets []*GotoTarget) []dap.GotoTarget {
 		}
 	}
 	return result
+}
+
+// clientCapabilitiesToProto converts a debugapi.ClientCapabilities
+// into its wire form.
+func clientCapabilitiesToProto(c debugapi.ClientCapabilities) *ClientCapabilities {
+	return &ClientCapabilities{
+		ClientId:                     c.ClientID,
+		ClientName:                   c.ClientName,
+		Locale:                       c.Locale,
+		LinesStartAt_1:               c.LinesStartAt1,
+		ColumnsStartAt_1:             c.ColumnsStartAt1,
+		PathFormat:                   c.PathFormat,
+		SupportsVariableType:         c.SupportsVariableType,
+		SupportsVariablePaging:       c.SupportsVariablePaging,
+		SupportsRunInTerminalRequest: c.SupportsRunInTerminalRequest,
+		SupportsMemoryReferences:     c.SupportsMemoryReferences,
+		SupportsProgressReporting:    c.SupportsProgressReporting,
+		SupportsInvalidatedEvent:     c.SupportsInvalidatedEvent,
+		SupportsMemoryEvent:          c.SupportsMemoryEvent,
+	}
+}
+
+// dapEventFromProto reconstructs a concrete dap.EventMessage from
+// its wire form. Returns nil if the message cannot be decoded as
+// a DAP event.
+func dapEventFromProto(e *Event) dap.EventMessage {
+	if e == nil || len(e.GetBody()) == 0 {
+		return nil
+	}
+	msg, err := dap.DecodeProtocolMessage(e.GetBody())
+	if err != nil {
+		return nil
+	}
+	ev, _ := msg.(dap.EventMessage)
+	return ev
 }

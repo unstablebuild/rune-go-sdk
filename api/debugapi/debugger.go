@@ -21,22 +21,28 @@ package debugapi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/google/go-dap"
 )
 
-// InitializeRequestArguments wraps dap.InitializeRequestArguments with
-// an extensible InitializeOptions field, mirroring how LSP's
-// InitializeParams carries arbitrary initializationOptions.
-type InitializeRequestArguments struct {
-	dap.InitializeRequestArguments
-	// InitializeOptions holds client-specific options as raw JSON.
-	// When set, the IDE uses `langID` and `command` properties to
-	// resolve an arbitrary debug adapter rather than looking up
-	// AdapterID in a hardcoded registry.
-	InitializeOptions json.RawMessage `json:"initializeOptions,omitempty"`
+// ClientCapabilities describes the DAP client's capabilities that
+// are forwarded into the adapter's Initialize request when a
+// session is created. All fields are optional.
+type ClientCapabilities struct {
+	ClientID                     string
+	ClientName                   string
+	Locale                       string
+	LinesStartAt1                bool
+	ColumnsStartAt1              bool
+	PathFormat                   string
+	SupportsVariableType         bool
+	SupportsVariablePaging       bool
+	SupportsRunInTerminalRequest bool
+	SupportsMemoryReferences     bool
+	SupportsProgressReporting    bool
+	SupportsInvalidatedEvent     bool
+	SupportsMemoryEvent          bool
 }
 
 // Common errors returned by Debugger implementations.
@@ -52,149 +58,149 @@ var (
 
 	// ErrNotRunning is returned when trying to pause while not running.
 	ErrNotRunning = errors.New("debuggee not running")
+
+	// ErrSessionNotFound is returned when a session with the given
+	// ID does not exist.
+	ErrSessionNotFound = errors.New("debug session not found")
+
+	// ErrNoAdapterConfigured is returned from CreateSession when no
+	// debug adapter is configured for the requested language.
+	ErrNoAdapterConfigured = errors.New(
+		"no debug adapter configured for language")
 )
 
-// Debugger defines the Debug Adapter Protocol operations.
-// All methods correspond to DAP requests as defined in the specification.
+// EventSubscriber receives DAP events for a debug session. It is
+// supplied to CreateSession and remains bound to the session's
+// lifetime.
+//
+// OnEvent is called for every DAP event the adapter emits.
+// OnClose is called exactly once when the session ends. Reason
+// is one of "terminated", "disconnected", "adapter_failed",
+// "canceled".
+//
+// Implementations must be safe to call from multiple goroutines
+// and must not block for long — the transport serialises all
+// events for the session on a single stream.
+type EventSubscriber interface {
+	OnEvent(ev dap.EventMessage)
+	OnClose(reason string)
+}
+
+// Debugger defines the Debug Adapter Protocol operations. All
+// methods (other than CreateSession) dispatch to the session
+// identified by sessionID; CreateSession must be called first to
+// obtain a sessionID.
 //
 // See: https://microsoft.github.io/debug-adapter-protocol/specification
 type Debugger interface {
-	// Initialize configures the debug adapter with client capabilities
-	// and retrieves the adapter's capabilities.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Initialize
-	Initialize(ctx context.Context, args *InitializeRequestArguments) (*dap.Capabilities, error)
+	// CreateSession starts a new debug session for the given
+	// language, spawning the configured adapter and performing
+	// the DAP Initialize handshake. The returned sessionID must
+	// be passed to all subsequent methods. subscriber receives
+	// DAP events for the session's lifetime; it is closed via
+	// subscriber.OnClose when the session ends.
+	CreateSession(ctx context.Context, langID string,
+		client ClientCapabilities, subscriber EventSubscriber,
+	) (sessionID string, caps *dap.Capabilities, err error)
 
 	// Launch starts the debuggee with or without debugging.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Launch
-	Launch(ctx context.Context, args LaunchRequestArguments) error
+	Launch(ctx context.Context, sessionID string, args LaunchRequestArguments) error
 
 	// Attach connects to an already running debuggee.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Attach
-	Attach(ctx context.Context, args AttachRequestArguments) error
+	Attach(ctx context.Context, sessionID string, args AttachRequestArguments) error
 
 	// ConfigurationDone indicates that configuration is complete.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ConfigurationDone
-	ConfigurationDone(ctx context.Context) error
+	ConfigurationDone(ctx context.Context, sessionID string) error
 
 	// Disconnect ends the debug session.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Disconnect
-	Disconnect(ctx context.Context, args *dap.DisconnectArguments) error
+	Disconnect(ctx context.Context, sessionID string, args *dap.DisconnectArguments) error
 
 	// Terminate requests graceful termination of the debuggee.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Terminate
-	Terminate(ctx context.Context, args *dap.TerminateArguments) error
+	Terminate(ctx context.Context, sessionID string, args *dap.TerminateArguments) error
 
 	// Restart restarts the debug session.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Restart
-	Restart(ctx context.Context) error
+	Restart(ctx context.Context, sessionID string) error
 
 	// SetBreakpoints sets breakpoints for a source file.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetBreakpoints
-	SetBreakpoints(ctx context.Context, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error)
+	SetBreakpoints(ctx context.Context, sessionID string, args *dap.SetBreakpointsArguments) ([]dap.Breakpoint, error)
 
 	// SetFunctionBreakpoints sets breakpoints on function names.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetFunctionBreakpoints
-	SetFunctionBreakpoints(ctx context.Context, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error)
+	SetFunctionBreakpoints(ctx context.Context, sessionID string, args *dap.SetFunctionBreakpointsArguments) ([]dap.Breakpoint, error)
 
 	// SetExceptionBreakpoints configures exception breakpoints.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetExceptionBreakpoints
-	SetExceptionBreakpoints(ctx context.Context, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error)
+	SetExceptionBreakpoints(ctx context.Context, sessionID string, args *dap.SetExceptionBreakpointsArguments) ([]dap.Breakpoint, error)
 
 	// Continue resumes execution of all threads.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Continue
-	Continue(ctx context.Context, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error)
+	Continue(ctx context.Context, sessionID string, args *dap.ContinueArguments) (*dap.ContinueResponseBody, error)
 
 	// Next executes one step (stepping over function calls).
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next
-	Next(ctx context.Context, args *dap.NextArguments) error
+	Next(ctx context.Context, sessionID string, args *dap.NextArguments) error
 
 	// StepIn steps into a function call.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepIn
-	StepIn(ctx context.Context, args *dap.StepInArguments) error
+	StepIn(ctx context.Context, sessionID string, args *dap.StepInArguments) error
 
 	// StepOut steps out of the current function.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepOut
-	StepOut(ctx context.Context, args *dap.StepOutArguments) error
+	StepOut(ctx context.Context, sessionID string, args *dap.StepOutArguments) error
 
 	// StepBack executes one backward step.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepBack
-	StepBack(ctx context.Context, args *dap.StepBackArguments) error
+	StepBack(ctx context.Context, sessionID string, args *dap.StepBackArguments) error
 
 	// ReverseContinue resumes backward execution.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ReverseContinue
-	ReverseContinue(ctx context.Context, args *dap.ReverseContinueArguments) error
+	ReverseContinue(ctx context.Context, sessionID string, args *dap.ReverseContinueArguments) error
 
 	// Pause suspends execution.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Pause
-	Pause(ctx context.Context, args *dap.PauseArguments) error
+	Pause(ctx context.Context, sessionID string, args *dap.PauseArguments) error
 
 	// Threads retrieves all threads.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Threads
-	Threads(ctx context.Context) ([]dap.Thread, error)
+	Threads(ctx context.Context, sessionID string) ([]dap.Thread, error)
 
 	// StackTrace returns the call stack for a thread.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StackTrace
-	StackTrace(ctx context.Context, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error)
+	StackTrace(ctx context.Context, sessionID string, args *dap.StackTraceArguments) (*dap.StackTraceResponseBody, error)
 
 	// Scopes returns variable scopes for a stack frame.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Scopes
-	Scopes(ctx context.Context, args *dap.ScopesArguments) ([]dap.Scope, error)
+	Scopes(ctx context.Context, sessionID string, args *dap.ScopesArguments) ([]dap.Scope, error)
 
 	// Variables retrieves child variables.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Variables
-	Variables(ctx context.Context, args *dap.VariablesArguments) ([]dap.Variable, error)
+	Variables(ctx context.Context, sessionID string, args *dap.VariablesArguments) ([]dap.Variable, error)
 
 	// SetVariable modifies a variable's value.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetVariable
-	SetVariable(ctx context.Context, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error)
+	SetVariable(ctx context.Context, sessionID string, args *dap.SetVariableArguments) (*dap.SetVariableResponseBody, error)
 
 	// Source retrieves source code.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Source
-	Source(ctx context.Context, args *dap.SourceArguments) (*dap.SourceResponseBody, error)
+	Source(ctx context.Context, sessionID string, args *dap.SourceArguments) (*dap.SourceResponseBody, error)
 
 	// Evaluate evaluates an expression.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Evaluate
-	Evaluate(ctx context.Context, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error)
+	Evaluate(ctx context.Context, sessionID string, args *dap.EvaluateArguments) (*dap.EvaluateResponseBody, error)
 
 	// SetExpression assigns a value to an expression.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetExpression
-	SetExpression(ctx context.Context, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error)
+	SetExpression(ctx context.Context, sessionID string, args *dap.SetExpressionArguments) (*dap.SetExpressionResponseBody, error)
 
 	// Completions provides completion suggestions.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Completions
-	Completions(ctx context.Context, args *dap.CompletionsArguments) ([]dap.CompletionItem, error)
+	Completions(ctx context.Context, sessionID string, args *dap.CompletionsArguments) ([]dap.CompletionItem, error)
 
 	// ExceptionInfo retrieves exception details.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ExceptionInfo
-	ExceptionInfo(ctx context.Context, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error)
+	ExceptionInfo(ctx context.Context, sessionID string, args *dap.ExceptionInfoArguments) (*dap.ExceptionInfoResponseBody, error)
 
 	// Modules retrieves loaded modules.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Modules
-	Modules(ctx context.Context, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error)
+	Modules(ctx context.Context, sessionID string, args *dap.ModulesArguments) (*dap.ModulesResponseBody, error)
 
 	// LoadedSources retrieves all loaded sources.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_LoadedSources
-	LoadedSources(ctx context.Context) ([]dap.Source, error)
+	LoadedSources(ctx context.Context, sessionID string) ([]dap.Source, error)
 
 	// ReadMemory reads bytes from memory.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ReadMemory
-	ReadMemory(ctx context.Context, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error)
+	ReadMemory(ctx context.Context, sessionID string, args *dap.ReadMemoryArguments) (*dap.ReadMemoryResponseBody, error)
 
 	// WriteMemory writes bytes to memory.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_WriteMemory
-	WriteMemory(ctx context.Context, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error)
+	WriteMemory(ctx context.Context, sessionID string, args *dap.WriteMemoryArguments) (*dap.WriteMemoryResponseBody, error)
 
 	// Disassemble returns disassembled instructions.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Disassemble
-	Disassemble(ctx context.Context, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error)
+	Disassemble(ctx context.Context, sessionID string, args *dap.DisassembleArguments) ([]dap.DisassembledInstruction, error)
 
 	// GotoTargets returns possible goto targets.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_GotoTargets
-	GotoTargets(ctx context.Context, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error)
+	GotoTargets(ctx context.Context, sessionID string, args *dap.GotoTargetsArguments) ([]dap.GotoTarget, error)
 
 	// Goto sets execution to continue from a target.
-	// DAP: https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Goto
-	Goto(ctx context.Context, args *dap.GotoArguments) error
+	Goto(ctx context.Context, sessionID string, args *dap.GotoArguments) error
 }
 
 // LaunchRequestArguments contains arguments for Launch.

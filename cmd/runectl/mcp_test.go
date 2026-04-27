@@ -46,7 +46,6 @@ func newMCPTestEnv(t *testing.T) *mcpTestEnv {
 	ctx := context.Background()
 	registerSyntaxTools(s, w, ctx)
 	registerLSPTools(s, w, ctx)
-	registerDebugTools(s, w, ctx)
 
 	return &mcpTestEnv{testEnv: env, srv: s}
 }
@@ -477,127 +476,6 @@ func TestMCPSymbolNotFound(t *testing.T) {
 	text, ok := toolResult.Content[0].(mcp.TextContent)
 	require.True(t, ok)
 	require.Contains(t, text.Text, "not found")
-}
-
-func TestMCPDebug(t *testing.T) {
-	tests := []struct {
-		name  string
-		tool  string
-		args  map[string]any
-		check func(*testing.T, string)
-	}{
-		{
-			name: "launch",
-			tool: "dap_launch",
-			args: map[string]any{
-				"program": "/usr/bin/test",
-			},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, `"ok":true`)
-			},
-		},
-		{
-			name: "configuration_done",
-			tool: "dap_configuration_done",
-			args: map[string]any{},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, `"ok":true`)
-			},
-		},
-		{
-			name: "set_breakpoints",
-			tool: "dap_set_breakpoints",
-			args: map[string]any{
-				"source_path": "/src/main.go",
-				"breakpoints": `[{"line":10},` +
-					`{"line":20}]`,
-			},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, `"verified":true`)
-				require.Contains(t, out, "/src/main.go")
-			},
-		},
-		{
-			name: "continue",
-			tool: "dap_continue",
-			args: map[string]any{
-				"thread_id": 1,
-			},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, "allThreadsContinued")
-			},
-		},
-		{
-			name: "threads",
-			tool: "dap_threads",
-			args: map[string]any{},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, "main")
-				require.Contains(t, out, "worker")
-			},
-		},
-		{
-			name: "stack_trace",
-			tool: "dap_stack_trace",
-			args: map[string]any{
-				"thread_id": 1,
-			},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, "main.run")
-				require.Contains(t, out, "/src/main.go")
-			},
-		},
-		{
-			name: "scopes",
-			tool: "dap_scopes",
-			args: map[string]any{
-				"frame_id": 0,
-			},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, "Locals")
-			},
-		},
-		{
-			name: "variables",
-			tool: "dap_variables",
-			args: map[string]any{
-				"variables_reference": 100,
-			},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, `"x"`)
-				require.Contains(t, out, `"42"`)
-				require.Contains(t, out, `"int"`)
-			},
-		},
-		{
-			name: "evaluate",
-			tool: "dap_evaluate",
-			args: map[string]any{
-				"expression": "x + 1",
-			},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, "result of x + 1")
-			},
-		},
-		{
-			name: "disconnect",
-			tool: "dap_disconnect",
-			args: map[string]any{},
-			check: func(t *testing.T, out string) {
-				require.Contains(t, out, `"ok":true`)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env := newMCPTestEnv(t)
-			defer env.cleanup()
-
-			out := env.callTool(t, tt.tool, tt.args)
-			tt.check(t, out)
-		})
-	}
 }
 
 func TestMCPUnknownTool(t *testing.T) {

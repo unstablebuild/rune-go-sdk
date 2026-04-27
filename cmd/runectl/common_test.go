@@ -26,7 +26,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
-	"github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/docpb"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpc"
@@ -54,7 +53,6 @@ type testEnv struct {
 	executor *mockExecutor
 	terminal *mockTerminal
 	lsp      *mockLSP
-	debugger *mockDebugger
 	cleanup  func()
 }
 
@@ -79,7 +77,6 @@ func newTestEnv(t *testing.T) *testEnv {
 	exec := &mockExecutor{startPid: 12345}
 	term := newMockTerminal()
 	lspMock := &mockLSP{}
-	dbg := &mockDebugger{}
 
 	browserrpc.RegisterNotificationsServer(srv, notif)
 	browserrpc.RegisterWindowManagerServer(srv, wm)
@@ -91,7 +88,6 @@ func newTestEnv(t *testing.T) *testEnv {
 	workspacerpc.RegisterExecutorServer(srv, exec)
 	workspacerpc.RegisterTerminalServer(srv, term)
 	semanticrpc.RegisterLSPServer(srv, lspMock)
-	debugrpc.RegisterDebuggerServer(srv, dbg)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -111,7 +107,6 @@ func newTestEnv(t *testing.T) *testEnv {
 			term.cleanup()
 		},
 		lsp:      lspMock,
-		debugger: dbg,
 	}
 }
 
@@ -1511,111 +1506,5 @@ func (m *mockLSP) InlineValue(_ context.Context, req *semanticrpc.InlineValueReq
 				VariableName: "x",
 			},
 		},
-	}, nil
-}
-
-// mockDebugger implements debugrpc.DebugServiceServer.
-type mockDebugger struct {
-	debugrpc.UnimplementedDebuggerServer
-}
-
-func (m *mockDebugger) Launch(_ context.Context, _ *debugrpc.LaunchRequest) (*debugrpc.LaunchResponse, error) {
-	return &debugrpc.LaunchResponse{}, nil
-}
-
-func (m *mockDebugger) ConfigurationDone(
-	_ context.Context,
-	_ *debugrpc.ConfigurationDoneRequest,
-) (*debugrpc.ConfigurationDoneResponse, error) {
-	return &debugrpc.ConfigurationDoneResponse{}, nil
-}
-
-func (m *mockDebugger) Disconnect(_ context.Context, _ *debugrpc.DisconnectRequest) (
-	*debugrpc.DisconnectResponse, error,
-) {
-	return &debugrpc.DisconnectResponse{}, nil
-}
-
-func (m *mockDebugger) SetBreakpoints(
-	_ context.Context,
-	req *debugrpc.SetBreakpointsRequest,
-) (*debugrpc.SetBreakpointsResponse, error) {
-	var bps []*debugrpc.Breakpoint
-	for _, sb := range req.GetBreakpoints() {
-		bps = append(bps, &debugrpc.Breakpoint{
-			Id:       sb.GetLine(),
-			Verified: true,
-			Line:     sb.GetLine(),
-			Source: &debugrpc.Source{
-				Path: req.GetSource().GetPath(),
-			},
-		})
-	}
-	return &debugrpc.SetBreakpointsResponse{Breakpoints: bps}, nil
-}
-
-func (m *mockDebugger) Continue(_ context.Context, _ *debugrpc.ContinueRequest) (*debugrpc.ContinueResponse, error) {
-	return &debugrpc.ContinueResponse{AllThreadsContinued: true}, nil
-}
-
-func (m *mockDebugger) Threads(_ context.Context, _ *debugrpc.ThreadsRequest) (*debugrpc.ThreadsResponse, error) {
-	return &debugrpc.ThreadsResponse{
-		Threads: []*debugrpc.Thread{
-			{Id: 1, Name: "main"},
-			{Id: 2, Name: "worker"},
-		},
-	}, nil
-}
-
-func (m *mockDebugger) StackTrace(_ context.Context, _ *debugrpc.StackTraceRequest) (*debugrpc.StackTraceResponse, error) {
-	return &debugrpc.StackTraceResponse{
-		StackFrames: []*debugrpc.StackFrame{
-			{
-				Id:   0,
-				Name: "main.run",
-				Source: &debugrpc.Source{
-					Path: "/src/main.go",
-				},
-				Line:   42,
-				Column: 1,
-			},
-		},
-		TotalFrames: 1,
-	}, nil
-}
-
-func (m *mockDebugger) Scopes(_ context.Context, _ *debugrpc.ScopesRequest) (*debugrpc.ScopesResponse, error) {
-	return &debugrpc.ScopesResponse{
-		Scopes: []*debugrpc.Scope{
-			{
-				Name:               "Locals",
-				VariablesReference: 100,
-				NamedVariables:     3,
-			},
-		},
-	}, nil
-}
-
-func (m *mockDebugger) Variables(_ context.Context, _ *debugrpc.VariablesRequest) (*debugrpc.VariablesResponse, error) {
-	return &debugrpc.VariablesResponse{
-		Variables: []*debugrpc.Variable{
-			{
-				Name:  "x",
-				Value: "42",
-				Type:  "int",
-			},
-			{
-				Name:  "name",
-				Value: `"hello"`,
-				Type:  "string",
-			},
-		},
-	}, nil
-}
-
-func (m *mockDebugger) Evaluate(_ context.Context, req *debugrpc.EvaluateRequest) (*debugrpc.EvaluateResponse, error) {
-	return &debugrpc.EvaluateResponse{
-		Result: "result of " + req.GetExpression(),
-		Type:   "string",
 	}, nil
 }
