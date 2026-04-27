@@ -290,6 +290,12 @@ func (h *Handler) Selection() (string, bool) {
 	return "", false
 }
 
+// Text returns the current text in the inputbox, i.e. whatever the
+// user has typed at the current prompt but not yet submitted.
+func (h *Handler) Text() string {
+	return h.rl.C.Text()
+}
+
 // Close cancels all in-flight commands and animations,
 // then waits for goroutines to finish.
 func (h *Handler) Close() error {
