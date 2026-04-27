@@ -466,6 +466,13 @@ func (h *Handler) layoutHeights() (rlH, outH int) {
 	return rlH, outH
 }
 
+// LayoutHeights computes the inputbox and output layout heights The first return value is
+// the height allocated to the inputbox (rl), and the second is the height allocated to
+// previous command output.
+func (h *Handler) LayoutHeights() (rlH, outH int) {
+	return h.layoutHeights()
+}
+
 func (h *Handler) startSpinner() {
 	h.spinner = component.NewAnimation(
 		h.interrupter,
