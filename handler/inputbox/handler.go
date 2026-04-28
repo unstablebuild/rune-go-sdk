@@ -81,7 +81,15 @@ type Handler struct {
 	done        bool
 	aborted     bool
 	eof         bool
+
+	// Rendering
+	redact     bool
+	redactRune rune
 }
+
+// defaultRedactRune is the glyph used to mask buffer contents when redact
+// rendering is enabled and no explicit rune has been configured.
+const defaultRedactRune = '*'
 
 var _ handler.WithAttributesResponsiveFloating = (*Handler)(nil)
 
@@ -93,6 +101,9 @@ func New(opts ...Option) *Handler {
 	}
 	for _, o := range opts {
 		o(ret)
+	}
+	if ret.redact && ret.redactRune == 0 {
+		ret.redactRune = defaultRedactRune
 	}
 	ret.historyPos = len(ret.history)
 	ret.m = mouse.New(&mouseDelegate{ret})
@@ -339,8 +350,12 @@ func (ib *Handler) drawNoPrompt(w term.Writer) {
 		if i >= selStart && i < selEnd {
 			attrs.Attrs |= tcell.AttrReverse
 		}
+		ch := ib.text[i]
+		if ib.redact {
+			ch = ib.redactRune
+		}
 		w.SetCell(term.Coordinates{X: x, Y: y}, term.Cell{
-			Ch:         ib.text[i],
+			Ch:         ch,
 			Attributes: attrs,
 			Width:      1,
 		})
@@ -391,8 +406,12 @@ func (ib *Handler) drawWithPrompt(w term.Writer) {
 			attrs.Attrs |= tcell.AttrReverse
 		}
 		_ = flc
+		ch := ib.text[i]
+		if ib.redact {
+			ch = ib.redactRune
+		}
 		w.SetCell(term.Coordinates{X: sx, Y: sy}, term.Cell{
-			Ch:         ib.text[i],
+			Ch:         ch,
 			Attributes: attrs,
 			Width:      1,
 		})

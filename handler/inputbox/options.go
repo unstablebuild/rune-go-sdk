@@ -110,3 +110,30 @@ func WithCtrlCAborts() Option {
 		h.ctrlCAborts = true
 	}
 }
+
+// WithRedact enables redacted rendering: each character of the buffer is
+// drawn as the default redaction glyph ('*'). The underlying buffer is
+// kept intact: Text(), Result() and Selection() still return the real
+// content. Useful for password / secret prompts.
+//
+// Use WithRedactRune to override the glyph.
+func WithRedact(redact bool) Option {
+	return func(h *Handler) {
+		h.redact = redact
+		if h.redactRune == 0 {
+			h.redactRune = defaultRedactRune
+		}
+	}
+}
+
+// WithRedactRune sets the rune used when redact rendering is enabled.
+// Implies WithRedact(true). The zero rune resets to the default ('*').
+func WithRedactRune(r rune) Option {
+	return func(h *Handler) {
+		h.redact = true
+		if r == 0 {
+			r = defaultRedactRune
+		}
+		h.redactRune = r
+	}
+}
