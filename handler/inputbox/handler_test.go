@@ -80,6 +80,72 @@ func TestHandler(t *testing.T) {
 	})
 }
 
+func TestHandlerRedact(t *testing.T) {
+	t.Run("renders default '*' glyphs in place of buffer characters", func(t *testing.T) {
+		ib := New(WithRedact(true))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "", Expected: "▐         "},
+			{InputSequence: "h", Expected: "*▐        "},
+			{InputSequence: "e", Expected: "**▐       "},
+			{InputSequence: "llo", Expected: "*****▐    "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+		// Underlying text and Result are not redacted.
+		require.Equal(t, "hello", ib.Text())
+	})
+
+	t.Run("redact respects prompt and cursor placement", func(t *testing.T) {
+		ib := New(WithPrompt("> "), WithRedact(true))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "abc", Expected: "> ***▐    "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+		require.Equal(t, "abc", ib.Text())
+	})
+
+	t.Run("redact disabled by default", func(t *testing.T) {
+		ib := New()
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "secret", Expected: "secret▐   "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+
+	t.Run("redact wraps across lines", func(t *testing.T) {
+		ib := New(WithRedact(true))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "abcdef", Expected: "*****\n*▐   \n     "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 5, 3, cases)
+		require.Equal(t, "abcdef", ib.Text())
+	})
+
+	t.Run("WithRedactRune overrides the glyph", func(t *testing.T) {
+		ib := New(WithRedactRune('•'))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "abc", Expected: "•••▐      "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+		require.Equal(t, "abc", ib.Text())
+	})
+
+	t.Run("WithRedactRune implies redact even without WithRedact(true)", func(t *testing.T) {
+		ib := New(WithRedactRune('#'))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "pw", Expected: "##▐       "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+
+	t.Run("WithRedactRune zero rune resets to default '*'", func(t *testing.T) {
+		ib := New(WithRedactRune(0))
+		cases := []handlertest.SequenceTestCase{
+			{InputSequence: "ab", Expected: "**▐       "},
+		}
+		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
+	})
+}
+
 func TestHandlerBackspaceAcrossLines(t *testing.T) {
 	ib := New()
 	cases := []handlertest.SequenceTestCase{
