@@ -26,11 +26,25 @@ import (
 	"github.com/unstablebuild/tcell/v3"
 )
 
-// Run takes the given root handler, renders it full-screen,
-// and starts feeding it with term.Events.
-// Error is non-nil if there were any errors.
+// Run initializes the process-wide default terminal, then runs the TUI
+// event loop with root as the top-level Handler.
+//
+// It configures the terminal (default attributes and input mode) from
+// opts, polls term.Events, and dispatches them to root:
+//   - EventResize calls root.Resize.
+//   - EventInterrupt updates the iteration context and invokes any
+//     attached UserFunc without advancing the iteration id.
+//   - All other events are forwarded to root.Handle; if Handle returns
+//     exit=true, the loop stops.
+//
+// SIGINT is intercepted: a single Ctrl-C is delivered as usual, but two
+// within one second cause Run to return. The terminal is restored via
+// term.Close before Run returns.
+//
+// Run returns nil on a clean exit, or the first error encountered while
+// drawing, flushing, or polling events. To run against a caller-owned
+// Screen/writer, use RunWriter instead.
 func Run(root Handler, opts ...Option) (err error) {
-	err = term.Init()
 	if err != nil {
 		return fmt.Errorf("initialize term: %w", err)
 	}
@@ -38,6 +52,7 @@ func Run(root Handler, opts ...Option) (err error) {
 	for _, o := range opts {
 		o(&cfg)
 	}
+	writer, err := term.NewDefaultWriter()
 	term.SetAttr(cfg.defAttr)
 	term.SetInputMode(cfg.inputMode)
 	defer term.Close()
@@ -46,19 +61,27 @@ func Run(root Handler, opts ...Option) (err error) {
 	signal.Notify(sigs, os.Interrupt)
 	defer signal.Stop(sigs)
 
-	return run(root, cfg.locker, cfg.writer, cfg.defAttr, sigs)
+	return run(root, cfg.locker, writer, cfg.defAttr, sigs)
 }
 
-// RunWriter runs the TUI event loop against a caller-owned TermboxWriter.
+// RunWriter runs the TUI event loop with root as the top-level Handler,
+// rendering through the caller-owned ScreenWriter.
 //
-// The caller is responsible for:
-//   - Attaching a Screen to the writer (e.g. via term.NewTermboxWriterFromScreen).
-//   - Initializing and finalizing that Screen.
+// Unlike Run, RunWriter does not initialize or finalize the terminal and
+// does not install a SIGINT handler; the caller owns the Screen lifecycle.
+// Specifically, the caller is responsible for:
+//   - Constructing the writer with a Screen, and managing its lifecycle.
 //   - Enabling paste/focus/mouse and setting any input modes as desired.
-//   - Terminating the loop by closing the underlying Screen (which closes the
-//     event channel returned by writer.Poll) or by having a Handler return
-//     exit=true.
-func RunWriter(root Handler, writer *term.TermboxWriter, opts ...Option) error {
+//   - Terminating the loop by closing the underlying Screen (which closes
+//     the event channel returned by writer.Poll) or by having a Handler
+//     return exit=true.
+//
+// Options configure the default attributes and the locker used to serialize
+// Handler calls. Event dispatch (Resize, Interrupt, Handle) matches Run.
+//
+// RunWriter panics if writer is nil. It returns nil on clean exit, or the
+// first error encountered while drawing, flushing, or polling events.
+func RunWriter(root Handler, writer *term.ScreenWriter, opts ...Option) error {
 	if writer == nil {
 		panic("tui: RunWriter called with nil writer")
 	}
@@ -72,7 +95,7 @@ func RunWriter(root Handler, writer *term.TermboxWriter, opts ...Option) error {
 const exitSignalDuration = 1 * time.Second
 
 func redraw(
-	root Handler, lock sync.Locker, termw *term.TermboxWriter,
+	root Handler, lock sync.Locker, termw *term.ScreenWriter,
 	prevCursor term.CursorStyle, defAttr term.Attributes,
 ) (term.CursorStyle, error) {
 	if err := termw.Clear(defAttr); err != nil {
@@ -112,10 +135,9 @@ func drain(evs <-chan tcell.Event) {
 
 // PublishEvent publishes the given event to the event loop.
 // It targets the process-wide default writer; callers that run the
-// loop via RunScreen should use (*term.TermboxWriter).PublishEvent
-// directly on their writer so events don't leak between loops.
+// loop via RunWriter should use (*term.TermboxWriter).PublishEvent.
 func PublishEvent(ev term.Event) bool {
-	return term.DefaultWriter.PublishEvent(ev)
+	return term.PublishEvent(ev)
 }
 
 func handleInterruptSignal(
@@ -131,7 +153,7 @@ func handleInterruptSignal(
 }
 
 func run(
-	root Handler, lock sync.Locker, termw *term.TermboxWriter,
+	root Handler, lock sync.Locker, termw *term.ScreenWriter,
 	defAttr term.Attributes, sigs <-chan os.Signal,
 ) (err error) {
 	ctx := context.Background()
