@@ -49,7 +49,7 @@ func (s *fakeScreen) ShowCursor(x, y int) {
 	s.cursorOn = x >= 0 && y >= 0
 	s.mu.Unlock()
 }
-func (s *fakeScreen) HideCursor()                       { s.ShowCursor(-1, -1) }
+func (s *fakeScreen) HideCursor()                      { s.ShowCursor(-1, -1) }
 func (s *fakeScreen) SetCursorStyle(tcell.CursorStyle) {}
 func (s *fakeScreen) Size() (int, int) {
 	s.mu.Lock()
@@ -136,7 +136,7 @@ func waitFor(t *testing.T, cond func() bool, timeout time.Duration) {
 // rather than constructing one internally from a Screen.
 func TestRunWriterDrawsAndResizes(t *testing.T) {
 	s := newFakeScreen(80, 24)
-	w := term.NewTermboxWriterFromScreen(s)
+	w := term.NewTermboxWriter(s)
 	h := &recHandler{exitOn: func(ev term.Event) bool { return ev.Key == term.KeyEsc }}
 
 	done := make(chan error, 1)
@@ -177,7 +177,7 @@ func TestRunWriterDrawsAndResizes(t *testing.T) {
 // to drive redraws.
 func TestRunWriterInterruptResetsPending(t *testing.T) {
 	s := newFakeScreen(80, 24)
-	w := term.NewTermboxWriterFromScreen(s)
+	w := term.NewTermboxWriter(s)
 	delivered := make(chan struct{}, 4)
 	h := &recHandler{exitOn: func(ev term.Event) bool { return ev.Key == term.KeyEsc }}
 
