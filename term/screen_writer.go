@@ -22,10 +22,10 @@ import (
 	"github.com/unstablebuild/tcell/v3/termbox"
 )
 
-var _ Writer = (*TermboxWriter)(nil)
+var _ Writer = (*ScreenWriter)(nil)
 
-// TermboxWriter implements a termbox-like API using tcell/v3.
-type TermboxWriter struct {
+// ScreenWriter implements a termbox-like API using tcell/v3.
+type ScreenWriter struct {
 	ctx    context.Context
 	screen Screen
 	// interruptPending coalesces payload-less interrupt events posted via
@@ -40,38 +40,20 @@ type TermboxWriter struct {
 // responsibility to set one via SetScreen before the writer is used.
 // term.Init() attaches the process-wide termbox screen to
 // term.DefaultWriter, so that writer is ready to use after Init.
-func NewTermboxWriter() *TermboxWriter {
-	ret := new(TermboxWriter)
-	ret.ctx = context.Background()
-	return ret
-}
-
-// NewTermboxWriterFromScreen returns a TermboxWriter that writes to the
-// given Screen. Intended for callers that own their own Screen (e.g.
-// SSH session servers that build a Screen over a custom tcell.Tty).
-// Panics if s is nil.
-func NewTermboxWriterFromScreen(s Screen) *TermboxWriter {
-	if s == nil {
+func NewTermboxWriter(scr Screen) *ScreenWriter {
+	if scr == nil {
 		panic("term: NewTermboxWriterFromScreen called with nil Screen")
 	}
-	return &TermboxWriter{ctx: context.Background(), screen: s}
-}
-
-// SetScreen attaches s as this writer's Screen. It is used by
-// term.Init to wire up the process-wide DefaultWriter after the
-// termbox screen has been initialized. Panics if s is nil.
-func (w *TermboxWriter) SetScreen(s Screen) {
-	if s == nil {
-		panic("term: TermboxWriter.SetScreen called with nil Screen")
-	}
-	w.screen = s
+	ret := new(ScreenWriter)
+	ret.ctx = context.Background()
+	return ret
 }
 
 // scr returns the Screen this writer operates on. Panics if the
 // writer has no Screen attached yet (e.g. a DefaultWriter used before
 // term.Init, or a writer created with NewTermboxWriter and never
 // connected via SetScreen).
-func (w *TermboxWriter) scr() Screen {
+func (w *ScreenWriter) scr() Screen {
 	if w.screen == nil {
 		panic("term: TermboxWriter has no Screen attached; call term.Init or NewTermboxWriterFromScreen")
 	}
@@ -79,7 +61,7 @@ func (w *TermboxWriter) scr() Screen {
 }
 
 // SetCell satisfies term.Writer.
-func (w *TermboxWriter) SetCell(pos Coordinates, c Cell) {
+func (w *ScreenWriter) SetCell(pos Coordinates, c Cell) {
 	w.scr().SetContent(
 		pos.X, pos.Y, c.Ch, c.Combining,
 		c.Width, tcell.Style(c.Attributes),
@@ -87,7 +69,7 @@ func (w *TermboxWriter) SetCell(pos Coordinates, c Cell) {
 }
 
 // UnionAttributes satisfies term.Writer.
-func (w *TermboxWriter) UnionAttributes(pos Coordinates, attr Attributes) {
+func (w *ScreenWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 	w.scr().UnionStyle(
 		pos.X, pos.Y, tcell.Style(attr),
 	)
@@ -95,39 +77,39 @@ func (w *TermboxWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 
 // Flush makes all the content changes made using SetCell and
 // UnionAttributes visible on the display.
-func (w *TermboxWriter) Flush() error {
+func (w *ScreenWriter) Flush() error {
 	w.scr().Show()
 	return nil
 }
 
 // Clear fills the screen with the given attributes and empty cells.
-func (w *TermboxWriter) Clear(attr Attributes) (err error) {
+func (w *ScreenWriter) Clear(attr Attributes) (err error) {
 	w.scr().Fill(' ', tcell.Style(attr))
 	return
 }
 
 // SetCursor displays the terminal cursor at the given location.
-func (w *TermboxWriter) SetCursor(pos Coordinates) {
+func (w *ScreenWriter) SetCursor(pos Coordinates) {
 	w.scr().ShowCursor(pos.X, pos.Y)
 }
 
 // Size returns the size of this writer's screen.
-func (w *TermboxWriter) Size() (int, int) {
+func (w *ScreenWriter) Size() (int, int) {
 	return w.scr().Size()
 }
 
 // SetCursorStyle sets the cursor style on this writer's screen.
-func (w *TermboxWriter) SetCursorStyle(style CursorStyle) {
+func (w *ScreenWriter) SetCursorStyle(style CursorStyle) {
 	w.scr().SetCursorStyle(tcell.CursorStyle(style))
 }
 
 // Poll returns the underlying event channel of this writer's screen.
-func (w *TermboxWriter) Poll() <-chan tcell.Event {
+func (w *ScreenWriter) Poll() <-chan tcell.Event {
 	return w.scr().Poll()
 }
 
 // Bell rings the bell on this writer's screen.
-func (w *TermboxWriter) Bell() {
+func (w *ScreenWriter) Bell() {
 	w.scr().Bell()
 }
 
@@ -135,7 +117,7 @@ func (w *TermboxWriter) Bell() {
 // event queue. Returns false if the queue is full. Does not support
 // EventMouse, EventRaw or EventPaste events (these are silently ignored
 // and true is returned, mirroring termbox.PublishEvent).
-func (w *TermboxWriter) PublishEvent(ev Event) bool {
+func (w *ScreenWriter) PublishEvent(ev Event) bool {
 	if ev.Type == EventInterrupt && ev.Raw == nil && ev.UserFunc == nil &&
 		!w.interruptPending.CompareAndSwap(false, true) {
 		return true
@@ -169,17 +151,17 @@ func (w *TermboxWriter) PublishEvent(ev Event) bool {
 // writer. The TUI event loop calls this after delivering an interrupt
 // to the root handler so that the next payload-less interrupt is
 // allowed through.
-func (w *TermboxWriter) ClearInterruptPending() {
+func (w *ScreenWriter) ClearInterruptPending() {
 	w.interruptPending.Store(false)
 }
 
 // Context satisfies term.Writer.
-func (w *TermboxWriter) Context() context.Context {
+func (w *ScreenWriter) Context() context.Context {
 	return w.ctx
 }
 
 // SetContext sets the context for the next call to Context.
-func (w *TermboxWriter) SetContext(ctx context.Context) {
+func (w *ScreenWriter) SetContext(ctx context.Context) {
 	w.ctx = ctx
 }
 

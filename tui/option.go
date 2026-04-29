@@ -48,7 +48,6 @@ func WithInputMode(inputMode term.InputMode) Option {
 
 type config struct {
 	defAttr   term.Attributes
-	writer    *term.TermboxWriter
 	locker    sync.Locker
 	inputMode term.InputMode
 }
@@ -56,7 +55,6 @@ type config struct {
 func defaultConfig() config {
 	return config{
 		locker: nopLocker{},
-		writer: term.DefaultWriter,
 	}
 }
 

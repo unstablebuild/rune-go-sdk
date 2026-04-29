@@ -24,9 +24,6 @@ import (
 var (
 	defaultAttr  = Attributes{Fg: tcell.ColorDefault, Bg: tcell.ColorDefault}
 	publishEvent atomic.Value
-
-	// DefaultWriter returns the default global Writer.
-	DefaultWriter *TermboxWriter = NewTermboxWriter()
 )
 
 func init() {
@@ -60,18 +57,19 @@ func Attr() Attributes {
 	return defaultAttr
 }
 
-// Init initializes the underlying vte client.
-func Init() error {
+// NewDefaultWriter initializes the underlying terminal client with
+// the default screen and writer.
+func NewDefaultWriter() (*ScreenWriter, error) {
 	err := termbox.Init()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	screen := termbox.Screen()
 	screen.EnablePaste()
 	screen.EnableFocus()
 	publishEvent.Store(termbox.PublishEvent)
-	DefaultWriter.SetScreen(screen)
-	return nil
+	writer := NewTermboxWriter(screen)
+	return writer, nil
 }
 
 // Size returns the size of the terminal window.
