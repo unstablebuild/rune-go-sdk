@@ -33,7 +33,8 @@ import (
 // opts, polls term.Events, and dispatches them to root:
 //   - EventResize calls root.Resize.
 //   - EventInterrupt updates the iteration context and invokes any
-//     attached UserFunc without advancing the iteration id.
+//     attached UserFunc (under the handler lock) without advancing the
+//     iteration id.
 //   - All other events are forwarded to root.Handle; if Handle returns
 //     exit=true, the loop stops.
 //
@@ -204,7 +205,9 @@ loop:
 						termw.SetContext(ctx)
 					}
 					if ev.UserFunc != nil {
+						lock.Lock()
 						ev.UserFunc()
+						lock.Unlock()
 					}
 					termw.ClearInterruptPending()
 					// ensure that i is not incremented
