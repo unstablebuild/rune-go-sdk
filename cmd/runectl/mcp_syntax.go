@@ -65,6 +65,7 @@ func registerSyntaxSearch(
 			),
 			mcpQuery,
 			mcp.WithArray("captures",
+				mcp.WithStringItems(),
 				mcp.Description(
 					"Capture name filters. "+
 						"Only matches for listed "+
@@ -74,6 +75,7 @@ func registerSyntaxSearch(
 				),
 			),
 			mcp.WithArray("languages",
+				mcp.WithStringItems(),
 				mcp.Description(
 					"Language filters. "+
 						"Only files of the listed "+
@@ -212,6 +214,7 @@ func registerSyntaxQuery(
 			),
 			mcpQuery,
 			mcp.WithArray("captures",
+				mcp.WithStringItems(),
 				mcp.Description(
 					"Capture name filters. "+
 						"Only matches for listed "+

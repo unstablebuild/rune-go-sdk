@@ -147,6 +147,80 @@ func TestMCPSyntax(t *testing.T) {
 	}
 }
 
+// listTools sends a tools/list JSON-RPC message and
+// returns the decoded tool definitions keyed by name.
+func (e *mcpTestEnv) listTools(t *testing.T) map[string]map[string]any {
+	t.Helper()
+	msg := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "tools/list",
+	}
+	data, err := json.Marshal(msg)
+	require.NoError(t, err)
+
+	resp := e.srv.HandleMessage(context.Background(), data)
+	jsonResp, ok := resp.(mcp.JSONRPCResponse)
+	require.True(t, ok, "expected JSONRPCResponse, got %T: %+v", resp, resp)
+
+	resultJSON, err := json.Marshal(jsonResp.Result)
+	require.NoError(t, err)
+
+	var raw struct {
+		Tools []map[string]any `json:"tools"`
+	}
+	require.NoError(t, json.Unmarshal(resultJSON, &raw))
+
+	out := make(map[string]map[string]any, len(raw.Tools))
+	for _, tool := range raw.Tools {
+		name, _ := tool["name"].(string)
+		out[name] = tool
+	}
+	return out
+}
+
+// TestMCPSyntaxToolSchemas asserts that array properties in the
+// syntax_query and syntax_search tool schemas declare an `items`
+// schema. Without `items`, OpenAI's strict function-schema validator
+// rejects the tool definitions with `invalid_function_parameters`.
+func TestMCPSyntaxToolSchemas(t *testing.T) {
+	env := newMCPTestEnv(t)
+	defer env.cleanup()
+
+	tools := env.listTools(t)
+
+	cases := []struct {
+		tool  string
+		field string
+	}{
+		{"syntax_search", "captures"},
+		{"syntax_search", "languages"},
+		{"syntax_query", "captures"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.tool+"."+tc.field, func(t *testing.T) {
+			tool, ok := tools[tc.tool]
+			require.True(t, ok, "tool %q not registered", tc.tool)
+
+			schema, ok := tool["inputSchema"].(map[string]any)
+			require.True(t, ok, "inputSchema missing for %q", tc.tool)
+
+			props, ok := schema["properties"].(map[string]any)
+			require.True(t, ok, "properties missing for %q", tc.tool)
+
+			prop, ok := props[tc.field].(map[string]any)
+			require.True(t, ok, "property %q missing for %q", tc.field, tc.tool)
+			require.Equal(t, "array", prop["type"], "property %q should be array", tc.field)
+
+			items, ok := prop["items"].(map[string]any)
+			require.True(t, ok, "property %q missing items schema for %q", tc.field, tc.tool)
+			require.NotEmpty(t, items, "items schema for %q must not be empty", tc.field)
+			require.Equal(t, "string", items["type"], "items.type for %q should be string", tc.field)
+		})
+	}
+}
+
 func TestMCPLSP(t *testing.T) {
 	tests := []struct {
 		name   string
