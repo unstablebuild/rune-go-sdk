@@ -1,0 +1,182 @@
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/llmapi/llmrpc";
+
+package llm;
+
+enum Role {
+	ROLE_UNSPECIFIED = 0;
+	ROLE_ASSISTANT = 1;
+	ROLE_USER = 2;
+	ROLE_SYSTEM = 3;
+	ROLE_TOOL = 4;
+}
+
+enum ToolType {
+	TOOL_TYPE_UNSPECIFIED = 0;
+	TOOL_TYPE_FUNCTION = 1;
+}
+
+enum ContentPartType {
+	CONTENT_PART_TYPE_TEXT = 0;
+	CONTENT_PART_TYPE_IMAGE_URL = 1;
+}
+
+enum EventType {
+	EVENT_TYPE_TEXT_DELTA = 0;
+	EVENT_TYPE_REASONING_DELTA = 1;
+	EVENT_TYPE_TOOL_CALL_DONE = 2;
+	EVENT_TYPE_STREAM_DONE = 3;
+	EVENT_TYPE_STREAM_ERROR = 4;
+	EVENT_TYPE_STREAM_RESET = 5;
+	EVENT_TYPE_RATE_LIMIT_WARNING = 6;
+}
+
+message ContentPart {
+	ContentPartType type = 1;
+	string text = 2;
+	string image_url = 3;
+}
+
+message FunctionCall {
+	string name = 1;
+	string arguments = 2;
+}
+
+message ToolCall {
+	string id = 1;
+	ToolType type = 2;
+	FunctionCall function = 3;
+}
+
+message Message {
+	Role role = 1;
+	string content = 2;
+	string reasoning_content = 3;
+	repeated ContentPart multi_content = 4;
+	repeated ToolCall tool_calls = 5;
+	string tool_call_id = 6;
+	string name = 7;
+}
+
+message FunctionDefinition {
+	string name = 1;
+	string description = 2;
+	// Parameters serialized as JSON.
+	bytes parameters = 3;
+}
+
+message Tool {
+	ToolType type = 1;
+	FunctionDefinition function = 2;
+}
+
+message ResponseFormatJSONSchema {
+	string name = 1;
+	string description = 2;
+	// Schema serialized as JSON.
+	bytes schema = 3;
+	bool strict = 4;
+}
+
+message ResponseFormat {
+	string type = 1;
+	ResponseFormatJSONSchema json_schema = 2;
+	bool has_json_schema = 3;
+}
+
+message Request {
+	repeated Message messages = 1;
+	repeated Tool tools = 2;
+	string reasoning_effort = 3;
+	string reasoning_summary = 4;
+	int32 max_output_tokens = 5;
+	ResponseFormat response_format = 6;
+	bool has_response_format = 7;
+	string prompt_cache_key = 8;
+	int32 token_count = 9;
+}
+
+message Usage {
+	int32 tokens_sent = 1;
+	int32 tokens_received = 2;
+	int32 tokens_reasoned = 3;
+	int32 tokens_cached = 4;
+	int32 tokens_cache_created = 5;
+}
+
+message DoneData {
+	Message message = 1;
+	string finish_reason = 2;
+	Usage usage = 3;
+}
+
+message RateLimitInfo {
+	int64 wait_duration_ns = 1;
+	string message = 2;
+}
+
+message Event {
+	EventType type = 1;
+	string text = 2;
+	string reasoning = 3;
+	ToolCall tool_call = 4;
+	DoneData done_data = 5;
+	string error = 6;
+	RateLimitInfo rate_limit = 7;
+}
+
+message ModelEntry {
+	string name = 1;
+	string provider = 2;
+	int32 context_window = 3;
+	string base_url = 4;
+}
+
+message CreateCompletionRequest {
+	ModelEntry model = 1;
+	Request request = 2;
+}
+
+message CreateCompletionResponse {
+	Event event = 1;
+}
+
+message CountTokensRequest {
+	ModelEntry model = 1;
+	repeated Message messages = 2;
+}
+
+message CountTokensResponse {
+	int32 count = 1;
+}
+
+message ModelsRequest {
+}
+
+message ModelsResponse {
+	ModelEntry model = 1;
+}
+
+message GetModelRequest {
+	ModelEntry model = 1;
+}
+
+message GetModelResponse {
+	ModelEntry model = 1;
+	bool found = 2;
+}
+
+// ContextWindowExceededDetail is attached to gRPC error details when the
+// host signals ErrContextWindowExceeded.
+message ContextWindowExceededDetail {
+	int32 count = 1;
+	int32 max = 2;
+}
+
+service LLM {
+	rpc CreateCompletion(CreateCompletionRequest) returns (stream CreateCompletionResponse);
+	rpc CountTokens(CountTokensRequest) returns (CountTokensResponse);
+	rpc Models(ModelsRequest) returns (stream ModelsResponse);
+	rpc GetModel(GetModelRequest) returns (GetModelResponse);
+}

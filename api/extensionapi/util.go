@@ -64,6 +64,8 @@ func PermissionForResource(resource string) (Permission, bool) {
 		return PermissionLSP, true
 	case "debug.Debugger":
 		return PermissionDebugger, true
+	case "llm.LLM":
+		return PermissionLLM, true
 	default:
 		return "", false
 	}

@@ -139,6 +139,12 @@ func TestPermissionForResource(t *testing.T) {
 			wantOK:   true,
 		},
 		{
+			name:     "LLM maps to llm",
+			resource: "/llm.LLM/CreateCompletion",
+			wantPerm: PermissionLLM,
+			wantOK:   true,
+		},
+		{
 			name:     "unknown service returns false",
 			resource: "/unknown.Service/Method",
 			wantPerm: "",

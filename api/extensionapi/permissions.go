@@ -50,6 +50,8 @@ const (
 	PermissionLSP Permission = "permlsp"
 	// PermissionDebugger requests access to the debugger through the DAP protocol.
 	PermissionDebugger Permission = "permdap"
+	// PermissionLLM requests access to host LLM completion services.
+	PermissionLLM Permission = "permllm"
 )
 
 // Permissions is a set of Permission.
@@ -81,5 +83,6 @@ func AllPermissions() Permissions {
 		PermissionConfig:                nil,
 		PermissionLSP:                   nil,
 		PermissionDebugger:              nil,
+		PermissionLLM:                   nil,
 	}
 }
