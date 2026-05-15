@@ -152,6 +152,7 @@ func newRootCmd() *cobra.Command {
 		newExecCmd(a),
 		newSignalCmd(a),
 		newLSPCmd(a),
+		newLLMCmd(a),
 		newMCPCmd(a),
 	)
 

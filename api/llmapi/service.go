@@ -69,6 +69,10 @@ type ModelEntry struct {
 	// BaseURL is the provider-specific API base URL.
 	// Empty string means use the provider's default.
 	BaseURL string
+	// ProjectorPath is the absolute path to an optional multimodal projector
+	// GGUF (mmproj) associated with a local llama.cpp model. Empty for
+	// providers that do not use a separate projector file.
+	ProjectorPath string
 }
 
 // ReasoningEffort controls the amount of reasoning effort for reasoning models.
@@ -109,6 +113,8 @@ const (
 type Request struct {
 	Messages         []Message
 	Tools            []Tool
+	ToolChoice       ToolChoice
+	ParallelToolCalls *bool
 	ReasoningEffort  ReasoningEffort
 	ReasoningSummary ReasoningSummary
 	MaxOutputTokens  int
@@ -128,6 +134,19 @@ type Request struct {
 	// every CreateCompletion call.
 	TokenCount int
 }
+
+// ToolChoice controls whether and how the model should use tools when tools
+// are present on a request.
+type ToolChoice string
+
+const (
+	// ToolChoiceAuto lets the provider/model decide whether to call a tool.
+	ToolChoiceAuto ToolChoice = "auto"
+	// ToolChoiceRequired requires the model to emit at least one tool call.
+	ToolChoiceRequired ToolChoice = "required"
+	// ToolChoiceNone forbids tool use even if tools are declared.
+	ToolChoiceNone ToolChoice = "none"
+)
 
 // ToolType is the type of tool that a model can invoke.
 type ToolType string
@@ -175,6 +194,13 @@ type Message struct {
 	ToolCalls        []ToolCall    `json:"ToolCalls,omitempty"`
 	ToolCallID       string        `json:"ToolCallID,omitempty"`
 	Name             string        `json:"Name,omitempty"`
+	// ProviderItems carries opaque provider-specific items that must be
+	// threaded back into the next request to maintain stateful continuity
+	// (e.g. ChatGPT Codex backend reasoning items with encrypted_content
+	// when store=false). Each entry is the raw JSON of a single item,
+	// preserved in the order it was emitted by the provider. Cross-provider
+	// code should treat this field as opaque.
+	ProviderItems []json.RawMessage `json:"ProviderItems,omitempty"`
 }
 
 // UnmarshalJSON handles both the new format and the old persisted format

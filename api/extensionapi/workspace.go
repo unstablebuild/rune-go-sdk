@@ -27,6 +27,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/config/configrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi"
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/llmapi"
+	"github.com/unstablebuild/rune-go-sdk/api/llmapi/llmrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
@@ -109,6 +111,14 @@ func (w *Workspace) Editor(ctx context.Context) textapi.Editor {
 // with language servers.
 func (w *Workspace) LSP(ctx context.Context) semanticapi.LSP {
 	return semanticrpc.NewClient(ctx, w.conn)
+}
+
+// LLM returns the workspace's LLM client. The host routes calls to
+// whichever provider serves the requested model. Extensions must have
+// PermissionLLM to access it; without the permission, every call
+// returns PermissionDenied at request time.
+func (w *Workspace) LLM(ctx context.Context) llmapi.Service {
+	return llmrpc.NewClient(ctx, w.conn)
 }
 
 // Debugger returns the workspace's Debugger client, which can be used to interact
