@@ -20,8 +20,13 @@ import (
 	"github.com/ernestrc/go-multierror"
 )
 
-// Aggregate combines multiple iterators of T into one single iterator of T.
-// If its is nil or empty, this method safely returns an empty iterator.
+// Aggregate combines multiple iterators of T into one single iterator
+// of T. If its is nil or empty, this method safely returns an empty
+// iterator. The returned iterator is a wrapper: its Close delegates
+// to each input iterator's Close, and inputs already drained during
+// iteration are also closed at that point. The caller is responsible
+// for closing the returned iterator. See the Iterator type for the
+// wrapper/terminal contract.
 func Aggregate[T any](its ...Iterator[T]) Iterator[T] {
 	return &aggregate[T]{its: its}
 }

@@ -16,9 +16,12 @@ package iterator
 
 import "context"
 
-// Filter wraps an iterator of type T and returns another iterator that will
-// apply fn to each of the elements produced and filter out any elements for
-// which fn returns false.
+// Filter wraps an iterator of type T and returns another iterator
+// that applies fn to each of the elements produced and filters out
+// any elements for which fn returns false. The returned iterator is a
+// wrapper: its Close delegates to it. The caller is responsible for
+// closing the returned iterator. See the Iterator type for the
+// wrapper/terminal contract.
 func Filter[T any](it Iterator[T], fn func(T) bool) Iterator[T] {
 	return FromFunc(func(ctx context.Context) (ret T, ok bool, err error) {
 		for {

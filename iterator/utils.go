@@ -20,17 +20,29 @@ import (
 	"github.com/ernestrc/go-multierror"
 )
 
-// ToSlice consumes the given iterator and returns a slice with
-// all of the elements produced.
-func ToSlice[T any](ctx context.Context, it Iterator[T]) ([]T, error) {
-	ret := make([]T, 0)
+// ToSlice consumes the given iterator and returns a slice with all of
+// the elements produced.
+//
+// ToSlice is a terminal operation: it always closes the input iterator
+// before returning, so callers must not close it themselves. Close
+// errors are joined with any iteration error using multierror.
+//
+// See the Iterator type for the wrapper/terminal contract that
+// governs which helpers own the Close call.
+func ToSlice[T any](ctx context.Context, it Iterator[T]) (ret []T, err error) {
+	defer func() {
+		if cerr := it.Close(); cerr != nil {
+			err = multierror.Append(err, cerr)
+		}
+	}()
+	ret = make([]T, 0)
 	for {
 		t, ok := it.Next(ctx)
 		if !ok {
-			if err := it.Err(); err != nil {
-				return nil, err
+			if ierr := it.Err(); ierr != nil {
+				return nil, ierr
 			}
-			return ret, nil
+			return
 		}
 		ret = append(ret, t)
 	}

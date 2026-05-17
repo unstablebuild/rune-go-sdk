@@ -17,6 +17,9 @@ package iterator
 import "context"
 
 // Unslice converts an iterator of slices of T into an iterator of T.
+// The returned iterator is a wrapper: its Close delegates to it. The
+// caller is responsible for closing the returned iterator. See the
+// Iterator type for the wrapper/terminal contract.
 func Unslice[T any](it Iterator[[]T]) Iterator[T] {
 	return &unslice[T]{it: it}
 }

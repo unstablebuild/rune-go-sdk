@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReduce(t *testing.T) {
@@ -63,4 +64,41 @@ func TestReduce(t *testing.T) {
 			assert.Equal(t, test.expectErr, actualErr)
 		})
 	}
+}
+
+// TestReduceClosesIterator asserts that Reduce closes its input
+// iterator after consuming it. Reduce is a terminal operation: callers
+// have no handle to close the iterator themselves once Reduce returns,
+// so leaving it open leaks any resources (goroutines, file descriptors,
+// network connections) that the iterator owns.
+func TestReduceClosesIterator(t *testing.T) {
+	for _, tc := range []struct {
+		desc string
+		in   []int
+		fn   func(int, int) (int, error)
+	}{
+		{"empty", nil, func(int, int) (int, error) { return 0, nil }},
+		{"happy path", []int{1, 2, 3}, func(a, b int) (int, error) { return a + b, nil }},
+		{"reducer error", []int{1}, func(int, int) (int, error) { return 0, errors.New("oops") }},
+	} {
+		t.Run(tc.desc, func(t *testing.T) {
+			it := newClosableIter(tc.in)
+			_, _ = Reduce(context.Background(), it, tc.fn)
+			assert.Equal(t, 1, it.closeCount, "Reduce must close its input iterator exactly once")
+		})
+	}
+}
+
+// TestReduceReportsCloseError asserts that Reduce surfaces Close
+// errors, joined with any error from iteration, so that callers do not
+// silently lose failures from the underlying resource.
+func TestReduceReportsCloseError(t *testing.T) {
+	closeErr := errors.New("close failed")
+	it := newClosableIter([]int{1, 2})
+	it.closeErr = closeErr
+
+	_, err := Reduce(context.Background(), it,
+		func(acc, v int) (int, error) { return acc + v, nil })
+	require.Error(t, err)
+	assert.ErrorIs(t, err, closeErr)
 }

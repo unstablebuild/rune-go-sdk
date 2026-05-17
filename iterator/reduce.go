@@ -14,15 +14,33 @@
 
 package iterator
 
-import "context"
+import (
+	"context"
 
-// Reduce combines all the elements in an iterator using a
-// binary operation to produce a single value.
+	"github.com/ernestrc/go-multierror"
+)
+
+// Reduce combines all the elements in an iterator using a binary
+// operation to produce a single value.
+//
+// Reduce is a terminal operation: it always closes the input iterator
+// before returning, so callers must not close it themselves. Close
+// errors are joined with any reducer or iteration error using
+// multierror so callers do not silently lose failures from the
+// underlying resource (goroutines, file descriptors, gRPC streams).
+//
+// See the Iterator type for the wrapper/terminal contract that
+// governs which helpers own the Close call.
 func Reduce[T any, V any](
 	ctx context.Context,
 	it Iterator[T],
 	reducer func(V, T) (V, error),
 ) (ret V, err error) {
+	defer func() {
+		if cerr := it.Close(); cerr != nil {
+			err = multierror.Append(err, cerr)
+		}
+	}()
 	for {
 		t, ok := it.Next(ctx)
 		if !ok {

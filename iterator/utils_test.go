@@ -16,6 +16,7 @@ package iterator
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,4 +89,75 @@ func TestIsEmpty(t *testing.T) {
 		require.NoError(t, next.Close())
 		assert.True(t, called)
 	})
+}
+
+// closableIter is a test helper that tracks how many times Close has
+// been called and lets tests inject a Close error.
+type closableIter[T any] struct {
+	els        []T
+	err        error
+	closeErr   error
+	closeCount int
+}
+
+func newClosableIter[T any](els []T) *closableIter[T] {
+	return &closableIter[T]{els: els}
+}
+
+func (i *closableIter[T]) Next(context.Context) (ret T, ok bool) {
+	if len(i.els) == 0 {
+		return
+	}
+	ret, i.els = i.els[0], i.els[1:]
+	return ret, true
+}
+
+func (i *closableIter[T]) Err() error { return i.err }
+
+func (i *closableIter[T]) Close() error {
+	i.closeCount++
+	return i.closeErr
+}
+
+// TestToSliceClosesIterator asserts that ToSlice closes its input
+// iterator after consuming it. ToSlice is a terminal operation: once
+// it returns, callers have no handle to close the iterator themselves.
+func TestToSliceClosesIterator(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("empty", func(t *testing.T) {
+		it := newClosableIter[int](nil)
+		_, err := ToSlice(ctx, it)
+		require.NoError(t, err)
+		assert.Equal(t, 1, it.closeCount)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		it := newClosableIter([]int{1, 2, 3})
+		out, err := ToSlice(ctx, it)
+		require.NoError(t, err)
+		assert.Equal(t, []int{1, 2, 3}, out)
+		assert.Equal(t, 1, it.closeCount)
+	})
+
+	t.Run("iteration error", func(t *testing.T) {
+		iterErr := errors.New("iter failed")
+		it := newClosableIter([]int{1})
+		it.err = iterErr
+		// Drain the only element so Err triggers on the next Next.
+		_, err := ToSlice(ctx, it)
+		require.ErrorIs(t, err, iterErr)
+		assert.Equal(t, 1, it.closeCount)
+	})
+}
+
+// TestToSliceReportsCloseError asserts ToSlice surfaces Close errors.
+func TestToSliceReportsCloseError(t *testing.T) {
+	closeErr := errors.New("close failed")
+	it := newClosableIter([]int{1, 2})
+	it.closeErr = closeErr
+
+	_, err := ToSlice(context.Background(), it)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, closeErr)
 }

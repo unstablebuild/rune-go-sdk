@@ -16,8 +16,11 @@ package iterator
 
 import "context"
 
-// Map maps an iterator of type T and returns another iterator that will
-// apply fn to each of the elements produced.
+// Map wraps an iterator of type T and returns another iterator that
+// applies fn to each of the elements produced. The returned iterator
+// is a wrapper: its Close delegates to it. The caller is responsible
+// for closing the returned iterator. See the Iterator type for the
+// wrapper/terminal contract.
 func Map[T any, V any](it Iterator[T], fn func(T) V) Iterator[V] {
 	return FromFunc(func(ctx context.Context) (ret V, ok bool, err error) {
 		var t T
