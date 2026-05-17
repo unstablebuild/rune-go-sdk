@@ -1,11 +1,12 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agents when working with code in this repository.
 
 ## Project Overview
 
 A Go SDK for extending the Rune IDE by building plugins (text-based applications that run inside the Rune IDE's virtual terminal emulator),
-or extensions which are programs that interact with Rune via grpc over a local socket.
+or extensions which are programs that interact with Rune via grpc over a local socket. It also implements runectl
+a CLI to interact with rune, without deeper integration via extension.
 
 ## Common Commands
 
