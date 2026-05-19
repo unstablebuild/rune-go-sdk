@@ -17,7 +17,6 @@ package component
 import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 const defaultElementHeight = 1
@@ -25,7 +24,7 @@ const defaultElementHeight = 1
 var (
 	defaultTextAttr   = term.Attributes{}
 	highlightTextAttr = term.Attributes{
-		Attrs: tcell.AttrBold,
+		Attrs: term.AttrBold,
 	}
 )
 

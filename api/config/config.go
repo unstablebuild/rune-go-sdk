@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // ErrNotFound is returned when config property is not in config.
@@ -40,8 +39,8 @@ type Config interface {
 	GetBool(string) (bool, error)
 	GetConfig(string) (Config, error)
 	GetMap(string) (map[string]interface{}, error)
-	GetAttribute(string) (tcell.AttrMask, error)
-	GetColor(string) (tcell.Color, error)
+	GetAttribute(string) (term.AttrMask, error)
+	GetColor(string) (term.Color, error)
 	GetRune(string) (rune, error)
 	GetSlice(string) ([]interface{}, error)
 	Iterate(fn func(k string, value interface{}))
@@ -319,33 +318,33 @@ func (c mapConfig) GetSlice(key string) ([]interface{}, error) {
 	return vt, nil
 }
 
-func strToAttr(str string) (attr tcell.AttrMask, err error) {
+func strToAttr(str string) (attr term.AttrMask, err error) {
 	switch str {
 	case "bold":
-		attr = tcell.AttrBold
+		attr = term.AttrBold
 	case "underline":
-		attr = tcell.AttrUnderline
+		attr = term.AttrUnderline
 	case "reverse":
-		attr = tcell.AttrReverse
+		attr = term.AttrReverse
 	case "default":
-		attr = tcell.AttrNone
+		attr = term.AttrNone
 	case "none":
-		attr = tcell.AttrNone
+		attr = term.AttrNone
 	case "blink":
-		attr = tcell.AttrBlink
+		attr = term.AttrBlink
 	case "dim":
-		attr = tcell.AttrDim
+		attr = term.AttrDim
 	case "italic":
-		attr = tcell.AttrItalic
+		attr = term.AttrItalic
 	case "strikethrough":
-		attr = tcell.AttrStrikeThrough
+		attr = term.AttrStrikeThrough
 	default:
 		err = ErrInvalidAttributeValue
 	}
 	return
 }
 
-func (c mapConfig) GetAttribute(key string) (tcell.AttrMask, error) {
+func (c mapConfig) GetAttribute(key string) (term.AttrMask, error) {
 	v, ok := c[key]
 	if !ok {
 		return 0, ErrNotFound
@@ -356,7 +355,7 @@ func (c mapConfig) GetAttribute(key string) (tcell.AttrMask, error) {
 	}
 	i, err := c.GetInt(key)
 	if err == nil {
-		return tcell.AttrMask(i), nil
+		return term.AttrMask(i), nil
 	}
 
 	avt, ok := v.([]interface{})
@@ -364,7 +363,7 @@ func (c mapConfig) GetAttribute(key string) (tcell.AttrMask, error) {
 		return 0, ErrInvalidType
 	}
 
-	var attr tcell.AttrMask
+	var attr term.AttrMask
 	for _, vtv := range avt {
 		if vtvs, ok := vtv.(string); ok {
 			vtvattr, err := strToAttr(vtvs)
@@ -378,7 +377,7 @@ func (c mapConfig) GetAttribute(key string) (tcell.AttrMask, error) {
 	return attr, nil
 }
 
-func (c mapConfig) GetColor(key string) (tcell.Color, error) {
+func (c mapConfig) GetColor(key string) (term.Color, error) {
 	v, ok := c[key]
 	if !ok {
 		return 0, ErrNotFound
@@ -386,9 +385,9 @@ func (c mapConfig) GetColor(key string) (tcell.Color, error) {
 	vs, ok := v.(string)
 	if ok {
 		if vs == "default" {
-			return tcell.ColorDefault, nil
+			return term.ColorDefault, nil
 		}
-		return tcell.GetColor(vs), nil
+		return term.GetColor(vs), nil
 	}
 	i, err := c.GetInt(key)
 	if err != nil {
@@ -397,7 +396,7 @@ func (c mapConfig) GetColor(key string) (tcell.Color, error) {
 	if i > math.MaxInt32 {
 		return 0, ErrInvalidType
 	}
-	return tcell.NewHexColor(int32(i)), nil
+	return term.NewHexColor(int32(i)), nil
 }
 
 func (c mapConfig) GetRune(key string) (rune, error) {

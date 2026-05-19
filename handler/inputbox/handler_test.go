@@ -23,7 +23,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/handler/handlertest"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 func TestHandler(t *testing.T) {
@@ -341,7 +340,7 @@ func TestHandlerPlaceholder(t *testing.T) {
 		ib := New(WithPlaceholder("Test", component.StringResponsiveConfig{
 			StringConfig: component.StringConfig{
 				Attributes: term.Attributes{
-					Fg: tcell.ColorBlue,
+					Fg: term.ColorBlue,
 				},
 			},
 		}))
@@ -356,8 +355,8 @@ func TestHandlerBackground(t *testing.T) {
 
 	t.Run("background fills entire area with WithAttributes", func(t *testing.T) {
 		ib := New(WithAttributes(term.Attributes{
-			Fg: tcell.ColorWhite,
-			Bg: tcell.ColorBlue,
+			Fg: term.ColorWhite,
+			Bg: term.ColorBlue,
 		}))
 		width, height := 10, 3
 		ib.Resize(width, height)
@@ -368,7 +367,7 @@ func TestHandlerBackground(t *testing.T) {
 		for y := range height {
 			for x := range width {
 				idx := y*width + x
-				assert.Equal(t, tcell.ColorBlue, cells[idx].Bg,
+				assert.Equal(t, term.ColorBlue, cells[idx].Bg,
 					"cell at (%d, %d) should have blue background", x, y)
 			}
 		}
@@ -377,8 +376,8 @@ func TestHandlerBackground(t *testing.T) {
 	t.Run("background fills entire area with SetAttr", func(t *testing.T) {
 		ib := New()
 		ib.SetAttr(term.Attributes{
-			Fg: tcell.ColorYellow,
-			Bg: tcell.ColorRed,
+			Fg: term.ColorYellow,
+			Bg: term.ColorRed,
 		})
 		width, height := 5, 2
 		ib.Resize(width, height)
@@ -389,7 +388,7 @@ func TestHandlerBackground(t *testing.T) {
 		for y := range height {
 			for x := range width {
 				idx := y*width + x
-				assert.Equal(t, tcell.ColorRed, cells[idx].Bg,
+				assert.Equal(t, term.ColorRed, cells[idx].Bg,
 					"cell at (%d, %d) should have red background", x, y)
 			}
 		}
@@ -397,8 +396,8 @@ func TestHandlerBackground(t *testing.T) {
 
 	t.Run("background with text content", func(t *testing.T) {
 		ib := New(WithAttributes(term.Attributes{
-			Fg: tcell.ColorWhite,
-			Bg: tcell.ColorGreen,
+			Fg: term.ColorWhite,
+			Bg: term.ColorGreen,
 		}))
 		width, height := 10, 2
 		ib.Resize(width, height)
@@ -410,7 +409,7 @@ func TestHandlerBackground(t *testing.T) {
 		for y := range height {
 			for x := range width {
 				idx := y*width + x
-				assert.Equal(t, tcell.ColorGreen, cells[idx].Bg,
+				assert.Equal(t, term.ColorGreen, cells[idx].Bg,
 					"cell at (%d, %d) should have green background", x, y)
 			}
 		}
@@ -425,8 +424,8 @@ func TestHandlerBackground(t *testing.T) {
 	t.Run("background with placeholder", func(t *testing.T) {
 		ib := New(
 			WithAttributes(term.Attributes{
-				Fg: tcell.ColorWhite,
-				Bg: tcell.ColorPurple,
+				Fg: term.ColorWhite,
+				Bg: term.ColorPurple,
 			}),
 			WithPlaceholderText("placeholder"),
 		)
@@ -437,7 +436,7 @@ func TestHandlerBackground(t *testing.T) {
 
 		cells := w.Cells()
 		for x := range width {
-			assert.Equal(t, tcell.ColorPurple, cells[x].Bg,
+			assert.Equal(t, term.ColorPurple, cells[x].Bg,
 				"cell at (%d, 0) should have purple background", x)
 		}
 	})
@@ -934,14 +933,14 @@ func TestHandlerShiftArrowSelection(t *testing.T) {
 		// "hel" (indices 0-2) should NOT be reversed
 		for i := range 3 {
 			assert.Equal(
-				t, tcell.AttrNone, cells[i].Attrs,
+				t, term.AttrNone, cells[i].Attrs,
 				"cell %d should not be reversed", i,
 			)
 		}
 		// "lo" (indices 3-4) should be reversed
 		for i := 3; i < 5; i++ {
 			assert.Equal(
-				t, tcell.AttrReverse, cells[i].Attrs,
+				t, term.AttrReverse, cells[i].Attrs,
 				"cell %d should be reversed", i,
 			)
 		}

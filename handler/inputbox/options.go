@@ -17,7 +17,6 @@ package inputbox
 import (
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // Option configures a Handler.
@@ -44,7 +43,7 @@ func WithPlaceholderText(text string) Option {
 		NoSplitWords: true,
 		StringConfig: component.StringConfig{
 			Attributes: term.Attributes{
-				Fg: tcell.ColorGray,
+				Fg: term.ColorGray,
 			},
 		},
 	}

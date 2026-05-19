@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 func TestAttributesUnion(t *testing.T) {
@@ -29,42 +28,42 @@ func TestAttributesUnion(t *testing.T) {
 	}{
 		{},
 
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorDefault}, Attributes{Fg: tcell.ColorRed}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorDefault}, Attributes{Bg: tcell.ColorRed}},
+		{Attributes{Fg: ColorRed}, Attributes{Fg: ColorDefault}, Attributes{Fg: ColorRed}},
+		{Attributes{Bg: ColorRed}, Attributes{Bg: ColorDefault}, Attributes{Bg: ColorRed}},
 
-		{Attributes{Fg: tcell.ColorWhite}, Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorRed}},
-		{Attributes{Bg: tcell.ColorWhite}, Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorRed}},
+		{Attributes{Fg: ColorWhite}, Attributes{Fg: ColorRed}, Attributes{Fg: ColorRed}},
+		{Attributes{Bg: ColorWhite}, Attributes{Bg: ColorRed}, Attributes{Bg: ColorRed}},
 
-		{Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse},
-			Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse},
-			Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse}},
-		{Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse},
-			Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse},
-			Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse}},
+		{Attributes{Fg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse},
+			Attributes{Fg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse},
+			Attributes{Fg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse}},
+		{Attributes{Bg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse},
+			Attributes{Bg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse},
+			Attributes{Bg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse}},
 
-		{Attributes{Attrs: tcell.AttrBold}, Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold}},
-		{Attributes{Attrs: tcell.AttrBold}, Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrBold}},
-		{Attributes{Attrs: tcell.AttrUnderline}, Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrUnderline}},
-		{Attributes{Attrs: tcell.AttrUnderline}, Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrUnderline}},
-		{Attributes{Attrs: tcell.AttrReverse}, Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrReverse}},
-		{Attributes{Attrs: tcell.AttrReverse}, Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrReverse}},
+		{Attributes{Attrs: AttrBold}, Attributes{Fg: ColorRed}, Attributes{Fg: ColorRed, Attrs: AttrBold}},
+		{Attributes{Attrs: AttrBold}, Attributes{Bg: ColorRed}, Attributes{Bg: ColorRed, Attrs: AttrBold}},
+		{Attributes{Attrs: AttrUnderline}, Attributes{Fg: ColorRed}, Attributes{Fg: ColorRed, Attrs: AttrUnderline}},
+		{Attributes{Attrs: AttrUnderline}, Attributes{Bg: ColorRed}, Attributes{Bg: ColorRed, Attrs: AttrUnderline}},
+		{Attributes{Attrs: AttrReverse}, Attributes{Fg: ColorRed}, Attributes{Fg: ColorRed, Attrs: AttrReverse}},
+		{Attributes{Attrs: AttrReverse}, Attributes{Bg: ColorRed}, Attributes{Bg: ColorRed, Attrs: AttrReverse}},
 
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrBold}, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrBold}, Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrBold}},
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrUnderline}, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrUnderline}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrUnderline}, Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrUnderline}},
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrReverse}, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrReverse}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrReverse}, Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrReverse}},
+		{Attributes{Fg: ColorRed}, Attributes{Attrs: AttrBold}, Attributes{Fg: ColorRed, Attrs: AttrBold}},
+		{Attributes{Bg: ColorRed}, Attributes{Attrs: AttrBold}, Attributes{Bg: ColorRed, Attrs: AttrBold}},
+		{Attributes{Fg: ColorRed}, Attributes{Attrs: AttrUnderline}, Attributes{Fg: ColorRed, Attrs: AttrUnderline}},
+		{Attributes{Bg: ColorRed}, Attributes{Attrs: AttrUnderline}, Attributes{Bg: ColorRed, Attrs: AttrUnderline}},
+		{Attributes{Fg: ColorRed}, Attributes{Attrs: AttrReverse}, Attributes{Fg: ColorRed, Attrs: AttrReverse}},
+		{Attributes{Bg: ColorRed}, Attributes{Attrs: AttrReverse}, Attributes{Bg: ColorRed, Attrs: AttrReverse}},
 
-		{Attributes{Attrs: tcell.AttrReverse | tcell.AttrBold | tcell.AttrUnderline},
-			Attributes{Bg: tcell.ColorRed},
-			Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrReverse | tcell.AttrBold | tcell.AttrUnderline}},
-		{Attributes{Bg: tcell.ColorRed},
-			Attributes{Attrs: tcell.AttrReverse | tcell.AttrBold | tcell.AttrUnderline},
-			Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrReverse | tcell.AttrBold | tcell.AttrUnderline}},
+		{Attributes{Attrs: AttrReverse | AttrBold | AttrUnderline},
+			Attributes{Bg: ColorRed},
+			Attributes{Bg: ColorRed, Attrs: AttrReverse | AttrBold | AttrUnderline}},
+		{Attributes{Bg: ColorRed},
+			Attributes{Attrs: AttrReverse | AttrBold | AttrUnderline},
+			Attributes{Bg: ColorRed, Attrs: AttrReverse | AttrBold | AttrUnderline}},
 
-		{Attributes{Fg: tcell.ColorDefault}, Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorRed}},
-		{Attributes{Bg: tcell.ColorDefault}, Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorRed}},
+		{Attributes{Fg: ColorDefault}, Attributes{Fg: ColorRed}, Attributes{Fg: ColorRed}},
+		{Attributes{Bg: ColorDefault}, Attributes{Bg: ColorRed}, Attributes{Bg: ColorRed}},
 	}
 
 	for i, tcase := range tsuite {
@@ -82,41 +81,41 @@ func TestAttributesDifference(t *testing.T) {
 	}{
 		{},
 
-		{Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse}, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse},
-			Attributes{Fg: tcell.ColorDefault}},
-		{Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse}, Attributes{Bg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline | tcell.AttrReverse},
-			Attributes{Bg: tcell.ColorDefault}},
+		{Attributes{Fg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse}, Attributes{Fg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse},
+			Attributes{Fg: ColorDefault}},
+		{Attributes{Bg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse}, Attributes{Bg: ColorRed, Attrs: AttrBold | AttrUnderline | AttrReverse},
+			Attributes{Bg: ColorDefault}},
 
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorDefault}, Attributes{Fg: tcell.ColorRed}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorDefault}, Attributes{Bg: tcell.ColorRed}},
+		{Attributes{Fg: ColorRed}, Attributes{Fg: ColorDefault}, Attributes{Fg: ColorRed}},
+		{Attributes{Bg: ColorRed}, Attributes{Bg: ColorDefault}, Attributes{Bg: ColorRed}},
 
-		{Attributes{Fg: tcell.ColorWhite}, Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorWhite}},
-		{Attributes{Bg: tcell.ColorWhite}, Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorWhite}},
+		{Attributes{Fg: ColorWhite}, Attributes{Fg: ColorRed}, Attributes{Fg: ColorWhite}},
+		{Attributes{Bg: ColorWhite}, Attributes{Bg: ColorRed}, Attributes{Bg: ColorWhite}},
 
-		{Attributes{Fg: tcell.ColorWhite}, Attributes{Fg: tcell.ColorWhite}, Attributes{Fg: tcell.ColorDefault}},
-		{Attributes{Bg: tcell.ColorWhite}, Attributes{Bg: tcell.ColorWhite}, Attributes{Bg: tcell.ColorDefault}},
+		{Attributes{Fg: ColorWhite}, Attributes{Fg: ColorWhite}, Attributes{Fg: ColorDefault}},
+		{Attributes{Bg: ColorWhite}, Attributes{Bg: ColorWhite}, Attributes{Bg: ColorDefault}},
 
-		{Attributes{Attrs: tcell.AttrBold}, Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrBold}},
-		{Attributes{Attrs: tcell.AttrBold}, Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrBold}},
-		{Attributes{Attrs: tcell.AttrUnderline}, Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrUnderline}},
-		{Attributes{Attrs: tcell.AttrUnderline}, Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrUnderline}},
-		{Attributes{Attrs: tcell.AttrReverse}, Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrReverse}},
-		{Attributes{Attrs: tcell.AttrReverse}, Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrReverse}},
+		{Attributes{Attrs: AttrBold}, Attributes{Fg: ColorRed}, Attributes{Attrs: AttrBold}},
+		{Attributes{Attrs: AttrBold}, Attributes{Bg: ColorRed}, Attributes{Attrs: AttrBold}},
+		{Attributes{Attrs: AttrUnderline}, Attributes{Fg: ColorRed}, Attributes{Attrs: AttrUnderline}},
+		{Attributes{Attrs: AttrUnderline}, Attributes{Bg: ColorRed}, Attributes{Attrs: AttrUnderline}},
+		{Attributes{Attrs: AttrReverse}, Attributes{Fg: ColorRed}, Attributes{Attrs: AttrReverse}},
+		{Attributes{Attrs: AttrReverse}, Attributes{Bg: ColorRed}, Attributes{Attrs: AttrReverse}},
 
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrBold}, Attributes{Fg: tcell.ColorRed}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrBold}, Attributes{Bg: tcell.ColorRed}},
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrUnderline}, Attributes{Fg: tcell.ColorRed}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrUnderline}, Attributes{Bg: tcell.ColorRed}},
-		{Attributes{Fg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrReverse}, Attributes{Fg: tcell.ColorRed}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrReverse}, Attributes{Bg: tcell.ColorRed}},
+		{Attributes{Fg: ColorRed}, Attributes{Attrs: AttrBold}, Attributes{Fg: ColorRed}},
+		{Attributes{Bg: ColorRed}, Attributes{Attrs: AttrBold}, Attributes{Bg: ColorRed}},
+		{Attributes{Fg: ColorRed}, Attributes{Attrs: AttrUnderline}, Attributes{Fg: ColorRed}},
+		{Attributes{Bg: ColorRed}, Attributes{Attrs: AttrUnderline}, Attributes{Bg: ColorRed}},
+		{Attributes{Fg: ColorRed}, Attributes{Attrs: AttrReverse}, Attributes{Fg: ColorRed}},
+		{Attributes{Bg: ColorRed}, Attributes{Attrs: AttrReverse}, Attributes{Bg: ColorRed}},
 
-		{Attributes{Attrs: tcell.AttrReverse | tcell.AttrBold | tcell.AttrUnderline}, Attributes{Bg: tcell.ColorRed},
-			Attributes{Attrs: tcell.AttrReverse | tcell.AttrBold | tcell.AttrUnderline}},
-		{Attributes{Bg: tcell.ColorRed}, Attributes{Attrs: tcell.AttrReverse | tcell.AttrBold | tcell.AttrUnderline},
-			Attributes{Bg: tcell.ColorRed}},
+		{Attributes{Attrs: AttrReverse | AttrBold | AttrUnderline}, Attributes{Bg: ColorRed},
+			Attributes{Attrs: AttrReverse | AttrBold | AttrUnderline}},
+		{Attributes{Bg: ColorRed}, Attributes{Attrs: AttrReverse | AttrBold | AttrUnderline},
+			Attributes{Bg: ColorRed}},
 
-		{Attributes{Fg: tcell.ColorDefault}, Attributes{Fg: tcell.ColorRed}, Attributes{Fg: tcell.ColorDefault}},
-		{Attributes{Bg: tcell.ColorDefault}, Attributes{Bg: tcell.ColorRed}, Attributes{Bg: tcell.ColorDefault}},
+		{Attributes{Fg: ColorDefault}, Attributes{Fg: ColorRed}, Attributes{Fg: ColorDefault}},
+		{Attributes{Bg: ColorDefault}, Attributes{Bg: ColorRed}, Attributes{Bg: ColorDefault}},
 	}
 
 	for i, tcase := range tsuite {
@@ -128,10 +127,10 @@ func TestAttributesDifference(t *testing.T) {
 }
 
 func BenchmarkAttributesOperations(b *testing.B) {
-	attr := Attributes{Fg: tcell.ColorDefault, Bg: tcell.ColorDefault}
+	attr := Attributes{Fg: ColorDefault, Bg: ColorDefault}
 	for i := 0; i < b.N; i++ {
-		attr = AttributesUnion(attr, Attributes{Fg: tcell.ColorRed, Attrs: tcell.AttrBold | tcell.AttrUnderline})
-		attr = AttributesDifference(attr, Attributes{Attrs: tcell.AttrBold | tcell.AttrReverse})
-		attr = AttributesUnion(attr, Attributes{Fg: tcell.ColorGreen, Attrs: tcell.AttrUnderline, Bg: tcell.ColorBlack})
+		attr = AttributesUnion(attr, Attributes{Fg: ColorRed, Attrs: AttrBold | AttrUnderline})
+		attr = AttributesDifference(attr, Attributes{Attrs: AttrBold | AttrReverse})
+		attr = AttributesUnion(attr, Attributes{Fg: ColorGreen, Attrs: AttrUnderline, Bg: ColorBlack})
 	}
 }

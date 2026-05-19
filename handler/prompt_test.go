@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 func TestPromptDefaults(t *testing.T) {
@@ -48,7 +47,7 @@ func TestPromptDefaults(t *testing.T) {
 			PromptConfig: component.PromptConfig{
 				Message: "blah", Options: []string{"a"},
 			}})
-		attr := term.Attributes{Attrs: tcell.AttrReverse}
+		attr := term.Attributes{Attrs: term.AttrReverse}
 		assert.Equal(t, attr, p.cfg.HighlightAttr)
 	})
 }
@@ -264,7 +263,7 @@ func TestPromptMouseClick(t *testing.T) {
 			},
 			PromptHandler: ph,
 			HighlightAttr: term.Attributes{
-				Bg: tcell.ColorYellow,
+				Bg: term.ColorYellow,
 			},
 		})
 		p.Resize(width, height)

@@ -17,7 +17,6 @@ package component
 import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // Prompt implements a prompt / question with options component.
@@ -66,7 +65,7 @@ func (o *promptOption) SetAttr(
 	attr term.Attributes,
 ) term.Attributes {
 	bg := attr.Bg
-	if attr.Attrs&tcell.AttrReverse != 0 {
+	if attr.Attrs&term.AttrReverse != 0 {
 		bg = attr.Fg
 	}
 	o.bg = term.Attributes{Bg: bg}

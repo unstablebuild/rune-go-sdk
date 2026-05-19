@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/unstablebuild/rune-go-sdk/component/comptest"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 func TestDrawFrame(t *testing.T) {
@@ -129,22 +128,22 @@ func TestFrameResponsive(t *testing.T) {
 func TestFrameWithAttributes(t *testing.T) {
 	t.Run("component satisfies WithAttributes", func(t *testing.T) {
 		f := NewFrame(&TestComponent{Ch: 'a'})
-		f.SetAttr(term.Attributes{Fg: tcell.ColorRed, Bg: tcell.ColorGreen})
+		f.SetAttr(term.Attributes{Fg: term.ColorRed, Bg: term.ColorGreen})
 
-		assert.Equal(t, tcell.ColorGreen, f.Bg)
-		assert.Equal(t, tcell.ColorRed, f.Fg)
+		assert.Equal(t, term.ColorGreen, f.Bg)
+		assert.Equal(t, term.ColorRed, f.Fg)
 
 		prev := f.Content().(WithAttributes).SetAttr(term.Attributes{})
-		assert.Equal(t, tcell.ColorGreen, prev.Bg)
-		assert.Equal(t, tcell.ColorRed, prev.Fg)
+		assert.Equal(t, term.ColorGreen, prev.Bg)
+		assert.Equal(t, term.ColorRed, prev.Fg)
 	})
 
 	t.Run("component does not WithAttributes", func(t *testing.T) {
 		f := NewFrame(&TestComponent{Ch: 'a'})
-		f.SetAttr(term.Attributes{Fg: tcell.ColorRed, Bg: tcell.ColorGreen})
+		f.SetAttr(term.Attributes{Fg: term.ColorRed, Bg: term.ColorGreen})
 
-		assert.Equal(t, tcell.ColorGreen, f.Bg)
-		assert.Equal(t, tcell.ColorRed, f.Fg)
+		assert.Equal(t, term.ColorGreen, f.Bg)
+		assert.Equal(t, term.ColorRed, f.Fg)
 	})
 }
 

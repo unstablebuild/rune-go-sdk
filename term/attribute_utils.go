@@ -14,10 +14,6 @@
 
 package term
 
-import (
-	"github.com/unstablebuild/tcell/v3"
-)
-
 // AttributesDifference computes the set difference between a and b,
 // that is it returns a set of attributes that contain
 // all the bit flags set in a but not set in b, and returns
@@ -27,10 +23,10 @@ func AttributesDifference(a, b Attributes) Attributes {
 	retFgColor := a.Fg
 	retBgColor := a.Bg
 	if a.Fg == b.Fg {
-		retFgColor = tcell.ColorDefault
+		retFgColor = ColorDefault
 	}
 	if a.Bg == b.Bg {
-		retBgColor = tcell.ColorDefault
+		retBgColor = ColorDefault
 	}
 	return Attributes{Fg: retFgColor, Bg: retBgColor, Attrs: (a.Attrs &^ b.Attrs)}
 }
@@ -42,10 +38,10 @@ func AttributesDifference(a, b Attributes) Attributes {
 func AttributesUnion(a, b Attributes) Attributes {
 	retFgColor := b.Fg
 	retBgColor := b.Bg
-	if b.Fg == tcell.ColorDefault {
+	if b.Fg == ColorDefault {
 		retFgColor = a.Fg
 	}
-	if b.Bg == tcell.ColorDefault {
+	if b.Bg == ColorDefault {
 		retBgColor = a.Bg
 	}
 	return Attributes{Fg: retFgColor, Bg: retBgColor, Attrs: (a.Attrs | b.Attrs)}

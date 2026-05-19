@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // ToModel maps this Event into a term.Event.
@@ -331,57 +330,58 @@ func (c *Cell) ToModel() term.Cell {
 	if c == nil {
 		return term.Cell{}
 	}
-	var combining []rune
-	// prefer nil combining rather than a slice of length 0
-	if c.Combining != nil {
-		combining = make([]rune, len(c.Combining))
-		for i, cell := range c.Combining {
-			combining[i] = rune(cell)
-		}
-	}
-	return term.Cell{
+	cell := term.Cell{
 		Attributes: term.Attributes{
-			Bg:    tcell.Color(c.Background),
-			Fg:    tcell.Color(c.Foreground),
-			Attrs: tcell.AttrMask(c.Attrs),
+			Bg:    term.Color(c.Background),
+			Fg:    term.Color(c.Foreground),
+			Attrs: term.AttrMask(c.Attrs),
 		},
 		Ch:        rune(c.Character),
-		Combining: combining,
 		Width:     uint8(c.Width),
 		Bytes:     uint8(c.Bytes),
 	}
+	// prefer nil combining rather than a slice of length 0
+	if len(c.Combining) > 0 {
+		combining := make([]rune, len(c.Combining))
+		for i, cell := range c.Combining {
+			combining[i] = rune(cell)
+		}
+		cell.SetCombining(combining)
+	}
+	return cell
 }
 
 // ToModel maps this Attributes into the corresponding term.Attributes.
 func (a *Attributes) ToModel() term.Attributes {
 	return term.Attributes{
-		Bg:    tcell.Color(a.Background),
-		Fg:    tcell.Color(a.Foreground),
-		Attrs: tcell.AttrMask(a.Attrs),
+		Bg:    term.Color(a.Background),
+		Fg:    term.Color(a.Foreground),
+		Attrs: term.AttrMask(a.Attrs),
 	}
 }
 
 // FromModel sets this Attributes from attr term.Attributes.
 func (a *Attributes) FromModel(attr term.Attributes) {
-	a.Background = uint64(attr.Bg)
-	a.Foreground = uint64(attr.Fg)
-	a.Attrs = int64(attr.Attrs)
+	a.Background = uint32(attr.Bg)
+	a.Foreground = uint32(attr.Fg)
+	a.Attrs = uint32(attr.Attrs)
 }
 
 // FromModel takes cc and maps it into this Cell.
 func (c *Cell) FromModel(cc term.Cell) {
-	c.Background = uint64(cc.Bg)
-	c.Foreground = uint64(cc.Fg)
-	c.Attrs = int64(cc.Attrs)
+	c.Background = uint32(cc.Bg)
+	c.Foreground = uint32(cc.Fg)
+	c.Attrs = uint32(cc.Attrs)
 	c.Character = uint32(cc.Ch)
-	c.Width = uint32(c.Width)
-	c.Bytes = uint32(c.Bytes)
-	var combining []uint32
-	if cc.Combining != nil {
-		combining = make([]uint32, len(cc.Combining))
-		for i, cell := range cc.Combining {
-			combining[i] = uint32(cell)
+	c.Width = uint32(cc.Width)
+	c.Bytes = uint32(cc.Bytes)
+	if runes := cc.CombiningRunes(); len(runes) > 0 {
+		combining := make([]uint32, len(runes))
+		for i, r := range runes {
+			combining[i] = uint32(r)
 		}
+		c.Combining = combining
+	} else {
+		c.Combining = nil
 	}
-	c.Combining = combining
 }

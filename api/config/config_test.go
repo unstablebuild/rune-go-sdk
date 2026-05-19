@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unstablebuild/tcell/v3"
+	"github.com/unstablebuild/rune-go-sdk/term"
 )
 
 func TestConfigOk(t *testing.T) {
@@ -162,15 +162,15 @@ func TestConfigTypes(t *testing.T) {
 
 					attrs, err := GetAttributes(c, "attr_1")
 					require.NoError(t, err)
-					assert.Equal(t, tcell.ColorBlue, attrs.Fg)
-					assert.Equal(t, tcell.GetColor("#f0f0f0").String(), attrs.Bg.String())
+					assert.Equal(t, term.ColorBlue, attrs.Fg)
+					assert.Equal(t, term.GetColor("#f0f0f0").String(), attrs.Bg.String())
 
 					for _, key := range []string{"attr_2", "attr_3"} {
 						attrs, err = GetAttributes(c, key)
 						require.NoError(t, err)
-						assert.Equal(t, tcell.ColorRed, attrs.Fg)
-						assert.True(t, attrs.Attrs&tcell.AttrBold != 0)
-						assert.Equal(t, tcell.ColorDefault, attrs.Bg)
+						assert.Equal(t, term.ColorRed, attrs.Fg)
+						assert.True(t, attrs.Attrs&term.AttrBold != 0)
+						assert.Equal(t, term.ColorDefault, attrs.Bg)
 					}
 
 					duration, err := GetDuration(c, "duration_1", 1*time.Second)

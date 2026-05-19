@@ -27,7 +27,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // PromptHandler provides hooks to be called upon Prompt actions.
@@ -99,7 +98,7 @@ func (f *Prompt) Init(cfg PromptConfig) {
 		cfg.HighlightAttr = term.Attributes{
 			Bg:    cfg.OptionAttr.Bg,
 			Fg:    cfg.OptionAttr.Fg,
-			Attrs: cfg.OptionAttr.Attrs | tcell.AttrReverse,
+			Attrs: cfg.OptionAttr.Attrs | term.AttrReverse,
 		}
 	}
 

@@ -14,7 +14,7 @@
 
 package config
 
-import "github.com/unstablebuild/tcell/v3"
+import "github.com/unstablebuild/rune-go-sdk/term"
 
 type nopConfig struct{}
 
@@ -47,11 +47,11 @@ func (n nopConfig) GetMap(string) (map[string]interface{}, error) {
 	return nil, ErrNotFound
 }
 
-func (n nopConfig) GetAttribute(string) (tcell.AttrMask, error) {
+func (n nopConfig) GetAttribute(string) (term.AttrMask, error) {
 	return 0, ErrNotFound
 }
 
-func (n nopConfig) GetColor(string) (tcell.Color, error) {
+func (n nopConfig) GetColor(string) (term.Color, error) {
 	return 0, ErrNotFound
 }
 

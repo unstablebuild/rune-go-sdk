@@ -14,27 +14,26 @@
 
 package term
 
-import "github.com/unstablebuild/tcell/v3"
-
-// Screen is the subset of tcell.Screen that rune-go-sdk's TUI event loop
-// and TermboxWriter depend on. Any type that satisfies tcell.Screen
-// (including the process default returned by termbox.Screen() and
-// tcell.NewSimulationScreen()) satisfies Screen.
+// Screen is the rendering surface used by rune-go-sdk's TUI event loop
+// and ScreenWriter. It is intentionally tcell-free: tcell-backed
+// renderers (termbox.Screen, gui/Screen, sshshop) adapt to this
+// interface via dedicated adapters so callers never see tcell types
+// through the SDK.
 //
 // Screen intentionally omits lifecycle/setup methods (Init, Fini,
 // EnablePaste, EnableFocus, EnableMouse, Tty); those are owned by the
 // caller (term.Init for the default path, or the SSH/integration layer
 // for callers that build their own Screen).
 type Screen interface {
-	SetContent(x, y int, primary rune, combining []rune, width uint8, style tcell.Style)
-	UnionStyle(x, y int, style tcell.Style)
-	Fill(ch rune, style tcell.Style)
+	SetContent(x, y int, primary rune, combining []rune, width uint8, style Style)
+	UnionStyle(x, y int, style Style)
+	Fill(ch rune, style Style)
 	ShowCursor(x, y int)
 	HideCursor()
-	SetCursorStyle(tcell.CursorStyle)
+	SetCursorStyle(CursorStyle)
 	Size() (int, int)
 	Show()
-	Poll() <-chan tcell.Event
-	PostEvent(tcell.Event) error
+	Poll() <-chan Event
+	PostEvent(Event) error
 	Bell()
 }

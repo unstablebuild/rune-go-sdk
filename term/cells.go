@@ -122,8 +122,10 @@ func copyRowToBuilder(builder *strings.Builder, cells []Cell) {
 	builder.Grow(len(cells)) // almost every time this is exact
 	for _, c := range cells {
 		builder.WriteRune(c.Ch)
-		for _, comb := range c.Combining {
-			builder.WriteRune(comb)
+		if c.Combining != nil {
+			for _, comb := range *c.Combining {
+				builder.WriteRune(comb)
+			}
 		}
 	}
 }
@@ -141,8 +143,10 @@ func copyRowToBuffer(builder *bytes.Buffer, cells []Cell) {
 	builder.Grow(len(cells)) // almost every time this is exact
 	for _, c := range cells {
 		builder.WriteRune(c.Ch)
-		for _, comb := range c.Combining {
-			builder.WriteRune(comb)
+		if c.Combining != nil {
+			for _, comb := range *c.Combining {
+				builder.WriteRune(comb)
+			}
 		}
 	}
 }
@@ -201,10 +205,13 @@ func (c *rawCells) ReadFrom(r io.Reader) (int64, error) {
 				rowY++
 			default:
 				cell := Cell{
-					Ch:        r[0],
-					Width:     width,
-					Combining: r[1:],
-					Bytes:     byteCount,
+					Ch:    r[0],
+					Width: width,
+					Bytes: byteCount,
+				}
+				if len(r) > 1 {
+					comb := r[1:]
+					cell.Combining = &comb
 				}
 				c.cells[rowY] = append(c.cells[rowY], cell)
 			}

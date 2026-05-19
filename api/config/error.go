@@ -14,7 +14,7 @@
 
 package config
 
-import "github.com/unstablebuild/tcell/v3"
+import "github.com/unstablebuild/rune-go-sdk/term"
 
 // ErrConfig returns a Config that returns err to all methods of Config.
 func ErrConfig(err error) Config {
@@ -49,11 +49,11 @@ func (e errConfig) GetMap(string) (map[string]interface{}, error) {
 	return nil, e.err
 }
 
-func (e errConfig) GetAttribute(string) (tcell.AttrMask, error) {
+func (e errConfig) GetAttribute(string) (term.AttrMask, error) {
 	return 0, e.err
 }
 
-func (e errConfig) GetColor(string) (tcell.Color, error) {
+func (e errConfig) GetColor(string) (term.Color, error) {
 	return 0, e.err
 }
 

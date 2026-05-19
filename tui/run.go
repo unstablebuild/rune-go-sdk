@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // Run initializes the process-wide default terminal, then runs the TUI
@@ -124,7 +123,7 @@ func redraw(
 	return style, nil
 }
 
-func drain(evs <-chan tcell.Event) {
+func drain(evs <-chan term.Event) {
 	for {
 		select {
 		case <-evs:
@@ -142,7 +141,7 @@ func PublishEvent(ev term.Event) bool {
 }
 
 func handleInterruptSignal(
-	lastSignalAt *time.Time, exit *bool, evs <-chan tcell.Event,
+	lastSignalAt *time.Time, exit *bool, evs <-chan term.Event,
 ) {
 	now := time.Now()
 	shouldExit := now.Sub(*lastSignalAt) < exitSignalDuration
@@ -182,12 +181,11 @@ loop:
 			select {
 			case <-sigs:
 				handleInterruptSignal(&lastSignalAt, &exit, evs)
-			case tev, ok := <-evs:
+			case ev, ok := <-evs:
 				if !ok {
 					exit = true
 					break
 				}
-				ev := term.FromTcellEvent(tev)
 				switch ev.Type {
 				case term.EventInterrupt:
 					if ev.Context != nil {

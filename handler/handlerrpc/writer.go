@@ -20,7 +20,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 	termrpc "github.com/unstablebuild/rune-go-sdk/term/termrpc"
 	"github.com/unstablebuild/rune-go-sdk/tui"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 var zeroCell = termrpc.Cell{}
@@ -70,15 +69,17 @@ func (r drawResponseWriter) SetCell(pos term.Coordinates, c term.Cell) {
 		cell = r.rows[pos.Y].Cells[pos.X]
 	}
 	cell.Character = uint32(c.Ch)
-	cell.Foreground = uint64(c.Fg)
-	cell.Background = uint64(c.Bg)
-	cell.Attrs = int64(c.Attrs)
+	cell.Foreground = uint32(c.Fg)
+	cell.Background = uint32(c.Bg)
+	cell.Attrs = uint32(c.Attrs)
 	cell.Width = uint32(c.Width)
 	cell.Bytes = uint32(c.Bytes)
-	cell.Combining = cell.Combining[:0]
-	for _, c := range c.Combining {
-		cell.Combining = append(cell.Combining, uint32(c))
+	runes := c.CombiningRunes()
+	combining := make([]uint32, 0, len(runes))
+	for _, r := range runes {
+		combining = append(combining, uint32(r))
 	}
+	cell.Combining = combining
 
 	r.rows[pos.Y].Cells[pos.X] = cell
 }
@@ -97,14 +98,14 @@ func (r drawResponseWriter) UnionAttributes(pos term.Coordinates, attr term.Attr
 	}
 
 	uattr := term.AttributesUnion(term.Attributes{
-		Fg:    tcell.Color(cell.Foreground),
-		Bg:    tcell.Color(cell.Background),
-		Attrs: tcell.AttrMask(cell.Attrs),
+		Fg:    term.Color(cell.Foreground),
+		Bg:    term.Color(cell.Background),
+		Attrs: term.AttrMask(cell.Attrs),
 	}, attr)
 
-	cell.Foreground = uint64(uattr.Fg)
-	cell.Background = uint64(uattr.Bg)
-	cell.Attrs = int64(uattr.Attrs)
+	cell.Foreground = uint32(uattr.Fg)
+	cell.Background = uint32(uattr.Bg)
+	cell.Attrs = uint32(uattr.Attrs)
 
 	r.rows[pos.Y].Cells[pos.X] = cell
 }

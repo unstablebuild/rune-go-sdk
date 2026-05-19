@@ -323,9 +323,9 @@ func (Event_Key) EnumDescriptor() ([]byte, []int) {
 
 type Attributes struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Foreground    uint64                 `protobuf:"varint,2,opt,name=Foreground,proto3" json:"Foreground,omitempty"`
-	Background    uint64                 `protobuf:"varint,3,opt,name=Background,proto3" json:"Background,omitempty"`
-	Attrs         int64                  `protobuf:"varint,4,opt,name=Attrs,proto3" json:"Attrs,omitempty"`
+	Foreground    uint32                 `protobuf:"varint,2,opt,name=Foreground,proto3" json:"Foreground,omitempty"`
+	Background    uint32                 `protobuf:"varint,3,opt,name=Background,proto3" json:"Background,omitempty"`
+	Attrs         uint32                 `protobuf:"varint,4,opt,name=Attrs,proto3" json:"Attrs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -360,21 +360,21 @@ func (*Attributes) Descriptor() ([]byte, []int) {
 	return file_termrpc_term_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Attributes) GetForeground() uint64 {
+func (x *Attributes) GetForeground() uint32 {
 	if x != nil {
 		return x.Foreground
 	}
 	return 0
 }
 
-func (x *Attributes) GetBackground() uint64 {
+func (x *Attributes) GetBackground() uint32 {
 	if x != nil {
 		return x.Background
 	}
 	return 0
 }
 
-func (x *Attributes) GetAttrs() int64 {
+func (x *Attributes) GetAttrs() uint32 {
 	if x != nil {
 		return x.Attrs
 	}
@@ -384,11 +384,11 @@ func (x *Attributes) GetAttrs() int64 {
 type Cell struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Character     uint32                 `protobuf:"varint,1,opt,name=Character,proto3" json:"Character,omitempty"`
-	Foreground    uint64                 `protobuf:"varint,2,opt,name=Foreground,proto3" json:"Foreground,omitempty"`
-	Background    uint64                 `protobuf:"varint,3,opt,name=Background,proto3" json:"Background,omitempty"`
+	Foreground    uint32                 `protobuf:"varint,2,opt,name=Foreground,proto3" json:"Foreground,omitempty"`
+	Background    uint32                 `protobuf:"varint,3,opt,name=Background,proto3" json:"Background,omitempty"`
 	Combining     []uint32               `protobuf:"varint,4,rep,packed,name=Combining,proto3" json:"Combining,omitempty"`
 	Width         uint32                 `protobuf:"varint,5,opt,name=Width,proto3" json:"Width,omitempty"`
-	Attrs         int64                  `protobuf:"varint,6,opt,name=Attrs,proto3" json:"Attrs,omitempty"`
+	Attrs         uint32                 `protobuf:"varint,6,opt,name=Attrs,proto3" json:"Attrs,omitempty"`
 	Bytes         uint32                 `protobuf:"varint,7,opt,name=Bytes,proto3" json:"Bytes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -431,14 +431,14 @@ func (x *Cell) GetCharacter() uint32 {
 	return 0
 }
 
-func (x *Cell) GetForeground() uint64 {
+func (x *Cell) GetForeground() uint32 {
 	if x != nil {
 		return x.Foreground
 	}
 	return 0
 }
 
-func (x *Cell) GetBackground() uint64 {
+func (x *Cell) GetBackground() uint32 {
 	if x != nil {
 		return x.Background
 	}
@@ -459,7 +459,7 @@ func (x *Cell) GetWidth() uint32 {
 	return 0
 }
 
-func (x *Cell) GetAttrs() int64 {
+func (x *Cell) GetAttrs() uint32 {
 	if x != nil {
 		return x.Attrs
 	}
@@ -745,23 +745,23 @@ const file_termrpc_term_proto_rawDesc = "" +
 	"\n" +
 	"Attributes\x12\x1e\n" +
 	"\n" +
-	"Foreground\x18\x02 \x01(\x04R\n" +
+	"Foreground\x18\x02 \x01(\rR\n" +
 	"Foreground\x12\x1e\n" +
 	"\n" +
-	"Background\x18\x03 \x01(\x04R\n" +
+	"Background\x18\x03 \x01(\rR\n" +
 	"Background\x12\x14\n" +
-	"\x05Attrs\x18\x04 \x01(\x03R\x05Attrs\"\xc4\x01\n" +
+	"\x05Attrs\x18\x04 \x01(\rR\x05Attrs\"\xc4\x01\n" +
 	"\x04Cell\x12\x1c\n" +
 	"\tCharacter\x18\x01 \x01(\rR\tCharacter\x12\x1e\n" +
 	"\n" +
-	"Foreground\x18\x02 \x01(\x04R\n" +
+	"Foreground\x18\x02 \x01(\rR\n" +
 	"Foreground\x12\x1e\n" +
 	"\n" +
-	"Background\x18\x03 \x01(\x04R\n" +
+	"Background\x18\x03 \x01(\rR\n" +
 	"Background\x12\x1c\n" +
 	"\tCombining\x18\x04 \x03(\rR\tCombining\x12\x14\n" +
 	"\x05Width\x18\x05 \x01(\rR\x05Width\x12\x14\n" +
-	"\x05Attrs\x18\x06 \x01(\x03R\x05Attrs\x12\x14\n" +
+	"\x05Attrs\x18\x06 \x01(\rR\x05Attrs\x12\x14\n" +
 	"\x05Bytes\x18\a \x01(\rR\x05Bytes\"+\n" +
 	"\aCellRow\x12 \n" +
 	"\x05cells\x18\x01 \x03(\v2\n" +

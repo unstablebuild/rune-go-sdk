@@ -19,7 +19,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/handler/inputbox"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // Option configures a Handler.
@@ -122,19 +121,19 @@ func WithExitError(err error) Option {
 
 // defaultSuccessAttr returns the default success attributes.
 func defaultSuccessAttr() term.Attributes {
-	return term.Attributes{Fg: tcell.ColorGreen}
+	return term.Attributes{Fg: term.ColorGreen}
 }
 
 // defaultErrorAttr returns the default error attributes.
 func defaultErrorAttr() term.Attributes {
-	return term.Attributes{Fg: tcell.ColorRed}
+	return term.Attributes{Fg: term.ColorRed}
 }
 
 // defaultValidCmdAttr returns the default valid command
 // attributes (green foreground + bold).
 func defaultValidCmdAttr() term.Attributes {
 	return term.Attributes{
-		Fg:    tcell.ColorGreen,
-		Attrs: tcell.AttrBold,
+		Fg:    term.ColorGreen,
+		Attrs: term.AttrBold,
 	}
 }

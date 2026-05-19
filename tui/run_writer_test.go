@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // fakeScreen is a minimal term.Screen implementation for tests.
@@ -30,19 +29,19 @@ type fakeScreen struct {
 	mu       sync.Mutex
 	width    int
 	height   int
-	evch     chan tcell.Event
+	evch     chan term.Event
 	cursorX  int
 	cursorY  int
 	cursorOn bool
 }
 
 func newFakeScreen(w, h int) *fakeScreen {
-	return &fakeScreen{width: w, height: h, evch: make(chan tcell.Event, 16)}
+	return &fakeScreen{width: w, height: h, evch: make(chan term.Event, 16)}
 }
 
-func (s *fakeScreen) SetContent(int, int, rune, []rune, uint8, tcell.Style) {}
-func (s *fakeScreen) UnionStyle(int, int, tcell.Style)                      {}
-func (s *fakeScreen) Fill(rune, tcell.Style)                                {}
+func (s *fakeScreen) SetContent(int, int, rune, []rune, uint8, term.Style) {}
+func (s *fakeScreen) UnionStyle(int, int, term.Style)                      {}
+func (s *fakeScreen) Fill(rune, term.Style)                                {}
 func (s *fakeScreen) ShowCursor(x, y int) {
 	s.mu.Lock()
 	s.cursorX, s.cursorY = x, y
@@ -50,20 +49,20 @@ func (s *fakeScreen) ShowCursor(x, y int) {
 	s.mu.Unlock()
 }
 func (s *fakeScreen) HideCursor()                      { s.ShowCursor(-1, -1) }
-func (s *fakeScreen) SetCursorStyle(tcell.CursorStyle) {}
+func (s *fakeScreen) SetCursorStyle(term.CursorStyle)  {}
 func (s *fakeScreen) Size() (int, int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.width, s.height
 }
 func (s *fakeScreen) Show()                    {}
-func (s *fakeScreen) Poll() <-chan tcell.Event { return s.evch }
-func (s *fakeScreen) PostEvent(ev tcell.Event) error {
+func (s *fakeScreen) Poll() <-chan term.Event { return s.evch }
+func (s *fakeScreen) PostEvent(ev term.Event) error {
 	select {
 	case s.evch <- ev:
 		return nil
 	default:
-		return tcell.ErrEventQFull
+		return term.ErrEventQFull
 	}
 }
 func (s *fakeScreen) Bell() {}

@@ -16,8 +16,6 @@ package term
 
 import (
 	"context"
-
-	"github.com/unstablebuild/tcell/v3"
 )
 
 type (
@@ -31,22 +29,28 @@ type (
 	Key uint16
 )
 
-// Attributes represents a cell background and foreground attributes.
-type Attributes tcell.Style
+// Attributes represents a cell background, foreground and attribute
+// bitmask. It is layout-compatible with term.Style; the duplicated
+// type exists so Cell can embed it without growing.
+type Attributes struct {
+	Fg    Color
+	Bg    Color
+	Attrs AttrMask
+}
 
-const (
-	// AttrVerticalRenderOffset instructs the renderer to render
-	// the cell with an offset equal to half the height of the cell.
-	AttrVerticalRenderOffset tcell.AttrMask = tcell.AttrInvalid << 1
-	// AttrNegativeVerticalRenderOffset instructs the renderer to render
-	// the cell with an offset equal to minus half of the height of the cell.
-	AttrNegativeVerticalRenderOffset tcell.AttrMask = tcell.AttrInvalid << 2
-)
+// Style returns attr as a term.Style. The values are layout-identical;
+// the helper exists for callers that prefer the Style nominal type at
+// the renderer boundary.
+func (attr Attributes) Style() Style {
+	return Style(attr)
+}
 
 // Cell represents a location with content on a terminal screen.
-// 'Ch' is a unicode character, 'Fg' and 'Bg' are foreground
-// and background attributes respectively. Unicode graphene clusters
-// should be processed accordingly and stored into Ch and Combining fields.
+// 'Ch' is a unicode character, 'Fg' and 'Bg' are foreground and
+// background attributes respectively. Unicode grapheme clusters whose
+// codepoints do not fit in a single rune are stored across Ch and
+// Combining (Combining is a pointer so the common no-combining-marks
+// case costs 8 bytes instead of a 24-byte slice header).
 type Cell struct {
 	Attributes
 	// Ch is the main character held by this cell.
@@ -54,12 +58,34 @@ type Cell struct {
 	// builtin 'rune', then Width() returns > 1 and Cell.Combining
 	// contains the rest of data.
 	Ch rune
-	// Combining are the remaining data that does not fit in Ch.
-	Combining []rune
 	// Width returns the monospace width of this Cell.
 	Width uint8
 	// Bytes is the number of bytes consumed by this Cell.
 	Bytes uint8
+	// Combining holds the remaining grapheme-cluster codepoints that
+	// did not fit in Ch. nil when the cell has no combining marks
+	// (the common case).
+	Combining *[]rune
+}
+
+// CombiningRunes returns the combining-mark slice, or nil when the
+// cell has no combining marks. Callers must not mutate the returned
+// slice in place; allocate a new slice and assign via SetCombining.
+func (c Cell) CombiningRunes() []rune {
+	if c.Combining == nil {
+		return nil
+	}
+	return *c.Combining
+}
+
+// SetCombining replaces this cell's combining-mark slice. Pass nil to
+// drop combining marks.
+func (c *Cell) SetCombining(runes []rune) {
+	if runes == nil {
+		c.Combining = nil
+		return
+	}
+	c.Combining = &runes
 }
 
 // Event represents a terminal event. The 'Mod', 'Key' and 'Ch' fields are

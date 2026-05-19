@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 func getEditorHandler(
@@ -127,9 +126,9 @@ func newEditorColorCmd(a *app) *cobra.Command {
 				return err
 			}
 			var attr term.Attributes
-			attr.Bg = tcell.GetColor(args[1])
+			attr.Bg = term.GetColor(args[1])
 			if len(args) > 2 {
-				attr.Fg = tcell.GetColor(args[2])
+				attr.Fg = term.GetColor(args[2])
 			}
 			w, err := a.getWorkspace()
 			if err != nil {

@@ -24,7 +24,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/component/comptest"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 func TestAsync(t *testing.T) {
@@ -156,15 +155,15 @@ xxxxxxxxxxxxxxxxxxxx`,
 			sema.Unlock()
 			return nil
 		})
-		attrs := term.Attributes{Fg: tcell.ColorYellow, Bg: tcell.ColorBlue}
+		attrs := term.Attributes{Fg: term.ColorYellow, Bg: term.ColorBlue}
 		a := Async[WithAttributes](interrupt, &TestComponent{},
 			func() (WithAttributes, error) {
 				return &TestComponent{Attributes: attrs}, nil
 			})
 		sema.Lock()
 		repv := a.SetAttr(term.Attributes{})
-		assert.Equal(t, tcell.ColorBlue, repv.Bg)
-		assert.Equal(t, tcell.ColorYellow, repv.Fg)
+		assert.Equal(t, term.ColorBlue, repv.Bg)
+		assert.Equal(t, term.ColorYellow, repv.Fg)
 	})
 
 	t.Run("SetAttr is called on constructed after constructor returns", func(t *testing.T) {
@@ -181,7 +180,7 @@ xxxxxxxxxxxxxxxxxxxx`,
 				sema1.Lock()
 				return tc, nil
 			})
-		attrs := term.Attributes{Fg: tcell.ColorYellow, Bg: tcell.ColorBlue}
+		attrs := term.Attributes{Fg: term.ColorYellow, Bg: term.ColorBlue}
 		a.SetAttr(attrs)
 		sema1.Unlock()
 		sema2.Lock()

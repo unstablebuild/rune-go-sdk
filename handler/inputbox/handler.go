@@ -21,7 +21,6 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/handler"
 	"github.com/unstablebuild/rune-go-sdk/mouse"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 // Handler implements a multi-line text input handler with wrapping,
@@ -348,7 +347,7 @@ func (ib *Handler) drawNoPrompt(w term.Writer) {
 			attrs = ib.hlAttr
 		}
 		if i >= selStart && i < selEnd {
-			attrs.Attrs |= tcell.AttrReverse
+			attrs.Attrs |= term.AttrReverse
 		}
 		ch := ib.text[i]
 		if ib.redact {
@@ -403,7 +402,7 @@ func (ib *Handler) drawWithPrompt(w term.Writer) {
 			attrs = ib.hlAttr
 		}
 		if i >= selStart && i < selEnd {
-			attrs.Attrs |= tcell.AttrReverse
+			attrs.Attrs |= term.AttrReverse
 		}
 		_ = flc
 		ch := ib.text[i]

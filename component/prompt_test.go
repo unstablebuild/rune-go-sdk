@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/unstablebuild/rune-go-sdk/component/comptest"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/tcell/v3"
 )
 
 func testDrawPrompt(
@@ -277,8 +276,8 @@ func TestPromptInitReset(t *testing.T) {
 
 	t.Run("SetAttr", func(t *testing.T) {
 		attr := term.Attributes{
-			Fg:    tcell.ColorRed,
-			Attrs: tcell.AttrBold,
+			Fg:    term.ColorRed,
+			Attrs: term.AttrBold,
 		}
 		p.SetOptionAttr(0, attr)
 		assert.Equal(t, attr, opts["y"].Attributes)
@@ -286,7 +285,7 @@ func TestPromptInitReset(t *testing.T) {
 }
 
 func TestPromptButtonBackgroundAttributes(t *testing.T) {
-	focus := term.Attributes{Bg: tcell.ColorBlue}
+	focus := term.Attributes{Bg: term.ColorBlue}
 
 	tests := []struct {
 		name     string
@@ -404,8 +403,8 @@ func TestPromptButtonBackgroundAttributes(t *testing.T) {
 			width, height := 20, 10
 			optionAttr := term.Attributes{}
 			highlightAttr := term.Attributes{
-				Fg:    tcell.ColorWhite,
-				Attrs: tcell.AttrReverse,
+				Fg:    term.ColorWhite,
+				Attrs: term.AttrReverse,
 			}
 			p := NewPrompt(PromptConfig{
 				Message: "Do you?",
