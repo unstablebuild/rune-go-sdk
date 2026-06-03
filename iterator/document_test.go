@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
-	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal/doctoml"
+	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal/docbson"
 	"go.uber.org/goleak"
 )
 
@@ -62,7 +62,7 @@ func TestDocumentIterator(t *testing.T) {
 			X string
 		}
 		a, b, c := bob{X: "a"}, bob{X: "b"}, bob{X: "c"}
-		dit := storageapi.NewListIterator(doctoml.Marshaler(), a, b, c)
+		dit := storageapi.NewListIterator(docbson.Marshaler(), a, b, c)
 		it := FromDocumentIterator[bob](dit)
 		actual, err := Reduce(context.Background(),
 			it, func(ret []bob, t bob) ([]bob, error) {
@@ -96,7 +96,7 @@ func TestDocumentIterator(t *testing.T) {
 		}
 		a := record{Tags: []string{"go", "sdk"}}
 		b := record{Tags: []string{"fix", "race"}}
-		dit := storageapi.NewListIterator(doctoml.Marshaler(), a, b)
+		dit := storageapi.NewListIterator(docbson.Marshaler(), a, b)
 		it := FromDocumentIterator[record](dit)
 
 		r0, ok := it.Next(context.Background())
@@ -127,7 +127,7 @@ func TestDocumentIterator(t *testing.T) {
 			X string
 		}
 		a := bob{X: "a"}
-		dit := storageapi.NewListIterator(doctoml.Marshaler(), a)
+		dit := storageapi.NewListIterator(docbson.Marshaler(), a)
 		it := FromDocumentIterator[bob](dit)
 		require.NoError(t, it.Close())
 	})

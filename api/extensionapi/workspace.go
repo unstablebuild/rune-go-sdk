@@ -32,7 +32,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
-	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal/doctoml"
+	"github.com/unstablebuild/rune-go-sdk/api/storageapi/docmarshal/docbson"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpc"
@@ -169,7 +169,7 @@ func (w *Workspace) Parser(ctx context.Context) syntaxapi.Parser {
 // persist extension data across sessions.
 func (w *Workspace) Storage(ctx context.Context) storageapi.Service {
 	c := new(storagerpc.Client)
-	c.Init(w.conn, doctoml.Marshaler())
+	c.Init(w.conn, docbson.Marshaler())
 	svc, err := c.Partition(w.meta.ExtensionID)
 	if err != nil {
 		return storageapi.WithPartition(c, w.meta.ExtensionID)
