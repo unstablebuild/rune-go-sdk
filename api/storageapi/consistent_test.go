@@ -58,3 +58,36 @@ func TestConsistentUpdate(t *testing.T) {
 	assert.ElementsMatch(t, []string{"A", "C"}, b.Queries)
 
 }
+
+type countingService struct {
+	storageapi.Service
+	updates int
+}
+
+func (c *countingService) Update(
+	ctx context.Context, ID string, updates []storageapi.Update,
+	preconds ...storageapi.Precondition,
+) error {
+	c.updates++
+	return c.Service.Update(ctx, ID, updates, preconds...)
+}
+
+func TestConsistentUpdateNoUpdatesSkipsWrite(t *testing.T) {
+	ctx := context.Background()
+	svc := &countingService{Service: storagestub.NewInMemoryService()}
+	a := testStruct{Queries: []string{"A"}, UpdatedAt: time.Now()}
+	require.NoError(t, svc.Create(ctx, "docID", &a))
+
+	var b testStruct
+	err := storageapi.ConsistentUpdate(ctx, svc, "docID", &b, retry.LimitStrategy(2),
+		func() ([]storageapi.Update, []storageapi.Precondition) {
+			return nil, nil
+		},
+	)
+	require.NoError(t, err)
+	assert.Zero(t, svc.updates, "Update must not be called when callback returns no updates")
+
+	var got testStruct
+	require.NoError(t, svc.Get(ctx, "docID", &got))
+	assert.Equal(t, []string{"A"}, got.Queries)
+}

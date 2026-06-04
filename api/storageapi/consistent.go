@@ -30,6 +30,12 @@ import (
 //
 // The given doc value will be updated so it should be a valid value as
 // defined by Service.Get.
+//
+// When the callback returns no updates, ConsistentUpdate skips the
+// Update call entirely and succeeds. This lets callers abort a mutation
+// (for example when the refreshed doc shows the change is unnecessary or
+// invalid) without writing, so concurrent callers' preconditions are not
+// invalidated by a spurious no-op write.
 func ConsistentUpdate(
 	ctx context.Context, svc Service, ID string, doc interface{},
 	retryStrategy retry.Strategy, callback func() ([]Update, []Precondition),
@@ -39,6 +45,9 @@ func ConsistentUpdate(
 			return false, err
 		}
 		updates, preconditions := callback()
+		if len(updates) == 0 {
+			return false, nil
+		}
 		err := svc.Update(ctx, ID, updates, preconditions...)
 		if err == nil {
 			return false, svc.Get(ctx, ID, doc)
