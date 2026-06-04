@@ -1,0 +1,4 @@
+extensions:
+  rune-agent:
+    config:
+      memory_recall_enabled: true
