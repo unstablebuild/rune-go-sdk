@@ -144,6 +144,17 @@ func ToProtoMessage(m llmapi.Message) *Message {
 			out.ToolCalls[i] = toProtoToolCall(tc)
 		}
 	}
+	if len(m.ReasoningBlocks) > 0 {
+		out.ReasoningBlocks = make([]*ReasoningBlock, len(m.ReasoningBlocks))
+		for i, rb := range m.ReasoningBlocks {
+			out.ReasoningBlocks[i] = &ReasoningBlock{
+				Kind:      rb.Kind,
+				Text:      rb.Text,
+				Signature: rb.Signature,
+				Data:      rb.Data,
+			}
+		}
+	}
 	return out
 }
 
@@ -172,6 +183,17 @@ func fromProtoMessage(p *Message) llmapi.Message {
 		m.ToolCalls = make([]llmapi.ToolCall, len(calls))
 		for i, tc := range calls {
 			m.ToolCalls[i] = fromProtoToolCall(tc)
+		}
+	}
+	if blocks := p.GetReasoningBlocks(); len(blocks) > 0 {
+		m.ReasoningBlocks = make([]llmapi.ReasoningBlock, len(blocks))
+		for i, rb := range blocks {
+			m.ReasoningBlocks[i] = llmapi.ReasoningBlock{
+				Kind:      rb.GetKind(),
+				Text:      rb.GetText(),
+				Signature: rb.GetSignature(),
+				Data:      rb.GetData(),
+			}
 		}
 	}
 	return m

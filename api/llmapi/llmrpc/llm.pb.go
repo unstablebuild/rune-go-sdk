@@ -401,6 +401,74 @@ func (x *ToolCall) GetFunction() *FunctionCall {
 	return nil
 }
 
+type ReasoningBlock struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Kind          string                 `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	Signature     string                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
+	Data          string                 `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReasoningBlock) Reset() {
+	*x = ReasoningBlock{}
+	mi := &file_llmrpc_llm_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReasoningBlock) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReasoningBlock) ProtoMessage() {}
+
+func (x *ReasoningBlock) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReasoningBlock.ProtoReflect.Descriptor instead.
+func (*ReasoningBlock) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ReasoningBlock) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *ReasoningBlock) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *ReasoningBlock) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
+func (x *ReasoningBlock) GetData() string {
+	if x != nil {
+		return x.Data
+	}
+	return ""
+}
+
 type Message struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Role             Role                   `protobuf:"varint,1,opt,name=role,proto3,enum=llm.Role" json:"role,omitempty"`
@@ -410,13 +478,14 @@ type Message struct {
 	ToolCalls        []*ToolCall            `protobuf:"bytes,5,rep,name=tool_calls,json=toolCalls,proto3" json:"tool_calls,omitempty"`
 	ToolCallId       string                 `protobuf:"bytes,6,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
 	Name             string                 `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
+	ReasoningBlocks  []*ReasoningBlock      `protobuf:"bytes,8,rep,name=reasoning_blocks,json=reasoningBlocks,proto3" json:"reasoning_blocks,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_llmrpc_llm_proto_msgTypes[3]
+	mi := &file_llmrpc_llm_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -428,7 +497,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[3]
+	mi := &file_llmrpc_llm_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +510,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{3}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Message) GetRole() Role {
@@ -493,6 +562,13 @@ func (x *Message) GetName() string {
 	return ""
 }
 
+func (x *Message) GetReasoningBlocks() []*ReasoningBlock {
+	if x != nil {
+		return x.ReasoningBlocks
+	}
+	return nil
+}
+
 type FunctionDefinition struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Name        string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -505,7 +581,7 @@ type FunctionDefinition struct {
 
 func (x *FunctionDefinition) Reset() {
 	*x = FunctionDefinition{}
-	mi := &file_llmrpc_llm_proto_msgTypes[4]
+	mi := &file_llmrpc_llm_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -517,7 +593,7 @@ func (x *FunctionDefinition) String() string {
 func (*FunctionDefinition) ProtoMessage() {}
 
 func (x *FunctionDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[4]
+	mi := &file_llmrpc_llm_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -530,7 +606,7 @@ func (x *FunctionDefinition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FunctionDefinition.ProtoReflect.Descriptor instead.
 func (*FunctionDefinition) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{4}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *FunctionDefinition) GetName() string {
@@ -564,7 +640,7 @@ type Tool struct {
 
 func (x *Tool) Reset() {
 	*x = Tool{}
-	mi := &file_llmrpc_llm_proto_msgTypes[5]
+	mi := &file_llmrpc_llm_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -576,7 +652,7 @@ func (x *Tool) String() string {
 func (*Tool) ProtoMessage() {}
 
 func (x *Tool) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[5]
+	mi := &file_llmrpc_llm_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,7 +665,7 @@ func (x *Tool) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tool.ProtoReflect.Descriptor instead.
 func (*Tool) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{5}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Tool) GetType() ToolType {
@@ -619,7 +695,7 @@ type ResponseFormatJSONSchema struct {
 
 func (x *ResponseFormatJSONSchema) Reset() {
 	*x = ResponseFormatJSONSchema{}
-	mi := &file_llmrpc_llm_proto_msgTypes[6]
+	mi := &file_llmrpc_llm_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -631,7 +707,7 @@ func (x *ResponseFormatJSONSchema) String() string {
 func (*ResponseFormatJSONSchema) ProtoMessage() {}
 
 func (x *ResponseFormatJSONSchema) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[6]
+	mi := &file_llmrpc_llm_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -644,7 +720,7 @@ func (x *ResponseFormatJSONSchema) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResponseFormatJSONSchema.ProtoReflect.Descriptor instead.
 func (*ResponseFormatJSONSchema) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{6}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ResponseFormatJSONSchema) GetName() string {
@@ -686,7 +762,7 @@ type ResponseFormat struct {
 
 func (x *ResponseFormat) Reset() {
 	*x = ResponseFormat{}
-	mi := &file_llmrpc_llm_proto_msgTypes[7]
+	mi := &file_llmrpc_llm_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -698,7 +774,7 @@ func (x *ResponseFormat) String() string {
 func (*ResponseFormat) ProtoMessage() {}
 
 func (x *ResponseFormat) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[7]
+	mi := &file_llmrpc_llm_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -711,7 +787,7 @@ func (x *ResponseFormat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResponseFormat.ProtoReflect.Descriptor instead.
 func (*ResponseFormat) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{7}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ResponseFormat) GetType() string {
@@ -752,7 +828,7 @@ type Request struct {
 
 func (x *Request) Reset() {
 	*x = Request{}
-	mi := &file_llmrpc_llm_proto_msgTypes[8]
+	mi := &file_llmrpc_llm_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -764,7 +840,7 @@ func (x *Request) String() string {
 func (*Request) ProtoMessage() {}
 
 func (x *Request) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[8]
+	mi := &file_llmrpc_llm_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -777,7 +853,7 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Request.ProtoReflect.Descriptor instead.
 func (*Request) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{8}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Request) GetMessages() []*Message {
@@ -856,7 +932,7 @@ type Usage struct {
 
 func (x *Usage) Reset() {
 	*x = Usage{}
-	mi := &file_llmrpc_llm_proto_msgTypes[9]
+	mi := &file_llmrpc_llm_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -868,7 +944,7 @@ func (x *Usage) String() string {
 func (*Usage) ProtoMessage() {}
 
 func (x *Usage) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[9]
+	mi := &file_llmrpc_llm_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -881,7 +957,7 @@ func (x *Usage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Usage.ProtoReflect.Descriptor instead.
 func (*Usage) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{9}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Usage) GetTokensSent() int32 {
@@ -930,7 +1006,7 @@ type DoneData struct {
 
 func (x *DoneData) Reset() {
 	*x = DoneData{}
-	mi := &file_llmrpc_llm_proto_msgTypes[10]
+	mi := &file_llmrpc_llm_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +1018,7 @@ func (x *DoneData) String() string {
 func (*DoneData) ProtoMessage() {}
 
 func (x *DoneData) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[10]
+	mi := &file_llmrpc_llm_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,7 +1031,7 @@ func (x *DoneData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DoneData.ProtoReflect.Descriptor instead.
 func (*DoneData) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{10}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DoneData) GetMessage() *Message {
@@ -989,7 +1065,7 @@ type RateLimitInfo struct {
 
 func (x *RateLimitInfo) Reset() {
 	*x = RateLimitInfo{}
-	mi := &file_llmrpc_llm_proto_msgTypes[11]
+	mi := &file_llmrpc_llm_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1001,7 +1077,7 @@ func (x *RateLimitInfo) String() string {
 func (*RateLimitInfo) ProtoMessage() {}
 
 func (x *RateLimitInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[11]
+	mi := &file_llmrpc_llm_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1090,7 @@ func (x *RateLimitInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateLimitInfo.ProtoReflect.Descriptor instead.
 func (*RateLimitInfo) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{11}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RateLimitInfo) GetWaitDurationNs() int64 {
@@ -1046,7 +1122,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_llmrpc_llm_proto_msgTypes[12]
+	mi := &file_llmrpc_llm_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1134,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[12]
+	mi := &file_llmrpc_llm_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1147,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{12}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Event) GetType() EventType {
@@ -1135,7 +1211,7 @@ type ModelEntry struct {
 
 func (x *ModelEntry) Reset() {
 	*x = ModelEntry{}
-	mi := &file_llmrpc_llm_proto_msgTypes[13]
+	mi := &file_llmrpc_llm_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1147,7 +1223,7 @@ func (x *ModelEntry) String() string {
 func (*ModelEntry) ProtoMessage() {}
 
 func (x *ModelEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[13]
+	mi := &file_llmrpc_llm_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1160,7 +1236,7 @@ func (x *ModelEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelEntry.ProtoReflect.Descriptor instead.
 func (*ModelEntry) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{13}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ModelEntry) GetName() string {
@@ -1201,7 +1277,7 @@ type CreateCompletionRequest struct {
 
 func (x *CreateCompletionRequest) Reset() {
 	*x = CreateCompletionRequest{}
-	mi := &file_llmrpc_llm_proto_msgTypes[14]
+	mi := &file_llmrpc_llm_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1213,7 +1289,7 @@ func (x *CreateCompletionRequest) String() string {
 func (*CreateCompletionRequest) ProtoMessage() {}
 
 func (x *CreateCompletionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[14]
+	mi := &file_llmrpc_llm_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1226,7 +1302,7 @@ func (x *CreateCompletionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCompletionRequest.ProtoReflect.Descriptor instead.
 func (*CreateCompletionRequest) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{14}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CreateCompletionRequest) GetModel() *ModelEntry {
@@ -1252,7 +1328,7 @@ type CreateCompletionResponse struct {
 
 func (x *CreateCompletionResponse) Reset() {
 	*x = CreateCompletionResponse{}
-	mi := &file_llmrpc_llm_proto_msgTypes[15]
+	mi := &file_llmrpc_llm_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1264,7 +1340,7 @@ func (x *CreateCompletionResponse) String() string {
 func (*CreateCompletionResponse) ProtoMessage() {}
 
 func (x *CreateCompletionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[15]
+	mi := &file_llmrpc_llm_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1277,7 +1353,7 @@ func (x *CreateCompletionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCompletionResponse.ProtoReflect.Descriptor instead.
 func (*CreateCompletionResponse) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{15}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateCompletionResponse) GetEvent() *Event {
@@ -1297,7 +1373,7 @@ type CountTokensRequest struct {
 
 func (x *CountTokensRequest) Reset() {
 	*x = CountTokensRequest{}
-	mi := &file_llmrpc_llm_proto_msgTypes[16]
+	mi := &file_llmrpc_llm_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1309,7 +1385,7 @@ func (x *CountTokensRequest) String() string {
 func (*CountTokensRequest) ProtoMessage() {}
 
 func (x *CountTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[16]
+	mi := &file_llmrpc_llm_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1322,7 +1398,7 @@ func (x *CountTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountTokensRequest.ProtoReflect.Descriptor instead.
 func (*CountTokensRequest) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{16}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CountTokensRequest) GetModel() *ModelEntry {
@@ -1348,7 +1424,7 @@ type CountTokensResponse struct {
 
 func (x *CountTokensResponse) Reset() {
 	*x = CountTokensResponse{}
-	mi := &file_llmrpc_llm_proto_msgTypes[17]
+	mi := &file_llmrpc_llm_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1436,7 @@ func (x *CountTokensResponse) String() string {
 func (*CountTokensResponse) ProtoMessage() {}
 
 func (x *CountTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[17]
+	mi := &file_llmrpc_llm_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1449,7 @@ func (x *CountTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountTokensResponse.ProtoReflect.Descriptor instead.
 func (*CountTokensResponse) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{17}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CountTokensResponse) GetCount() int32 {
@@ -1391,7 +1467,7 @@ type ModelsRequest struct {
 
 func (x *ModelsRequest) Reset() {
 	*x = ModelsRequest{}
-	mi := &file_llmrpc_llm_proto_msgTypes[18]
+	mi := &file_llmrpc_llm_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1403,7 +1479,7 @@ func (x *ModelsRequest) String() string {
 func (*ModelsRequest) ProtoMessage() {}
 
 func (x *ModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[18]
+	mi := &file_llmrpc_llm_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1416,7 +1492,7 @@ func (x *ModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelsRequest.ProtoReflect.Descriptor instead.
 func (*ModelsRequest) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{18}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{19}
 }
 
 type ModelsResponse struct {
@@ -1428,7 +1504,7 @@ type ModelsResponse struct {
 
 func (x *ModelsResponse) Reset() {
 	*x = ModelsResponse{}
-	mi := &file_llmrpc_llm_proto_msgTypes[19]
+	mi := &file_llmrpc_llm_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1440,7 +1516,7 @@ func (x *ModelsResponse) String() string {
 func (*ModelsResponse) ProtoMessage() {}
 
 func (x *ModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[19]
+	mi := &file_llmrpc_llm_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1453,7 +1529,7 @@ func (x *ModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelsResponse.ProtoReflect.Descriptor instead.
 func (*ModelsResponse) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{19}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ModelsResponse) GetModel() *ModelEntry {
@@ -1472,7 +1548,7 @@ type GetModelRequest struct {
 
 func (x *GetModelRequest) Reset() {
 	*x = GetModelRequest{}
-	mi := &file_llmrpc_llm_proto_msgTypes[20]
+	mi := &file_llmrpc_llm_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1484,7 +1560,7 @@ func (x *GetModelRequest) String() string {
 func (*GetModelRequest) ProtoMessage() {}
 
 func (x *GetModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[20]
+	mi := &file_llmrpc_llm_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1497,7 +1573,7 @@ func (x *GetModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModelRequest.ProtoReflect.Descriptor instead.
 func (*GetModelRequest) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{20}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetModelRequest) GetModel() *ModelEntry {
@@ -1517,7 +1593,7 @@ type GetModelResponse struct {
 
 func (x *GetModelResponse) Reset() {
 	*x = GetModelResponse{}
-	mi := &file_llmrpc_llm_proto_msgTypes[21]
+	mi := &file_llmrpc_llm_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1529,7 +1605,7 @@ func (x *GetModelResponse) String() string {
 func (*GetModelResponse) ProtoMessage() {}
 
 func (x *GetModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[21]
+	mi := &file_llmrpc_llm_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1542,7 +1618,7 @@ func (x *GetModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModelResponse.ProtoReflect.Descriptor instead.
 func (*GetModelResponse) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{21}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetModelResponse) GetModel() *ModelEntry {
@@ -1571,7 +1647,7 @@ type ContextWindowExceededDetail struct {
 
 func (x *ContextWindowExceededDetail) Reset() {
 	*x = ContextWindowExceededDetail{}
-	mi := &file_llmrpc_llm_proto_msgTypes[22]
+	mi := &file_llmrpc_llm_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1583,7 +1659,7 @@ func (x *ContextWindowExceededDetail) String() string {
 func (*ContextWindowExceededDetail) ProtoMessage() {}
 
 func (x *ContextWindowExceededDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[22]
+	mi := &file_llmrpc_llm_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1596,7 +1672,7 @@ func (x *ContextWindowExceededDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextWindowExceededDetail.ProtoReflect.Descriptor instead.
 func (*ContextWindowExceededDetail) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{22}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ContextWindowExceededDetail) GetCount() int32 {
@@ -1628,7 +1704,12 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\x04type\x18\x02 \x01(\x0e2\r.llm.ToolTypeR\x04type\x12-\n" +
-	"\bfunction\x18\x03 \x01(\v2\x11.llm.FunctionCallR\bfunction\"\x8a\x02\n" +
+	"\bfunction\x18\x03 \x01(\v2\x11.llm.FunctionCallR\bfunction\"j\n" +
+	"\x0eReasoningBlock\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12\x1c\n" +
+	"\tsignature\x18\x03 \x01(\tR\tsignature\x12\x12\n" +
+	"\x04data\x18\x04 \x01(\tR\x04data\"\xca\x02\n" +
 	"\aMessage\x12\x1d\n" +
 	"\x04role\x18\x01 \x01(\x0e2\t.llm.RoleR\x04role\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12+\n" +
@@ -1638,7 +1719,8 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"tool_calls\x18\x05 \x03(\v2\r.llm.ToolCallR\ttoolCalls\x12 \n" +
 	"\ftool_call_id\x18\x06 \x01(\tR\n" +
 	"toolCallId\x12\x12\n" +
-	"\x04name\x18\a \x01(\tR\x04name\"j\n" +
+	"\x04name\x18\a \x01(\tR\x04name\x12>\n" +
+	"\x10reasoning_blocks\x18\b \x03(\v2\x13.llm.ReasoningBlockR\x0freasoningBlocks\"j\n" +
 	"\x12FunctionDefinition\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1e\n" +
@@ -1760,7 +1842,7 @@ func file_llmrpc_llm_proto_rawDescGZIP() []byte {
 }
 
 var file_llmrpc_llm_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_llmrpc_llm_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_llmrpc_llm_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_llmrpc_llm_proto_goTypes = []any{
 	(Role)(0),                           // 0: llm.Role
 	(ToolType)(0),                       // 1: llm.ToolType
@@ -1769,26 +1851,27 @@ var file_llmrpc_llm_proto_goTypes = []any{
 	(*ContentPart)(nil),                 // 4: llm.ContentPart
 	(*FunctionCall)(nil),                // 5: llm.FunctionCall
 	(*ToolCall)(nil),                    // 6: llm.ToolCall
-	(*Message)(nil),                     // 7: llm.Message
-	(*FunctionDefinition)(nil),          // 8: llm.FunctionDefinition
-	(*Tool)(nil),                        // 9: llm.Tool
-	(*ResponseFormatJSONSchema)(nil),    // 10: llm.ResponseFormatJSONSchema
-	(*ResponseFormat)(nil),              // 11: llm.ResponseFormat
-	(*Request)(nil),                     // 12: llm.Request
-	(*Usage)(nil),                       // 13: llm.Usage
-	(*DoneData)(nil),                    // 14: llm.DoneData
-	(*RateLimitInfo)(nil),               // 15: llm.RateLimitInfo
-	(*Event)(nil),                       // 16: llm.Event
-	(*ModelEntry)(nil),                  // 17: llm.ModelEntry
-	(*CreateCompletionRequest)(nil),     // 18: llm.CreateCompletionRequest
-	(*CreateCompletionResponse)(nil),    // 19: llm.CreateCompletionResponse
-	(*CountTokensRequest)(nil),          // 20: llm.CountTokensRequest
-	(*CountTokensResponse)(nil),         // 21: llm.CountTokensResponse
-	(*ModelsRequest)(nil),               // 22: llm.ModelsRequest
-	(*ModelsResponse)(nil),              // 23: llm.ModelsResponse
-	(*GetModelRequest)(nil),             // 24: llm.GetModelRequest
-	(*GetModelResponse)(nil),            // 25: llm.GetModelResponse
-	(*ContextWindowExceededDetail)(nil), // 26: llm.ContextWindowExceededDetail
+	(*ReasoningBlock)(nil),              // 7: llm.ReasoningBlock
+	(*Message)(nil),                     // 8: llm.Message
+	(*FunctionDefinition)(nil),          // 9: llm.FunctionDefinition
+	(*Tool)(nil),                        // 10: llm.Tool
+	(*ResponseFormatJSONSchema)(nil),    // 11: llm.ResponseFormatJSONSchema
+	(*ResponseFormat)(nil),              // 12: llm.ResponseFormat
+	(*Request)(nil),                     // 13: llm.Request
+	(*Usage)(nil),                       // 14: llm.Usage
+	(*DoneData)(nil),                    // 15: llm.DoneData
+	(*RateLimitInfo)(nil),               // 16: llm.RateLimitInfo
+	(*Event)(nil),                       // 17: llm.Event
+	(*ModelEntry)(nil),                  // 18: llm.ModelEntry
+	(*CreateCompletionRequest)(nil),     // 19: llm.CreateCompletionRequest
+	(*CreateCompletionResponse)(nil),    // 20: llm.CreateCompletionResponse
+	(*CountTokensRequest)(nil),          // 21: llm.CountTokensRequest
+	(*CountTokensResponse)(nil),         // 22: llm.CountTokensResponse
+	(*ModelsRequest)(nil),               // 23: llm.ModelsRequest
+	(*ModelsResponse)(nil),              // 24: llm.ModelsResponse
+	(*GetModelRequest)(nil),             // 25: llm.GetModelRequest
+	(*GetModelResponse)(nil),            // 26: llm.GetModelResponse
+	(*ContextWindowExceededDetail)(nil), // 27: llm.ContextWindowExceededDetail
 }
 var file_llmrpc_llm_proto_depIdxs = []int32{
 	2,  // 0: llm.ContentPart.type:type_name -> llm.ContentPartType
@@ -1797,39 +1880,40 @@ var file_llmrpc_llm_proto_depIdxs = []int32{
 	0,  // 3: llm.Message.role:type_name -> llm.Role
 	4,  // 4: llm.Message.multi_content:type_name -> llm.ContentPart
 	6,  // 5: llm.Message.tool_calls:type_name -> llm.ToolCall
-	1,  // 6: llm.Tool.type:type_name -> llm.ToolType
-	8,  // 7: llm.Tool.function:type_name -> llm.FunctionDefinition
-	10, // 8: llm.ResponseFormat.json_schema:type_name -> llm.ResponseFormatJSONSchema
-	7,  // 9: llm.Request.messages:type_name -> llm.Message
-	9,  // 10: llm.Request.tools:type_name -> llm.Tool
-	11, // 11: llm.Request.response_format:type_name -> llm.ResponseFormat
-	7,  // 12: llm.DoneData.message:type_name -> llm.Message
-	13, // 13: llm.DoneData.usage:type_name -> llm.Usage
-	3,  // 14: llm.Event.type:type_name -> llm.EventType
-	6,  // 15: llm.Event.tool_call:type_name -> llm.ToolCall
-	14, // 16: llm.Event.done_data:type_name -> llm.DoneData
-	15, // 17: llm.Event.rate_limit:type_name -> llm.RateLimitInfo
-	17, // 18: llm.CreateCompletionRequest.model:type_name -> llm.ModelEntry
-	12, // 19: llm.CreateCompletionRequest.request:type_name -> llm.Request
-	16, // 20: llm.CreateCompletionResponse.event:type_name -> llm.Event
-	17, // 21: llm.CountTokensRequest.model:type_name -> llm.ModelEntry
-	7,  // 22: llm.CountTokensRequest.messages:type_name -> llm.Message
-	17, // 23: llm.ModelsResponse.model:type_name -> llm.ModelEntry
-	17, // 24: llm.GetModelRequest.model:type_name -> llm.ModelEntry
-	17, // 25: llm.GetModelResponse.model:type_name -> llm.ModelEntry
-	18, // 26: llm.LLM.CreateCompletion:input_type -> llm.CreateCompletionRequest
-	20, // 27: llm.LLM.CountTokens:input_type -> llm.CountTokensRequest
-	22, // 28: llm.LLM.Models:input_type -> llm.ModelsRequest
-	24, // 29: llm.LLM.GetModel:input_type -> llm.GetModelRequest
-	19, // 30: llm.LLM.CreateCompletion:output_type -> llm.CreateCompletionResponse
-	21, // 31: llm.LLM.CountTokens:output_type -> llm.CountTokensResponse
-	23, // 32: llm.LLM.Models:output_type -> llm.ModelsResponse
-	25, // 33: llm.LLM.GetModel:output_type -> llm.GetModelResponse
-	30, // [30:34] is the sub-list for method output_type
-	26, // [26:30] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	7,  // 6: llm.Message.reasoning_blocks:type_name -> llm.ReasoningBlock
+	1,  // 7: llm.Tool.type:type_name -> llm.ToolType
+	9,  // 8: llm.Tool.function:type_name -> llm.FunctionDefinition
+	11, // 9: llm.ResponseFormat.json_schema:type_name -> llm.ResponseFormatJSONSchema
+	8,  // 10: llm.Request.messages:type_name -> llm.Message
+	10, // 11: llm.Request.tools:type_name -> llm.Tool
+	12, // 12: llm.Request.response_format:type_name -> llm.ResponseFormat
+	8,  // 13: llm.DoneData.message:type_name -> llm.Message
+	14, // 14: llm.DoneData.usage:type_name -> llm.Usage
+	3,  // 15: llm.Event.type:type_name -> llm.EventType
+	6,  // 16: llm.Event.tool_call:type_name -> llm.ToolCall
+	15, // 17: llm.Event.done_data:type_name -> llm.DoneData
+	16, // 18: llm.Event.rate_limit:type_name -> llm.RateLimitInfo
+	18, // 19: llm.CreateCompletionRequest.model:type_name -> llm.ModelEntry
+	13, // 20: llm.CreateCompletionRequest.request:type_name -> llm.Request
+	17, // 21: llm.CreateCompletionResponse.event:type_name -> llm.Event
+	18, // 22: llm.CountTokensRequest.model:type_name -> llm.ModelEntry
+	8,  // 23: llm.CountTokensRequest.messages:type_name -> llm.Message
+	18, // 24: llm.ModelsResponse.model:type_name -> llm.ModelEntry
+	18, // 25: llm.GetModelRequest.model:type_name -> llm.ModelEntry
+	18, // 26: llm.GetModelResponse.model:type_name -> llm.ModelEntry
+	19, // 27: llm.LLM.CreateCompletion:input_type -> llm.CreateCompletionRequest
+	21, // 28: llm.LLM.CountTokens:input_type -> llm.CountTokensRequest
+	23, // 29: llm.LLM.Models:input_type -> llm.ModelsRequest
+	25, // 30: llm.LLM.GetModel:input_type -> llm.GetModelRequest
+	20, // 31: llm.LLM.CreateCompletion:output_type -> llm.CreateCompletionResponse
+	22, // 32: llm.LLM.CountTokens:output_type -> llm.CountTokensResponse
+	24, // 33: llm.LLM.Models:output_type -> llm.ModelsResponse
+	26, // 34: llm.LLM.GetModel:output_type -> llm.GetModelResponse
+	31, // [31:35] is the sub-list for method output_type
+	27, // [27:31] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_llmrpc_llm_proto_init() }
@@ -1843,7 +1927,7 @@ func file_llmrpc_llm_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llmrpc_llm_proto_rawDesc), len(file_llmrpc_llm_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   23,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

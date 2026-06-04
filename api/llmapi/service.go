@@ -111,14 +111,14 @@ const (
 
 // Request is the request type for chat completions.
 type Request struct {
-	Messages         []Message
-	Tools            []Tool
-	ToolChoice       ToolChoice
+	Messages          []Message
+	Tools             []Tool
+	ToolChoice        ToolChoice
 	ParallelToolCalls *bool
-	ReasoningEffort  ReasoningEffort
-	ReasoningSummary ReasoningSummary
-	MaxOutputTokens  int
-	ResponseFormat   *ResponseFormat
+	ReasoningEffort   ReasoningEffort
+	ReasoningSummary  ReasoningSummary
+	MaxOutputTokens   int
+	ResponseFormat    *ResponseFormat
 
 	// PromptCacheKey is a stable identifier (typically the dialogue ID)
 	// that the provider uses for server-side prompt caching. Requests
@@ -185,15 +185,29 @@ type FunctionCall struct {
 	Arguments string
 }
 
+// ReasoningBlock is a reasoning block preserved for replaying back
+// to the model.
+type ReasoningBlock struct {
+	Kind      string `json:"Kind"`
+	Text      string `json:"Text,omitempty"`
+	Signature string `json:"Signature,omitempty"`
+	Data      string `json:"Data,omitempty"`
+}
+
 // Message is a message in a chat with an assistant LLM.
 type Message struct {
-	Role             Role          `json:"Role"`
-	Content          string        `json:"Content"`
-	ReasoningContent string        `json:"ReasoningContent,omitempty"`
-	MultiContent     []ContentPart `json:"MultiContent,omitempty"`
-	ToolCalls        []ToolCall    `json:"ToolCalls,omitempty"`
-	ToolCallID       string        `json:"ToolCallID,omitempty"`
-	Name             string        `json:"Name,omitempty"`
+	Role             Role             `json:"Role"`
+	Content          string           `json:"Content"`
+	MultiContent     []ContentPart    `json:"MultiContent,omitempty"`
+	ToolCalls        []ToolCall       `json:"ToolCalls,omitempty"`
+	ToolCallID       string           `json:"ToolCallID,omitempty"`
+	Name             string           `json:"Name,omitempty"`
+	// ReasoningContent is the human-readable reasoning text for display and is
+	// lossy; ReasoningBlocks is the source of truth for replaying reasoning
+	// back to the model (it preserves per-block signatures and order). When a
+	// provider requires replay, populate ReasoningBlocks, not ReasoningContent.
+	ReasoningContent string           `json:"ReasoningContent,omitempty"`
+	ReasoningBlocks  []ReasoningBlock `json:"ReasoningBlocks,omitempty"`
 	// ProviderItems carries opaque provider-specific items that must be
 	// threaded back into the next request to maintain stateful continuity
 	// (e.g. ChatGPT Codex backend reasoning items with encrypted_content

@@ -49,6 +49,13 @@ message ToolCall {
 	FunctionCall function = 3;
 }
 
+message ReasoningBlock {
+	string kind = 1;
+	string text = 2;
+	string signature = 3;
+	string data = 4;
+}
+
 message Message {
 	Role role = 1;
 	string content = 2;
@@ -57,6 +64,7 @@ message Message {
 	repeated ToolCall tool_calls = 5;
 	string tool_call_id = 6;
 	string name = 7;
+	repeated ReasoningBlock reasoning_blocks = 8;
 }
 
 message FunctionDefinition {
