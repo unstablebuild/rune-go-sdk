@@ -177,6 +177,13 @@ type ToolCall struct {
 	ID       string
 	Type     ToolType
 	Function FunctionCall
+	// ProviderFields carries opaque provider-specific data attached to this
+	// individual tool call that must be threaded back into the next request
+	// to maintain stateful continuity (e.g. Gemini 3+ requires the
+	// per-call thought_signature to be echoed on the functionCall part).
+	// Each value is the raw JSON of a single field. Cross-provider code
+	// should treat this map as opaque and leave unknown keys untouched.
+	ProviderFields map[string]json.RawMessage `json:"ProviderFields,omitempty"`
 }
 
 // FunctionCall is a function call requested by the model.
