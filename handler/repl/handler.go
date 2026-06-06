@@ -695,15 +695,28 @@ func (h *Handler) makeCompleter() inputbox.WordCompleter {
 		}
 		iter, err := h.cmd.Complete(h.cmdCtx, cmd, args)
 		if err != nil {
+			h.showCompletionError(err)
 			return line[:pos], nil, tail
 		}
 		defer func() { _ = iter.Close() }()
 		candidates, err := iterator.ToSlice(h.cmdCtx, iter)
 		if err != nil {
+			h.showCompletionError(err)
 			return line[:pos], nil, tail
 		}
 		return head, candidates, tail
 	}
+}
+
+// showCompletionError surfaces a tab-completion failure inline in the
+// output band, the same way a failed command does, instead of silently
+// dropping it. The word completer runs synchronously on the event-loop
+// goroutine inside Handle, so the output mutation is safe without
+// scheduleNextTick.
+func (h *Handler) showCompletionError(err error) {
+	h.addErrorLine(err.Error())
+	h.output.C.ScrollToBottom()
+	h.layout()
 }
 
 func parseCommand(text string) Command {

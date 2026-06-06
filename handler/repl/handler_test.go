@@ -659,6 +659,28 @@ func TestHandleCommandError(t *testing.T) {
 	// ScheduleNextTick. We verify no panic occurs.
 }
 
+// TestCompletionErrorSurfacesInline verifies that a tab-completion
+// failure is rendered as an inline error line in the output band,
+// rather than being silently discarded by the word completer.
+func TestCompletionErrorSurfacesInline(t *testing.T) {
+	th := &testHandler{
+		completeFn: func(
+			_ context.Context, _ string, _ []string,
+		) (iterator.Iterator[string], error) {
+			return nil, errors.New("list packages: forbidden")
+		},
+	}
+	h := New(th, nopSchedule, term.NopInterrupter(), WithPrompt("$ "))
+	h.Resize(40, 10)
+
+	sendKeys(t, h, "pkg<space>")
+	h.Handle(term.Event{Type: term.EventKey, Key: term.KeyTab})
+
+	got := drawHandler(h, 40, 10)
+	assert.Contains(t, got, "list packages: forbidden",
+		"completion error must surface inline; got:\n%s", got)
+}
+
 func TestProgressBarRendersWhileCommandRunning(t *testing.T) {
 	scheduler := &queuedScheduler{}
 	progressSent := make(chan struct{})
