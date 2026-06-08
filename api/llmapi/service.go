@@ -50,11 +50,11 @@ type Service interface {
 	// Models returns an iterator over all available model entries.
 	Models() iterator.Iterator[ModelEntry]
 
-	// GetModel returns the canonical entry for the given model and
-	// reports whether the model is known to the service. Callers
+	// GetModel returns the canonical entry for the given model. Callers
 	// typically pass a ModelEntry with only Name set; the returned
-	// entry carries the full provider metadata.
-	GetModel(ctx context.Context, model ModelEntry) (ModelEntry, bool)
+	// entry carries the full provider metadata. GetModel returns
+	// ErrModelNotFound if the model is not known to the service.
+	GetModel(ctx context.Context, model ModelEntry) (ModelEntry, error)
 }
 
 // ModelEntry describes a model available through a Service.

@@ -48,24 +48,35 @@ func parseProviderModel(s string) (provider, model string, err error) {
 func resolveModel(
 	ctx context.Context, svc llmapi.Service, arg string,
 ) (llmapi.ModelEntry, error) {
-	entry, _, err := lookupModel(ctx, svc, arg)
+	entry, err := lookupModel(ctx, svc, arg)
+	if errors.Is(err, llmapi.ErrModelNotFound) {
+		// lookupModel returns a synthetic entry for unknown models
+		// (e.g. arbitrary ollama tags); use it as-is.
+		return entry, nil
+	}
 	return entry, err
 }
 
-// lookupModel returns the canonical entry plus a found flag. Callers
-// that require a known entry (`info`) treat !found as an error.
+// lookupModel returns the canonical entry for arg. When the model is
+// not known to the service it returns a synthetic entry built from arg
+// together with llmapi.ErrModelNotFound, so callers can either fall
+// back to the synthetic entry or surface the error.
 func lookupModel(
 	ctx context.Context, svc llmapi.Service, arg string,
-) (llmapi.ModelEntry, bool, error) {
+) (llmapi.ModelEntry, error) {
 	provider, name, err := parseProviderModel(arg)
 	if err != nil {
-		return llmapi.ModelEntry{}, false, err
+		return llmapi.ModelEntry{}, err
 	}
 	query := llmapi.ModelEntry{Name: name, Provider: provider}
-	if entry, ok := svc.GetModel(ctx, query); ok {
-		return entry, true, nil
+	entry, err := svc.GetModel(ctx, query)
+	if err != nil {
+		if errors.Is(err, llmapi.ErrModelNotFound) {
+			return query, err
+		}
+		return llmapi.ModelEntry{}, err
 	}
-	return query, false, nil
+	return entry, nil
 }
 
 // loadMessageBody returns the literal message when arg does not
@@ -186,12 +197,12 @@ func newLLMInfoCmd(a *app) *cobra.Command {
 				return err
 			}
 			svc := w.LLM(cmd.Context())
-			entry, ok, err := lookupModel(cmd.Context(), svc, args[0])
+			entry, err := lookupModel(cmd.Context(), svc, args[0])
+			if errors.Is(err, llmapi.ErrModelNotFound) {
+				return fmt.Errorf("model %q not found", args[0])
+			}
 			if err != nil {
 				return err
-			}
-			if !ok {
-				return fmt.Errorf("model %q not found", args[0])
 			}
 			flat := flattenModelEntry(entry)
 			return printResult(cmd.Context(), format, flat,

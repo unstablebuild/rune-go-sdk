@@ -14,7 +14,14 @@
 
 package llmapi
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+// ErrModelNotFound is returned by Service.GetModel when the requested
+// model is not known to the service. Callers can detect it with errors.Is.
+var ErrModelNotFound = errors.New("llm: model not found")
 
 // ErrContextWindowExceeded is returned when the number of tokens in a request
 // exceeds the context window of a model. Users are encouraged to retry

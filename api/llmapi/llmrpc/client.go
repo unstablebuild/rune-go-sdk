@@ -120,15 +120,15 @@ func (c *Client) Models() iterator.Iterator[llmapi.ModelEntry] {
 // GetModel satisfies llmapi.Service.
 func (c *Client) GetModel(
 	ctx context.Context, model llmapi.ModelEntry,
-) (llmapi.ModelEntry, bool) {
+) (llmapi.ModelEntry, error) {
 	resp, err := c.pb.GetModel(ctx, &GetModelRequest{Model: ToProtoModelEntry(model)})
 	if err != nil {
-		return llmapi.ModelEntry{}, false
+		return llmapi.ModelEntry{}, fmt.Errorf("llm: get model: %w", err)
 	}
 	if !resp.GetFound() {
-		return llmapi.ModelEntry{}, false
+		return llmapi.ModelEntry{}, llmapi.ErrModelNotFound
 	}
-	return FromProtoModelEntry(resp.GetModel()), true
+	return FromProtoModelEntry(resp.GetModel()), nil
 }
 
 type modelsIterator struct {
