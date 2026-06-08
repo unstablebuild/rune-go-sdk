@@ -75,6 +75,11 @@ type ModelEntry struct {
 	ProjectorPath string
 }
 
+// DefaultModel is the reserved alias name that resolves to the
+// router's configured default model, or — when unset — the latest
+// authenticated provider's flagship model.
+const DefaultModel = "default"
+
 // ReasoningEffort controls the amount of reasoning effort for reasoning models.
 type ReasoningEffort string
 
@@ -203,12 +208,12 @@ type ReasoningBlock struct {
 
 // Message is a message in a chat with an assistant LLM.
 type Message struct {
-	Role             Role             `json:"Role"`
-	Content          string           `json:"Content"`
-	MultiContent     []ContentPart    `json:"MultiContent,omitempty"`
-	ToolCalls        []ToolCall       `json:"ToolCalls,omitempty"`
-	ToolCallID       string           `json:"ToolCallID,omitempty"`
-	Name             string           `json:"Name,omitempty"`
+	Role         Role          `json:"Role"`
+	Content      string        `json:"Content"`
+	MultiContent []ContentPart `json:"MultiContent,omitempty"`
+	ToolCalls    []ToolCall    `json:"ToolCalls,omitempty"`
+	ToolCallID   string        `json:"ToolCallID,omitempty"`
+	Name         string        `json:"Name,omitempty"`
 	// ReasoningContent is the human-readable reasoning text for display and is
 	// lossy; ReasoningBlocks is the source of truth for replaying reasoning
 	// back to the model (it preserves per-block signatures and order). When a
