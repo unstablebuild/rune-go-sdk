@@ -186,6 +186,35 @@ ZZZZZZZZ`,
 	comptest.TestComponent(t, l, w, tests)
 }
 
+func TestResponsiveListOffset(t *testing.T) {
+	for _, alignment := range []Alignment{AlignmentTop, AlignmentBottom} {
+		l := NewResponsiveList()
+		l.Alignment = alignment
+		l.PushBack(testResponsive('a', 2))
+		l.PushBack(testResponsive('b', 1))
+		l.PushBack(testResponsive('c', 3))
+		l.Resize(7, 3)
+
+		// Offset is alignment-independent: it counts rows from the start
+		// of the seekable range regardless of which Seek direction the
+		// alignment maps onto the underlying offset.
+		require.Equal(t, 0, l.Offset())
+		require.Equal(t, 3, l.MaxOffset())
+
+		for i := 1; i <= l.MaxOffset(); i++ {
+			require.True(t, l.seekDown())
+			require.Equal(t, i, l.Offset())
+		}
+		require.Equal(t, l.MaxOffset(), l.Offset())
+
+		for i := l.MaxOffset() - 1; i >= 0; i-- {
+			require.True(t, l.seekUp())
+			require.Equal(t, i, l.Offset())
+		}
+		require.Equal(t, 0, l.Offset())
+	}
+}
+
 func TestResponsiveListResizeLarger(t *testing.T) {
 	l := NewResponsiveList()
 

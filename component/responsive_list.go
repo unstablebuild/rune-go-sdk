@@ -141,6 +141,14 @@ func (l *ResponsiveList) MaxOffset() int {
 	return int(math.Max(0, float64(l.totalHeight-l.list.height)))
 }
 
+// Offset returns the current seek offset of this list, measured in rows
+// from the start of the seekable range (0 means fully sought toward the
+// start; MaxOffset means fully sought toward the end). The value is
+// independent of Alignment.
+func (l *ResponsiveList) Offset() int {
+	return l.offset
+}
+
 // CanSeekUp returns whether SeekUp would seek one row up.
 func (l *ResponsiveList) CanSeekUp() bool {
 	return l.offset > 0
