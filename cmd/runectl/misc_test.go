@@ -37,8 +37,8 @@ func TestMisc(t *testing.T) {
 			wantOut: "$DATADIR\n",
 		},
 		{
-			name:    "datadir/j",
-			args:    []string{"datadir", "-F", "json"},
+			name: "datadir/j",
+			args: []string{"datadir", "-F", "json"},
 			check: func(t *testing.T, env *testEnv, out string) {
 				require.Contains(t, out, `"success":true`)
 				require.Contains(t, out, env.datadir)

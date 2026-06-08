@@ -106,7 +106,7 @@ func newTestEnv(t *testing.T) *testEnv {
 			srv.Stop()
 			term.cleanup()
 		},
-		lsp:      lspMock,
+		lsp: lspMock,
 	}
 }
 

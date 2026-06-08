@@ -327,14 +327,14 @@ func TestEventFieldPassthrough(t *testing.T) {
 		called := false
 		fn := func() { called = true }
 		ev := Event{
-			Type:   EventKey,
-			Ch:     'x',
-			Width:  80,
-			Height: 24,
-			MouseX: 10,
-			MouseY: 5,
-			Raw:    []byte{0x78},
-			Err:    fmt.Errorf("test error"),
+			Type:     EventKey,
+			Ch:       'x',
+			Width:    80,
+			Height:   24,
+			MouseX:   10,
+			MouseY:   5,
+			Raw:      []byte{0x78},
+			Err:      fmt.Errorf("test error"),
 			UserFunc: fn,
 		}
 		tev := eventToTermboxEvent(ev)

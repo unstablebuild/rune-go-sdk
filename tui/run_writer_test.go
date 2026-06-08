@@ -48,14 +48,14 @@ func (s *fakeScreen) ShowCursor(x, y int) {
 	s.cursorOn = x >= 0 && y >= 0
 	s.mu.Unlock()
 }
-func (s *fakeScreen) HideCursor()                      { s.ShowCursor(-1, -1) }
-func (s *fakeScreen) SetCursorStyle(term.CursorStyle)  {}
+func (s *fakeScreen) HideCursor()                     { s.ShowCursor(-1, -1) }
+func (s *fakeScreen) SetCursorStyle(term.CursorStyle) {}
 func (s *fakeScreen) Size() (int, int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.width, s.height
 }
-func (s *fakeScreen) Show()                    {}
+func (s *fakeScreen) Show()                   {}
 func (s *fakeScreen) Poll() <-chan term.Event { return s.evch }
 func (s *fakeScreen) PostEvent(ev term.Event) error {
 	select {

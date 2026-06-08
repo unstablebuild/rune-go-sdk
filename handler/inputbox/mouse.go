@@ -145,7 +145,7 @@ func (ib *Handler) mouseScrollUp(n int) bool {
 }
 
 func (ib *Handler) mouseScrollDown(n int) bool {
-	maxOffset := max(0, ib.totalTextLines() - ib.height)
+	maxOffset := max(0, ib.totalTextLines()-ib.height)
 	if ib.voffset >= maxOffset {
 		return false
 	}

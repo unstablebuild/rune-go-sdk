@@ -83,13 +83,13 @@ func TestProgressBar(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				p := NewProgressBar(chars, term.Attributes{})
-				p.SetProgress(tc.progress, tc.total, tc.units)
-				got := drawBar(p, tc.width)
-				assert.Equal(t, tc.expected, got)
-			})
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			p := NewProgressBar(chars, term.Attributes{})
+			p.SetProgress(tc.progress, tc.total, tc.units)
+			got := drawBar(p, tc.width)
+			assert.Equal(t, tc.expected, got)
+		})
+	}
 }
 
 func TestProgressBarHalfFilled(t *testing.T) {

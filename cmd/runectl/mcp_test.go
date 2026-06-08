@@ -86,10 +86,10 @@ func (e *mcpTestEnv) callTool(t *testing.T, name string, args map[string]any) st
 
 func TestMCPSyntax(t *testing.T) {
 	tests := []struct {
-		name   string
-		tool   string
-		args   map[string]any
-		check  func(*testing.T, string)
+		name  string
+		tool  string
+		args  map[string]any
+		check func(*testing.T, string)
 	}{
 		{
 			name: "search",
@@ -223,10 +223,10 @@ func TestMCPSyntaxToolSchemas(t *testing.T) {
 
 func TestMCPLSP(t *testing.T) {
 	tests := []struct {
-		name   string
-		tool   string
-		args   map[string]any
-		check  func(*testing.T, string)
+		name  string
+		tool  string
+		args  map[string]any
+		check func(*testing.T, string)
 	}{
 		{
 			name: "documentation",

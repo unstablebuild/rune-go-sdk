@@ -85,8 +85,8 @@ func TestLSP(t *testing.T) {
 				"  x [Variable] 6:1-6:10\n",
 		},
 		{
-			name: "symbols/tpl",
-			args: []string{"lsp", "symbols", "-F", "{{.Name}} {{.Kind}}", "$FILE"},
+			name:    "symbols/tpl",
+			args:    []string{"lsp", "symbols", "-F", "{{.Name}} {{.Kind}}", "$FILE"},
 			wantOut: "main Function\nx Variable\n",
 		},
 
@@ -210,8 +210,8 @@ func TestLSP(t *testing.T) {
 				"[Function] Println - func Println(a ...any)\n",
 		},
 		{
-			name: "completion/tpl",
-			args: []string{"lsp", "completion", "-F", "{{.Label}} {{.Kind}}", "$FILE", "0", "5"},
+			name:    "completion/tpl",
+			args:    []string{"lsp", "completion", "-F", "{{.Label}} {{.Kind}}", "$FILE", "0", "5"},
 			wantOut: "fmt Module\nPrintln Function\n",
 		},
 
@@ -258,8 +258,8 @@ func TestLSP(t *testing.T) {
 				"file:///src/impl2.go 25:0-25:10\n",
 		},
 		{
-			name: "implementation/tpl",
-			args: []string{"lsp", "implementation", "-F", "{{.URI}}", "$FILE", "0", "5"},
+			name:    "implementation/tpl",
+			args:    []string{"lsp", "implementation", "-F", "{{.URI}}", "$FILE", "0", "5"},
 			wantOut: "file:///src/impl1.go\nfile:///src/impl2.go\n",
 		},
 

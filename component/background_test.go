@@ -86,8 +86,8 @@ func TestResizeBackgroundBufferReuse(t *testing.T) {
 	b := WithBackground(u, term.Cell{Ch: 'O'})
 
 	tsuite := []struct {
-		name           string
-		width, height  int
+		name             string
+		width, height    int
 		expectW, expectH int
 	}{
 		{"initial", 10, 5, 10, 5},

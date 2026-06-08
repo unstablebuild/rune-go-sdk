@@ -59,8 +59,8 @@ func TestSpanCursor(t *testing.T) {
 		{
 			name: "bottom-right alignment full offset",
 			cfg: component.SpanConfig{
-				PadHorizontal:    4,
-				PadVertical:      2,
+				PadHorizontal: 4,
+				PadVertical:   2,
 				ContentAlignment: component.AlignmentBottom |
 					component.AlignmentRight,
 			},
@@ -100,14 +100,14 @@ func TestSpanCursor(t *testing.T) {
 
 func TestSpanHandle(t *testing.T) {
 	tests := []struct {
-		name    string
-		cfg     component.SpanConfig
-		mouseX  int
-		mouseY  int
-		spanW   int
-		spanH   int
-		wantX   int
-		wantY   int
+		name   string
+		cfg    component.SpanConfig
+		mouseX int
+		mouseY int
+		spanW  int
+		spanH  int
+		wantX  int
+		wantY  int
 	}{
 		{
 			name: "centered padding adjusts mouse",
@@ -154,8 +154,8 @@ func TestSpanHandle(t *testing.T) {
 		{
 			name: "bottom-right alignment full offset",
 			cfg: component.SpanConfig{
-				PadHorizontal:    4,
-				PadVertical:      2,
+				PadHorizontal: 4,
+				PadVertical:   2,
 				ContentAlignment: component.AlignmentBottom |
 					component.AlignmentRight,
 			},

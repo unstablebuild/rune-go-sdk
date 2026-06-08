@@ -102,7 +102,7 @@ func NopCommandCompleter(
 }
 
 type fnCommandHandler struct {
-	cb func(context.Context, Command) error
+	cb         func(context.Context, Command) error
 	completeFn func(
 		context.Context, string, []string,
 	) (iterator.Iterator[string], error)

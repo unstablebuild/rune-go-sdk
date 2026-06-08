@@ -113,7 +113,7 @@ func (s *testServer) SubscribeREPLCommand(
 	manual := msg.GetRequest().GetCommand()
 
 	err = stream.Send(&textrpc.ServerREPLCommandMessage{
-		Type: textrpc.ServerREPLCommandMessage_Response,
+		Type:     textrpc.ServerREPLCommandMessage_Response,
 		Response: &textrpc.SubscribeREPLCommandResponse{},
 	})
 	if err != nil {
@@ -854,8 +854,8 @@ func TestRegisterREPLCommand(t *testing.T) {
 				assert.Contains(
 					t,
 					resp.GetHandleDone().GetError(),
-						"repl handler error",
-					)
+					"repl handler error",
+				)
 			},
 		},
 		{
@@ -1651,13 +1651,13 @@ func TestREPLCommandStreamCancellation(t *testing.T) {
 				<-chan struct{},
 			) {
 				it := newBlockingIterator[component.Responsive]()
-			h := &testREPLHandler{
-				handleFn: func(
-					_ context.Context,
-					_ repl.Command, _ repl.ProgressWriter,
-				) (
-					iterator.Iterator[component.Responsive],
-					error,
+				h := &testREPLHandler{
+					handleFn: func(
+						_ context.Context,
+						_ repl.Command, _ repl.ProgressWriter,
+					) (
+						iterator.Iterator[component.Responsive],
+						error,
 					) {
 						return it, nil
 					},

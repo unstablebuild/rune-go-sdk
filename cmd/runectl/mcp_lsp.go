@@ -1217,9 +1217,9 @@ func registerLSPWorkspaceSymbols(
 			)
 			for i, s := range syms {
 				flat[i] = flatWorkspaceSymbol{
-					Name: s.Name,
-					Kind: symbolKindString(s.Kind),
-					URI:  s.Location.URI,
+					Name:      s.Name,
+					Kind:      symbolKindString(s.Kind),
+					URI:       s.Location.URI,
 					StartLine: s.Location.Range.Start.Line,
 					StartChar: s.Location.Range.Start.Character,
 				}
@@ -1747,7 +1747,7 @@ func registerLSPCallHierarchyIncoming(
 					FromKind: symbolKindString(
 						c.From.Kind,
 					),
-					FromURI: c.From.URI,
+					FromURI:       c.From.URI,
 					FromStartLine: c.From.Range.Start.Line,
 					FromStartChar: c.From.Range.Start.Character,
 				}
