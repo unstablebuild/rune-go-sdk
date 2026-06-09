@@ -23,3 +23,4 @@ go.work.sum
 rune_crash_report_*
 *.db
 *.tar.gz
+*.rswp
