@@ -444,4 +444,12 @@ const (
 	FinishReasonContentFilter FinishReason = "content_filter"
 	// FinishReasonNull API response still in progress or incomplete
 	FinishReasonNull FinishReason = "null"
+	// FinishReasonPause The provider paused a long-running turn and expects the
+	// caller to re-send the conversation, including the partial assistant
+	// message, so the model can resume (e.g. Anthropic's pause_turn).
+	FinishReasonPause FinishReason = "pause"
+	// FinishReasonRefusal The model declined to continue for safety reasons.
+	// This is terminal; the caller should surface it distinctly rather than
+	// treating it as a normal completion.
+	FinishReasonRefusal FinishReason = "refusal"
 )
