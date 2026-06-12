@@ -1,4 +1,17 @@
 extensions:
   rune-agent:
     config:
-      memory_recall_enabled: true
+      force_builtin_tools: true
+workspace:
+  notice:
+    literal: |
+      # Welcome to the Rune Go SDK
+
+      This is the Go SDK for building plugins and extensions for the Rune IDE.
+
+      - Build everything with `make`, run tests with `make test`.
+      - Before committing: `make generate && make lint && make test`.
+      - See `AGENTS.md` for architecture and contribution guidelines.
+
+      Happy hacking!
+    show: once
