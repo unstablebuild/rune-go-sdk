@@ -201,6 +201,11 @@ func (w *Workspace) RawConn() grpc.ClientConnInterface {
 	return w.conn
 }
 
+const (
+	maxCallRecvMsgSize = 16 * 1024 * 1024 // 16 Mb
+	maxCallSendMsgSize = 16 * 1024 * 1024 // 16 Mb
+)
+
 // NewWorkspace returns a new Workspace. Extensions should use
 // ServeWorkspaceExtension, which performs the stdin/stdout exchange
 // necessary to receive a valid Config.
@@ -236,6 +241,11 @@ func NewWorkspace(req Config, meta Metadata) (*Workspace, error) {
 		rpcCreds := oauth.TokenSource{TokenSource: tokenSource}
 		opts = append(opts, grpc.WithPerRPCCredentials(rpcCreds))
 	}
+
+	opts = append(opts, grpc.WithDefaultCallOptions(
+		grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize),
+		grpc.MaxCallSendMsgSize(maxCallSendMsgSize),
+	))
 
 	// passthrough is used to indicate that dns
 	// resolution SHOULD NOT be performed on target
