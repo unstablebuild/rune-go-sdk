@@ -119,6 +119,54 @@ func FromProtoRequest(p *Request) (llmapi.Request, error) {
 	return out, nil
 }
 
+// ToCompletionHeader builds a CompletionHeader from model and req, copying every
+// Request field except the repeated messages, which are streamed separately as
+// CreateCompletionRequestChunk message frames.
+func ToCompletionHeader(model llmapi.ModelEntry, req llmapi.Request) (*CompletionHeader, error) {
+	preq, err := ToProtoRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	return &CompletionHeader{
+		Model:             ToProtoModelEntry(model),
+		Tools:             preq.GetTools(),
+		ReasoningEffort:   preq.GetReasoningEffort(),
+		ReasoningSummary:  preq.GetReasoningSummary(),
+		MaxOutputTokens:   preq.GetMaxOutputTokens(),
+		ResponseFormat:    preq.GetResponseFormat(),
+		HasResponseFormat: preq.GetHasResponseFormat(),
+		PromptCacheKey:    preq.GetPromptCacheKey(),
+		TokenCount:        preq.GetTokenCount(),
+	}, nil
+}
+
+// RequestFromHeaderAndMessages reconstructs an llmapi.ModelEntry and
+// llmapi.Request from a streamed header and the ordered message frames that
+// followed it.
+func RequestFromHeaderAndMessages(
+	h *CompletionHeader, msgs []*Message,
+) (llmapi.ModelEntry, llmapi.Request, error) {
+	if h == nil {
+		return llmapi.ModelEntry{}, llmapi.Request{}, errors.New("llm: missing completion header")
+	}
+	preq := &Request{
+		Messages:          msgs,
+		Tools:             h.GetTools(),
+		ReasoningEffort:   h.GetReasoningEffort(),
+		ReasoningSummary:  h.GetReasoningSummary(),
+		MaxOutputTokens:   h.GetMaxOutputTokens(),
+		ResponseFormat:    h.GetResponseFormat(),
+		HasResponseFormat: h.GetHasResponseFormat(),
+		PromptCacheKey:    h.GetPromptCacheKey(),
+		TokenCount:        h.GetTokenCount(),
+	}
+	req, err := FromProtoRequest(preq)
+	if err != nil {
+		return llmapi.ModelEntry{}, llmapi.Request{}, err
+	}
+	return FromProtoModelEntry(h.GetModel()), req, nil
+}
+
 // ToProtoMessage converts an llmapi.Message to its proto wire form.
 func ToProtoMessage(m llmapi.Message) *Message {
 	out := &Message{

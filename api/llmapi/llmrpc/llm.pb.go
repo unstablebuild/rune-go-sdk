@@ -1267,28 +1267,37 @@ func (x *ModelEntry) GetBaseUrl() string {
 	return ""
 }
 
-type CreateCompletionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Model         *ModelEntry            `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
-	Request       *Request               `protobuf:"bytes,2,opt,name=request,proto3" json:"request,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+// CompletionHeader carries every Request field except the repeated messages,
+// which are streamed separately as CreateCompletionRequestChunk message frames.
+type CompletionHeader struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Model             *ModelEntry            `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	Tools             []*Tool                `protobuf:"bytes,2,rep,name=tools,proto3" json:"tools,omitempty"`
+	ReasoningEffort   string                 `protobuf:"bytes,3,opt,name=reasoning_effort,json=reasoningEffort,proto3" json:"reasoning_effort,omitempty"`
+	ReasoningSummary  string                 `protobuf:"bytes,4,opt,name=reasoning_summary,json=reasoningSummary,proto3" json:"reasoning_summary,omitempty"`
+	MaxOutputTokens   int32                  `protobuf:"varint,5,opt,name=max_output_tokens,json=maxOutputTokens,proto3" json:"max_output_tokens,omitempty"`
+	ResponseFormat    *ResponseFormat        `protobuf:"bytes,6,opt,name=response_format,json=responseFormat,proto3" json:"response_format,omitempty"`
+	HasResponseFormat bool                   `protobuf:"varint,7,opt,name=has_response_format,json=hasResponseFormat,proto3" json:"has_response_format,omitempty"`
+	PromptCacheKey    string                 `protobuf:"bytes,8,opt,name=prompt_cache_key,json=promptCacheKey,proto3" json:"prompt_cache_key,omitempty"`
+	TokenCount        int32                  `protobuf:"varint,9,opt,name=token_count,json=tokenCount,proto3" json:"token_count,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
-func (x *CreateCompletionRequest) Reset() {
-	*x = CreateCompletionRequest{}
+func (x *CompletionHeader) Reset() {
+	*x = CompletionHeader{}
 	mi := &file_llmrpc_llm_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateCompletionRequest) String() string {
+func (x *CompletionHeader) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateCompletionRequest) ProtoMessage() {}
+func (*CompletionHeader) ProtoMessage() {}
 
-func (x *CreateCompletionRequest) ProtoReflect() protoreflect.Message {
+func (x *CompletionHeader) ProtoReflect() protoreflect.Message {
 	mi := &file_llmrpc_llm_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1300,46 +1309,103 @@ func (x *CreateCompletionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateCompletionRequest.ProtoReflect.Descriptor instead.
-func (*CreateCompletionRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CompletionHeader.ProtoReflect.Descriptor instead.
+func (*CompletionHeader) Descriptor() ([]byte, []int) {
 	return file_llmrpc_llm_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *CreateCompletionRequest) GetModel() *ModelEntry {
+func (x *CompletionHeader) GetModel() *ModelEntry {
 	if x != nil {
 		return x.Model
 	}
 	return nil
 }
 
-func (x *CreateCompletionRequest) GetRequest() *Request {
+func (x *CompletionHeader) GetTools() []*Tool {
 	if x != nil {
-		return x.Request
+		return x.Tools
 	}
 	return nil
 }
 
-type CreateCompletionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Event         *Event                 `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+func (x *CompletionHeader) GetReasoningEffort() string {
+	if x != nil {
+		return x.ReasoningEffort
+	}
+	return ""
+}
+
+func (x *CompletionHeader) GetReasoningSummary() string {
+	if x != nil {
+		return x.ReasoningSummary
+	}
+	return ""
+}
+
+func (x *CompletionHeader) GetMaxOutputTokens() int32 {
+	if x != nil {
+		return x.MaxOutputTokens
+	}
+	return 0
+}
+
+func (x *CompletionHeader) GetResponseFormat() *ResponseFormat {
+	if x != nil {
+		return x.ResponseFormat
+	}
+	return nil
+}
+
+func (x *CompletionHeader) GetHasResponseFormat() bool {
+	if x != nil {
+		return x.HasResponseFormat
+	}
+	return false
+}
+
+func (x *CompletionHeader) GetPromptCacheKey() string {
+	if x != nil {
+		return x.PromptCacheKey
+	}
+	return ""
+}
+
+func (x *CompletionHeader) GetTokenCount() int32 {
+	if x != nil {
+		return x.TokenCount
+	}
+	return 0
+}
+
+// CreateCompletionRequestChunk is one frame of a client-streamed
+// CreateCompletion request: exactly one header frame first, then zero or more
+// message frames in order. Streaming typed frames keeps each gRPC message small
+// so long histories no longer hit the per-message receive limit.
+type CreateCompletionRequestChunk struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Payload:
+	//
+	//	*CreateCompletionRequestChunk_Header
+	//	*CreateCompletionRequestChunk_Message
+	Payload       isCreateCompletionRequestChunk_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateCompletionResponse) Reset() {
-	*x = CreateCompletionResponse{}
+func (x *CreateCompletionRequestChunk) Reset() {
+	*x = CreateCompletionRequestChunk{}
 	mi := &file_llmrpc_llm_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateCompletionResponse) String() string {
+func (x *CreateCompletionRequestChunk) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateCompletionResponse) ProtoMessage() {}
+func (*CreateCompletionRequestChunk) ProtoMessage() {}
 
-func (x *CreateCompletionResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateCompletionRequestChunk) ProtoReflect() protoreflect.Message {
 	mi := &file_llmrpc_llm_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1351,12 +1417,92 @@ func (x *CreateCompletionResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateCompletionResponse.ProtoReflect.Descriptor instead.
-func (*CreateCompletionResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateCompletionRequestChunk.ProtoReflect.Descriptor instead.
+func (*CreateCompletionRequestChunk) Descriptor() ([]byte, []int) {
 	return file_llmrpc_llm_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *CreateCompletionResponse) GetEvent() *Event {
+func (x *CreateCompletionRequestChunk) GetPayload() isCreateCompletionRequestChunk_Payload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *CreateCompletionRequestChunk) GetHeader() *CompletionHeader {
+	if x != nil {
+		if x, ok := x.Payload.(*CreateCompletionRequestChunk_Header); ok {
+			return x.Header
+		}
+	}
+	return nil
+}
+
+func (x *CreateCompletionRequestChunk) GetMessage() *Message {
+	if x != nil {
+		if x, ok := x.Payload.(*CreateCompletionRequestChunk_Message); ok {
+			return x.Message
+		}
+	}
+	return nil
+}
+
+type isCreateCompletionRequestChunk_Payload interface {
+	isCreateCompletionRequestChunk_Payload()
+}
+
+type CreateCompletionRequestChunk_Header struct {
+	Header *CompletionHeader `protobuf:"bytes,1,opt,name=header,proto3,oneof"`
+}
+
+type CreateCompletionRequestChunk_Message struct {
+	Message *Message `protobuf:"bytes,2,opt,name=message,proto3,oneof"`
+}
+
+func (*CreateCompletionRequestChunk_Header) isCreateCompletionRequestChunk_Payload() {}
+
+func (*CreateCompletionRequestChunk_Message) isCreateCompletionRequestChunk_Payload() {}
+
+// CreateCompletionResponseChunk is one frame of the server-streamed
+// CreateCompletion response: each frame carries a single logical Event.
+type CreateCompletionResponseChunk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Event         *Event                 `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateCompletionResponseChunk) Reset() {
+	*x = CreateCompletionResponseChunk{}
+	mi := &file_llmrpc_llm_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateCompletionResponseChunk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateCompletionResponseChunk) ProtoMessage() {}
+
+func (x *CreateCompletionResponseChunk) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateCompletionResponseChunk.ProtoReflect.Descriptor instead.
+func (*CreateCompletionResponseChunk) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *CreateCompletionResponseChunk) GetEvent() *Event {
 	if x != nil {
 		return x.Event
 	}
@@ -1373,7 +1519,7 @@ type CountTokensRequest struct {
 
 func (x *CountTokensRequest) Reset() {
 	*x = CountTokensRequest{}
-	mi := &file_llmrpc_llm_proto_msgTypes[17]
+	mi := &file_llmrpc_llm_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1385,7 +1531,7 @@ func (x *CountTokensRequest) String() string {
 func (*CountTokensRequest) ProtoMessage() {}
 
 func (x *CountTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[17]
+	mi := &file_llmrpc_llm_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1398,7 +1544,7 @@ func (x *CountTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountTokensRequest.ProtoReflect.Descriptor instead.
 func (*CountTokensRequest) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{17}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CountTokensRequest) GetModel() *ModelEntry {
@@ -1424,7 +1570,7 @@ type CountTokensResponse struct {
 
 func (x *CountTokensResponse) Reset() {
 	*x = CountTokensResponse{}
-	mi := &file_llmrpc_llm_proto_msgTypes[18]
+	mi := &file_llmrpc_llm_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1436,7 +1582,7 @@ func (x *CountTokensResponse) String() string {
 func (*CountTokensResponse) ProtoMessage() {}
 
 func (x *CountTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[18]
+	mi := &file_llmrpc_llm_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1449,7 +1595,7 @@ func (x *CountTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountTokensResponse.ProtoReflect.Descriptor instead.
 func (*CountTokensResponse) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{18}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CountTokensResponse) GetCount() int32 {
@@ -1467,7 +1613,7 @@ type ModelsRequest struct {
 
 func (x *ModelsRequest) Reset() {
 	*x = ModelsRequest{}
-	mi := &file_llmrpc_llm_proto_msgTypes[19]
+	mi := &file_llmrpc_llm_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1479,7 +1625,7 @@ func (x *ModelsRequest) String() string {
 func (*ModelsRequest) ProtoMessage() {}
 
 func (x *ModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[19]
+	mi := &file_llmrpc_llm_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1492,7 +1638,7 @@ func (x *ModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelsRequest.ProtoReflect.Descriptor instead.
 func (*ModelsRequest) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{19}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{20}
 }
 
 type ModelsResponse struct {
@@ -1504,7 +1650,7 @@ type ModelsResponse struct {
 
 func (x *ModelsResponse) Reset() {
 	*x = ModelsResponse{}
-	mi := &file_llmrpc_llm_proto_msgTypes[20]
+	mi := &file_llmrpc_llm_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1516,7 +1662,7 @@ func (x *ModelsResponse) String() string {
 func (*ModelsResponse) ProtoMessage() {}
 
 func (x *ModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[20]
+	mi := &file_llmrpc_llm_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1529,7 +1675,7 @@ func (x *ModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelsResponse.ProtoReflect.Descriptor instead.
 func (*ModelsResponse) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{20}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ModelsResponse) GetModel() *ModelEntry {
@@ -1548,7 +1694,7 @@ type GetModelRequest struct {
 
 func (x *GetModelRequest) Reset() {
 	*x = GetModelRequest{}
-	mi := &file_llmrpc_llm_proto_msgTypes[21]
+	mi := &file_llmrpc_llm_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1560,7 +1706,7 @@ func (x *GetModelRequest) String() string {
 func (*GetModelRequest) ProtoMessage() {}
 
 func (x *GetModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[21]
+	mi := &file_llmrpc_llm_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1573,7 +1719,7 @@ func (x *GetModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModelRequest.ProtoReflect.Descriptor instead.
 func (*GetModelRequest) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{21}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetModelRequest) GetModel() *ModelEntry {
@@ -1593,7 +1739,7 @@ type GetModelResponse struct {
 
 func (x *GetModelResponse) Reset() {
 	*x = GetModelResponse{}
-	mi := &file_llmrpc_llm_proto_msgTypes[22]
+	mi := &file_llmrpc_llm_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1605,7 +1751,7 @@ func (x *GetModelResponse) String() string {
 func (*GetModelResponse) ProtoMessage() {}
 
 func (x *GetModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[22]
+	mi := &file_llmrpc_llm_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1618,7 +1764,7 @@ func (x *GetModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModelResponse.ProtoReflect.Descriptor instead.
 func (*GetModelResponse) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{22}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetModelResponse) GetModel() *ModelEntry {
@@ -1647,7 +1793,7 @@ type ContextWindowExceededDetail struct {
 
 func (x *ContextWindowExceededDetail) Reset() {
 	*x = ContextWindowExceededDetail{}
-	mi := &file_llmrpc_llm_proto_msgTypes[23]
+	mi := &file_llmrpc_llm_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1659,7 +1805,7 @@ func (x *ContextWindowExceededDetail) String() string {
 func (*ContextWindowExceededDetail) ProtoMessage() {}
 
 func (x *ContextWindowExceededDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_llmrpc_llm_proto_msgTypes[23]
+	mi := &file_llmrpc_llm_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1672,7 +1818,7 @@ func (x *ContextWindowExceededDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextWindowExceededDetail.ProtoReflect.Descriptor instead.
 func (*ContextWindowExceededDetail) Descriptor() ([]byte, []int) {
-	return file_llmrpc_llm_proto_rawDescGZIP(), []int{23}
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ContextWindowExceededDetail) GetCount() int32 {
@@ -1780,11 +1926,23 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12%\n" +
 	"\x0econtext_window\x18\x03 \x01(\x05R\rcontextWindow\x12\x19\n" +
-	"\bbase_url\x18\x04 \x01(\tR\abaseUrl\"h\n" +
-	"\x17CreateCompletionRequest\x12%\n" +
-	"\x05model\x18\x01 \x01(\v2\x0f.llm.ModelEntryR\x05model\x12&\n" +
-	"\arequest\x18\x02 \x01(\v2\f.llm.RequestR\arequest\"<\n" +
-	"\x18CreateCompletionResponse\x12 \n" +
+	"\bbase_url\x18\x04 \x01(\tR\abaseUrl\"\x97\x03\n" +
+	"\x10CompletionHeader\x12%\n" +
+	"\x05model\x18\x01 \x01(\v2\x0f.llm.ModelEntryR\x05model\x12\x1f\n" +
+	"\x05tools\x18\x02 \x03(\v2\t.llm.ToolR\x05tools\x12)\n" +
+	"\x10reasoning_effort\x18\x03 \x01(\tR\x0freasoningEffort\x12+\n" +
+	"\x11reasoning_summary\x18\x04 \x01(\tR\x10reasoningSummary\x12*\n" +
+	"\x11max_output_tokens\x18\x05 \x01(\x05R\x0fmaxOutputTokens\x12<\n" +
+	"\x0fresponse_format\x18\x06 \x01(\v2\x13.llm.ResponseFormatR\x0eresponseFormat\x12.\n" +
+	"\x13has_response_format\x18\a \x01(\bR\x11hasResponseFormat\x12(\n" +
+	"\x10prompt_cache_key\x18\b \x01(\tR\x0epromptCacheKey\x12\x1f\n" +
+	"\vtoken_count\x18\t \x01(\x05R\n" +
+	"tokenCount\"\x84\x01\n" +
+	"\x1cCreateCompletionRequestChunk\x12/\n" +
+	"\x06header\x18\x01 \x01(\v2\x15.llm.CompletionHeaderH\x00R\x06header\x12(\n" +
+	"\amessage\x18\x02 \x01(\v2\f.llm.MessageH\x00R\amessageB\t\n" +
+	"\apayload\"A\n" +
+	"\x1dCreateCompletionResponseChunk\x12 \n" +
 	"\x05event\x18\x01 \x01(\v2\n" +
 	".llm.EventR\x05event\"e\n" +
 	"\x12CountTokensRequest\x12%\n" +
@@ -1822,9 +1980,9 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x16EVENT_TYPE_STREAM_DONE\x10\x03\x12\x1b\n" +
 	"\x17EVENT_TYPE_STREAM_ERROR\x10\x04\x12\x1b\n" +
 	"\x17EVENT_TYPE_STREAM_RESET\x10\x05\x12!\n" +
-	"\x1dEVENT_TYPE_RATE_LIMIT_WARNING\x10\x062\x88\x02\n" +
-	"\x03LLM\x12Q\n" +
-	"\x10CreateCompletion\x12\x1c.llm.CreateCompletionRequest\x1a\x1d.llm.CreateCompletionResponse0\x01\x12@\n" +
+	"\x1dEVENT_TYPE_RATE_LIMIT_WARNING\x10\x062\x94\x02\n" +
+	"\x03LLM\x12]\n" +
+	"\x10CreateCompletion\x12!.llm.CreateCompletionRequestChunk\x1a\".llm.CreateCompletionResponseChunk(\x010\x01\x12@\n" +
 	"\vCountTokens\x12\x17.llm.CountTokensRequest\x1a\x18.llm.CountTokensResponse\x123\n" +
 	"\x06Models\x12\x12.llm.ModelsRequest\x1a\x13.llm.ModelsResponse0\x01\x127\n" +
 	"\bGetModel\x12\x14.llm.GetModelRequest\x1a\x15.llm.GetModelResponseB8Z6github.com/unstablebuild/rune-go-sdk/api/llmapi/llmrpcb\x06proto3"
@@ -1842,36 +2000,37 @@ func file_llmrpc_llm_proto_rawDescGZIP() []byte {
 }
 
 var file_llmrpc_llm_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_llmrpc_llm_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_llmrpc_llm_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_llmrpc_llm_proto_goTypes = []any{
-	(Role)(0),                           // 0: llm.Role
-	(ToolType)(0),                       // 1: llm.ToolType
-	(ContentPartType)(0),                // 2: llm.ContentPartType
-	(EventType)(0),                      // 3: llm.EventType
-	(*ContentPart)(nil),                 // 4: llm.ContentPart
-	(*FunctionCall)(nil),                // 5: llm.FunctionCall
-	(*ToolCall)(nil),                    // 6: llm.ToolCall
-	(*ReasoningBlock)(nil),              // 7: llm.ReasoningBlock
-	(*Message)(nil),                     // 8: llm.Message
-	(*FunctionDefinition)(nil),          // 9: llm.FunctionDefinition
-	(*Tool)(nil),                        // 10: llm.Tool
-	(*ResponseFormatJSONSchema)(nil),    // 11: llm.ResponseFormatJSONSchema
-	(*ResponseFormat)(nil),              // 12: llm.ResponseFormat
-	(*Request)(nil),                     // 13: llm.Request
-	(*Usage)(nil),                       // 14: llm.Usage
-	(*DoneData)(nil),                    // 15: llm.DoneData
-	(*RateLimitInfo)(nil),               // 16: llm.RateLimitInfo
-	(*Event)(nil),                       // 17: llm.Event
-	(*ModelEntry)(nil),                  // 18: llm.ModelEntry
-	(*CreateCompletionRequest)(nil),     // 19: llm.CreateCompletionRequest
-	(*CreateCompletionResponse)(nil),    // 20: llm.CreateCompletionResponse
-	(*CountTokensRequest)(nil),          // 21: llm.CountTokensRequest
-	(*CountTokensResponse)(nil),         // 22: llm.CountTokensResponse
-	(*ModelsRequest)(nil),               // 23: llm.ModelsRequest
-	(*ModelsResponse)(nil),              // 24: llm.ModelsResponse
-	(*GetModelRequest)(nil),             // 25: llm.GetModelRequest
-	(*GetModelResponse)(nil),            // 26: llm.GetModelResponse
-	(*ContextWindowExceededDetail)(nil), // 27: llm.ContextWindowExceededDetail
+	(Role)(0),                             // 0: llm.Role
+	(ToolType)(0),                         // 1: llm.ToolType
+	(ContentPartType)(0),                  // 2: llm.ContentPartType
+	(EventType)(0),                        // 3: llm.EventType
+	(*ContentPart)(nil),                   // 4: llm.ContentPart
+	(*FunctionCall)(nil),                  // 5: llm.FunctionCall
+	(*ToolCall)(nil),                      // 6: llm.ToolCall
+	(*ReasoningBlock)(nil),                // 7: llm.ReasoningBlock
+	(*Message)(nil),                       // 8: llm.Message
+	(*FunctionDefinition)(nil),            // 9: llm.FunctionDefinition
+	(*Tool)(nil),                          // 10: llm.Tool
+	(*ResponseFormatJSONSchema)(nil),      // 11: llm.ResponseFormatJSONSchema
+	(*ResponseFormat)(nil),                // 12: llm.ResponseFormat
+	(*Request)(nil),                       // 13: llm.Request
+	(*Usage)(nil),                         // 14: llm.Usage
+	(*DoneData)(nil),                      // 15: llm.DoneData
+	(*RateLimitInfo)(nil),                 // 16: llm.RateLimitInfo
+	(*Event)(nil),                         // 17: llm.Event
+	(*ModelEntry)(nil),                    // 18: llm.ModelEntry
+	(*CompletionHeader)(nil),              // 19: llm.CompletionHeader
+	(*CreateCompletionRequestChunk)(nil),  // 20: llm.CreateCompletionRequestChunk
+	(*CreateCompletionResponseChunk)(nil), // 21: llm.CreateCompletionResponseChunk
+	(*CountTokensRequest)(nil),            // 22: llm.CountTokensRequest
+	(*CountTokensResponse)(nil),           // 23: llm.CountTokensResponse
+	(*ModelsRequest)(nil),                 // 24: llm.ModelsRequest
+	(*ModelsResponse)(nil),                // 25: llm.ModelsResponse
+	(*GetModelRequest)(nil),               // 26: llm.GetModelRequest
+	(*GetModelResponse)(nil),              // 27: llm.GetModelResponse
+	(*ContextWindowExceededDetail)(nil),   // 28: llm.ContextWindowExceededDetail
 }
 var file_llmrpc_llm_proto_depIdxs = []int32{
 	2,  // 0: llm.ContentPart.type:type_name -> llm.ContentPartType
@@ -1893,27 +2052,30 @@ var file_llmrpc_llm_proto_depIdxs = []int32{
 	6,  // 16: llm.Event.tool_call:type_name -> llm.ToolCall
 	15, // 17: llm.Event.done_data:type_name -> llm.DoneData
 	16, // 18: llm.Event.rate_limit:type_name -> llm.RateLimitInfo
-	18, // 19: llm.CreateCompletionRequest.model:type_name -> llm.ModelEntry
-	13, // 20: llm.CreateCompletionRequest.request:type_name -> llm.Request
-	17, // 21: llm.CreateCompletionResponse.event:type_name -> llm.Event
-	18, // 22: llm.CountTokensRequest.model:type_name -> llm.ModelEntry
-	8,  // 23: llm.CountTokensRequest.messages:type_name -> llm.Message
-	18, // 24: llm.ModelsResponse.model:type_name -> llm.ModelEntry
-	18, // 25: llm.GetModelRequest.model:type_name -> llm.ModelEntry
-	18, // 26: llm.GetModelResponse.model:type_name -> llm.ModelEntry
-	19, // 27: llm.LLM.CreateCompletion:input_type -> llm.CreateCompletionRequest
-	21, // 28: llm.LLM.CountTokens:input_type -> llm.CountTokensRequest
-	23, // 29: llm.LLM.Models:input_type -> llm.ModelsRequest
-	25, // 30: llm.LLM.GetModel:input_type -> llm.GetModelRequest
-	20, // 31: llm.LLM.CreateCompletion:output_type -> llm.CreateCompletionResponse
-	22, // 32: llm.LLM.CountTokens:output_type -> llm.CountTokensResponse
-	24, // 33: llm.LLM.Models:output_type -> llm.ModelsResponse
-	26, // 34: llm.LLM.GetModel:output_type -> llm.GetModelResponse
-	31, // [31:35] is the sub-list for method output_type
-	27, // [27:31] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	18, // 19: llm.CompletionHeader.model:type_name -> llm.ModelEntry
+	10, // 20: llm.CompletionHeader.tools:type_name -> llm.Tool
+	12, // 21: llm.CompletionHeader.response_format:type_name -> llm.ResponseFormat
+	19, // 22: llm.CreateCompletionRequestChunk.header:type_name -> llm.CompletionHeader
+	8,  // 23: llm.CreateCompletionRequestChunk.message:type_name -> llm.Message
+	17, // 24: llm.CreateCompletionResponseChunk.event:type_name -> llm.Event
+	18, // 25: llm.CountTokensRequest.model:type_name -> llm.ModelEntry
+	8,  // 26: llm.CountTokensRequest.messages:type_name -> llm.Message
+	18, // 27: llm.ModelsResponse.model:type_name -> llm.ModelEntry
+	18, // 28: llm.GetModelRequest.model:type_name -> llm.ModelEntry
+	18, // 29: llm.GetModelResponse.model:type_name -> llm.ModelEntry
+	20, // 30: llm.LLM.CreateCompletion:input_type -> llm.CreateCompletionRequestChunk
+	22, // 31: llm.LLM.CountTokens:input_type -> llm.CountTokensRequest
+	24, // 32: llm.LLM.Models:input_type -> llm.ModelsRequest
+	26, // 33: llm.LLM.GetModel:input_type -> llm.GetModelRequest
+	21, // 34: llm.LLM.CreateCompletion:output_type -> llm.CreateCompletionResponseChunk
+	23, // 35: llm.LLM.CountTokens:output_type -> llm.CountTokensResponse
+	25, // 36: llm.LLM.Models:output_type -> llm.ModelsResponse
+	27, // 37: llm.LLM.GetModel:output_type -> llm.GetModelResponse
+	34, // [34:38] is the sub-list for method output_type
+	30, // [30:34] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_llmrpc_llm_proto_init() }
@@ -1921,13 +2083,17 @@ func file_llmrpc_llm_proto_init() {
 	if File_llmrpc_llm_proto != nil {
 		return
 	}
+	file_llmrpc_llm_proto_msgTypes[16].OneofWrappers = []any{
+		(*CreateCompletionRequestChunk_Header)(nil),
+		(*CreateCompletionRequestChunk_Message)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llmrpc_llm_proto_rawDesc), len(file_llmrpc_llm_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   24,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

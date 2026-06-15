@@ -29,7 +29,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LLMClient interface {
-	CreateCompletion(ctx context.Context, in *CreateCompletionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CreateCompletionResponse], error)
+	CreateCompletion(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[CreateCompletionRequestChunk, CreateCompletionResponseChunk], error)
 	CountTokens(ctx context.Context, in *CountTokensRequest, opts ...grpc.CallOption) (*CountTokensResponse, error)
 	Models(ctx context.Context, in *ModelsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ModelsResponse], error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error)
@@ -43,24 +43,18 @@ func NewLLMClient(cc grpc.ClientConnInterface) LLMClient {
 	return &lLMClient{cc}
 }
 
-func (c *lLMClient) CreateCompletion(ctx context.Context, in *CreateCompletionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CreateCompletionResponse], error) {
+func (c *lLMClient) CreateCompletion(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[CreateCompletionRequestChunk, CreateCompletionResponseChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &LLM_ServiceDesc.Streams[0], LLM_CreateCompletion_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[CreateCompletionRequest, CreateCompletionResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
+	x := &grpc.GenericClientStream[CreateCompletionRequestChunk, CreateCompletionResponseChunk]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LLM_CreateCompletionClient = grpc.ServerStreamingClient[CreateCompletionResponse]
+type LLM_CreateCompletionClient = grpc.BidiStreamingClient[CreateCompletionRequestChunk, CreateCompletionResponseChunk]
 
 func (c *lLMClient) CountTokens(ctx context.Context, in *CountTokensRequest, opts ...grpc.CallOption) (*CountTokensResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -105,7 +99,7 @@ func (c *lLMClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...g
 // All implementations must embed UnimplementedLLMServer
 // for forward compatibility.
 type LLMServer interface {
-	CreateCompletion(*CreateCompletionRequest, grpc.ServerStreamingServer[CreateCompletionResponse]) error
+	CreateCompletion(grpc.BidiStreamingServer[CreateCompletionRequestChunk, CreateCompletionResponseChunk]) error
 	CountTokens(context.Context, *CountTokensRequest) (*CountTokensResponse, error)
 	Models(*ModelsRequest, grpc.ServerStreamingServer[ModelsResponse]) error
 	GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error)
@@ -119,7 +113,7 @@ type LLMServer interface {
 // pointer dereference when methods are called.
 type UnimplementedLLMServer struct{}
 
-func (UnimplementedLLMServer) CreateCompletion(*CreateCompletionRequest, grpc.ServerStreamingServer[CreateCompletionResponse]) error {
+func (UnimplementedLLMServer) CreateCompletion(grpc.BidiStreamingServer[CreateCompletionRequestChunk, CreateCompletionResponseChunk]) error {
 	return status.Error(codes.Unimplemented, "method CreateCompletion not implemented")
 }
 func (UnimplementedLLMServer) CountTokens(context.Context, *CountTokensRequest) (*CountTokensResponse, error) {
@@ -153,15 +147,11 @@ func RegisterLLMServer(s grpc.ServiceRegistrar, srv LLMServer) {
 }
 
 func _LLM_CreateCompletion_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(CreateCompletionRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(LLMServer).CreateCompletion(m, &grpc.GenericServerStream[CreateCompletionRequest, CreateCompletionResponse]{ServerStream: stream})
+	return srv.(LLMServer).CreateCompletion(&grpc.GenericServerStream[CreateCompletionRequestChunk, CreateCompletionResponseChunk]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LLM_CreateCompletionServer = grpc.ServerStreamingServer[CreateCompletionResponse]
+type LLM_CreateCompletionServer = grpc.BidiStreamingServer[CreateCompletionRequestChunk, CreateCompletionResponseChunk]
 
 func _LLM_CountTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CountTokensRequest)
@@ -231,6 +221,7 @@ var LLM_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "CreateCompletion",
 			Handler:       _LLM_CreateCompletion_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 		{
 			StreamName:    "Models",

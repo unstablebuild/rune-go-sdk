@@ -141,12 +141,34 @@ message ModelEntry {
 	string base_url = 4;
 }
 
-message CreateCompletionRequest {
+// CompletionHeader carries every Request field except the repeated messages,
+// which are streamed separately as CreateCompletionRequestChunk message frames.
+message CompletionHeader {
 	ModelEntry model = 1;
-	Request request = 2;
+	repeated Tool tools = 2;
+	string reasoning_effort = 3;
+	string reasoning_summary = 4;
+	int32 max_output_tokens = 5;
+	ResponseFormat response_format = 6;
+	bool has_response_format = 7;
+	string prompt_cache_key = 8;
+	int32 token_count = 9;
 }
 
-message CreateCompletionResponse {
+// CreateCompletionRequestChunk is one frame of a client-streamed
+// CreateCompletion request: exactly one header frame first, then zero or more
+// message frames in order. Streaming typed frames keeps each gRPC message small
+// so long histories no longer hit the per-message receive limit.
+message CreateCompletionRequestChunk {
+	oneof payload {
+		CompletionHeader header = 1;
+		Message message = 2;
+	}
+}
+
+// CreateCompletionResponseChunk is one frame of the server-streamed
+// CreateCompletion response: each frame carries a single logical Event.
+message CreateCompletionResponseChunk {
 	Event event = 1;
 }
 
@@ -183,7 +205,7 @@ message ContextWindowExceededDetail {
 }
 
 service LLM {
-	rpc CreateCompletion(CreateCompletionRequest) returns (stream CreateCompletionResponse);
+	rpc CreateCompletion(stream CreateCompletionRequestChunk) returns (stream CreateCompletionResponseChunk);
 	rpc CountTokens(CountTokensRequest) returns (CountTokensResponse);
 	rpc Models(ModelsRequest) returns (stream ModelsResponse);
 	rpc GetModel(GetModelRequest) returns (GetModelResponse);

@@ -69,21 +69,33 @@ func NewClientFromAddr(addr net.Addr, opts ...grpc.DialOption) (llmapi.Service, 
 func (c *Client) CreateCompletion(
 	ctx context.Context, model llmapi.ModelEntry, req llmapi.Request,
 ) (iterator.Iterator[llmapi.Event], error) {
-	preq, err := ToProtoRequest(req)
+	header, err := ToCompletionHeader(model, req)
 	if err != nil {
 		return nil, fmt.Errorf("llm: encode request: %w", err)
 	}
 	callCtx, cancel := context.WithCancel(ctx)
-	stream, err := c.pb.CreateCompletion(callCtx, &CreateCompletionRequest{
-		Model:   ToProtoModelEntry(model),
-		Request: preq,
-	})
+	stream, err := c.pb.CreateCompletion(callCtx)
 	if err != nil {
 		cancel()
-		if ctxErr, ok := ContextWindowExceededFromStatus(err); ok {
-			return nil, ctxErr
-		}
 		return nil, fmt.Errorf("llm: create completion: %w", err)
+	}
+	if err := stream.Send(&CreateCompletionRequestChunk{
+		Payload: &CreateCompletionRequestChunk_Header{Header: header},
+	}); err != nil {
+		cancel()
+		return nil, fmt.Errorf("llm: send header: %w", err)
+	}
+	for i := range req.Messages {
+		if err := stream.Send(&CreateCompletionRequestChunk{
+			Payload: &CreateCompletionRequestChunk_Message{Message: ToProtoMessage(req.Messages[i])},
+		}); err != nil {
+			cancel()
+			return nil, fmt.Errorf("llm: send message %d: %w", i, err)
+		}
+	}
+	if err := stream.CloseSend(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("llm: close send: %w", err)
 	}
 	return &eventIterator{stream: stream, cancel: cancel}, nil
 }
@@ -162,7 +174,7 @@ func (it *modelsIterator) Close() error {
 }
 
 type eventIterator struct {
-	stream grpc.ServerStreamingClient[CreateCompletionResponse]
+	stream grpc.BidiStreamingClient[CreateCompletionRequestChunk, CreateCompletionResponseChunk]
 	cancel context.CancelFunc
 	err    error
 }
