@@ -715,12 +715,12 @@ const file_docpb_datastore_proto_rawDesc = "" +
 	"\x0ealready_exists\x18\x01 \x01(\bR\ralreadyExists\"f\n" +
 	"\x16UpdateDocumentResponse\x12\x1b\n" +
 	"\tnot_found\x18\x01 \x01(\bR\bnotFound\x12/\n" +
-	"\x13precondition_failed\x18\x02 \x01(\bR\x12preconditionFailed2\x9a\x03\n" +
-	"\rDocumentStore\x12E\n" +
-	"\x06Create\x12\x1c.proto.CreateDocumentRequest\x1a\x1d.proto.CreateDocumentResponse\x129\n" +
-	"\x03Set\x12\x19.proto.SetDocumentRequest\x1a\x17.proto.DocumentResponse\x12E\n" +
-	"\x06Update\x12\x1c.proto.UpdateDocumentRequest\x1a\x1d.proto.UpdateDocumentResponse\x12<\n" +
-	"\x03Get\x12\x19.proto.GetDocumentRequest\x1a\x1a.proto.GetDocumentResponse\x12?\n" +
+	"\x13precondition_failed\x18\x02 \x01(\bR\x12preconditionFailed2\xa2\x03\n" +
+	"\rDocumentStore\x12G\n" +
+	"\x06Create\x12\x1c.proto.CreateDocumentRequest\x1a\x1d.proto.CreateDocumentResponse(\x01\x12;\n" +
+	"\x03Set\x12\x19.proto.SetDocumentRequest\x1a\x17.proto.DocumentResponse(\x01\x12G\n" +
+	"\x06Update\x12\x1c.proto.UpdateDocumentRequest\x1a\x1d.proto.UpdateDocumentResponse(\x01\x12>\n" +
+	"\x03Get\x12\x19.proto.GetDocumentRequest\x1a\x1a.proto.GetDocumentResponse0\x01\x12?\n" +
 	"\x06Delete\x12\x1c.proto.DeleteDocumentRequest\x1a\x17.proto.DocumentResponse\x12A\n" +
 	"\x04List\x12\x1a.proto.ListDocumentRequest\x1a\x1b.proto.ListDocumentResponse0\x01B\bZ\x06/docpbb\x06proto3"
 

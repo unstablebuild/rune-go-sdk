@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -320,24 +321,56 @@ func newMockDocStore() *mockDocStore {
 	}
 }
 
-func (m *mockDocStore) Create(_ context.Context, req *docpb.CreateDocumentRequest) (*docpb.CreateDocumentResponse, error) {
-	m.docs[req.GetId()] = req.GetData()
-	return &docpb.CreateDocumentResponse{}, nil
+func (m *mockDocStore) Create(stream grpc.ClientStreamingServer[docpb.CreateDocumentRequest, docpb.CreateDocumentResponse]) error {
+	var id string
+	var data []byte
+	first := true
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if first {
+			id = req.GetId()
+			first = false
+		}
+		data = append(data, req.GetData()...)
+	}
+	m.docs[id] = data
+	return stream.SendAndClose(&docpb.CreateDocumentResponse{})
 }
 
-func (m *mockDocStore) Set(_ context.Context, req *docpb.SetDocumentRequest) (*docpb.DocumentResponse, error) {
-	m.docs[req.GetId()] = req.GetData()
-	return &docpb.DocumentResponse{}, nil
+func (m *mockDocStore) Set(stream grpc.ClientStreamingServer[docpb.SetDocumentRequest, docpb.DocumentResponse]) error {
+	var id string
+	var data []byte
+	first := true
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if first {
+			id = req.GetId()
+			first = false
+		}
+		data = append(data, req.GetData()...)
+	}
+	m.docs[id] = data
+	return stream.SendAndClose(&docpb.DocumentResponse{})
 }
 
-func (m *mockDocStore) Get(_ context.Context, req *docpb.GetDocumentRequest) (*docpb.GetDocumentResponse, error) {
+func (m *mockDocStore) Get(req *docpb.GetDocumentRequest, stream grpc.ServerStreamingServer[docpb.GetDocumentResponse]) error {
 	data, ok := m.docs[req.GetId()]
 	if !ok {
-		return &docpb.GetDocumentResponse{}, nil
+		return stream.Send(&docpb.GetDocumentResponse{})
 	}
-	return &docpb.GetDocumentResponse{
-		Data: data,
-	}, nil
+	return stream.Send(&docpb.GetDocumentResponse{Data: data})
 }
 
 func (m *mockDocStore) Delete(_ context.Context, req *docpb.DeleteDocumentRequest) (*docpb.DocumentResponse, error) {
@@ -345,9 +378,26 @@ func (m *mockDocStore) Delete(_ context.Context, req *docpb.DeleteDocumentReques
 	return &docpb.DocumentResponse{}, nil
 }
 
-func (m *mockDocStore) Update(_ context.Context, req *docpb.UpdateDocumentRequest) (*docpb.UpdateDocumentResponse, error) {
-	m.lastUpdate = req
-	return &docpb.UpdateDocumentResponse{}, nil
+func (m *mockDocStore) Update(stream grpc.ClientStreamingServer[docpb.UpdateDocumentRequest, docpb.UpdateDocumentResponse]) error {
+	reassembled := &docpb.UpdateDocumentRequest{}
+	first := true
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if first {
+			reassembled.Id = req.GetId()
+			first = false
+		}
+		reassembled.Updates = append(reassembled.Updates, req.GetUpdates()...)
+		reassembled.Preconditions = append(reassembled.Preconditions, req.GetPreconditions()...)
+	}
+	m.lastUpdate = reassembled
+	return stream.SendAndClose(&docpb.UpdateDocumentResponse{})
 }
 
 func (m *mockDocStore) List(

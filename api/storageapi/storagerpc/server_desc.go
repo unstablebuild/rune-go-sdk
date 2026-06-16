@@ -104,51 +104,54 @@ func newDocumentStoreClient(
 }
 
 func (c *documentStoreClient) Create(
-	ctx context.Context, in *docpb.CreateDocumentRequest, opts ...grpc.CallOption,
-) (*docpb.CreateDocumentResponse, error) {
-	out := new(docpb.CreateDocumentResponse)
-	err := c.cc.Invoke(ctx,
-		fmt.Sprintf("/proto.DocumentStore.%s/Create", c.collection), in, out, opts...)
+	ctx context.Context, opts ...grpc.CallOption,
+) (grpc.ClientStreamingClient[docpb.CreateDocumentRequest, docpb.CreateDocumentResponse], error) {
+	stream, err := c.cc.NewStream(ctx, &docpb.DocumentStore_ServiceDesc.Streams[0],
+		fmt.Sprintf("/proto.DocumentStore.%s/Create", c.collection), opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	return &grpc.GenericClientStream[docpb.CreateDocumentRequest, docpb.CreateDocumentResponse]{ClientStream: stream}, nil
 }
 
 func (c *documentStoreClient) Set(
-	ctx context.Context, in *docpb.SetDocumentRequest, opts ...grpc.CallOption,
-) (*docpb.DocumentResponse, error) {
-	out := new(docpb.DocumentResponse)
-	err := c.cc.Invoke(ctx,
-		fmt.Sprintf("/proto.DocumentStore.%s/Set", c.collection), in, out, opts...)
+	ctx context.Context, opts ...grpc.CallOption,
+) (grpc.ClientStreamingClient[docpb.SetDocumentRequest, docpb.DocumentResponse], error) {
+	stream, err := c.cc.NewStream(ctx, &docpb.DocumentStore_ServiceDesc.Streams[1],
+		fmt.Sprintf("/proto.DocumentStore.%s/Set", c.collection), opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	return &grpc.GenericClientStream[docpb.SetDocumentRequest, docpb.DocumentResponse]{ClientStream: stream}, nil
 }
 
 func (c *documentStoreClient) Update(
-	ctx context.Context, in *docpb.UpdateDocumentRequest, opts ...grpc.CallOption,
-) (*docpb.UpdateDocumentResponse, error) {
-	out := new(docpb.UpdateDocumentResponse)
-	err := c.cc.Invoke(ctx,
-		fmt.Sprintf("/proto.DocumentStore.%s/Update", c.collection), in, out, opts...)
+	ctx context.Context, opts ...grpc.CallOption,
+) (grpc.ClientStreamingClient[docpb.UpdateDocumentRequest, docpb.UpdateDocumentResponse], error) {
+	stream, err := c.cc.NewStream(ctx, &docpb.DocumentStore_ServiceDesc.Streams[2],
+		fmt.Sprintf("/proto.DocumentStore.%s/Update", c.collection), opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	return &grpc.GenericClientStream[docpb.UpdateDocumentRequest, docpb.UpdateDocumentResponse]{ClientStream: stream}, nil
 }
 
 func (c *documentStoreClient) Get(
 	ctx context.Context, in *docpb.GetDocumentRequest, opts ...grpc.CallOption,
-) (*docpb.GetDocumentResponse, error) {
-	out := new(docpb.GetDocumentResponse)
-	err := c.cc.Invoke(ctx,
-		fmt.Sprintf("/proto.DocumentStore.%s/Get", c.collection), in, out, opts...)
+) (grpc.ServerStreamingClient[docpb.GetDocumentResponse], error) {
+	stream, err := c.cc.NewStream(ctx, &docpb.DocumentStore_ServiceDesc.Streams[3],
+		fmt.Sprintf("/proto.DocumentStore.%s/Get", c.collection), opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[docpb.GetDocumentRequest, docpb.GetDocumentResponse]{ClientStream: stream}
+	if err := x.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
 func (c *documentStoreClient) Delete(
@@ -166,7 +169,7 @@ func (c *documentStoreClient) Delete(
 func (c *documentStoreClient) List(
 	ctx context.Context, in *docpb.ListDocumentRequest, opts ...grpc.CallOption,
 ) (docpb.DocumentStore_ListClient, error) {
-	stream, err := c.cc.NewStream(ctx, &docpb.DocumentStore_ServiceDesc.Streams[0],
+	stream, err := c.cc.NewStream(ctx, &docpb.DocumentStore_ServiceDesc.Streams[4],
 		fmt.Sprintf("/proto.DocumentStore.%s/List", c.collection), opts...)
 	if err != nil {
 		return nil, err

@@ -92,6 +92,20 @@ func (c *Client) partitionContext(ctx context.Context) context.Context {
 	return ContextWithPartitions(ctx, c.partitions...)
 }
 
+const maxChunkBytes = 1 * 1024 * 1024 // 1 Mb
+
+func chunkBytes(data []byte) [][]byte {
+	if len(data) <= maxChunkBytes {
+		return [][]byte{data}
+	}
+	ret := make([][]byte, 0, (len(data)+maxChunkBytes-1)/maxChunkBytes)
+	for len(data) > maxChunkBytes {
+		ret = append(ret, data[:maxChunkBytes])
+		data = data[maxChunkBytes:]
+	}
+	return append(ret, data)
+}
+
 func (c *Client) Create(
 	ctx context.Context, ID string, data interface{},
 ) error {
@@ -100,8 +114,20 @@ func (c *Client) Create(
 		return err
 	}
 
-	req := docpb.CreateDocumentRequest{Id: ID, Data: bytes}
-	res, err := c.pb.Create(c.partitionContext(ctx), &req)
+	stream, err := c.pb.Create(c.partitionContext(ctx))
+	if err != nil {
+		return convertRpcError(err)
+	}
+	for i, chunk := range chunkBytes(bytes) {
+		req := docpb.CreateDocumentRequest{Data: chunk}
+		if i == 0 {
+			req.Id = ID
+		}
+		if err := stream.Send(&req); err != nil {
+			return convertRpcError(err)
+		}
+	}
+	res, err := stream.CloseAndRecv()
 	if err != nil {
 		return convertRpcError(err)
 	}
@@ -119,9 +145,20 @@ func (c *Client) Set(
 		return err
 	}
 
-	req := docpb.SetDocumentRequest{Id: ID, Data: bytes}
-	_, err = c.pb.Set(c.partitionContext(ctx), &req)
+	stream, err := c.pb.Set(c.partitionContext(ctx))
 	if err != nil {
+		return convertRpcError(err)
+	}
+	for i, chunk := range chunkBytes(bytes) {
+		req := docpb.SetDocumentRequest{Data: chunk}
+		if i == 0 {
+			req.Id = ID
+		}
+		if err := stream.Send(&req); err != nil {
+			return convertRpcError(err)
+		}
+	}
+	if _, err := stream.CloseAndRecv(); err != nil {
 		return convertRpcError(err)
 	}
 	return nil
@@ -136,8 +173,14 @@ func (c *Client) Update(
 	}
 	u := makeProtoUpdates(c.marshaler, updates)
 	p := makeProtoPreconditions(c.marshaler, preconds...)
-	req := docpb.UpdateDocumentRequest{Id: ID, Updates: u, Preconditions: p}
-	res, err := c.pb.Update(c.partitionContext(ctx), &req)
+	stream, err := c.pb.Update(c.partitionContext(ctx))
+	if err != nil {
+		return convertRpcError(err)
+	}
+	if err := sendUpdateStream(stream, ID, u, p); err != nil {
+		return convertRpcError(err)
+	}
+	res, err := stream.CloseAndRecv()
 	if err != nil {
 		return convertRpcError(err)
 	}
@@ -150,24 +193,72 @@ func (c *Client) Update(
 	return nil
 }
 
+func sendUpdateStream(
+	stream docpb.DocumentStore_UpdateClient, id string,
+	updates, preconds []*docpb.UpdateDocumentRequest_Field,
+) error {
+	first := true
+	sendField := func(field *docpb.UpdateDocumentRequest_Field, precond bool) error {
+		for i, chunk := range chunkBytes(field.GetData()) {
+			entry := &docpb.UpdateDocumentRequest_Field{Data: chunk}
+			if i == 0 {
+				entry.FieldPath = field.GetFieldPath()
+			}
+			req := &docpb.UpdateDocumentRequest{}
+			if first {
+				req.Id = id
+				first = false
+			}
+			if precond {
+				req.Preconditions = []*docpb.UpdateDocumentRequest_Field{entry}
+			} else {
+				req.Updates = []*docpb.UpdateDocumentRequest_Field{entry}
+			}
+			if err := stream.Send(req); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	for _, field := range updates {
+		if err := sendField(field, false); err != nil {
+			return err
+		}
+	}
+	for _, field := range preconds {
+		if err := sendField(field, true); err != nil {
+			return err
+		}
+	}
+	if first {
+		return stream.Send(&docpb.UpdateDocumentRequest{Id: id})
+	}
+	return nil
+}
+
 func (c *Client) Get(
 	ctx context.Context, ID string, doc interface{},
 ) error {
 	req := docpb.GetDocumentRequest{Id: ID}
-	res, err := c.pb.Get(c.partitionContext(ctx), &req)
+	stream, err := c.pb.Get(c.partitionContext(ctx), &req)
 	if err != nil {
 		return convertRpcError(err)
 	}
-	if res.GetNotFound() {
-		return storageapi.ErrNotFound
+	var data []byte
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return convertRpcError(err)
+		}
+		if res.GetNotFound() {
+			return storageapi.ErrNotFound
+		}
+		data = append(data, res.GetData()...)
 	}
-
-	data := res.GetData()
-	err = storageapi.SafeDecode(c.marshaler, doc, data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return storageapi.SafeDecode(c.marshaler, doc, data)
 }
 
 func (c *Client) Delete(

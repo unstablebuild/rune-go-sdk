@@ -31,10 +31,21 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DocumentStoreClient interface {
-	Create(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error)
-	Set(ctx context.Context, in *SetDocumentRequest, opts ...grpc.CallOption) (*DocumentResponse, error)
-	Update(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error)
-	Get(ctx context.Context, in *GetDocumentRequest, opts ...grpc.CallOption) (*GetDocumentResponse, error)
+	// Create, Set, Update and Get stream their document payload so a single
+	// document can exceed the gRPC per-message size limit. The blob is split
+	// into chunks; identity/metadata travels on the first stream message only:
+	//
+	//	Create/Set:  first message carries id; every message carries a data
+	//	             chunk. The server concatenates chunks before decoding.
+	//	Update:      first message carries id; updates/preconditions are
+	//	             streamed across messages and concatenated by field path.
+	//	Get:         the response is streamed. The first message may carry
+	//	             not_found; otherwise N messages each carry a data chunk
+	//	             that the client concatenates before decoding.
+	Create(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[CreateDocumentRequest, CreateDocumentResponse], error)
+	Set(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[SetDocumentRequest, DocumentResponse], error)
+	Update(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UpdateDocumentRequest, UpdateDocumentResponse], error)
+	Get(ctx context.Context, in *GetDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetDocumentResponse], error)
 	Delete(ctx context.Context, in *DeleteDocumentRequest, opts ...grpc.CallOption) (*DocumentResponse, error)
 	List(ctx context.Context, in *ListDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListDocumentResponse], error)
 }
@@ -47,45 +58,63 @@ func NewDocumentStoreClient(cc grpc.ClientConnInterface) DocumentStoreClient {
 	return &documentStoreClient{cc}
 }
 
-func (c *documentStoreClient) Create(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error) {
+func (c *documentStoreClient) Create(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[CreateDocumentRequest, CreateDocumentResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateDocumentResponse)
-	err := c.cc.Invoke(ctx, DocumentStore_Create_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &DocumentStore_ServiceDesc.Streams[0], DocumentStore_Create_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[CreateDocumentRequest, CreateDocumentResponse]{ClientStream: stream}
+	return x, nil
 }
 
-func (c *documentStoreClient) Set(ctx context.Context, in *SetDocumentRequest, opts ...grpc.CallOption) (*DocumentResponse, error) {
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_CreateClient = grpc.ClientStreamingClient[CreateDocumentRequest, CreateDocumentResponse]
+
+func (c *documentStoreClient) Set(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[SetDocumentRequest, DocumentResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DocumentResponse)
-	err := c.cc.Invoke(ctx, DocumentStore_Set_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &DocumentStore_ServiceDesc.Streams[1], DocumentStore_Set_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[SetDocumentRequest, DocumentResponse]{ClientStream: stream}
+	return x, nil
 }
 
-func (c *documentStoreClient) Update(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error) {
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_SetClient = grpc.ClientStreamingClient[SetDocumentRequest, DocumentResponse]
+
+func (c *documentStoreClient) Update(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UpdateDocumentRequest, UpdateDocumentResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateDocumentResponse)
-	err := c.cc.Invoke(ctx, DocumentStore_Update_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &DocumentStore_ServiceDesc.Streams[2], DocumentStore_Update_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[UpdateDocumentRequest, UpdateDocumentResponse]{ClientStream: stream}
+	return x, nil
 }
 
-func (c *documentStoreClient) Get(ctx context.Context, in *GetDocumentRequest, opts ...grpc.CallOption) (*GetDocumentResponse, error) {
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_UpdateClient = grpc.ClientStreamingClient[UpdateDocumentRequest, UpdateDocumentResponse]
+
+func (c *documentStoreClient) Get(ctx context.Context, in *GetDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetDocumentResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetDocumentResponse)
-	err := c.cc.Invoke(ctx, DocumentStore_Get_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &DocumentStore_ServiceDesc.Streams[3], DocumentStore_Get_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[GetDocumentRequest, GetDocumentResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_GetClient = grpc.ServerStreamingClient[GetDocumentResponse]
 
 func (c *documentStoreClient) Delete(ctx context.Context, in *DeleteDocumentRequest, opts ...grpc.CallOption) (*DocumentResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -99,7 +128,7 @@ func (c *documentStoreClient) Delete(ctx context.Context, in *DeleteDocumentRequ
 
 func (c *documentStoreClient) List(ctx context.Context, in *ListDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListDocumentResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &DocumentStore_ServiceDesc.Streams[0], DocumentStore_List_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &DocumentStore_ServiceDesc.Streams[4], DocumentStore_List_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,10 +149,21 @@ type DocumentStore_ListClient = grpc.ServerStreamingClient[ListDocumentResponse]
 // All implementations must embed UnimplementedDocumentStoreServer
 // for forward compatibility.
 type DocumentStoreServer interface {
-	Create(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error)
-	Set(context.Context, *SetDocumentRequest) (*DocumentResponse, error)
-	Update(context.Context, *UpdateDocumentRequest) (*UpdateDocumentResponse, error)
-	Get(context.Context, *GetDocumentRequest) (*GetDocumentResponse, error)
+	// Create, Set, Update and Get stream their document payload so a single
+	// document can exceed the gRPC per-message size limit. The blob is split
+	// into chunks; identity/metadata travels on the first stream message only:
+	//
+	//	Create/Set:  first message carries id; every message carries a data
+	//	             chunk. The server concatenates chunks before decoding.
+	//	Update:      first message carries id; updates/preconditions are
+	//	             streamed across messages and concatenated by field path.
+	//	Get:         the response is streamed. The first message may carry
+	//	             not_found; otherwise N messages each carry a data chunk
+	//	             that the client concatenates before decoding.
+	Create(grpc.ClientStreamingServer[CreateDocumentRequest, CreateDocumentResponse]) error
+	Set(grpc.ClientStreamingServer[SetDocumentRequest, DocumentResponse]) error
+	Update(grpc.ClientStreamingServer[UpdateDocumentRequest, UpdateDocumentResponse]) error
+	Get(*GetDocumentRequest, grpc.ServerStreamingServer[GetDocumentResponse]) error
 	Delete(context.Context, *DeleteDocumentRequest) (*DocumentResponse, error)
 	List(*ListDocumentRequest, grpc.ServerStreamingServer[ListDocumentResponse]) error
 	mustEmbedUnimplementedDocumentStoreServer()
@@ -136,17 +176,17 @@ type DocumentStoreServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDocumentStoreServer struct{}
 
-func (UnimplementedDocumentStoreServer) Create(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Create not implemented")
+func (UnimplementedDocumentStoreServer) Create(grpc.ClientStreamingServer[CreateDocumentRequest, CreateDocumentResponse]) error {
+	return status.Error(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedDocumentStoreServer) Set(context.Context, *SetDocumentRequest) (*DocumentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Set not implemented")
+func (UnimplementedDocumentStoreServer) Set(grpc.ClientStreamingServer[SetDocumentRequest, DocumentResponse]) error {
+	return status.Error(codes.Unimplemented, "method Set not implemented")
 }
-func (UnimplementedDocumentStoreServer) Update(context.Context, *UpdateDocumentRequest) (*UpdateDocumentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Update not implemented")
+func (UnimplementedDocumentStoreServer) Update(grpc.ClientStreamingServer[UpdateDocumentRequest, UpdateDocumentResponse]) error {
+	return status.Error(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedDocumentStoreServer) Get(context.Context, *GetDocumentRequest) (*GetDocumentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Get not implemented")
+func (UnimplementedDocumentStoreServer) Get(*GetDocumentRequest, grpc.ServerStreamingServer[GetDocumentResponse]) error {
+	return status.Error(codes.Unimplemented, "method Get not implemented")
 }
 func (UnimplementedDocumentStoreServer) Delete(context.Context, *DeleteDocumentRequest) (*DocumentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Delete not implemented")
@@ -175,77 +215,37 @@ func RegisterDocumentStoreServer(s grpc.ServiceRegistrar, srv DocumentStoreServe
 	s.RegisterService(&DocumentStore_ServiceDesc, srv)
 }
 
-func _DocumentStore_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateDocumentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DocumentStoreServer).Create(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DocumentStore_Create_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DocumentStoreServer).Create(ctx, req.(*CreateDocumentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+func _DocumentStore_Create_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DocumentStoreServer).Create(&grpc.GenericServerStream[CreateDocumentRequest, CreateDocumentResponse]{ServerStream: stream})
 }
 
-func _DocumentStore_Set_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetDocumentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DocumentStoreServer).Set(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DocumentStore_Set_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DocumentStoreServer).Set(ctx, req.(*SetDocumentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_CreateServer = grpc.ClientStreamingServer[CreateDocumentRequest, CreateDocumentResponse]
+
+func _DocumentStore_Set_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DocumentStoreServer).Set(&grpc.GenericServerStream[SetDocumentRequest, DocumentResponse]{ServerStream: stream})
 }
 
-func _DocumentStore_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateDocumentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DocumentStoreServer).Update(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DocumentStore_Update_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DocumentStoreServer).Update(ctx, req.(*UpdateDocumentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_SetServer = grpc.ClientStreamingServer[SetDocumentRequest, DocumentResponse]
+
+func _DocumentStore_Update_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DocumentStoreServer).Update(&grpc.GenericServerStream[UpdateDocumentRequest, UpdateDocumentResponse]{ServerStream: stream})
 }
 
-func _DocumentStore_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDocumentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_UpdateServer = grpc.ClientStreamingServer[UpdateDocumentRequest, UpdateDocumentResponse]
+
+func _DocumentStore_Get_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetDocumentRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(DocumentStoreServer).Get(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DocumentStore_Get_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DocumentStoreServer).Get(ctx, req.(*GetDocumentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(DocumentStoreServer).Get(m, &grpc.GenericServerStream[GetDocumentRequest, GetDocumentResponse]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_GetServer = grpc.ServerStreamingServer[GetDocumentResponse]
 
 func _DocumentStore_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteDocumentRequest)
@@ -284,27 +284,31 @@ var DocumentStore_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DocumentStoreServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Create",
-			Handler:    _DocumentStore_Create_Handler,
-		},
-		{
-			MethodName: "Set",
-			Handler:    _DocumentStore_Set_Handler,
-		},
-		{
-			MethodName: "Update",
-			Handler:    _DocumentStore_Update_Handler,
-		},
-		{
-			MethodName: "Get",
-			Handler:    _DocumentStore_Get_Handler,
-		},
-		{
 			MethodName: "Delete",
 			Handler:    _DocumentStore_Delete_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Create",
+			Handler:       _DocumentStore_Create_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Set",
+			Handler:       _DocumentStore_Set_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Update",
+			Handler:       _DocumentStore_Update_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Get",
+			Handler:       _DocumentStore_Get_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "List",
 			Handler:       _DocumentStore_List_Handler,

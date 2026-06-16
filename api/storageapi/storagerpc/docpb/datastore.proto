@@ -64,10 +64,21 @@ message UpdateDocumentResponse {
 }
 
 service DocumentStore {
-	rpc Create(CreateDocumentRequest) returns (CreateDocumentResponse);
-	rpc Set(SetDocumentRequest) returns (DocumentResponse);
-	rpc Update(UpdateDocumentRequest) returns (UpdateDocumentResponse);
-	rpc Get(GetDocumentRequest) returns (GetDocumentResponse);
+	// Create, Set, Update and Get stream their document payload so a single
+	// document can exceed the gRPC per-message size limit. The blob is split
+	// into chunks; identity/metadata travels on the first stream message only:
+	//
+	//   Create/Set:  first message carries id; every message carries a data
+	//                chunk. The server concatenates chunks before decoding.
+	//   Update:      first message carries id; updates/preconditions are
+	//                streamed across messages and concatenated by field path.
+	//   Get:         the response is streamed. The first message may carry
+	//                not_found; otherwise N messages each carry a data chunk
+	//                that the client concatenates before decoding.
+	rpc Create(stream CreateDocumentRequest) returns (CreateDocumentResponse);
+	rpc Set(stream SetDocumentRequest) returns (DocumentResponse);
+	rpc Update(stream UpdateDocumentRequest) returns (UpdateDocumentResponse);
+	rpc Get(GetDocumentRequest) returns (stream GetDocumentResponse);
 	rpc Delete(DeleteDocumentRequest) returns (DocumentResponse);
 	rpc List(ListDocumentRequest) returns (stream ListDocumentResponse);
 }
