@@ -169,6 +169,14 @@ func ParseKey(str string) (KeyComb, error) {
 			return KeyComb{Key: KeySpace}, nil
 		case "<backspace>":
 			return KeyComb{Key: KeyBackspace}, nil
+		case "<capslock>":
+			return KeyComb{Key: KeyCapsLock}, nil
+		case "<numlock>":
+			return KeyComb{Key: KeyNumLock}, nil
+		case "<scrolllock>":
+			return KeyComb{Key: KeyScrollLock}, nil
+		case "<menu>":
+			return KeyComb{Key: KeyMenu}, nil
 
 		// meta
 		case "<m-f1>", "<meta-f1>":

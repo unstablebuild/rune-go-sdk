@@ -266,6 +266,15 @@ const (
 	KeySpace           = Key(termbox.KeySpace)
 )
 
+// Physical keys that are never issued as term.Event but exist so they
+// be re-mapped to other keys.
+const (
+	KeyCapsLock   Key = 0xFF00
+	KeyNumLock    Key = 0xFF01
+	KeyScrollLock Key = 0xFF02
+	KeyMenu       Key = 0xFF03
+)
+
 // Input modes (see SetInputMode).
 const (
 	InputEsc     InputMode = InputMode(termbox.InputEsc)

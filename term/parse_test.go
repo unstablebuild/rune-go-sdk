@@ -58,6 +58,10 @@ func TestParseKeys(t *testing.T) {
 		{Key: KeyEnter},
 		{Key: KeyEsc},
 		{Key: KeySpace},
+		{Key: KeyCapsLock},
+		{Key: KeyNumLock},
+		{Key: KeyScrollLock},
+		{Key: KeyMenu},
 
 		{Key: KeyF1, Mod: ModAlt},
 		{Key: KeyF2, Mod: ModAlt},
@@ -601,6 +605,29 @@ func TestParseKeys(t *testing.T) {
 		require.NoError(t, err)
 		assert.ElementsMatch(t, suite, keys)
 	})
+}
+
+// TestParseSyntheticPhysicalKeys covers the GUI-only physical keys that have no
+// terminal keysym (CapsLock/NumLock/ScrollLock/Menu) but are parseable so they
+// can be used as key-mapping sources/targets.
+func TestParseSyntheticPhysicalKeys(t *testing.T) {
+	cases := []struct {
+		str  string
+		comb KeyComb
+	}{
+		{"<capslock>", KeyComb{Key: KeyCapsLock}},
+		{"<numlock>", KeyComb{Key: KeyNumLock}},
+		{"<scrolllock>", KeyComb{Key: KeyScrollLock}},
+		{"<menu>", KeyComb{Key: KeyMenu}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.str, func(t *testing.T) {
+			got, err := ParseKey(tc.str)
+			require.NoError(t, err)
+			assert.Equal(t, tc.comb, got)
+			assert.Equal(t, tc.str, got.String())
+		})
+	}
 }
 
 // test chars separately as equivalence must be tested via KeyComb.String()

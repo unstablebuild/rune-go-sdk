@@ -124,6 +124,14 @@ func (k KeyComb) String() string {
 		return "<esc>"
 	case KeyComb{Key: KeySpace, Ch: ' '}, KeyComb{Key: KeySpace}:
 		return "<space>"
+	case KeyComb{Key: KeyCapsLock}:
+		return "<capslock>"
+	case KeyComb{Key: KeyNumLock}:
+		return "<numlock>"
+	case KeyComb{Key: KeyScrollLock}:
+		return "<scrolllock>"
+	case KeyComb{Key: KeyMenu}:
+		return "<menu>"
 
 	// meta
 	case KeyComb{Key: KeyF1, Mod: ModMeta}:
@@ -1219,6 +1227,14 @@ func (k KeyComb) ShortString() string {
 		return "<esc>"
 	case KeyComb{Key: KeySpace, Ch: ' '}, KeyComb{Key: KeySpace}:
 		return "<space>"
+	case KeyComb{Key: KeyCapsLock}:
+		return "<capslock>"
+	case KeyComb{Key: KeyNumLock}:
+		return "<numlock>"
+	case KeyComb{Key: KeyScrollLock}:
+		return "<scrolllock>"
+	case KeyComb{Key: KeyMenu}:
+		return "<menu>"
 
 	// meta
 	case KeyComb{Key: KeyF1, Mod: ModMeta}:
