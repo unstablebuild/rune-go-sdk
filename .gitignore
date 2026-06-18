@@ -4,9 +4,6 @@
 *.so
 *.dylib
 
-# Example binaries built ad-hoc at the repo root (e.g. `go build ./examples/snippets`)
-/snippets
-
 # Test binary, build with `go test -c`
 *.test
 
