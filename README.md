@@ -111,6 +111,12 @@ See [`examples/`](examples) for complete, runnable programs:
 
 - **`examples/dialogue`** — a chat-like interface built with `inputbox` and `Container`.
 - **`examples/repl`** — a read-eval-print loop.
+- **`examples/snippets`** — a full **extension** (not a plugin): a standalone
+  program that Rune launches over gRPC. It registers a command with completion,
+  persists data with `storageapi`, drives the editor, reacts to editor events,
+  and opens scratch buffers in tabs. See its
+  [README](examples/snippets/README.md) and the
+  [extension SDK guide](https://docs.rune.build/develop/sdk).
 
 ## Architecture
 

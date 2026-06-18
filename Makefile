@@ -8,6 +8,7 @@ UNAME := $(shell uname)
 BIN=bin
 TARGET=target
 LIBSRC=$(wildcard *.go) $(wildcard **/*.go) $(wildcard **/**/*.go) $(wildcard **/**/**/*.go)
+EXAMPLESRC=$(wildcard examples/*/*.go)
 EXAMPLEDIRS=$(sort $(dir $(EXAMPLESRC)))
 EXAMPLES=$(patsubst examples/%/,$(BIN)/example_%,$(EXAMPLEDIRS))
 EXECSRC=$(wildcard cmd/**/*.go) $(wildcard cmd/**/**/*.go)

@@ -146,6 +146,60 @@ that the test passes.
 3. Implement service logic in `api/<name>/`
 4. Add test helpers in `api/<name>/<name>test/`
 
+### Writing an Extension
+
+An extension is a standalone program (not a plugin/TUI) that Rune launches and
+talks to over gRPC. The canonical example is `examples/snippets` (split into
+`main.go`, `command_handler.go`, `command_handler_test.go`); read it before
+writing or modifying an extension. The user-facing guide lives at
+`~/src/docs-rune/docs/develop/sdk.md`; keep it in sync when patterns change.
+
+Structure:
+
+1. `main.go` does only metadata + permissions + `ServeWorkspaceExtension`. The
+   setup function (`run`) pulls capabilities off the `*extensionapi.Workspace`,
+   builds the handler, registers commands, subscribes to events, and **returns**.
+   Do not block in `run`; `ServeWorkspaceExtension` blocks until shutdown on its
+   own. The `ctx` is cancelled on shutdown.
+2. Put all logic in a handler type that takes SDK **interfaces**
+   (`storageapi.Service`, `textapi.Editor`, `workspaceapi.FileSystem`,
+   `browserapi.ResourceOpener`, `browserapi.WindowManager`,
+   `browserapi.Notifications`, ...) so tests can substitute fakes. Wire the real
+   ones from `ws.*(ctx)` in `run`.
+3. Implement `textapi.CommandHandler` (`HandleCommand` + `Complete`) for
+   commands, and/or `textapi.EventHandler` (`Handle`) for editor events.
+
+Conventions specific to extensions:
+
+- **Declare every permission you use** in `Metadata.Permissions` via
+  `extensionapi.NewPermissions(...)`. A call into an undeclared capability is
+  rejected by the host. Each `Workspace` accessor maps to one `Permission*`
+  (e.g. `Storage`→`PermissionStorage`, `Editor`→`PermissionEditor`,
+  `WindowManager`→`PermissionBrowserWindowManager`).
+- **Return wrapped errors from command handlers; let the host notify.** Use
+  `fmt.Errorf("context: %w", err)`. Call `Notifications` directly **only** when
+  you return `nil` but still want to tell the user something (a success), or
+  from an `EventHandler.Handle` (which has no error return to propagate).
+- **Storage is auto-partitioned by extension id.** Model documents as structs
+  with `bson` tags; `Set` upserts, `Get` decodes into a pointer and returns
+  `storageapi.ErrNotFound` when missing. Adapt a `storageapi.Iterator` with
+  `iterator.FromDocumentIterator[T]` + `iterator.Map` instead of manual loops.
+- **Scratch files go in the OS temp dir** (`os.MkdirTemp("")`,
+  cross-platform via `os.TempDir`), not the data dir; resolve to a URI with
+  `FileSystem.URI`, and clean up on close.
+- **On `EventTypeClose` the editor handler is gone**: read final buffer content
+  from the backing file via `FileSystem`, not the editor. On `EventTypeFlush`
+  the editor is live and the event carries the content.
+- **`ResourceOpener.Open` does not focus** the new tab. To focus the
+  dispatching window, pass the returned handle to
+  `WindowManager.SetWindowContent(cmd.Window, h)` (guard for a nil
+  `cmd.Window`).
+- **Test through the interfaces** (black-box, `package main`) with
+  `storagestub.NewInMemoryService()` and small in-file fakes. Table-driven.
+- Examples live under `examples/`; files may be split across multiple `.go`
+  files in one package directory. Run `make license` for headers and
+  `make lint && make test` before finishing.
+
 ## Builtin Skills
 
 Six skills are available for semantic code navigation via `runectl`.
