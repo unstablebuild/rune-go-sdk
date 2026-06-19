@@ -23,7 +23,10 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
+	"github.com/unstablebuild/rune-go-sdk/term"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var _ syntaxapi.Parser = (*Client)(nil)
@@ -118,6 +121,74 @@ func (c *Client) Highlight(
 		return nil, fmt.Errorf("syntax highlight: %w", err)
 	}
 	return &highlightIterator{stream: stream}, nil
+}
+
+// errNoDotDetail is the gRPC status message used to carry syntaxapi.ErrNoDot
+// across the process boundary so the client can reconstruct it.
+const errNoDotDetail = "syntaxapi.ErrNoDot"
+
+// ResolveSymbol satisfies syntaxapi.Parser.
+func (c *Client) ResolveSymbol(
+	ctx context.Context,
+	name string,
+	progress syntaxapi.Progress,
+) (iterator.Iterator[syntaxapi.Match], error) {
+	stream, err := c.pb.ResolveSymbol(ctx, &ResolveSymbolRequest{Name: name})
+	if err != nil {
+		return nil, fmt.Errorf("syntax resolve symbol: %w", err)
+	}
+	return &resolveIterator{stream: stream, progress: progress}, nil
+}
+
+type resolveIterator struct {
+	stream   grpc.ServerStreamingClient[ResolveSymbolResponse]
+	progress syntaxapi.Progress
+	err      error
+}
+
+func (it *resolveIterator) Next(_ context.Context) (syntaxapi.Match, bool) {
+	for {
+		resp, err := it.stream.Recv()
+		if err == io.EOF {
+			return syntaxapi.Match{}, false
+		}
+		if err != nil {
+			if st, ok := status.FromError(err); ok &&
+				st.Code() == codes.InvalidArgument && st.Message() == errNoDotDetail {
+				it.err = syntaxapi.ErrNoDot
+			} else {
+				it.err = err
+			}
+			return syntaxapi.Match{}, false
+		}
+		if p := resp.GetProgress(); p != nil {
+			if it.progress != nil {
+				it.progress.Report(p.GetMessage(), int(p.GetFound()), p.GetStep(), p.GetTotal())
+			}
+			continue
+		}
+		m := resp.GetMatch()
+		if m == nil {
+			continue
+		}
+		return syntaxapi.Match{
+			URI: m.GetUri(),
+			Pos: term.Coordinates{
+				X: int(m.GetCharacter()),
+				Y: int(m.GetLine()),
+			},
+			Display:    m.GetDisplay(),
+			ImportPath: m.GetImportPath(),
+		}, true
+	}
+}
+
+func (it *resolveIterator) Err() error {
+	return it.err
+}
+
+func (it *resolveIterator) Close() error {
+	return it.stream.CloseSend()
 }
 
 type highlightIterator struct {

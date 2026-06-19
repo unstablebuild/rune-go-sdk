@@ -54,10 +54,38 @@ message HighlightResponse {
     string message = 4;
 }
 
+message ResolveSymbolRequest {
+    string name = 1;
+}
+
+message ResolveSymbolMatch {
+    string uri = 1;
+    // 0-based line and character of the symbol.
+    uint32 line = 2;
+    uint32 character = 3;
+    string display = 4;
+    string import_path = 5;
+}
+
+message ResolveSymbolProgress {
+    string message = 1;
+    int64 found = 2;
+    int64 step = 3;
+    int64 total = 4;
+}
+
+message ResolveSymbolResponse {
+    oneof payload {
+        ResolveSymbolMatch match = 1;
+        ResolveSymbolProgress progress = 2;
+    }
+}
+
 service Syntax {
     rpc Search(SearchRequest) returns (stream SearchResponse);
     rpc SearchNode(SearchNodeRequest) returns (stream SearchResponse);
     rpc Query(QueryRequest) returns (stream SearchResponse);
     rpc QueryNode(QueryNodeRequest) returns (stream SearchResponse);
     rpc Highlight(HighlightRequest) returns (stream HighlightResponse);
+    rpc ResolveSymbol(ResolveSymbolRequest) returns (stream ResolveSymbolResponse);
 }

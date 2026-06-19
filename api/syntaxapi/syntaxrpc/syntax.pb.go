@@ -442,6 +442,277 @@ func (x *HighlightResponse) GetMessage() string {
 	return ""
 }
 
+type ResolveSymbolRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveSymbolRequest) Reset() {
+	*x = ResolveSymbolRequest{}
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveSymbolRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveSymbolRequest) ProtoMessage() {}
+
+func (x *ResolveSymbolRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveSymbolRequest.ProtoReflect.Descriptor instead.
+func (*ResolveSymbolRequest) Descriptor() ([]byte, []int) {
+	return file_syntaxrpc_syntax_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ResolveSymbolRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ResolveSymbolMatch struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Uri   string                 `protobuf:"bytes,1,opt,name=uri,proto3" json:"uri,omitempty"`
+	// 0-based line and character of the symbol.
+	Line          uint32 `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
+	Character     uint32 `protobuf:"varint,3,opt,name=character,proto3" json:"character,omitempty"`
+	Display       string `protobuf:"bytes,4,opt,name=display,proto3" json:"display,omitempty"`
+	ImportPath    string `protobuf:"bytes,5,opt,name=import_path,json=importPath,proto3" json:"import_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveSymbolMatch) Reset() {
+	*x = ResolveSymbolMatch{}
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveSymbolMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveSymbolMatch) ProtoMessage() {}
+
+func (x *ResolveSymbolMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveSymbolMatch.ProtoReflect.Descriptor instead.
+func (*ResolveSymbolMatch) Descriptor() ([]byte, []int) {
+	return file_syntaxrpc_syntax_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ResolveSymbolMatch) GetUri() string {
+	if x != nil {
+		return x.Uri
+	}
+	return ""
+}
+
+func (x *ResolveSymbolMatch) GetLine() uint32 {
+	if x != nil {
+		return x.Line
+	}
+	return 0
+}
+
+func (x *ResolveSymbolMatch) GetCharacter() uint32 {
+	if x != nil {
+		return x.Character
+	}
+	return 0
+}
+
+func (x *ResolveSymbolMatch) GetDisplay() string {
+	if x != nil {
+		return x.Display
+	}
+	return ""
+}
+
+func (x *ResolveSymbolMatch) GetImportPath() string {
+	if x != nil {
+		return x.ImportPath
+	}
+	return ""
+}
+
+type ResolveSymbolProgress struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Found         int64                  `protobuf:"varint,2,opt,name=found,proto3" json:"found,omitempty"`
+	Step          int64                  `protobuf:"varint,3,opt,name=step,proto3" json:"step,omitempty"`
+	Total         int64                  `protobuf:"varint,4,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveSymbolProgress) Reset() {
+	*x = ResolveSymbolProgress{}
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveSymbolProgress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveSymbolProgress) ProtoMessage() {}
+
+func (x *ResolveSymbolProgress) ProtoReflect() protoreflect.Message {
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveSymbolProgress.ProtoReflect.Descriptor instead.
+func (*ResolveSymbolProgress) Descriptor() ([]byte, []int) {
+	return file_syntaxrpc_syntax_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ResolveSymbolProgress) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ResolveSymbolProgress) GetFound() int64 {
+	if x != nil {
+		return x.Found
+	}
+	return 0
+}
+
+func (x *ResolveSymbolProgress) GetStep() int64 {
+	if x != nil {
+		return x.Step
+	}
+	return 0
+}
+
+func (x *ResolveSymbolProgress) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type ResolveSymbolResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Payload:
+	//
+	//	*ResolveSymbolResponse_Match
+	//	*ResolveSymbolResponse_Progress
+	Payload       isResolveSymbolResponse_Payload `protobuf_oneof:"payload"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveSymbolResponse) Reset() {
+	*x = ResolveSymbolResponse{}
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveSymbolResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveSymbolResponse) ProtoMessage() {}
+
+func (x *ResolveSymbolResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_syntaxrpc_syntax_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveSymbolResponse.ProtoReflect.Descriptor instead.
+func (*ResolveSymbolResponse) Descriptor() ([]byte, []int) {
+	return file_syntaxrpc_syntax_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ResolveSymbolResponse) GetPayload() isResolveSymbolResponse_Payload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *ResolveSymbolResponse) GetMatch() *ResolveSymbolMatch {
+	if x != nil {
+		if x, ok := x.Payload.(*ResolveSymbolResponse_Match); ok {
+			return x.Match
+		}
+	}
+	return nil
+}
+
+func (x *ResolveSymbolResponse) GetProgress() *ResolveSymbolProgress {
+	if x != nil {
+		if x, ok := x.Payload.(*ResolveSymbolResponse_Progress); ok {
+			return x.Progress
+		}
+	}
+	return nil
+}
+
+type isResolveSymbolResponse_Payload interface {
+	isResolveSymbolResponse_Payload()
+}
+
+type ResolveSymbolResponse_Match struct {
+	Match *ResolveSymbolMatch `protobuf:"bytes,1,opt,name=match,proto3,oneof"`
+}
+
+type ResolveSymbolResponse_Progress struct {
+	Progress *ResolveSymbolProgress `protobuf:"bytes,2,opt,name=progress,proto3,oneof"`
+}
+
+func (*ResolveSymbolResponse_Match) isResolveSymbolResponse_Payload() {}
+
+func (*ResolveSymbolResponse_Progress) isResolveSymbolResponse_Payload() {}
+
 var File_syntaxrpc_syntax_proto protoreflect.FileDescriptor
 
 const file_syntaxrpc_syntax_proto_rawDesc = "" +
@@ -475,14 +746,33 @@ const file_syntaxrpc_syntax_proto_rawDesc = "" +
 	"\x04from\x18\x01 \x01(\v2\x11.term.CoordinatesR\x04from\x12!\n" +
 	"\x02to\x18\x02 \x01(\v2\x11.term.CoordinatesR\x02to\x12$\n" +
 	"\x04attr\x18\x03 \x01(\v2\x10.term.AttributesR\x04attr\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage2\xc4\x02\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\"*\n" +
+	"\x14ResolveSymbolRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x93\x01\n" +
+	"\x12ResolveSymbolMatch\x12\x10\n" +
+	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x12\n" +
+	"\x04line\x18\x02 \x01(\rR\x04line\x12\x1c\n" +
+	"\tcharacter\x18\x03 \x01(\rR\tcharacter\x12\x18\n" +
+	"\adisplay\x18\x04 \x01(\tR\adisplay\x12\x1f\n" +
+	"\vimport_path\x18\x05 \x01(\tR\n" +
+	"importPath\"q\n" +
+	"\x15ResolveSymbolProgress\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\x12\x14\n" +
+	"\x05found\x18\x02 \x01(\x03R\x05found\x12\x12\n" +
+	"\x04step\x18\x03 \x01(\x03R\x04step\x12\x14\n" +
+	"\x05total\x18\x04 \x01(\x03R\x05total\"\x93\x01\n" +
+	"\x15ResolveSymbolResponse\x122\n" +
+	"\x05match\x18\x01 \x01(\v2\x1a.syntax.ResolveSymbolMatchH\x00R\x05match\x12;\n" +
+	"\bprogress\x18\x02 \x01(\v2\x1d.syntax.ResolveSymbolProgressH\x00R\bprogressB\t\n" +
+	"\apayload2\x94\x03\n" +
 	"\x06Syntax\x129\n" +
 	"\x06Search\x12\x15.syntax.SearchRequest\x1a\x16.syntax.SearchResponse0\x01\x12A\n" +
 	"\n" +
 	"SearchNode\x12\x19.syntax.SearchNodeRequest\x1a\x16.syntax.SearchResponse0\x01\x127\n" +
 	"\x05Query\x12\x14.syntax.QueryRequest\x1a\x16.syntax.SearchResponse0\x01\x12?\n" +
 	"\tQueryNode\x12\x18.syntax.QueryNodeRequest\x1a\x16.syntax.SearchResponse0\x01\x12B\n" +
-	"\tHighlight\x12\x18.syntax.HighlightRequest\x1a\x19.syntax.HighlightResponse0\x01B>Z<github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpcb\x06proto3"
+	"\tHighlight\x12\x18.syntax.HighlightRequest\x1a\x19.syntax.HighlightResponse0\x01\x12N\n" +
+	"\rResolveSymbol\x12\x1c.syntax.ResolveSymbolRequest\x1a\x1d.syntax.ResolveSymbolResponse0\x01B>Z<github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpcb\x06proto3"
 
 var (
 	file_syntaxrpc_syntax_proto_rawDescOnce sync.Once
@@ -496,39 +786,47 @@ func file_syntaxrpc_syntax_proto_rawDescGZIP() []byte {
 	return file_syntaxrpc_syntax_proto_rawDescData
 }
 
-var file_syntaxrpc_syntax_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_syntaxrpc_syntax_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_syntaxrpc_syntax_proto_goTypes = []any{
-	(*SearchRequest)(nil),       // 0: syntax.SearchRequest
-	(*SearchNodeRequest)(nil),   // 1: syntax.SearchNodeRequest
-	(*QueryRequest)(nil),        // 2: syntax.QueryRequest
-	(*QueryNodeRequest)(nil),    // 3: syntax.QueryNodeRequest
-	(*SearchResponse)(nil),      // 4: syntax.SearchResponse
-	(*HighlightRequest)(nil),    // 5: syntax.HighlightRequest
-	(*HighlightResponse)(nil),   // 6: syntax.HighlightResponse
-	(*termrpc.Coordinates)(nil), // 7: term.Coordinates
-	(*termrpc.Attributes)(nil),  // 8: term.Attributes
+	(*SearchRequest)(nil),         // 0: syntax.SearchRequest
+	(*SearchNodeRequest)(nil),     // 1: syntax.SearchNodeRequest
+	(*QueryRequest)(nil),          // 2: syntax.QueryRequest
+	(*QueryNodeRequest)(nil),      // 3: syntax.QueryNodeRequest
+	(*SearchResponse)(nil),        // 4: syntax.SearchResponse
+	(*HighlightRequest)(nil),      // 5: syntax.HighlightRequest
+	(*HighlightResponse)(nil),     // 6: syntax.HighlightResponse
+	(*ResolveSymbolRequest)(nil),  // 7: syntax.ResolveSymbolRequest
+	(*ResolveSymbolMatch)(nil),    // 8: syntax.ResolveSymbolMatch
+	(*ResolveSymbolProgress)(nil), // 9: syntax.ResolveSymbolProgress
+	(*ResolveSymbolResponse)(nil), // 10: syntax.ResolveSymbolResponse
+	(*termrpc.Coordinates)(nil),   // 11: term.Coordinates
+	(*termrpc.Attributes)(nil),    // 12: term.Attributes
 }
 var file_syntaxrpc_syntax_proto_depIdxs = []int32{
-	7,  // 0: syntax.SearchResponse.from:type_name -> term.Coordinates
-	7,  // 1: syntax.SearchResponse.to:type_name -> term.Coordinates
-	7,  // 2: syntax.HighlightResponse.from:type_name -> term.Coordinates
-	7,  // 3: syntax.HighlightResponse.to:type_name -> term.Coordinates
-	8,  // 4: syntax.HighlightResponse.attr:type_name -> term.Attributes
-	0,  // 5: syntax.Syntax.Search:input_type -> syntax.SearchRequest
-	1,  // 6: syntax.Syntax.SearchNode:input_type -> syntax.SearchNodeRequest
-	2,  // 7: syntax.Syntax.Query:input_type -> syntax.QueryRequest
-	3,  // 8: syntax.Syntax.QueryNode:input_type -> syntax.QueryNodeRequest
-	5,  // 9: syntax.Syntax.Highlight:input_type -> syntax.HighlightRequest
-	4,  // 10: syntax.Syntax.Search:output_type -> syntax.SearchResponse
-	4,  // 11: syntax.Syntax.SearchNode:output_type -> syntax.SearchResponse
-	4,  // 12: syntax.Syntax.Query:output_type -> syntax.SearchResponse
-	4,  // 13: syntax.Syntax.QueryNode:output_type -> syntax.SearchResponse
-	6,  // 14: syntax.Syntax.Highlight:output_type -> syntax.HighlightResponse
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	11, // 0: syntax.SearchResponse.from:type_name -> term.Coordinates
+	11, // 1: syntax.SearchResponse.to:type_name -> term.Coordinates
+	11, // 2: syntax.HighlightResponse.from:type_name -> term.Coordinates
+	11, // 3: syntax.HighlightResponse.to:type_name -> term.Coordinates
+	12, // 4: syntax.HighlightResponse.attr:type_name -> term.Attributes
+	8,  // 5: syntax.ResolveSymbolResponse.match:type_name -> syntax.ResolveSymbolMatch
+	9,  // 6: syntax.ResolveSymbolResponse.progress:type_name -> syntax.ResolveSymbolProgress
+	0,  // 7: syntax.Syntax.Search:input_type -> syntax.SearchRequest
+	1,  // 8: syntax.Syntax.SearchNode:input_type -> syntax.SearchNodeRequest
+	2,  // 9: syntax.Syntax.Query:input_type -> syntax.QueryRequest
+	3,  // 10: syntax.Syntax.QueryNode:input_type -> syntax.QueryNodeRequest
+	5,  // 11: syntax.Syntax.Highlight:input_type -> syntax.HighlightRequest
+	7,  // 12: syntax.Syntax.ResolveSymbol:input_type -> syntax.ResolveSymbolRequest
+	4,  // 13: syntax.Syntax.Search:output_type -> syntax.SearchResponse
+	4,  // 14: syntax.Syntax.SearchNode:output_type -> syntax.SearchResponse
+	4,  // 15: syntax.Syntax.Query:output_type -> syntax.SearchResponse
+	4,  // 16: syntax.Syntax.QueryNode:output_type -> syntax.SearchResponse
+	6,  // 17: syntax.Syntax.Highlight:output_type -> syntax.HighlightResponse
+	10, // 18: syntax.Syntax.ResolveSymbol:output_type -> syntax.ResolveSymbolResponse
+	13, // [13:19] is the sub-list for method output_type
+	7,  // [7:13] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_syntaxrpc_syntax_proto_init() }
@@ -536,13 +834,17 @@ func file_syntaxrpc_syntax_proto_init() {
 	if File_syntaxrpc_syntax_proto != nil {
 		return
 	}
+	file_syntaxrpc_syntax_proto_msgTypes[10].OneofWrappers = []any{
+		(*ResolveSymbolResponse_Match)(nil),
+		(*ResolveSymbolResponse_Progress)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_syntaxrpc_syntax_proto_rawDesc), len(file_syntaxrpc_syntax_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

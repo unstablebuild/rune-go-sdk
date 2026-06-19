@@ -15,6 +15,9 @@
 package syntaxapi
 
 import (
+	"context"
+	"errors"
+
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
@@ -48,6 +51,32 @@ type Result struct {
 	CaptureName string
 }
 
+// Match represents a resolved symbol location.
+type Match struct {
+	URI        string
+	Pos        term.Coordinates
+	Display    string
+	ImportPath string
+}
+
+// ErrNoDot is returned by ResolveSymbol when the name does not contain a "."
+// separating the qualifier (package or module) from the symbol, regardless of
+// language, and therefore cannot be resolved to a qualified symbol.
+var ErrNoDot = errors.New("name does not contain a qualifier separator")
+
+// Progress reports incremental progress while resolving a symbol.
+type Progress interface {
+	Report(msg string, found int, step, total int64)
+}
+
+// ProgressFunc adapts a function to the Progress interface.
+type ProgressFunc func(msg string, found int, step, total int64)
+
+// Report implements Progress.
+func (f ProgressFunc) Report(msg string, found int, step, total int64) {
+	f(msg, found, step, total)
+}
+
 // Parser provides workspace-wide AST-level search and parsing capabilities.
 type Parser interface {
 	// Search searches for matches in the workspace using the given tree-sitter literal query
@@ -73,5 +102,12 @@ type Parser interface {
 	// interpreted as belonging to the file identified by uri.
 	Highlight(uri workspaceapi.URI, content string) (
 		iterator.Iterator[textapi.Location], error,
+	)
+	// ResolveSymbol resolves a dotted symbol name (e.g. "pkg.Symbol") to the
+	// locations that define or reference it across the workspace.
+	// Progress, if non-nil, receives incremental updates. ResolveSymbol returns
+	// ErrNoDot when the name is not a fully qualified symbol name.
+	ResolveSymbol(ctx context.Context, name string, progress Progress) (
+		iterator.Iterator[Match], error,
 	)
 }
