@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Syntax_Search_FullMethodName        = "/syntax.Syntax/Search"
-	Syntax_SearchNode_FullMethodName    = "/syntax.Syntax/SearchNode"
-	Syntax_Query_FullMethodName         = "/syntax.Syntax/Query"
-	Syntax_QueryNode_FullMethodName     = "/syntax.Syntax/QueryNode"
-	Syntax_Highlight_FullMethodName     = "/syntax.Syntax/Highlight"
-	Syntax_ResolveSymbol_FullMethodName = "/syntax.Syntax/ResolveSymbol"
+	Syntax_Search_FullMethodName                = "/syntax.Syntax/Search"
+	Syntax_SearchNode_FullMethodName            = "/syntax.Syntax/SearchNode"
+	Syntax_Query_FullMethodName                 = "/syntax.Syntax/Query"
+	Syntax_QueryNode_FullMethodName             = "/syntax.Syntax/QueryNode"
+	Syntax_Highlight_FullMethodName             = "/syntax.Syntax/Highlight"
+	Syntax_ResolveSymbol_FullMethodName         = "/syntax.Syntax/ResolveSymbol"
+	Syntax_ListReferencedSymbols_FullMethodName = "/syntax.Syntax/ListReferencedSymbols"
 )
 
 // SyntaxClient is the client API for Syntax service.
@@ -37,6 +38,7 @@ type SyntaxClient interface {
 	QueryNode(ctx context.Context, in *QueryNodeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SearchResponse], error)
 	Highlight(ctx context.Context, in *HighlightRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[HighlightResponse], error)
 	ResolveSymbol(ctx context.Context, in *ResolveSymbolRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ResolveSymbolResponse], error)
+	ListReferencedSymbols(ctx context.Context, in *ListReferencedSymbolsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListReferencedSymbolsResponse], error)
 }
 
 type syntaxClient struct {
@@ -161,6 +163,25 @@ func (c *syntaxClient) ResolveSymbol(ctx context.Context, in *ResolveSymbolReque
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Syntax_ResolveSymbolClient = grpc.ServerStreamingClient[ResolveSymbolResponse]
 
+func (c *syntaxClient) ListReferencedSymbols(ctx context.Context, in *ListReferencedSymbolsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListReferencedSymbolsResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Syntax_ServiceDesc.Streams[6], Syntax_ListReferencedSymbols_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ListReferencedSymbolsRequest, ListReferencedSymbolsResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Syntax_ListReferencedSymbolsClient = grpc.ServerStreamingClient[ListReferencedSymbolsResponse]
+
 // SyntaxServer is the server API for Syntax service.
 // All implementations must embed UnimplementedSyntaxServer
 // for forward compatibility.
@@ -171,6 +192,7 @@ type SyntaxServer interface {
 	QueryNode(*QueryNodeRequest, grpc.ServerStreamingServer[SearchResponse]) error
 	Highlight(*HighlightRequest, grpc.ServerStreamingServer[HighlightResponse]) error
 	ResolveSymbol(*ResolveSymbolRequest, grpc.ServerStreamingServer[ResolveSymbolResponse]) error
+	ListReferencedSymbols(*ListReferencedSymbolsRequest, grpc.ServerStreamingServer[ListReferencedSymbolsResponse]) error
 	mustEmbedUnimplementedSyntaxServer()
 }
 
@@ -198,6 +220,9 @@ func (UnimplementedSyntaxServer) Highlight(*HighlightRequest, grpc.ServerStreami
 }
 func (UnimplementedSyntaxServer) ResolveSymbol(*ResolveSymbolRequest, grpc.ServerStreamingServer[ResolveSymbolResponse]) error {
 	return status.Error(codes.Unimplemented, "method ResolveSymbol not implemented")
+}
+func (UnimplementedSyntaxServer) ListReferencedSymbols(*ListReferencedSymbolsRequest, grpc.ServerStreamingServer[ListReferencedSymbolsResponse]) error {
+	return status.Error(codes.Unimplemented, "method ListReferencedSymbols not implemented")
 }
 func (UnimplementedSyntaxServer) mustEmbedUnimplementedSyntaxServer() {}
 func (UnimplementedSyntaxServer) testEmbeddedByValue()                {}
@@ -286,6 +311,17 @@ func _Syntax_ResolveSymbol_Handler(srv interface{}, stream grpc.ServerStream) er
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Syntax_ResolveSymbolServer = grpc.ServerStreamingServer[ResolveSymbolResponse]
 
+func _Syntax_ListReferencedSymbols_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListReferencedSymbolsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SyntaxServer).ListReferencedSymbols(m, &grpc.GenericServerStream[ListReferencedSymbolsRequest, ListReferencedSymbolsResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Syntax_ListReferencedSymbolsServer = grpc.ServerStreamingServer[ListReferencedSymbolsResponse]
+
 // Syntax_ServiceDesc is the grpc.ServiceDesc for Syntax service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -322,6 +358,11 @@ var Syntax_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ResolveSymbol",
 			Handler:       _Syntax_ResolveSymbol_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListReferencedSymbols",
+			Handler:       _Syntax_ListReferencedSymbols_Handler,
 			ServerStreams: true,
 		},
 	},

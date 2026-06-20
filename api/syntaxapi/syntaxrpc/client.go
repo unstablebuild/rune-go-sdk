@@ -191,6 +191,42 @@ func (it *resolveIterator) Close() error {
 	return it.stream.CloseSend()
 }
 
+// ListReferencedSymbols satisfies syntaxapi.Parser.
+func (c *Client) ListReferencedSymbols(
+	ctx context.Context,
+) (iterator.Iterator[string], error) {
+	stream, err := c.pb.ListReferencedSymbols(ctx, &ListReferencedSymbolsRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("syntax list referenced symbols: %w", err)
+	}
+	return &listReferencedIterator{stream: stream}, nil
+}
+
+type listReferencedIterator struct {
+	stream grpc.ServerStreamingClient[ListReferencedSymbolsResponse]
+	err    error
+}
+
+func (it *listReferencedIterator) Next(_ context.Context) (string, bool) {
+	resp, err := it.stream.Recv()
+	if err == io.EOF {
+		return "", false
+	}
+	if err != nil {
+		it.err = err
+		return "", false
+	}
+	return resp.GetName(), true
+}
+
+func (it *listReferencedIterator) Err() error {
+	return it.err
+}
+
+func (it *listReferencedIterator) Close() error {
+	return it.stream.CloseSend()
+}
+
 type highlightIterator struct {
 	stream grpc.ServerStreamingClient[HighlightResponse]
 	err    error

@@ -110,4 +110,8 @@ type Parser interface {
 	ResolveSymbol(ctx context.Context, name string, progress Progress) (
 		iterator.Iterator[Match], error,
 	)
+	// ListReferencedSymbols streams the fully qualified names (e.g.
+	// "pkg.Symbol") of every package/module-qualified symbol referenced or
+	// defined across the workspace, deduplicated by the caller.
+	ListReferencedSymbols(ctx context.Context) (iterator.Iterator[string], error)
 }

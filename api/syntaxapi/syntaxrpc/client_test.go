@@ -37,6 +37,7 @@ type stubSyntaxServer struct {
 	noDot     bool
 	serverErr error
 	gotName   string
+	names     []string
 }
 
 func (s *stubSyntaxServer) ResolveSymbol(
@@ -60,6 +61,21 @@ func (s *stubSyntaxServer) ResolveSymbol(
 		if err := stream.Send(&ResolveSymbolResponse{
 			Payload: &ResolveSymbolResponse_Match{Match: m},
 		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *stubSyntaxServer) ListReferencedSymbols(
+	_ *ListReferencedSymbolsRequest,
+	stream grpc.ServerStreamingServer[ListReferencedSymbolsResponse],
+) error {
+	if s.serverErr != nil {
+		return s.serverErr
+	}
+	for _, name := range s.names {
+		if err := stream.Send(&ListReferencedSymbolsResponse{Name: name}); err != nil {
 			return err
 		}
 	}
@@ -154,4 +170,26 @@ func TestClientResolveSymbolTransportError(t *testing.T) {
 	_, err = iterator.ToSlice(context.Background(), it)
 	require.Error(t, err)
 	assert.NotErrorIs(t, err, syntaxapi.ErrNoDot)
+}
+
+func TestClientListReferencedSymbols(t *testing.T) {
+	srv := &stubSyntaxServer{names: []string{"pkg.Foo", "pkg.Bar", "other.Baz"}}
+	c := dialSyntaxStub(t, srv)
+
+	it, err := c.ListReferencedSymbols(context.Background())
+	require.NoError(t, err)
+	names, err := iterator.ToSlice(context.Background(), it)
+	require.NoError(t, err)
+	require.NoError(t, it.Err())
+	assert.Equal(t, []string{"pkg.Foo", "pkg.Bar", "other.Baz"}, names)
+}
+
+func TestClientListReferencedSymbolsTransportError(t *testing.T) {
+	c := dialSyntaxStub(t, &stubSyntaxServer{serverErr: status.Error(codes.Internal, "boom")})
+
+	it, err := c.ListReferencedSymbols(context.Background())
+	require.NoError(t, err)
+	_, err = iterator.ToSlice(context.Background(), it)
+	require.Error(t, err)
+	assert.Error(t, it.Err())
 }

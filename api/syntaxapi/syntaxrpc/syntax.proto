@@ -81,6 +81,12 @@ message ResolveSymbolResponse {
     }
 }
 
+message ListReferencedSymbolsRequest {}
+
+message ListReferencedSymbolsResponse {
+    string name = 1;
+}
+
 service Syntax {
     rpc Search(SearchRequest) returns (stream SearchResponse);
     rpc SearchNode(SearchNodeRequest) returns (stream SearchResponse);
@@ -88,4 +94,5 @@ service Syntax {
     rpc QueryNode(QueryNodeRequest) returns (stream SearchResponse);
     rpc Highlight(HighlightRequest) returns (stream HighlightResponse);
     rpc ResolveSymbol(ResolveSymbolRequest) returns (stream ResolveSymbolResponse);
+    rpc ListReferencedSymbols(ListReferencedSymbolsRequest) returns (stream ListReferencedSymbolsResponse);
 }
