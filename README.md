@@ -161,6 +161,16 @@ Each API package contains an `*rpc/` subdirectory with the `.proto` definitions,
 
 `runectl` is a CLI for interacting with Rune. It is typically invoked from within Rune's plugin commands (`!`/`!!`), where the `RUNE_SOCKET` and `RUNE_DATADIR` environment variables are set.
 
+### Install
+
+```bash
+go install github.com/unstablebuild/rune-go-sdk/cmd/runectl@latest
+```
+
+This installs the `runectl` binary into `$(go env GOPATH)/bin` (add it to your `PATH` if it isn't already).
+
+### Usage
+
 ```bash
 runectl --help
 ```
