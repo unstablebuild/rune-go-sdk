@@ -537,6 +537,7 @@ type mockSyntax struct {
 	lastNodeTypes uint32
 	lastQueryURI  string
 	lastQuery     string
+	lastResolve   string
 }
 
 func (m *mockSyntax) Search(
@@ -596,6 +597,50 @@ func (m *mockSyntax) QueryNode(
 		To:          &termrpc.Coordinates{X: 12, Y: 0},
 		CaptureName: "definition.namespace",
 	})
+}
+
+func (m *mockSyntax) ResolveSymbol(
+	req *syntaxrpc.ResolveSymbolRequest,
+	stream grpc.ServerStreamingServer[syntaxrpc.ResolveSymbolResponse],
+) error {
+	m.lastResolve = req.GetName()
+	if err := stream.Send(&syntaxrpc.ResolveSymbolResponse{
+		Payload: &syntaxrpc.ResolveSymbolResponse_Progress{
+			Progress: &syntaxrpc.ResolveSymbolProgress{
+				Message: "searching",
+				Found:   0,
+				Step:    1,
+				Total:   2,
+			},
+		},
+	}); err != nil {
+		return err
+	}
+	return stream.Send(&syntaxrpc.ResolveSymbolResponse{
+		Payload: &syntaxrpc.ResolveSymbolResponse_Match{
+			Match: &syntaxrpc.ResolveSymbolMatch{
+				Uri:        "file:///src/main.go",
+				Line:       10,
+				Character:  5,
+				Display:    "pkg.Symbol",
+				ImportPath: "example.com/pkg",
+			},
+		},
+	})
+}
+
+func (m *mockSyntax) ListReferencedSymbols(
+	_ *syntaxrpc.ListReferencedSymbolsRequest,
+	stream grpc.ServerStreamingServer[syntaxrpc.ListReferencedSymbolsResponse],
+) error {
+	for _, name := range []string{"pkg.Symbol", "other.Thing"} {
+		if err := stream.Send(&syntaxrpc.ListReferencedSymbolsResponse{
+			Name: name,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // mockLSP implements semanticrpc.LSPServer.

@@ -133,6 +133,42 @@ func TestSyntax(t *testing.T) {
 			args:    []string{"syntax", "querynode", "$FILE", "invalid"},
 			wantErr: "invalid node type",
 		},
+
+		// resolve
+		{
+			name: "resolve",
+			args: []string{"syntax", "resolve", "pkg.Symbol"},
+			check: func(t *testing.T, env *testEnv, out string) {
+				require.Equal(t, "pkg.Symbol", env.syntax.lastResolve)
+				require.Contains(t, out, "file:///src/main.go")
+				require.Contains(t, out, "pkg.Symbol")
+				require.Contains(t, out, "example.com/pkg")
+			},
+		},
+		{
+			name: "resolve/tpl",
+			args: []string{"syntax", "resolve", "-F", "{{.Display}} {{.ImportPath}}", "pkg.Symbol"},
+			check: func(t *testing.T, env *testEnv, out string) {
+				require.Equal(t, "pkg.Symbol example.com/pkg\n", out)
+			},
+		},
+
+		// symbols
+		{
+			name: "symbols",
+			args: []string{"syntax", "symbols"},
+			check: func(t *testing.T, env *testEnv, out string) {
+				require.Contains(t, out, "pkg.Symbol")
+				require.Contains(t, out, "other.Thing")
+			},
+		},
+		{
+			name: "symbols/tpl",
+			args: []string{"syntax", "symbols", "-F", "{{.Name}}"},
+			check: func(t *testing.T, env *testEnv, out string) {
+				require.Equal(t, "pkg.Symbol\nother.Thing\n", out)
+			},
+		},
 	}
 
 	for _, tt := range tests {

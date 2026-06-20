@@ -53,6 +53,28 @@ func FromSlice[T any](els []T) Iterator[T] {
 	return &sliceIter[T]{els: els}
 }
 
+// ForEach consumes the given iterator, invoking fn for each element produced. It is a
+// terminal helper: it owns the Close call on it, combining any close error with the
+// returned error. Iteration stops at the first error returned by fn or by the iterator.
+func ForEach[T any](
+	ctx context.Context, it Iterator[T], fn func(T) error,
+) (err error) {
+	defer func() {
+		if cerr := it.Close(); cerr != nil {
+			err = multierror.Append(err, cerr)
+		}
+	}()
+	for {
+		t, ok := it.Next(ctx)
+		if !ok {
+			return it.Err()
+		}
+		if ferr := fn(t); ferr != nil {
+			return ferr
+		}
+	}
+}
+
 // FromFunc returns an Iterator backed by the provided function.
 func FromFunc[T any](
 	fn func(context.Context) (T, bool, error),

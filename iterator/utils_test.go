@@ -161,3 +161,78 @@ func TestToSliceReportsCloseError(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, closeErr)
 }
+
+func TestForEach(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("visits every element and closes", func(t *testing.T) {
+		var closed bool
+		it := FromSlice([]int{1, 2, 3})
+		wrapped := FromFunc(
+			func(ctx context.Context) (int, bool, error) {
+				v, ok := it.Next(ctx)
+				return v, ok, it.Err()
+			},
+			func() error {
+				closed = true
+				return it.Close()
+			},
+		)
+		var got []int
+		err := ForEach(ctx, wrapped, func(v int) error {
+			got = append(got, v)
+			return nil
+		})
+		require.NoError(t, err)
+		assert.Equal(t, []int{1, 2, 3}, got)
+		assert.True(t, closed)
+	})
+
+	t.Run("stops on fn error and still closes", func(t *testing.T) {
+		var closed bool
+		it := FromSlice([]int{1, 2, 3})
+		wrapped := FromFunc(
+			func(ctx context.Context) (int, bool, error) {
+				v, ok := it.Next(ctx)
+				return v, ok, it.Err()
+			},
+			func() error {
+				closed = true
+				return it.Close()
+			},
+		)
+		stop := errors.New("stop")
+		var count int
+		err := ForEach(ctx, wrapped, func(int) error {
+			count++
+			return stop
+		})
+		assert.ErrorIs(t, err, stop)
+		assert.Equal(t, 1, count)
+		assert.True(t, closed)
+	})
+
+	t.Run("propagates iterator error", func(t *testing.T) {
+		boom := errors.New("boom")
+		it := FromFunc(
+			func(context.Context) (int, bool, error) {
+				return 0, false, boom
+			},
+			func() error { return nil },
+		)
+		err := ForEach(ctx, it, func(int) error { return nil })
+		assert.ErrorIs(t, err, boom)
+	})
+
+	t.Run("combines close error", func(t *testing.T) {
+		closeErr := errors.New("close failed")
+		it := FromFunc(
+			func(context.Context) (int, bool, error) {
+				return 0, false, nil
+			},
+			func() error { return closeErr },
+		)
+		err := ForEach(ctx, it, func(int) error { return nil })
+		assert.ErrorIs(t, err, closeErr)
+	})
+}
