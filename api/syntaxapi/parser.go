@@ -85,8 +85,10 @@ type Parser interface {
 	Search(query string, captureNames []string, languages ...string) (iterator.Iterator[Result], error)
 	// SearchNode is implemented with Search by using an internally provided
 	// query that is able to capture a known set of tree nodes across programming
-	// languages. Multiple node types can be combined using bitwise OR.
-	SearchNode(nodeTypes NodeCaptureName) (iterator.Iterator[Result], error)
+	// languages. Multiple node types can be combined using bitwise OR. An
+	// optional set of language names (e.g. "go", "python") restricts the search
+	// to files of those languages.
+	SearchNode(nodeTypes NodeCaptureName, languages ...string) (iterator.Iterator[Result], error)
 	// Query searches for matches in a specific file using the given tree-sitter
 	// literal query and a list of capture names that should be returned.
 	Query(file workspaceapi.URI, query string, captureNames []string) (

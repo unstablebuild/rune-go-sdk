@@ -17,6 +17,9 @@ message SearchNodeRequest {
     // Values: Scope=1, DefinitionNamespace=2, Reference=4, DefinitionFunc=8,
     //         DefinitionVar=16, DefinitionMethod=32, DefinitionType=64
     uint32 node_types = 1;
+    // Optional language identifiers (e.g. "go", "python") that restrict the
+    // search to files of those languages. Empty searches all languages.
+    repeated string languages = 2;
 }
 
 message QueryRequest {

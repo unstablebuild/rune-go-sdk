@@ -69,9 +69,9 @@ func (c *Client) Search(
 
 // SearchNode satisfies syntaxapi.Parser.
 func (c *Client) SearchNode(
-	nodeTypes syntaxapi.NodeCaptureName,
+	nodeTypes syntaxapi.NodeCaptureName, languages ...string,
 ) (iterator.Iterator[syntaxapi.Result], error) {
-	req := SearchNodeRequest{NodeTypes: uint32(nodeTypes)}
+	req := SearchNodeRequest{NodeTypes: uint32(nodeTypes), Languages: languages}
 	stream, err := c.pb.SearchNode(c.ctx, &req)
 	if err != nil {
 		return nil, fmt.Errorf("syntax search node: %w", err)

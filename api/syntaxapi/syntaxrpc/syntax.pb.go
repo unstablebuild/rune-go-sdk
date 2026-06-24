@@ -88,7 +88,10 @@ type SearchNodeRequest struct {
 	// Values: Scope=1, DefinitionNamespace=2, Reference=4, DefinitionFunc=8,
 	//
 	//	DefinitionVar=16, DefinitionMethod=32, DefinitionType=64
-	NodeTypes     uint32 `protobuf:"varint,1,opt,name=node_types,json=nodeTypes,proto3" json:"node_types,omitempty"`
+	NodeTypes uint32 `protobuf:"varint,1,opt,name=node_types,json=nodeTypes,proto3" json:"node_types,omitempty"`
+	// Optional language identifiers (e.g. "go", "python") that restrict the
+	// search to files of those languages. Empty searches all languages.
+	Languages     []string `protobuf:"bytes,2,rep,name=languages,proto3" json:"languages,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -128,6 +131,13 @@ func (x *SearchNodeRequest) GetNodeTypes() uint32 {
 		return x.NodeTypes
 	}
 	return 0
+}
+
+func (x *SearchNodeRequest) GetLanguages() []string {
+	if x != nil {
+		return x.Languages
+	}
+	return nil
 }
 
 type QueryRequest struct {
@@ -801,10 +811,11 @@ const file_syntaxrpc_syntax_proto_rawDesc = "" +
 	"\rSearchRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12#\n" +
 	"\rcapture_names\x18\x02 \x03(\tR\fcaptureNames\x12\x1c\n" +
-	"\tlanguages\x18\x03 \x03(\tR\tlanguages\"2\n" +
+	"\tlanguages\x18\x03 \x03(\tR\tlanguages\"P\n" +
 	"\x11SearchNodeRequest\x12\x1d\n" +
 	"\n" +
-	"node_types\x18\x01 \x01(\rR\tnodeTypes\"[\n" +
+	"node_types\x18\x01 \x01(\rR\tnodeTypes\x12\x1c\n" +
+	"\tlanguages\x18\x02 \x03(\tR\tlanguages\"[\n" +
 	"\fQueryRequest\x12\x10\n" +
 	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x14\n" +
 	"\x05query\x18\x02 \x01(\tR\x05query\x12#\n" +
