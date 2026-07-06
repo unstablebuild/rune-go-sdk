@@ -62,8 +62,9 @@ func ServeWorkspaceExtension(extension WorkspaceExtension, meta Metadata) error 
 // It contains the connection configuration needed to establish
 // gRPC connections and access workspace resources.
 type Config struct {
-	// Socket is the unix socket used to establish
-	// a secure communication channel with host.
+	// Socket is the address used to establish a secure
+	// communication channel with the host: a unix socket path
+	// (optionally prefixed with unix://) or a tcp://host:port URI.
 	Socket string `json:"socket"`
 	// Token is the oauth2 token used to authenticate
 	// and authorize requests against workspace resources.

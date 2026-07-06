@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
@@ -206,6 +207,17 @@ const (
 	maxCallSendMsgSize = 16 * 1024 * 1024 // 16 Mb
 )
 
+func parseSocket(socket string) (network, address string) {
+	switch {
+	case strings.HasPrefix(socket, "tcp://"):
+		return "tcp", strings.TrimPrefix(socket, "tcp://")
+	case strings.HasPrefix(socket, "unix://"):
+		return "unix", strings.TrimPrefix(socket, "unix://")
+	default:
+		return "unix", socket
+	}
+}
+
 // NewWorkspace returns a new Workspace. Extensions should use
 // ServeWorkspaceExtension, which performs the stdin/stdout exchange
 // necessary to receive a valid Config.
@@ -215,12 +227,9 @@ func NewWorkspace(req Config, meta Metadata) (*Workspace, error) {
 	opts := []grpc.DialOption{
 		grpc.WithContextDialer(
 			func(ctx context.Context, _ string) (net.Conn, error) {
-				addr, err := net.ResolveUnixAddr("unix", req.Socket)
-				if err != nil {
-					return nil, err
-				}
+				network, address := parseSocket(req.Socket)
 				var d net.Dialer
-				return d.DialContext(ctx, addr.Network(), addr.String())
+				return d.DialContext(ctx, network, address)
 			},
 		)}
 
