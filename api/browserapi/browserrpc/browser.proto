@@ -67,6 +67,8 @@ message BarRequest {
 message FloatingWindowRequest {
 	term.Coordinates offset = 1;
 	uint32 alignment = 2;
+	bool no_window_bar = 3;
+	string title = 4;
 }
 
 message TabRequest {

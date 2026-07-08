@@ -123,6 +123,11 @@ type FloatingConfig struct {
 	// Offset is to be applied to the position of the window
 	// after alignment has been determined.
 	Offset term.Coordinates
+	// NoWindowBar keeps the plain window frame instead of the window
+	// bar when the window manager decorates floating windows with one.
+	NoWindowBar bool
+	// Title is rendered on the window bar.
+	Title string
 }
 
 // NotificationLevel determines the severity of the notification.

@@ -591,6 +591,8 @@ type FloatingWindowRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Offset        *termrpc.Coordinates   `protobuf:"bytes,1,opt,name=offset,proto3" json:"offset,omitempty"`
 	Alignment     uint32                 `protobuf:"varint,2,opt,name=alignment,proto3" json:"alignment,omitempty"`
+	NoWindowBar   bool                   `protobuf:"varint,3,opt,name=no_window_bar,json=noWindowBar,proto3" json:"no_window_bar,omitempty"`
+	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -637,6 +639,20 @@ func (x *FloatingWindowRequest) GetAlignment() uint32 {
 		return x.Alignment
 	}
 	return 0
+}
+
+func (x *FloatingWindowRequest) GetNoWindowBar() bool {
+	if x != nil {
+		return x.NoWindowBar
+	}
+	return false
+}
+
+func (x *FloatingWindowRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
 }
 
 type TabRequest struct {
@@ -1615,10 +1631,12 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"\aDefault\x10\x00\x12\n" +
 	"\n" +
 	"\x06Always\x10\x01\x12\t\n" +
-	"\x05Never\x10\x02\"`\n" +
+	"\x05Never\x10\x02\"\x9a\x01\n" +
 	"\x15FloatingWindowRequest\x12)\n" +
 	"\x06offset\x18\x01 \x01(\v2\x11.term.CoordinatesR\x06offset\x12\x1c\n" +
-	"\talignment\x18\x02 \x01(\rR\talignment\"w\n" +
+	"\talignment\x18\x02 \x01(\rR\talignment\x12\"\n" +
+	"\rno_window_bar\x18\x03 \x01(\bR\vnoWindowBar\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\"w\n" +
 	"\n" +
 	"TabRequest\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +

@@ -326,8 +326,10 @@ func (c *Client) Floating(
 	atProto.FromModel(cfg.Offset)
 
 	req := FloatingWindowRequest{
-		Offset:    &atProto,
-		Alignment: uint32(cfg.Alignment),
+		Offset:      &atProto,
+		Alignment:   uint32(cfg.Alignment),
+		NoWindowBar: cfg.NoWindowBar,
+		Title:       cfg.Title,
 	}
 	sendMsg := FloatingWindowMessage{
 		Type:    handlerrpc.MessageType_Request,
