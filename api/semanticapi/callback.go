@@ -73,4 +73,12 @@ type LSPCallback interface {
 	// DiagnosticRefresh requests the client to refresh diagnostics
 	// (workspace/diagnostic/refresh).
 	DiagnosticRefresh(ctx context.Context) error
+
+	// HandleNotification receives an arbitrary server→client JSON-RPC
+	// notification that is not modeled by a dedicated callback method. It
+	// is the inbound escape hatch for methods not otherwise handled.
+	// method is the full JSON-RPC method name and params is the raw JSON
+	// payload (may be nil). Implementations that do not recognize the
+	// method should return nil rather than an error.
+	HandleNotification(ctx context.Context, method string, params json.RawMessage) error
 }

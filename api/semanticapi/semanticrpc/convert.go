@@ -934,6 +934,7 @@ func CodeActionToProto(a semanticapi.CodeAction) *CodeAction {
 		Kind:        string(a.Kind),
 		Diagnostics: DiagnosticsToProto(a.Diagnostics),
 		Command:     CommandToProto(a.Command),
+		Group:       a.Group,
 	}
 	if a.Edit != nil {
 		ret.Edit = WorkspaceEditToProto(a.Edit)
@@ -950,6 +951,7 @@ func CodeActionFromProto(a *CodeAction) semanticapi.CodeAction {
 		Kind:        semanticapi.CodeActionKind(a.Kind),
 		Diagnostics: DiagnosticsFromProto(a.Diagnostics),
 		Command:     CommandFromProto(a.Command),
+		Group:       a.Group,
 	}
 	if a.Edit != nil {
 		ret.Edit = WorkspaceEditFromProto(a.Edit)
@@ -1452,6 +1454,7 @@ func ServerCapabilitiesToProto(c semanticapi.ServerCapabilities) *ServerCapabili
 		ret.InlayHintProvider = true
 		ret.InlayHintResolveProvider = c.InlayHintProvider.ResolveProvider
 	}
+	ret.Experimental = c.Experimental
 	return ret
 }
 
@@ -1549,6 +1552,9 @@ func ServerCapabilitiesFromProto(c *ServerCapabilities) semanticapi.ServerCapabi
 		ret.InlayHintProvider = &semanticapi.InlayHintOptions{
 			ResolveProvider: c.InlayHintResolveProvider,
 		}
+	}
+	if len(c.Experimental) > 0 {
+		ret.Experimental = json.RawMessage(c.Experimental)
 	}
 	return ret
 }

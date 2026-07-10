@@ -14,7 +14,10 @@
 
 package semanticapi
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 // LSP defines the interface for a Language Server Protocol server.
 type LSP interface {
@@ -55,6 +58,15 @@ type LSP interface {
 
 	WorkspaceSymbol(ctx context.Context, params WorkspaceSymbolParams) ([]SymbolInformation, error)
 	ExecuteCommand(ctx context.Context, params ExecuteCommandParams) (string, error)
+
+	// ExecuteRequest forwards an arbitrary JSON-RPC request to the
+	// underlying language server and returns the raw JSON result, which
+	// may be "null". It is the escape hatch for methods not modeled by a
+	// dedicated interface method.
+	ExecuteRequest(ctx context.Context, params ExecuteRequestParams) (json.RawMessage, error)
+	// SendNotification forwards an arbitrary JSON-RPC notification to the
+	// underlying language server. Notifications have no result.
+	SendNotification(ctx context.Context, params NotificationParams) error
 
 	PrepareCallHierarchy(ctx context.Context, params CallHierarchyPrepareParams) ([]CallHierarchyItem, error)
 	CallHierarchyIncomingCalls(ctx context.Context, params CallHierarchyIncomingCallsParams) ([]CallHierarchyIncomingCall, error)

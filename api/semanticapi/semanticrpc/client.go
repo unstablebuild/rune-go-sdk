@@ -16,6 +16,7 @@ package semanticrpc
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
@@ -490,7 +491,11 @@ func (c *Client) WorkspaceSymbol(ctx context.Context, params semanticapi.Workspa
 	ctx, cancel := joincontext.New(ctx, c.clientCtx)
 	defer cancel()
 
-	req := &WorkspaceSymbolRequest{Query: params.Query}
+	req := &WorkspaceSymbolRequest{
+		Query:       params.Query,
+		SearchScope: string(params.SearchScope),
+		SearchKind:  string(params.SearchKind),
+	}
 	res, err := c.lsp.WorkspaceSymbol(ctx, req)
 	if err != nil {
 		return nil, err
@@ -515,6 +520,38 @@ func (c *Client) ExecuteCommand(ctx context.Context, params semanticapi.ExecuteC
 		return "", err
 	}
 	return res.GetResult(), nil
+}
+
+func (c *Client) ExecuteRequest(ctx context.Context, params semanticapi.ExecuteRequestParams) (json.RawMessage, error) {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
+	defer cancel()
+
+	req := &ExecuteRequestRequest{
+		Method:   params.Method,
+		Params:   params.Params,
+		ServerId: params.ServerID,
+	}
+	res, err := c.lsp.ExecuteRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if result := res.GetResult(); len(result) > 0 {
+		return json.RawMessage(result), nil
+	}
+	return nil, nil
+}
+
+func (c *Client) SendNotification(ctx context.Context, params semanticapi.NotificationParams) error {
+	ctx, cancel := joincontext.New(ctx, c.clientCtx)
+	defer cancel()
+
+	req := &SendNotificationRequest{
+		Method:   params.Method,
+		Params:   params.Params,
+		ServerId: params.ServerID,
+	}
+	_, err := c.lsp.SendNotification(ctx, req)
+	return err
 }
 
 func (c *Client) PrepareCallHierarchy(ctx context.Context, params semanticapi.CallHierarchyPrepareParams) ([]semanticapi.CallHierarchyItem, error) {

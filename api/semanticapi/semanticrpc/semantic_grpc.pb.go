@@ -51,6 +51,8 @@ const (
 	LSP_WorkspaceDiagnostic_FullMethodName        = "/semantic.LSP/WorkspaceDiagnostic"
 	LSP_WorkspaceSymbol_FullMethodName            = "/semantic.LSP/WorkspaceSymbol"
 	LSP_ExecuteCommand_FullMethodName             = "/semantic.LSP/ExecuteCommand"
+	LSP_ExecuteRequest_FullMethodName             = "/semantic.LSP/ExecuteRequest"
+	LSP_SendNotification_FullMethodName           = "/semantic.LSP/SendNotification"
 	LSP_PrepareCallHierarchy_FullMethodName       = "/semantic.LSP/PrepareCallHierarchy"
 	LSP_CallHierarchyIncomingCalls_FullMethodName = "/semantic.LSP/CallHierarchyIncomingCalls"
 	LSP_CallHierarchyOutgoingCalls_FullMethodName = "/semantic.LSP/CallHierarchyOutgoingCalls"
@@ -127,6 +129,8 @@ type LSPClient interface {
 	// Workspace
 	WorkspaceSymbol(ctx context.Context, in *WorkspaceSymbolRequest, opts ...grpc.CallOption) (*WorkspaceSymbolResponse, error)
 	ExecuteCommand(ctx context.Context, in *ExecuteCommandRequest, opts ...grpc.CallOption) (*ExecuteCommandResponse, error)
+	ExecuteRequest(ctx context.Context, in *ExecuteRequestRequest, opts ...grpc.CallOption) (*ExecuteRequestResponse, error)
+	SendNotification(ctx context.Context, in *SendNotificationRequest, opts ...grpc.CallOption) (*SendNotificationResponse, error)
 	// Call Hierarchy
 	PrepareCallHierarchy(ctx context.Context, in *PrepareCallHierarchyRequest, opts ...grpc.CallOption) (*PrepareCallHierarchyResponse, error)
 	CallHierarchyIncomingCalls(ctx context.Context, in *CallHierarchyIncomingCallsRequest, opts ...grpc.CallOption) (*CallHierarchyIncomingCallsResponse, error)
@@ -503,6 +507,26 @@ func (c *lSPClient) ExecuteCommand(ctx context.Context, in *ExecuteCommandReques
 	return out, nil
 }
 
+func (c *lSPClient) ExecuteRequest(ctx context.Context, in *ExecuteRequestRequest, opts ...grpc.CallOption) (*ExecuteRequestResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteRequestResponse)
+	err := c.cc.Invoke(ctx, LSP_ExecuteRequest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lSPClient) SendNotification(ctx context.Context, in *SendNotificationRequest, opts ...grpc.CallOption) (*SendNotificationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendNotificationResponse)
+	err := c.cc.Invoke(ctx, LSP_SendNotification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *lSPClient) PrepareCallHierarchy(ctx context.Context, in *PrepareCallHierarchyRequest, opts ...grpc.CallOption) (*PrepareCallHierarchyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PrepareCallHierarchyResponse)
@@ -865,6 +889,8 @@ type LSPServer interface {
 	// Workspace
 	WorkspaceSymbol(context.Context, *WorkspaceSymbolRequest) (*WorkspaceSymbolResponse, error)
 	ExecuteCommand(context.Context, *ExecuteCommandRequest) (*ExecuteCommandResponse, error)
+	ExecuteRequest(context.Context, *ExecuteRequestRequest) (*ExecuteRequestResponse, error)
+	SendNotification(context.Context, *SendNotificationRequest) (*SendNotificationResponse, error)
 	// Call Hierarchy
 	PrepareCallHierarchy(context.Context, *PrepareCallHierarchyRequest) (*PrepareCallHierarchyResponse, error)
 	CallHierarchyIncomingCalls(context.Context, *CallHierarchyIncomingCallsRequest) (*CallHierarchyIncomingCallsResponse, error)
@@ -1016,6 +1042,12 @@ func (UnimplementedLSPServer) WorkspaceSymbol(context.Context, *WorkspaceSymbolR
 }
 func (UnimplementedLSPServer) ExecuteCommand(context.Context, *ExecuteCommandRequest) (*ExecuteCommandResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteCommand not implemented")
+}
+func (UnimplementedLSPServer) ExecuteRequest(context.Context, *ExecuteRequestRequest) (*ExecuteRequestResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteRequest not implemented")
+}
+func (UnimplementedLSPServer) SendNotification(context.Context, *SendNotificationRequest) (*SendNotificationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendNotification not implemented")
 }
 func (UnimplementedLSPServer) PrepareCallHierarchy(context.Context, *PrepareCallHierarchyRequest) (*PrepareCallHierarchyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PrepareCallHierarchy not implemented")
@@ -1706,6 +1738,42 @@ func _LSP_ExecuteCommand_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LSPServer).ExecuteCommand(ctx, req.(*ExecuteCommandRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LSP_ExecuteRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteRequestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LSPServer).ExecuteRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LSP_ExecuteRequest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LSPServer).ExecuteRequest(ctx, req.(*ExecuteRequestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LSP_SendNotification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendNotificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LSPServer).SendNotification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LSP_SendNotification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LSPServer).SendNotification(ctx, req.(*SendNotificationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2420,6 +2488,14 @@ var LSP_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ExecuteCommand",
 			Handler:    _LSP_ExecuteCommand_Handler,
+		},
+		{
+			MethodName: "ExecuteRequest",
+			Handler:    _LSP_ExecuteRequest_Handler,
+		},
+		{
+			MethodName: "SendNotification",
+			Handler:    _LSP_SendNotification_Handler,
 		},
 		{
 			MethodName: "PrepareCallHierarchy",

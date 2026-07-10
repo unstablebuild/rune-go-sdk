@@ -982,6 +982,10 @@ type CodeAction struct {
 	Diagnostics []Diagnostic   `json:"diagnostics,omitempty"`
 	Edit        *WorkspaceEdit `json:"edit,omitempty"`
 	Command     *Command       `json:"command,omitempty"`
+	// Group collapses code actions sharing the same value under a single
+	// lightbulb entry. Enabled by the client "codeActionGroup"
+	// capability; empty when unsupported.
+	Group string `json:"group,omitempty"`
 }
 
 // CodeLens represents a command that should be shown along with source text.
@@ -1538,6 +1542,10 @@ type ServerCapabilities struct {
 	TypeHierarchyProvider            bool                             `json:"typeHierarchyProvider,omitempty"`
 	InlayHintProvider                *InlayHintOptions                `json:"inlayHintProvider,omitempty"`
 	InlineValueProvider              bool                             `json:"inlineValueProvider,omitempty"`
+	// Experimental carries the raw JSON of the server's experimental
+	// capabilities, letting clients feature-detect non-standard
+	// extensions.
+	Experimental                     json.RawMessage                  `json:"experimental,omitempty"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for ServerCapabilities.
@@ -1641,6 +1649,13 @@ func (c *ServerCapabilities) UnmarshalJSON(data []byte) error {
 	}
 	c.DocumentOnTypeFormattingProvider = nil
 	unmarshalPtr("documentOnTypeFormattingProvider", &c.DocumentOnTypeFormattingProvider)
+
+	// Preserve the raw experimental capabilities block verbatim so
+	// clients can feature-detect LSP extensions.
+	c.Experimental = nil
+	if v, ok := raw["experimental"]; ok {
+		c.Experimental = v
+	}
 
 	return nil
 }
@@ -2131,7 +2146,30 @@ type WorkspaceDiagnosticReport struct {
 type WorkspaceSymbolParams struct {
 	Query         string         `json:"query"`
 	WorkDoneToken *ProgressToken `json:"workDoneToken,omitempty"`
+	// SearchScope and SearchKind restrict which symbols are returned,
+	// via the "workspaceSymbolScopeKindFiltering" extension. Empty
+	// values disable filtering.
+	SearchScope WorkspaceSymbolSearchScope `json:"searchScope,omitempty"`
+	SearchKind  WorkspaceSymbolSearchKind  `json:"searchKind,omitempty"`
 }
+
+// WorkspaceSymbolSearchScope restricts a workspace symbol search to a
+// broad scope.
+type WorkspaceSymbolSearchScope string
+
+const (
+	WorkspaceSymbolSearchScopeWorkspace                WorkspaceSymbolSearchScope = "workspace"
+	WorkspaceSymbolSearchScopeWorkspaceAndDependencies WorkspaceSymbolSearchScope = "workspaceAndDependencies"
+)
+
+// WorkspaceSymbolSearchKind restricts a workspace symbol search to a
+// kind of symbol.
+type WorkspaceSymbolSearchKind string
+
+const (
+	WorkspaceSymbolSearchKindOnlyTypes  WorkspaceSymbolSearchKind = "onlyTypes"
+	WorkspaceSymbolSearchKindAllSymbols WorkspaceSymbolSearchKind = "allSymbols"
+)
 
 // ExecuteCommandParams contains the parameters for an ExecuteCommand request.
 type ExecuteCommandParams struct {
@@ -2463,4 +2501,31 @@ type Unregistration struct {
 // client/unregisterCapability request.
 type UnregistrationParams struct {
 	Unregistrations []Unregistration `json:"unregisterations"`
+}
+
+// ExecuteRequestParams identifies an arbitrary JSON-RPC request to be
+// forwarded verbatim to the underlying language server. It is the escape
+// hatch for methods not modeled by a dedicated interface method.
+type ExecuteRequestParams struct {
+	// Method is the full JSON-RPC method name.
+	Method string `json:"method"`
+	// Params is the raw JSON request payload. May be nil.
+	Params json.RawMessage `json:"params,omitempty"`
+	// ServerID optionally targets a single backing language server when a
+	// language is served by several servers. An empty ServerID uses the
+	// host's default routing.
+	ServerID string `json:"serverID,omitempty"`
+}
+
+// NotificationParams identifies an arbitrary JSON-RPC notification to be
+// forwarded verbatim to the underlying language server. Notifications
+// have no result.
+type NotificationParams struct {
+	// Method is the full JSON-RPC method name.
+	Method string `json:"method"`
+	// Params is the raw JSON notification payload. May be nil.
+	Params json.RawMessage `json:"params,omitempty"`
+	// ServerID optionally targets a single backing language server. An
+	// empty ServerID broadcasts to all servers for the language.
+	ServerID string `json:"serverID,omitempty"`
 }

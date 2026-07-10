@@ -168,6 +168,7 @@ message CodeAction {
   repeated Diagnostic diagnostics = 3;
   WorkspaceEdit edit = 4;
   Command command = 5;
+  string group = 6;
 }
 
 message CodeLens {
@@ -338,6 +339,10 @@ message ServerCapabilities {
   repeated string on_type_formatting_more_trigger_characters = 48;
   bool inlay_hint_resolve_provider = 49;
   bool document_range_formatting_provider = 50;
+  // experimental is the raw JSON of the server's experimental
+  // capabilities block, used by clients to feature-detect non-standard
+  // extensions.
+  bytes experimental = 51;
 }
 
 message TextDocumentContentChangeEvent {
@@ -748,6 +753,8 @@ message WorkspaceDiagnosticResponse {
 
 message WorkspaceSymbolRequest {
   string query = 1;
+  string search_scope = 2;
+  string search_kind = 3;
 }
 
 message WorkspaceSymbolResponse {
@@ -762,6 +769,24 @@ message ExecuteCommandRequest {
 message ExecuteCommandResponse {
   string result = 1;
 }
+
+message ExecuteRequestRequest {
+  string method = 1;
+  bytes params = 2;
+  string server_id = 3;
+}
+
+message ExecuteRequestResponse {
+  bytes result = 1;
+}
+
+message SendNotificationRequest {
+  string method = 1;
+  bytes params = 2;
+  string server_id = 3;
+}
+
+message SendNotificationResponse {}
 
 message PrepareCallHierarchyRequest {
   TextDocumentIdentifier text_document = 1;
@@ -1066,6 +1091,8 @@ service LSP {
   // Workspace
   rpc WorkspaceSymbol(WorkspaceSymbolRequest) returns (WorkspaceSymbolResponse);
   rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse);
+  rpc ExecuteRequest(ExecuteRequestRequest) returns (ExecuteRequestResponse);
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
 
   // Call Hierarchy
   rpc PrepareCallHierarchy(PrepareCallHierarchyRequest) returns (PrepareCallHierarchyResponse);

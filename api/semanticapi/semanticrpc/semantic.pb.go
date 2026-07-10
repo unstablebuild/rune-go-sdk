@@ -1580,6 +1580,7 @@ type CodeAction struct {
 	Diagnostics   []*Diagnostic          `protobuf:"bytes,3,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	Edit          *WorkspaceEdit         `protobuf:"bytes,4,opt,name=edit,proto3" json:"edit,omitempty"`
 	Command       *Command               `protobuf:"bytes,5,opt,name=command,proto3" json:"command,omitempty"`
+	Group         string                 `protobuf:"bytes,6,opt,name=group,proto3" json:"group,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1647,6 +1648,13 @@ func (x *CodeAction) GetCommand() *Command {
 		return x.Command
 	}
 	return nil
+}
+
+func (x *CodeAction) GetGroup() string {
+	if x != nil {
+		return x.Group
+	}
+	return ""
 }
 
 type CodeLens struct {
@@ -2870,8 +2878,12 @@ type ServerCapabilities struct {
 	OnTypeFormattingMoreTriggerCharacters []string `protobuf:"bytes,48,rep,name=on_type_formatting_more_trigger_characters,json=onTypeFormattingMoreTriggerCharacters,proto3" json:"on_type_formatting_more_trigger_characters,omitempty"`
 	InlayHintResolveProvider              bool     `protobuf:"varint,49,opt,name=inlay_hint_resolve_provider,json=inlayHintResolveProvider,proto3" json:"inlay_hint_resolve_provider,omitempty"`
 	DocumentRangeFormattingProvider       bool     `protobuf:"varint,50,opt,name=document_range_formatting_provider,json=documentRangeFormattingProvider,proto3" json:"document_range_formatting_provider,omitempty"`
-	unknownFields                         protoimpl.UnknownFields
-	sizeCache                             protoimpl.SizeCache
+	// experimental is the raw JSON of the server's experimental
+	// capabilities block, used by clients to feature-detect non-standard
+	// extensions.
+	Experimental  []byte `protobuf:"bytes,51,opt,name=experimental,proto3" json:"experimental,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerCapabilities) Reset() {
@@ -3252,6 +3264,13 @@ func (x *ServerCapabilities) GetDocumentRangeFormattingProvider() bool {
 		return x.DocumentRangeFormattingProvider
 	}
 	return false
+}
+
+func (x *ServerCapabilities) GetExperimental() []byte {
+	if x != nil {
+		return x.Experimental
+	}
+	return nil
 }
 
 type TextDocumentContentChangeEvent struct {
@@ -7605,6 +7624,8 @@ func (x *WorkspaceDiagnosticResponse) GetItems() []*WorkspaceDocumentDiagnosticR
 type WorkspaceSymbolRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	SearchScope   string                 `protobuf:"bytes,2,opt,name=search_scope,json=searchScope,proto3" json:"search_scope,omitempty"`
+	SearchKind    string                 `protobuf:"bytes,3,opt,name=search_kind,json=searchKind,proto3" json:"search_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7642,6 +7663,20 @@ func (*WorkspaceSymbolRequest) Descriptor() ([]byte, []int) {
 func (x *WorkspaceSymbolRequest) GetQuery() string {
 	if x != nil {
 		return x.Query
+	}
+	return ""
+}
+
+func (x *WorkspaceSymbolRequest) GetSearchScope() string {
+	if x != nil {
+		return x.SearchScope
+	}
+	return ""
+}
+
+func (x *WorkspaceSymbolRequest) GetSearchKind() string {
+	if x != nil {
+		return x.SearchKind
 	}
 	return ""
 }
@@ -7786,6 +7821,206 @@ func (x *ExecuteCommandResponse) GetResult() string {
 	return ""
 }
 
+type ExecuteRequestRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Params        []byte                 `protobuf:"bytes,2,opt,name=params,proto3" json:"params,omitempty"`
+	ServerId      string                 `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecuteRequestRequest) Reset() {
+	*x = ExecuteRequestRequest{}
+	mi := &file_semanticrpc_semantic_proto_msgTypes[133]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteRequestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteRequestRequest) ProtoMessage() {}
+
+func (x *ExecuteRequestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_semanticrpc_semantic_proto_msgTypes[133]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteRequestRequest.ProtoReflect.Descriptor instead.
+func (*ExecuteRequestRequest) Descriptor() ([]byte, []int) {
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{133}
+}
+
+func (x *ExecuteRequestRequest) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *ExecuteRequestRequest) GetParams() []byte {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+func (x *ExecuteRequestRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+type ExecuteRequestResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        []byte                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecuteRequestResponse) Reset() {
+	*x = ExecuteRequestResponse{}
+	mi := &file_semanticrpc_semantic_proto_msgTypes[134]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteRequestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteRequestResponse) ProtoMessage() {}
+
+func (x *ExecuteRequestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_semanticrpc_semantic_proto_msgTypes[134]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteRequestResponse.ProtoReflect.Descriptor instead.
+func (*ExecuteRequestResponse) Descriptor() ([]byte, []int) {
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{134}
+}
+
+func (x *ExecuteRequestResponse) GetResult() []byte {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type SendNotificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Params        []byte                 `protobuf:"bytes,2,opt,name=params,proto3" json:"params,omitempty"`
+	ServerId      string                 `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendNotificationRequest) Reset() {
+	*x = SendNotificationRequest{}
+	mi := &file_semanticrpc_semantic_proto_msgTypes[135]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendNotificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendNotificationRequest) ProtoMessage() {}
+
+func (x *SendNotificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_semanticrpc_semantic_proto_msgTypes[135]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendNotificationRequest.ProtoReflect.Descriptor instead.
+func (*SendNotificationRequest) Descriptor() ([]byte, []int) {
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{135}
+}
+
+func (x *SendNotificationRequest) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *SendNotificationRequest) GetParams() []byte {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+func (x *SendNotificationRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+type SendNotificationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendNotificationResponse) Reset() {
+	*x = SendNotificationResponse{}
+	mi := &file_semanticrpc_semantic_proto_msgTypes[136]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendNotificationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendNotificationResponse) ProtoMessage() {}
+
+func (x *SendNotificationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_semanticrpc_semantic_proto_msgTypes[136]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendNotificationResponse.ProtoReflect.Descriptor instead.
+func (*SendNotificationResponse) Descriptor() ([]byte, []int) {
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{136}
+}
+
 type PrepareCallHierarchyRequest struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	TextDocument  *TextDocumentIdentifier `protobuf:"bytes,1,opt,name=text_document,json=textDocument,proto3" json:"text_document,omitempty"`
@@ -7796,7 +8031,7 @@ type PrepareCallHierarchyRequest struct {
 
 func (x *PrepareCallHierarchyRequest) Reset() {
 	*x = PrepareCallHierarchyRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[133]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7808,7 +8043,7 @@ func (x *PrepareCallHierarchyRequest) String() string {
 func (*PrepareCallHierarchyRequest) ProtoMessage() {}
 
 func (x *PrepareCallHierarchyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[133]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7821,7 +8056,7 @@ func (x *PrepareCallHierarchyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareCallHierarchyRequest.ProtoReflect.Descriptor instead.
 func (*PrepareCallHierarchyRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{133}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *PrepareCallHierarchyRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -7847,7 +8082,7 @@ type PrepareCallHierarchyResponse struct {
 
 func (x *PrepareCallHierarchyResponse) Reset() {
 	*x = PrepareCallHierarchyResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[134]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7859,7 +8094,7 @@ func (x *PrepareCallHierarchyResponse) String() string {
 func (*PrepareCallHierarchyResponse) ProtoMessage() {}
 
 func (x *PrepareCallHierarchyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[134]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7872,7 +8107,7 @@ func (x *PrepareCallHierarchyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareCallHierarchyResponse.ProtoReflect.Descriptor instead.
 func (*PrepareCallHierarchyResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{134}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *PrepareCallHierarchyResponse) GetItems() []*CallHierarchyItem {
@@ -7891,7 +8126,7 @@ type CallHierarchyIncomingCallsRequest struct {
 
 func (x *CallHierarchyIncomingCallsRequest) Reset() {
 	*x = CallHierarchyIncomingCallsRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[135]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7903,7 +8138,7 @@ func (x *CallHierarchyIncomingCallsRequest) String() string {
 func (*CallHierarchyIncomingCallsRequest) ProtoMessage() {}
 
 func (x *CallHierarchyIncomingCallsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[135]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7916,7 +8151,7 @@ func (x *CallHierarchyIncomingCallsRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CallHierarchyIncomingCallsRequest.ProtoReflect.Descriptor instead.
 func (*CallHierarchyIncomingCallsRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{135}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *CallHierarchyIncomingCallsRequest) GetItem() *CallHierarchyItem {
@@ -7935,7 +8170,7 @@ type CallHierarchyIncomingCallsResponse struct {
 
 func (x *CallHierarchyIncomingCallsResponse) Reset() {
 	*x = CallHierarchyIncomingCallsResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[136]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7947,7 +8182,7 @@ func (x *CallHierarchyIncomingCallsResponse) String() string {
 func (*CallHierarchyIncomingCallsResponse) ProtoMessage() {}
 
 func (x *CallHierarchyIncomingCallsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[136]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7960,7 +8195,7 @@ func (x *CallHierarchyIncomingCallsResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CallHierarchyIncomingCallsResponse.ProtoReflect.Descriptor instead.
 func (*CallHierarchyIncomingCallsResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{136}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{140}
 }
 
 func (x *CallHierarchyIncomingCallsResponse) GetCalls() []*CallHierarchyIncomingCall {
@@ -7979,7 +8214,7 @@ type CallHierarchyOutgoingCallsRequest struct {
 
 func (x *CallHierarchyOutgoingCallsRequest) Reset() {
 	*x = CallHierarchyOutgoingCallsRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[137]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7991,7 +8226,7 @@ func (x *CallHierarchyOutgoingCallsRequest) String() string {
 func (*CallHierarchyOutgoingCallsRequest) ProtoMessage() {}
 
 func (x *CallHierarchyOutgoingCallsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[137]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8004,7 +8239,7 @@ func (x *CallHierarchyOutgoingCallsRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CallHierarchyOutgoingCallsRequest.ProtoReflect.Descriptor instead.
 func (*CallHierarchyOutgoingCallsRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{137}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *CallHierarchyOutgoingCallsRequest) GetItem() *CallHierarchyItem {
@@ -8023,7 +8258,7 @@ type CallHierarchyOutgoingCallsResponse struct {
 
 func (x *CallHierarchyOutgoingCallsResponse) Reset() {
 	*x = CallHierarchyOutgoingCallsResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[138]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8035,7 +8270,7 @@ func (x *CallHierarchyOutgoingCallsResponse) String() string {
 func (*CallHierarchyOutgoingCallsResponse) ProtoMessage() {}
 
 func (x *CallHierarchyOutgoingCallsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[138]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8048,7 +8283,7 @@ func (x *CallHierarchyOutgoingCallsResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CallHierarchyOutgoingCallsResponse.ProtoReflect.Descriptor instead.
 func (*CallHierarchyOutgoingCallsResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{138}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{142}
 }
 
 func (x *CallHierarchyOutgoingCallsResponse) GetCalls() []*CallHierarchyOutgoingCall {
@@ -8067,7 +8302,7 @@ type CompletionResolveRequest struct {
 
 func (x *CompletionResolveRequest) Reset() {
 	*x = CompletionResolveRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[139]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8079,7 +8314,7 @@ func (x *CompletionResolveRequest) String() string {
 func (*CompletionResolveRequest) ProtoMessage() {}
 
 func (x *CompletionResolveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[139]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8092,7 +8327,7 @@ func (x *CompletionResolveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompletionResolveRequest.ProtoReflect.Descriptor instead.
 func (*CompletionResolveRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{139}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{143}
 }
 
 func (x *CompletionResolveRequest) GetItem() *CompletionItem {
@@ -8111,7 +8346,7 @@ type CompletionResolveResponse struct {
 
 func (x *CompletionResolveResponse) Reset() {
 	*x = CompletionResolveResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[140]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8123,7 +8358,7 @@ func (x *CompletionResolveResponse) String() string {
 func (*CompletionResolveResponse) ProtoMessage() {}
 
 func (x *CompletionResolveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[140]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8136,7 +8371,7 @@ func (x *CompletionResolveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompletionResolveResponse.ProtoReflect.Descriptor instead.
 func (*CompletionResolveResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{140}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{144}
 }
 
 func (x *CompletionResolveResponse) GetItem() *CompletionItem {
@@ -8155,7 +8390,7 @@ type CodeLensResolveRequest struct {
 
 func (x *CodeLensResolveRequest) Reset() {
 	*x = CodeLensResolveRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[141]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8167,7 +8402,7 @@ func (x *CodeLensResolveRequest) String() string {
 func (*CodeLensResolveRequest) ProtoMessage() {}
 
 func (x *CodeLensResolveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[141]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8180,7 +8415,7 @@ func (x *CodeLensResolveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CodeLensResolveRequest.ProtoReflect.Descriptor instead.
 func (*CodeLensResolveRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{141}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{145}
 }
 
 func (x *CodeLensResolveRequest) GetLens() *CodeLens {
@@ -8199,7 +8434,7 @@ type CodeLensResolveResponse struct {
 
 func (x *CodeLensResolveResponse) Reset() {
 	*x = CodeLensResolveResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[142]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8211,7 +8446,7 @@ func (x *CodeLensResolveResponse) String() string {
 func (*CodeLensResolveResponse) ProtoMessage() {}
 
 func (x *CodeLensResolveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[142]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8224,7 +8459,7 @@ func (x *CodeLensResolveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CodeLensResolveResponse.ProtoReflect.Descriptor instead.
 func (*CodeLensResolveResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{142}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{146}
 }
 
 func (x *CodeLensResolveResponse) GetLens() *CodeLens {
@@ -8243,7 +8478,7 @@ type DocumentColorRequest struct {
 
 func (x *DocumentColorRequest) Reset() {
 	*x = DocumentColorRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[143]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8255,7 +8490,7 @@ func (x *DocumentColorRequest) String() string {
 func (*DocumentColorRequest) ProtoMessage() {}
 
 func (x *DocumentColorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[143]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8268,7 +8503,7 @@ func (x *DocumentColorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocumentColorRequest.ProtoReflect.Descriptor instead.
 func (*DocumentColorRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{143}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{147}
 }
 
 func (x *DocumentColorRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -8287,7 +8522,7 @@ type DocumentColorResponse struct {
 
 func (x *DocumentColorResponse) Reset() {
 	*x = DocumentColorResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[144]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8299,7 +8534,7 @@ func (x *DocumentColorResponse) String() string {
 func (*DocumentColorResponse) ProtoMessage() {}
 
 func (x *DocumentColorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[144]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8312,7 +8547,7 @@ func (x *DocumentColorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocumentColorResponse.ProtoReflect.Descriptor instead.
 func (*DocumentColorResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{144}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{148}
 }
 
 func (x *DocumentColorResponse) GetColors() []*ColorInformation {
@@ -8333,7 +8568,7 @@ type ColorPresentationRequest struct {
 
 func (x *ColorPresentationRequest) Reset() {
 	*x = ColorPresentationRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[145]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8345,7 +8580,7 @@ func (x *ColorPresentationRequest) String() string {
 func (*ColorPresentationRequest) ProtoMessage() {}
 
 func (x *ColorPresentationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[145]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8358,7 +8593,7 @@ func (x *ColorPresentationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColorPresentationRequest.ProtoReflect.Descriptor instead.
 func (*ColorPresentationRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{145}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{149}
 }
 
 func (x *ColorPresentationRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -8391,7 +8626,7 @@ type ColorPresentationResponse struct {
 
 func (x *ColorPresentationResponse) Reset() {
 	*x = ColorPresentationResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[146]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8403,7 +8638,7 @@ func (x *ColorPresentationResponse) String() string {
 func (*ColorPresentationResponse) ProtoMessage() {}
 
 func (x *ColorPresentationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[146]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8416,7 +8651,7 @@ func (x *ColorPresentationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColorPresentationResponse.ProtoReflect.Descriptor instead.
 func (*ColorPresentationResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{146}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{150}
 }
 
 func (x *ColorPresentationResponse) GetPresentations() []*ColorPresentation {
@@ -8435,7 +8670,7 @@ type DocumentLinkRequest struct {
 
 func (x *DocumentLinkRequest) Reset() {
 	*x = DocumentLinkRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[147]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8447,7 +8682,7 @@ func (x *DocumentLinkRequest) String() string {
 func (*DocumentLinkRequest) ProtoMessage() {}
 
 func (x *DocumentLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[147]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8460,7 +8695,7 @@ func (x *DocumentLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocumentLinkRequest.ProtoReflect.Descriptor instead.
 func (*DocumentLinkRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{147}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{151}
 }
 
 func (x *DocumentLinkRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -8479,7 +8714,7 @@ type DocumentLinkResponse struct {
 
 func (x *DocumentLinkResponse) Reset() {
 	*x = DocumentLinkResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[148]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8491,7 +8726,7 @@ func (x *DocumentLinkResponse) String() string {
 func (*DocumentLinkResponse) ProtoMessage() {}
 
 func (x *DocumentLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[148]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8504,7 +8739,7 @@ func (x *DocumentLinkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocumentLinkResponse.ProtoReflect.Descriptor instead.
 func (*DocumentLinkResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{148}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{152}
 }
 
 func (x *DocumentLinkResponse) GetLinks() []*DocumentLink {
@@ -8523,7 +8758,7 @@ type DocumentLinkResolveRequest struct {
 
 func (x *DocumentLinkResolveRequest) Reset() {
 	*x = DocumentLinkResolveRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[149]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8535,7 +8770,7 @@ func (x *DocumentLinkResolveRequest) String() string {
 func (*DocumentLinkResolveRequest) ProtoMessage() {}
 
 func (x *DocumentLinkResolveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[149]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8548,7 +8783,7 @@ func (x *DocumentLinkResolveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocumentLinkResolveRequest.ProtoReflect.Descriptor instead.
 func (*DocumentLinkResolveRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{149}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{153}
 }
 
 func (x *DocumentLinkResolveRequest) GetLink() *DocumentLink {
@@ -8567,7 +8802,7 @@ type DocumentLinkResolveResponse struct {
 
 func (x *DocumentLinkResolveResponse) Reset() {
 	*x = DocumentLinkResolveResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[150]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8579,7 +8814,7 @@ func (x *DocumentLinkResolveResponse) String() string {
 func (*DocumentLinkResolveResponse) ProtoMessage() {}
 
 func (x *DocumentLinkResolveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[150]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8592,7 +8827,7 @@ func (x *DocumentLinkResolveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocumentLinkResolveResponse.ProtoReflect.Descriptor instead.
 func (*DocumentLinkResolveResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{150}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{154}
 }
 
 func (x *DocumentLinkResolveResponse) GetLink() *DocumentLink {
@@ -8615,7 +8850,7 @@ type OnTypeFormattingRequest struct {
 
 func (x *OnTypeFormattingRequest) Reset() {
 	*x = OnTypeFormattingRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[151]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8627,7 +8862,7 @@ func (x *OnTypeFormattingRequest) String() string {
 func (*OnTypeFormattingRequest) ProtoMessage() {}
 
 func (x *OnTypeFormattingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[151]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8640,7 +8875,7 @@ func (x *OnTypeFormattingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnTypeFormattingRequest.ProtoReflect.Descriptor instead.
 func (*OnTypeFormattingRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{151}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{155}
 }
 
 func (x *OnTypeFormattingRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -8687,7 +8922,7 @@ type OnTypeFormattingResponse struct {
 
 func (x *OnTypeFormattingResponse) Reset() {
 	*x = OnTypeFormattingResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[152]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8699,7 +8934,7 @@ func (x *OnTypeFormattingResponse) String() string {
 func (*OnTypeFormattingResponse) ProtoMessage() {}
 
 func (x *OnTypeFormattingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[152]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8712,7 +8947,7 @@ func (x *OnTypeFormattingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnTypeFormattingResponse.ProtoReflect.Descriptor instead.
 func (*OnTypeFormattingResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{152}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{156}
 }
 
 func (x *OnTypeFormattingResponse) GetEdits() []*TextEdit {
@@ -8732,7 +8967,7 @@ type LinkedEditingRangeRequest struct {
 
 func (x *LinkedEditingRangeRequest) Reset() {
 	*x = LinkedEditingRangeRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[153]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8744,7 +8979,7 @@ func (x *LinkedEditingRangeRequest) String() string {
 func (*LinkedEditingRangeRequest) ProtoMessage() {}
 
 func (x *LinkedEditingRangeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[153]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8757,7 +8992,7 @@ func (x *LinkedEditingRangeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkedEditingRangeRequest.ProtoReflect.Descriptor instead.
 func (*LinkedEditingRangeRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{153}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{157}
 }
 
 func (x *LinkedEditingRangeRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -8784,7 +9019,7 @@ type LinkedEditingRangeResponse struct {
 
 func (x *LinkedEditingRangeResponse) Reset() {
 	*x = LinkedEditingRangeResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[154]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8796,7 +9031,7 @@ func (x *LinkedEditingRangeResponse) String() string {
 func (*LinkedEditingRangeResponse) ProtoMessage() {}
 
 func (x *LinkedEditingRangeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[154]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8809,7 +9044,7 @@ func (x *LinkedEditingRangeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkedEditingRangeResponse.ProtoReflect.Descriptor instead.
 func (*LinkedEditingRangeResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{154}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{158}
 }
 
 func (x *LinkedEditingRangeResponse) GetResult() *LinkedEditingRanges {
@@ -8836,7 +9071,7 @@ type MonikerRequest struct {
 
 func (x *MonikerRequest) Reset() {
 	*x = MonikerRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[155]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8848,7 +9083,7 @@ func (x *MonikerRequest) String() string {
 func (*MonikerRequest) ProtoMessage() {}
 
 func (x *MonikerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[155]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8861,7 +9096,7 @@ func (x *MonikerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MonikerRequest.ProtoReflect.Descriptor instead.
 func (*MonikerRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{155}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{159}
 }
 
 func (x *MonikerRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -8887,7 +9122,7 @@ type MonikerResponse struct {
 
 func (x *MonikerResponse) Reset() {
 	*x = MonikerResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[156]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8899,7 +9134,7 @@ func (x *MonikerResponse) String() string {
 func (*MonikerResponse) ProtoMessage() {}
 
 func (x *MonikerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[156]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8912,7 +9147,7 @@ func (x *MonikerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MonikerResponse.ProtoReflect.Descriptor instead.
 func (*MonikerResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{156}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{160}
 }
 
 func (x *MonikerResponse) GetMonikers() []*Moniker {
@@ -8932,7 +9167,7 @@ type WillSaveRequest struct {
 
 func (x *WillSaveRequest) Reset() {
 	*x = WillSaveRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[157]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8944,7 +9179,7 @@ func (x *WillSaveRequest) String() string {
 func (*WillSaveRequest) ProtoMessage() {}
 
 func (x *WillSaveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[157]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8957,7 +9192,7 @@ func (x *WillSaveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillSaveRequest.ProtoReflect.Descriptor instead.
 func (*WillSaveRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{157}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{161}
 }
 
 func (x *WillSaveRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -8982,7 +9217,7 @@ type WillSaveResponse struct {
 
 func (x *WillSaveResponse) Reset() {
 	*x = WillSaveResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[158]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8994,7 +9229,7 @@ func (x *WillSaveResponse) String() string {
 func (*WillSaveResponse) ProtoMessage() {}
 
 func (x *WillSaveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[158]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9007,7 +9242,7 @@ func (x *WillSaveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillSaveResponse.ProtoReflect.Descriptor instead.
 func (*WillSaveResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{158}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{162}
 }
 
 type WillSaveWaitUntilRequest struct {
@@ -9020,7 +9255,7 @@ type WillSaveWaitUntilRequest struct {
 
 func (x *WillSaveWaitUntilRequest) Reset() {
 	*x = WillSaveWaitUntilRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[159]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9032,7 +9267,7 @@ func (x *WillSaveWaitUntilRequest) String() string {
 func (*WillSaveWaitUntilRequest) ProtoMessage() {}
 
 func (x *WillSaveWaitUntilRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[159]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9045,7 +9280,7 @@ func (x *WillSaveWaitUntilRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillSaveWaitUntilRequest.ProtoReflect.Descriptor instead.
 func (*WillSaveWaitUntilRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{159}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{163}
 }
 
 func (x *WillSaveWaitUntilRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -9071,7 +9306,7 @@ type WillSaveWaitUntilResponse struct {
 
 func (x *WillSaveWaitUntilResponse) Reset() {
 	*x = WillSaveWaitUntilResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[160]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[164]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9083,7 +9318,7 @@ func (x *WillSaveWaitUntilResponse) String() string {
 func (*WillSaveWaitUntilResponse) ProtoMessage() {}
 
 func (x *WillSaveWaitUntilResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[160]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[164]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9096,7 +9331,7 @@ func (x *WillSaveWaitUntilResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillSaveWaitUntilResponse.ProtoReflect.Descriptor instead.
 func (*WillSaveWaitUntilResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{160}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{164}
 }
 
 func (x *WillSaveWaitUntilResponse) GetEdits() []*TextEdit {
@@ -9116,7 +9351,7 @@ type SemanticTokensFullDeltaRequest struct {
 
 func (x *SemanticTokensFullDeltaRequest) Reset() {
 	*x = SemanticTokensFullDeltaRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[161]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9128,7 +9363,7 @@ func (x *SemanticTokensFullDeltaRequest) String() string {
 func (*SemanticTokensFullDeltaRequest) ProtoMessage() {}
 
 func (x *SemanticTokensFullDeltaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[161]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9141,7 +9376,7 @@ func (x *SemanticTokensFullDeltaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SemanticTokensFullDeltaRequest.ProtoReflect.Descriptor instead.
 func (*SemanticTokensFullDeltaRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{161}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{165}
 }
 
 func (x *SemanticTokensFullDeltaRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -9168,7 +9403,7 @@ type SemanticTokensFullDeltaResponse struct {
 
 func (x *SemanticTokensFullDeltaResponse) Reset() {
 	*x = SemanticTokensFullDeltaResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[162]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[166]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9180,7 +9415,7 @@ func (x *SemanticTokensFullDeltaResponse) String() string {
 func (*SemanticTokensFullDeltaResponse) ProtoMessage() {}
 
 func (x *SemanticTokensFullDeltaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[162]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[166]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9193,7 +9428,7 @@ func (x *SemanticTokensFullDeltaResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SemanticTokensFullDeltaResponse.ProtoReflect.Descriptor instead.
 func (*SemanticTokensFullDeltaResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{162}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{166}
 }
 
 func (x *SemanticTokensFullDeltaResponse) GetResult() *SemanticTokensDelta {
@@ -9220,7 +9455,7 @@ type PrepareTypeHierarchyRequest struct {
 
 func (x *PrepareTypeHierarchyRequest) Reset() {
 	*x = PrepareTypeHierarchyRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[163]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[167]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9232,7 +9467,7 @@ func (x *PrepareTypeHierarchyRequest) String() string {
 func (*PrepareTypeHierarchyRequest) ProtoMessage() {}
 
 func (x *PrepareTypeHierarchyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[163]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[167]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9245,7 +9480,7 @@ func (x *PrepareTypeHierarchyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareTypeHierarchyRequest.ProtoReflect.Descriptor instead.
 func (*PrepareTypeHierarchyRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{163}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{167}
 }
 
 func (x *PrepareTypeHierarchyRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -9271,7 +9506,7 @@ type PrepareTypeHierarchyResponse struct {
 
 func (x *PrepareTypeHierarchyResponse) Reset() {
 	*x = PrepareTypeHierarchyResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[164]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[168]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9283,7 +9518,7 @@ func (x *PrepareTypeHierarchyResponse) String() string {
 func (*PrepareTypeHierarchyResponse) ProtoMessage() {}
 
 func (x *PrepareTypeHierarchyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[164]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[168]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9296,7 +9531,7 @@ func (x *PrepareTypeHierarchyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareTypeHierarchyResponse.ProtoReflect.Descriptor instead.
 func (*PrepareTypeHierarchyResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{164}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{168}
 }
 
 func (x *PrepareTypeHierarchyResponse) GetItems() []*TypeHierarchyItem {
@@ -9315,7 +9550,7 @@ type TypeHierarchySupertypesRequest struct {
 
 func (x *TypeHierarchySupertypesRequest) Reset() {
 	*x = TypeHierarchySupertypesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[165]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[169]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9327,7 +9562,7 @@ func (x *TypeHierarchySupertypesRequest) String() string {
 func (*TypeHierarchySupertypesRequest) ProtoMessage() {}
 
 func (x *TypeHierarchySupertypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[165]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[169]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9340,7 +9575,7 @@ func (x *TypeHierarchySupertypesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeHierarchySupertypesRequest.ProtoReflect.Descriptor instead.
 func (*TypeHierarchySupertypesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{165}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{169}
 }
 
 func (x *TypeHierarchySupertypesRequest) GetItem() *TypeHierarchyItem {
@@ -9359,7 +9594,7 @@ type TypeHierarchySupertypesResponse struct {
 
 func (x *TypeHierarchySupertypesResponse) Reset() {
 	*x = TypeHierarchySupertypesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[166]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[170]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9371,7 +9606,7 @@ func (x *TypeHierarchySupertypesResponse) String() string {
 func (*TypeHierarchySupertypesResponse) ProtoMessage() {}
 
 func (x *TypeHierarchySupertypesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[166]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[170]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9384,7 +9619,7 @@ func (x *TypeHierarchySupertypesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeHierarchySupertypesResponse.ProtoReflect.Descriptor instead.
 func (*TypeHierarchySupertypesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{166}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{170}
 }
 
 func (x *TypeHierarchySupertypesResponse) GetItems() []*TypeHierarchyItem {
@@ -9403,7 +9638,7 @@ type TypeHierarchySubtypesRequest struct {
 
 func (x *TypeHierarchySubtypesRequest) Reset() {
 	*x = TypeHierarchySubtypesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[167]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[171]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9415,7 +9650,7 @@ func (x *TypeHierarchySubtypesRequest) String() string {
 func (*TypeHierarchySubtypesRequest) ProtoMessage() {}
 
 func (x *TypeHierarchySubtypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[167]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[171]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9428,7 +9663,7 @@ func (x *TypeHierarchySubtypesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeHierarchySubtypesRequest.ProtoReflect.Descriptor instead.
 func (*TypeHierarchySubtypesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{167}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{171}
 }
 
 func (x *TypeHierarchySubtypesRequest) GetItem() *TypeHierarchyItem {
@@ -9447,7 +9682,7 @@ type TypeHierarchySubtypesResponse struct {
 
 func (x *TypeHierarchySubtypesResponse) Reset() {
 	*x = TypeHierarchySubtypesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[168]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[172]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9459,7 +9694,7 @@ func (x *TypeHierarchySubtypesResponse) String() string {
 func (*TypeHierarchySubtypesResponse) ProtoMessage() {}
 
 func (x *TypeHierarchySubtypesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[168]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[172]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9472,7 +9707,7 @@ func (x *TypeHierarchySubtypesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeHierarchySubtypesResponse.ProtoReflect.Descriptor instead.
 func (*TypeHierarchySubtypesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{168}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{172}
 }
 
 func (x *TypeHierarchySubtypesResponse) GetItems() []*TypeHierarchyItem {
@@ -9492,7 +9727,7 @@ type InlayHintRequest struct {
 
 func (x *InlayHintRequest) Reset() {
 	*x = InlayHintRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[169]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[173]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9504,7 +9739,7 @@ func (x *InlayHintRequest) String() string {
 func (*InlayHintRequest) ProtoMessage() {}
 
 func (x *InlayHintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[169]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[173]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9517,7 +9752,7 @@ func (x *InlayHintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InlayHintRequest.ProtoReflect.Descriptor instead.
 func (*InlayHintRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{169}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{173}
 }
 
 func (x *InlayHintRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -9543,7 +9778,7 @@ type InlayHintResponse struct {
 
 func (x *InlayHintResponse) Reset() {
 	*x = InlayHintResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[170]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[174]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9555,7 +9790,7 @@ func (x *InlayHintResponse) String() string {
 func (*InlayHintResponse) ProtoMessage() {}
 
 func (x *InlayHintResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[170]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[174]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9568,7 +9803,7 @@ func (x *InlayHintResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InlayHintResponse.ProtoReflect.Descriptor instead.
 func (*InlayHintResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{170}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{174}
 }
 
 func (x *InlayHintResponse) GetHints() []*InlayHint {
@@ -9587,7 +9822,7 @@ type InlayHintResolveRequest struct {
 
 func (x *InlayHintResolveRequest) Reset() {
 	*x = InlayHintResolveRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[171]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[175]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9599,7 +9834,7 @@ func (x *InlayHintResolveRequest) String() string {
 func (*InlayHintResolveRequest) ProtoMessage() {}
 
 func (x *InlayHintResolveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[171]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[175]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9612,7 +9847,7 @@ func (x *InlayHintResolveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InlayHintResolveRequest.ProtoReflect.Descriptor instead.
 func (*InlayHintResolveRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{171}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{175}
 }
 
 func (x *InlayHintResolveRequest) GetHint() *InlayHint {
@@ -9631,7 +9866,7 @@ type InlayHintResolveResponse struct {
 
 func (x *InlayHintResolveResponse) Reset() {
 	*x = InlayHintResolveResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[172]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[176]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9643,7 +9878,7 @@ func (x *InlayHintResolveResponse) String() string {
 func (*InlayHintResolveResponse) ProtoMessage() {}
 
 func (x *InlayHintResolveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[172]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[176]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9656,7 +9891,7 @@ func (x *InlayHintResolveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InlayHintResolveResponse.ProtoReflect.Descriptor instead.
 func (*InlayHintResolveResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{172}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{176}
 }
 
 func (x *InlayHintResolveResponse) GetHint() *InlayHint {
@@ -9676,7 +9911,7 @@ type InlineValueRequest struct {
 
 func (x *InlineValueRequest) Reset() {
 	*x = InlineValueRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[173]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[177]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9688,7 +9923,7 @@ func (x *InlineValueRequest) String() string {
 func (*InlineValueRequest) ProtoMessage() {}
 
 func (x *InlineValueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[173]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[177]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9701,7 +9936,7 @@ func (x *InlineValueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InlineValueRequest.ProtoReflect.Descriptor instead.
 func (*InlineValueRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{173}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{177}
 }
 
 func (x *InlineValueRequest) GetTextDocument() *TextDocumentIdentifier {
@@ -9727,7 +9962,7 @@ type InlineValueResponse struct {
 
 func (x *InlineValueResponse) Reset() {
 	*x = InlineValueResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[174]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[178]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9739,7 +9974,7 @@ func (x *InlineValueResponse) String() string {
 func (*InlineValueResponse) ProtoMessage() {}
 
 func (x *InlineValueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[174]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[178]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9752,7 +9987,7 @@ func (x *InlineValueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InlineValueResponse.ProtoReflect.Descriptor instead.
 func (*InlineValueResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{174}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{178}
 }
 
 func (x *InlineValueResponse) GetValues() []*InlineValue {
@@ -9771,7 +10006,7 @@ type WillCreateFilesRequest struct {
 
 func (x *WillCreateFilesRequest) Reset() {
 	*x = WillCreateFilesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[175]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[179]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9783,7 +10018,7 @@ func (x *WillCreateFilesRequest) String() string {
 func (*WillCreateFilesRequest) ProtoMessage() {}
 
 func (x *WillCreateFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[175]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[179]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9796,7 +10031,7 @@ func (x *WillCreateFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillCreateFilesRequest.ProtoReflect.Descriptor instead.
 func (*WillCreateFilesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{175}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{179}
 }
 
 func (x *WillCreateFilesRequest) GetFiles() []*FileCreate {
@@ -9816,7 +10051,7 @@ type WillCreateFilesResponse struct {
 
 func (x *WillCreateFilesResponse) Reset() {
 	*x = WillCreateFilesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[176]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[180]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9828,7 +10063,7 @@ func (x *WillCreateFilesResponse) String() string {
 func (*WillCreateFilesResponse) ProtoMessage() {}
 
 func (x *WillCreateFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[176]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[180]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9841,7 +10076,7 @@ func (x *WillCreateFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillCreateFilesResponse.ProtoReflect.Descriptor instead.
 func (*WillCreateFilesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{176}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{180}
 }
 
 func (x *WillCreateFilesResponse) GetResult() *WorkspaceEdit {
@@ -9867,7 +10102,7 @@ type WillRenameFilesRequest struct {
 
 func (x *WillRenameFilesRequest) Reset() {
 	*x = WillRenameFilesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[177]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[181]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9879,7 +10114,7 @@ func (x *WillRenameFilesRequest) String() string {
 func (*WillRenameFilesRequest) ProtoMessage() {}
 
 func (x *WillRenameFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[177]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[181]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9892,7 +10127,7 @@ func (x *WillRenameFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillRenameFilesRequest.ProtoReflect.Descriptor instead.
 func (*WillRenameFilesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{177}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{181}
 }
 
 func (x *WillRenameFilesRequest) GetFiles() []*FileRename {
@@ -9912,7 +10147,7 @@ type WillRenameFilesResponse struct {
 
 func (x *WillRenameFilesResponse) Reset() {
 	*x = WillRenameFilesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[178]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[182]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9924,7 +10159,7 @@ func (x *WillRenameFilesResponse) String() string {
 func (*WillRenameFilesResponse) ProtoMessage() {}
 
 func (x *WillRenameFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[178]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[182]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9937,7 +10172,7 @@ func (x *WillRenameFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillRenameFilesResponse.ProtoReflect.Descriptor instead.
 func (*WillRenameFilesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{178}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{182}
 }
 
 func (x *WillRenameFilesResponse) GetResult() *WorkspaceEdit {
@@ -9963,7 +10198,7 @@ type WillDeleteFilesRequest struct {
 
 func (x *WillDeleteFilesRequest) Reset() {
 	*x = WillDeleteFilesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[179]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[183]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9975,7 +10210,7 @@ func (x *WillDeleteFilesRequest) String() string {
 func (*WillDeleteFilesRequest) ProtoMessage() {}
 
 func (x *WillDeleteFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[179]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[183]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9988,7 +10223,7 @@ func (x *WillDeleteFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillDeleteFilesRequest.ProtoReflect.Descriptor instead.
 func (*WillDeleteFilesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{179}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{183}
 }
 
 func (x *WillDeleteFilesRequest) GetFiles() []*FileDelete {
@@ -10008,7 +10243,7 @@ type WillDeleteFilesResponse struct {
 
 func (x *WillDeleteFilesResponse) Reset() {
 	*x = WillDeleteFilesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[180]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[184]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10020,7 +10255,7 @@ func (x *WillDeleteFilesResponse) String() string {
 func (*WillDeleteFilesResponse) ProtoMessage() {}
 
 func (x *WillDeleteFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[180]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[184]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10033,7 +10268,7 @@ func (x *WillDeleteFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WillDeleteFilesResponse.ProtoReflect.Descriptor instead.
 func (*WillDeleteFilesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{180}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{184}
 }
 
 func (x *WillDeleteFilesResponse) GetResult() *WorkspaceEdit {
@@ -10059,7 +10294,7 @@ type DidChangeConfigurationRequest struct {
 
 func (x *DidChangeConfigurationRequest) Reset() {
 	*x = DidChangeConfigurationRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[181]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[185]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10071,7 +10306,7 @@ func (x *DidChangeConfigurationRequest) String() string {
 func (*DidChangeConfigurationRequest) ProtoMessage() {}
 
 func (x *DidChangeConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[181]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[185]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10084,7 +10319,7 @@ func (x *DidChangeConfigurationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidChangeConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*DidChangeConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{181}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{185}
 }
 
 func (x *DidChangeConfigurationRequest) GetSettings() []byte {
@@ -10102,7 +10337,7 @@ type DidChangeConfigurationResponse struct {
 
 func (x *DidChangeConfigurationResponse) Reset() {
 	*x = DidChangeConfigurationResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[182]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[186]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10114,7 +10349,7 @@ func (x *DidChangeConfigurationResponse) String() string {
 func (*DidChangeConfigurationResponse) ProtoMessage() {}
 
 func (x *DidChangeConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[182]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[186]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10127,7 +10362,7 @@ func (x *DidChangeConfigurationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidChangeConfigurationResponse.ProtoReflect.Descriptor instead.
 func (*DidChangeConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{182}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{186}
 }
 
 type DidChangeWatchedFilesRequest struct {
@@ -10139,7 +10374,7 @@ type DidChangeWatchedFilesRequest struct {
 
 func (x *DidChangeWatchedFilesRequest) Reset() {
 	*x = DidChangeWatchedFilesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[183]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[187]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10151,7 +10386,7 @@ func (x *DidChangeWatchedFilesRequest) String() string {
 func (*DidChangeWatchedFilesRequest) ProtoMessage() {}
 
 func (x *DidChangeWatchedFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[183]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[187]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10164,7 +10399,7 @@ func (x *DidChangeWatchedFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidChangeWatchedFilesRequest.ProtoReflect.Descriptor instead.
 func (*DidChangeWatchedFilesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{183}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{187}
 }
 
 func (x *DidChangeWatchedFilesRequest) GetChanges() []*FileEvent {
@@ -10182,7 +10417,7 @@ type DidChangeWatchedFilesResponse struct {
 
 func (x *DidChangeWatchedFilesResponse) Reset() {
 	*x = DidChangeWatchedFilesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[184]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[188]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10194,7 +10429,7 @@ func (x *DidChangeWatchedFilesResponse) String() string {
 func (*DidChangeWatchedFilesResponse) ProtoMessage() {}
 
 func (x *DidChangeWatchedFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[184]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[188]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10207,7 +10442,7 @@ func (x *DidChangeWatchedFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidChangeWatchedFilesResponse.ProtoReflect.Descriptor instead.
 func (*DidChangeWatchedFilesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{184}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{188}
 }
 
 type DidChangeWorkspaceFoldersRequest struct {
@@ -10220,7 +10455,7 @@ type DidChangeWorkspaceFoldersRequest struct {
 
 func (x *DidChangeWorkspaceFoldersRequest) Reset() {
 	*x = DidChangeWorkspaceFoldersRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[185]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[189]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10232,7 +10467,7 @@ func (x *DidChangeWorkspaceFoldersRequest) String() string {
 func (*DidChangeWorkspaceFoldersRequest) ProtoMessage() {}
 
 func (x *DidChangeWorkspaceFoldersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[185]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[189]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10245,7 +10480,7 @@ func (x *DidChangeWorkspaceFoldersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidChangeWorkspaceFoldersRequest.ProtoReflect.Descriptor instead.
 func (*DidChangeWorkspaceFoldersRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{185}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{189}
 }
 
 func (x *DidChangeWorkspaceFoldersRequest) GetAdded() []*WorkspaceFolder {
@@ -10270,7 +10505,7 @@ type DidChangeWorkspaceFoldersResponse struct {
 
 func (x *DidChangeWorkspaceFoldersResponse) Reset() {
 	*x = DidChangeWorkspaceFoldersResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[186]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[190]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10282,7 +10517,7 @@ func (x *DidChangeWorkspaceFoldersResponse) String() string {
 func (*DidChangeWorkspaceFoldersResponse) ProtoMessage() {}
 
 func (x *DidChangeWorkspaceFoldersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[186]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[190]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10295,7 +10530,7 @@ func (x *DidChangeWorkspaceFoldersResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use DidChangeWorkspaceFoldersResponse.ProtoReflect.Descriptor instead.
 func (*DidChangeWorkspaceFoldersResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{186}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{190}
 }
 
 type WorkDoneProgressCancelRequest struct {
@@ -10307,7 +10542,7 @@ type WorkDoneProgressCancelRequest struct {
 
 func (x *WorkDoneProgressCancelRequest) Reset() {
 	*x = WorkDoneProgressCancelRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[187]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[191]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10319,7 +10554,7 @@ func (x *WorkDoneProgressCancelRequest) String() string {
 func (*WorkDoneProgressCancelRequest) ProtoMessage() {}
 
 func (x *WorkDoneProgressCancelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[187]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[191]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10332,7 +10567,7 @@ func (x *WorkDoneProgressCancelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkDoneProgressCancelRequest.ProtoReflect.Descriptor instead.
 func (*WorkDoneProgressCancelRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{187}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{191}
 }
 
 func (x *WorkDoneProgressCancelRequest) GetToken() string {
@@ -10350,7 +10585,7 @@ type WorkDoneProgressCancelResponse struct {
 
 func (x *WorkDoneProgressCancelResponse) Reset() {
 	*x = WorkDoneProgressCancelResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[188]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[192]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10362,7 +10597,7 @@ func (x *WorkDoneProgressCancelResponse) String() string {
 func (*WorkDoneProgressCancelResponse) ProtoMessage() {}
 
 func (x *WorkDoneProgressCancelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[188]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[192]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10375,7 +10610,7 @@ func (x *WorkDoneProgressCancelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkDoneProgressCancelResponse.ProtoReflect.Descriptor instead.
 func (*WorkDoneProgressCancelResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{188}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{192}
 }
 
 type SetTraceRequest struct {
@@ -10387,7 +10622,7 @@ type SetTraceRequest struct {
 
 func (x *SetTraceRequest) Reset() {
 	*x = SetTraceRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[189]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[193]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10399,7 +10634,7 @@ func (x *SetTraceRequest) String() string {
 func (*SetTraceRequest) ProtoMessage() {}
 
 func (x *SetTraceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[189]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[193]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10412,7 +10647,7 @@ func (x *SetTraceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTraceRequest.ProtoReflect.Descriptor instead.
 func (*SetTraceRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{189}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{193}
 }
 
 func (x *SetTraceRequest) GetValue() string {
@@ -10430,7 +10665,7 @@ type SetTraceResponse struct {
 
 func (x *SetTraceResponse) Reset() {
 	*x = SetTraceResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[190]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[194]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10442,7 +10677,7 @@ func (x *SetTraceResponse) String() string {
 func (*SetTraceResponse) ProtoMessage() {}
 
 func (x *SetTraceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[190]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[194]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10455,7 +10690,7 @@ func (x *SetTraceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTraceResponse.ProtoReflect.Descriptor instead.
 func (*SetTraceResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{190}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{194}
 }
 
 type DidCreateFilesRequest struct {
@@ -10467,7 +10702,7 @@ type DidCreateFilesRequest struct {
 
 func (x *DidCreateFilesRequest) Reset() {
 	*x = DidCreateFilesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[191]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[195]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10479,7 +10714,7 @@ func (x *DidCreateFilesRequest) String() string {
 func (*DidCreateFilesRequest) ProtoMessage() {}
 
 func (x *DidCreateFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[191]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[195]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10492,7 +10727,7 @@ func (x *DidCreateFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidCreateFilesRequest.ProtoReflect.Descriptor instead.
 func (*DidCreateFilesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{191}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{195}
 }
 
 func (x *DidCreateFilesRequest) GetFiles() []*FileCreate {
@@ -10510,7 +10745,7 @@ type DidCreateFilesResponse struct {
 
 func (x *DidCreateFilesResponse) Reset() {
 	*x = DidCreateFilesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[192]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[196]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10522,7 +10757,7 @@ func (x *DidCreateFilesResponse) String() string {
 func (*DidCreateFilesResponse) ProtoMessage() {}
 
 func (x *DidCreateFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[192]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[196]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10535,7 +10770,7 @@ func (x *DidCreateFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidCreateFilesResponse.ProtoReflect.Descriptor instead.
 func (*DidCreateFilesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{192}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{196}
 }
 
 type DidRenameFilesRequest struct {
@@ -10547,7 +10782,7 @@ type DidRenameFilesRequest struct {
 
 func (x *DidRenameFilesRequest) Reset() {
 	*x = DidRenameFilesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[193]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[197]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10559,7 +10794,7 @@ func (x *DidRenameFilesRequest) String() string {
 func (*DidRenameFilesRequest) ProtoMessage() {}
 
 func (x *DidRenameFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[193]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[197]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10572,7 +10807,7 @@ func (x *DidRenameFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidRenameFilesRequest.ProtoReflect.Descriptor instead.
 func (*DidRenameFilesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{193}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{197}
 }
 
 func (x *DidRenameFilesRequest) GetFiles() []*FileRename {
@@ -10590,7 +10825,7 @@ type DidRenameFilesResponse struct {
 
 func (x *DidRenameFilesResponse) Reset() {
 	*x = DidRenameFilesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[194]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[198]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10602,7 +10837,7 @@ func (x *DidRenameFilesResponse) String() string {
 func (*DidRenameFilesResponse) ProtoMessage() {}
 
 func (x *DidRenameFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[194]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[198]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10615,7 +10850,7 @@ func (x *DidRenameFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidRenameFilesResponse.ProtoReflect.Descriptor instead.
 func (*DidRenameFilesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{194}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{198}
 }
 
 type DidDeleteFilesRequest struct {
@@ -10627,7 +10862,7 @@ type DidDeleteFilesRequest struct {
 
 func (x *DidDeleteFilesRequest) Reset() {
 	*x = DidDeleteFilesRequest{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[195]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[199]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10639,7 +10874,7 @@ func (x *DidDeleteFilesRequest) String() string {
 func (*DidDeleteFilesRequest) ProtoMessage() {}
 
 func (x *DidDeleteFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[195]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[199]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10652,7 +10887,7 @@ func (x *DidDeleteFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidDeleteFilesRequest.ProtoReflect.Descriptor instead.
 func (*DidDeleteFilesRequest) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{195}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{199}
 }
 
 func (x *DidDeleteFilesRequest) GetFiles() []*FileDelete {
@@ -10670,7 +10905,7 @@ type DidDeleteFilesResponse struct {
 
 func (x *DidDeleteFilesResponse) Reset() {
 	*x = DidDeleteFilesResponse{}
-	mi := &file_semanticrpc_semantic_proto_msgTypes[196]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[200]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10682,7 +10917,7 @@ func (x *DidDeleteFilesResponse) String() string {
 func (*DidDeleteFilesResponse) ProtoMessage() {}
 
 func (x *DidDeleteFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_semanticrpc_semantic_proto_msgTypes[196]
+	mi := &file_semanticrpc_semantic_proto_msgTypes[200]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10695,7 +10930,7 @@ func (x *DidDeleteFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DidDeleteFilesResponse.ProtoReflect.Descriptor instead.
 func (*DidDeleteFilesResponse) Descriptor() ([]byte, []int) {
-	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{196}
+	return file_semanticrpc_semantic_proto_rawDescGZIP(), []int{200}
 }
 
 var File_semanticrpc_semantic_proto protoreflect.FileDescriptor
@@ -10823,14 +11058,15 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"\aCommand\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
 	"\acommand\x18\x02 \x01(\tR\acommand\x12\x1c\n" +
-	"\targuments\x18\x03 \x03(\tR\targuments\"\xc8\x01\n" +
+	"\targuments\x18\x03 \x03(\tR\targuments\"\xde\x01\n" +
 	"\n" +
 	"CodeAction\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x126\n" +
 	"\vdiagnostics\x18\x03 \x03(\v2\x14.semantic.DiagnosticR\vdiagnostics\x12+\n" +
 	"\x04edit\x18\x04 \x01(\v2\x17.semantic.WorkspaceEditR\x04edit\x12+\n" +
-	"\acommand\x18\x05 \x01(\v2\x11.semantic.CommandR\acommand\"^\n" +
+	"\acommand\x18\x05 \x01(\v2\x11.semantic.CommandR\acommand\x12\x14\n" +
+	"\x05group\x18\x06 \x01(\tR\x05group\"^\n" +
 	"\bCodeLens\x12%\n" +
 	"\x05range\x18\x01 \x01(\v2\x0f.semantic.RangeR\x05range\x12+\n" +
 	"\acommand\x18\x02 \x01(\v2\x11.semantic.CommandR\acommand\"8\n" +
@@ -10923,7 +11159,7 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"\x11related_documents\x18\x04 \x03(\v28.semantic.DocumentDiagnosticReport.RelatedDocumentsEntryR\x10relatedDocuments\x1a]\n" +
 	"\x15RelatedDocumentsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12.\n" +
-	"\x05value\x18\x02 \x01(\v2\x18.semantic.DiagnosticListR\x05value:\x028\x01\"\xbb\x17\n" +
+	"\x05value\x18\x02 \x01(\v2\x18.semantic.DiagnosticListR\x05value:\x028\x01\"\xdf\x17\n" +
 	"\x12ServerCapabilities\x12/\n" +
 	"\x13completion_provider\x18\x01 \x01(\bR\x12completionProvider\x12%\n" +
 	"\x0ehover_provider\x18\x02 \x01(\bR\rhoverProvider\x126\n" +
@@ -10975,7 +11211,8 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"*on_type_formatting_first_trigger_character\x18/ \x01(\tR%onTypeFormattingFirstTriggerCharacter\x12Y\n" +
 	"*on_type_formatting_more_trigger_characters\x180 \x03(\tR%onTypeFormattingMoreTriggerCharacters\x12=\n" +
 	"\x1binlay_hint_resolve_provider\x181 \x01(\bR\x18inlayHintResolveProvider\x12K\n" +
-	"\"document_range_formatting_provider\x182 \x01(\bR\x1fdocumentRangeFormattingProvider\"x\n" +
+	"\"document_range_formatting_provider\x182 \x01(\bR\x1fdocumentRangeFormattingProvider\x12\"\n" +
+	"\fexperimental\x183 \x01(\fR\fexperimental\"x\n" +
 	"\x1eTextDocumentContentChangeEvent\x12%\n" +
 	"\x05range\x18\x01 \x01(\v2\x0f.semantic.RangeR\x05range\x12\x1b\n" +
 	"\thas_range\x18\x02 \x01(\bR\bhasRange\x12\x12\n" +
@@ -11249,16 +11486,30 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"\aversion\x18\x04 \x01(\x05R\aversion\x12*\n" +
 	"\x05items\x18\x05 \x03(\v2\x14.semantic.DiagnosticR\x05items\"`\n" +
 	"\x1bWorkspaceDiagnosticResponse\x12A\n" +
-	"\x05items\x18\x01 \x03(\v2+.semantic.WorkspaceDocumentDiagnosticReportR\x05items\".\n" +
+	"\x05items\x18\x01 \x03(\v2+.semantic.WorkspaceDocumentDiagnosticReportR\x05items\"r\n" +
 	"\x16WorkspaceSymbolRequest\x12\x14\n" +
-	"\x05query\x18\x01 \x01(\tR\x05query\"P\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12!\n" +
+	"\fsearch_scope\x18\x02 \x01(\tR\vsearchScope\x12\x1f\n" +
+	"\vsearch_kind\x18\x03 \x01(\tR\n" +
+	"searchKind\"P\n" +
 	"\x17WorkspaceSymbolResponse\x125\n" +
 	"\asymbols\x18\x01 \x03(\v2\x1b.semantic.SymbolInformationR\asymbols\"O\n" +
 	"\x15ExecuteCommandRequest\x12\x18\n" +
 	"\acommand\x18\x01 \x01(\tR\acommand\x12\x1c\n" +
 	"\targuments\x18\x02 \x03(\tR\targuments\"0\n" +
 	"\x16ExecuteCommandResponse\x12\x16\n" +
-	"\x06result\x18\x01 \x01(\tR\x06result\"\x94\x01\n" +
+	"\x06result\x18\x01 \x01(\tR\x06result\"d\n" +
+	"\x15ExecuteRequestRequest\x12\x16\n" +
+	"\x06method\x18\x01 \x01(\tR\x06method\x12\x16\n" +
+	"\x06params\x18\x02 \x01(\fR\x06params\x12\x1b\n" +
+	"\tserver_id\x18\x03 \x01(\tR\bserverId\"0\n" +
+	"\x16ExecuteRequestResponse\x12\x16\n" +
+	"\x06result\x18\x01 \x01(\fR\x06result\"f\n" +
+	"\x17SendNotificationRequest\x12\x16\n" +
+	"\x06method\x18\x01 \x01(\tR\x06method\x12\x16\n" +
+	"\x06params\x18\x02 \x01(\fR\x06params\x12\x1b\n" +
+	"\tserver_id\x18\x03 \x01(\tR\bserverId\"\x1a\n" +
+	"\x18SendNotificationResponse\"\x94\x01\n" +
 	"\x1bPrepareCallHierarchyRequest\x12E\n" +
 	"\rtext_document\x18\x01 \x01(\v2 .semantic.TextDocumentIdentifierR\ftextDocument\x12.\n" +
 	"\bposition\x18\x02 \x01(\v2\x12.semantic.PositionR\bposition\"Q\n" +
@@ -11403,7 +11654,7 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"\x16DidRenameFilesResponse\"C\n" +
 	"\x15DidDeleteFilesRequest\x12*\n" +
 	"\x05files\x18\x01 \x03(\v2\x14.semantic.FileDeleteR\x05files\"\x18\n" +
-	"\x16DidDeleteFilesResponse2\xdd*\n" +
+	"\x16DidDeleteFilesResponse2\x8d,\n" +
 	"\x03LSP\x12G\n" +
 	"\n" +
 	"Initialize\x12\x1b.semantic.InitializeRequest\x1a\x1c.semantic.InitializeResponse\x12J\n" +
@@ -11443,7 +11694,9 @@ const file_semanticrpc_semantic_proto_rawDesc = "" +
 	"Diagnostic\x12\x1b.semantic.DiagnosticRequest\x1a\x1c.semantic.DiagnosticResponse\x12b\n" +
 	"\x13WorkspaceDiagnostic\x12$.semantic.WorkspaceDiagnosticRequest\x1a%.semantic.WorkspaceDiagnosticResponse\x12V\n" +
 	"\x0fWorkspaceSymbol\x12 .semantic.WorkspaceSymbolRequest\x1a!.semantic.WorkspaceSymbolResponse\x12S\n" +
-	"\x0eExecuteCommand\x12\x1f.semantic.ExecuteCommandRequest\x1a .semantic.ExecuteCommandResponse\x12e\n" +
+	"\x0eExecuteCommand\x12\x1f.semantic.ExecuteCommandRequest\x1a .semantic.ExecuteCommandResponse\x12S\n" +
+	"\x0eExecuteRequest\x12\x1f.semantic.ExecuteRequestRequest\x1a .semantic.ExecuteRequestResponse\x12Y\n" +
+	"\x10SendNotification\x12!.semantic.SendNotificationRequest\x1a\".semantic.SendNotificationResponse\x12e\n" +
 	"\x14PrepareCallHierarchy\x12%.semantic.PrepareCallHierarchyRequest\x1a&.semantic.PrepareCallHierarchyResponse\x12w\n" +
 	"\x1aCallHierarchyIncomingCalls\x12+.semantic.CallHierarchyIncomingCallsRequest\x1a,.semantic.CallHierarchyIncomingCallsResponse\x12w\n" +
 	"\x1aCallHierarchyOutgoingCalls\x12+.semantic.CallHierarchyOutgoingCallsRequest\x1a,.semantic.CallHierarchyOutgoingCallsResponse\x12\\\n" +
@@ -11489,7 +11742,7 @@ func file_semanticrpc_semantic_proto_rawDescGZIP() []byte {
 	return file_semanticrpc_semantic_proto_rawDescData
 }
 
-var file_semanticrpc_semantic_proto_msgTypes = make([]protoimpl.MessageInfo, 200)
+var file_semanticrpc_semantic_proto_msgTypes = make([]protoimpl.MessageInfo, 204)
 var file_semanticrpc_semantic_proto_goTypes = []any{
 	(*Position)(nil),                           // 0: semantic.Position
 	(*Range)(nil),                              // 1: semantic.Range
@@ -11624,73 +11877,77 @@ var file_semanticrpc_semantic_proto_goTypes = []any{
 	(*WorkspaceSymbolResponse)(nil),            // 130: semantic.WorkspaceSymbolResponse
 	(*ExecuteCommandRequest)(nil),              // 131: semantic.ExecuteCommandRequest
 	(*ExecuteCommandResponse)(nil),             // 132: semantic.ExecuteCommandResponse
-	(*PrepareCallHierarchyRequest)(nil),        // 133: semantic.PrepareCallHierarchyRequest
-	(*PrepareCallHierarchyResponse)(nil),       // 134: semantic.PrepareCallHierarchyResponse
-	(*CallHierarchyIncomingCallsRequest)(nil),  // 135: semantic.CallHierarchyIncomingCallsRequest
-	(*CallHierarchyIncomingCallsResponse)(nil), // 136: semantic.CallHierarchyIncomingCallsResponse
-	(*CallHierarchyOutgoingCallsRequest)(nil),  // 137: semantic.CallHierarchyOutgoingCallsRequest
-	(*CallHierarchyOutgoingCallsResponse)(nil), // 138: semantic.CallHierarchyOutgoingCallsResponse
-	(*CompletionResolveRequest)(nil),           // 139: semantic.CompletionResolveRequest
-	(*CompletionResolveResponse)(nil),          // 140: semantic.CompletionResolveResponse
-	(*CodeLensResolveRequest)(nil),             // 141: semantic.CodeLensResolveRequest
-	(*CodeLensResolveResponse)(nil),            // 142: semantic.CodeLensResolveResponse
-	(*DocumentColorRequest)(nil),               // 143: semantic.DocumentColorRequest
-	(*DocumentColorResponse)(nil),              // 144: semantic.DocumentColorResponse
-	(*ColorPresentationRequest)(nil),           // 145: semantic.ColorPresentationRequest
-	(*ColorPresentationResponse)(nil),          // 146: semantic.ColorPresentationResponse
-	(*DocumentLinkRequest)(nil),                // 147: semantic.DocumentLinkRequest
-	(*DocumentLinkResponse)(nil),               // 148: semantic.DocumentLinkResponse
-	(*DocumentLinkResolveRequest)(nil),         // 149: semantic.DocumentLinkResolveRequest
-	(*DocumentLinkResolveResponse)(nil),        // 150: semantic.DocumentLinkResolveResponse
-	(*OnTypeFormattingRequest)(nil),            // 151: semantic.OnTypeFormattingRequest
-	(*OnTypeFormattingResponse)(nil),           // 152: semantic.OnTypeFormattingResponse
-	(*LinkedEditingRangeRequest)(nil),          // 153: semantic.LinkedEditingRangeRequest
-	(*LinkedEditingRangeResponse)(nil),         // 154: semantic.LinkedEditingRangeResponse
-	(*MonikerRequest)(nil),                     // 155: semantic.MonikerRequest
-	(*MonikerResponse)(nil),                    // 156: semantic.MonikerResponse
-	(*WillSaveRequest)(nil),                    // 157: semantic.WillSaveRequest
-	(*WillSaveResponse)(nil),                   // 158: semantic.WillSaveResponse
-	(*WillSaveWaitUntilRequest)(nil),           // 159: semantic.WillSaveWaitUntilRequest
-	(*WillSaveWaitUntilResponse)(nil),          // 160: semantic.WillSaveWaitUntilResponse
-	(*SemanticTokensFullDeltaRequest)(nil),     // 161: semantic.SemanticTokensFullDeltaRequest
-	(*SemanticTokensFullDeltaResponse)(nil),    // 162: semantic.SemanticTokensFullDeltaResponse
-	(*PrepareTypeHierarchyRequest)(nil),        // 163: semantic.PrepareTypeHierarchyRequest
-	(*PrepareTypeHierarchyResponse)(nil),       // 164: semantic.PrepareTypeHierarchyResponse
-	(*TypeHierarchySupertypesRequest)(nil),     // 165: semantic.TypeHierarchySupertypesRequest
-	(*TypeHierarchySupertypesResponse)(nil),    // 166: semantic.TypeHierarchySupertypesResponse
-	(*TypeHierarchySubtypesRequest)(nil),       // 167: semantic.TypeHierarchySubtypesRequest
-	(*TypeHierarchySubtypesResponse)(nil),      // 168: semantic.TypeHierarchySubtypesResponse
-	(*InlayHintRequest)(nil),                   // 169: semantic.InlayHintRequest
-	(*InlayHintResponse)(nil),                  // 170: semantic.InlayHintResponse
-	(*InlayHintResolveRequest)(nil),            // 171: semantic.InlayHintResolveRequest
-	(*InlayHintResolveResponse)(nil),           // 172: semantic.InlayHintResolveResponse
-	(*InlineValueRequest)(nil),                 // 173: semantic.InlineValueRequest
-	(*InlineValueResponse)(nil),                // 174: semantic.InlineValueResponse
-	(*WillCreateFilesRequest)(nil),             // 175: semantic.WillCreateFilesRequest
-	(*WillCreateFilesResponse)(nil),            // 176: semantic.WillCreateFilesResponse
-	(*WillRenameFilesRequest)(nil),             // 177: semantic.WillRenameFilesRequest
-	(*WillRenameFilesResponse)(nil),            // 178: semantic.WillRenameFilesResponse
-	(*WillDeleteFilesRequest)(nil),             // 179: semantic.WillDeleteFilesRequest
-	(*WillDeleteFilesResponse)(nil),            // 180: semantic.WillDeleteFilesResponse
-	(*DidChangeConfigurationRequest)(nil),      // 181: semantic.DidChangeConfigurationRequest
-	(*DidChangeConfigurationResponse)(nil),     // 182: semantic.DidChangeConfigurationResponse
-	(*DidChangeWatchedFilesRequest)(nil),       // 183: semantic.DidChangeWatchedFilesRequest
-	(*DidChangeWatchedFilesResponse)(nil),      // 184: semantic.DidChangeWatchedFilesResponse
-	(*DidChangeWorkspaceFoldersRequest)(nil),   // 185: semantic.DidChangeWorkspaceFoldersRequest
-	(*DidChangeWorkspaceFoldersResponse)(nil),  // 186: semantic.DidChangeWorkspaceFoldersResponse
-	(*WorkDoneProgressCancelRequest)(nil),      // 187: semantic.WorkDoneProgressCancelRequest
-	(*WorkDoneProgressCancelResponse)(nil),     // 188: semantic.WorkDoneProgressCancelResponse
-	(*SetTraceRequest)(nil),                    // 189: semantic.SetTraceRequest
-	(*SetTraceResponse)(nil),                   // 190: semantic.SetTraceResponse
-	(*DidCreateFilesRequest)(nil),              // 191: semantic.DidCreateFilesRequest
-	(*DidCreateFilesResponse)(nil),             // 192: semantic.DidCreateFilesResponse
-	(*DidRenameFilesRequest)(nil),              // 193: semantic.DidRenameFilesRequest
-	(*DidRenameFilesResponse)(nil),             // 194: semantic.DidRenameFilesResponse
-	(*DidDeleteFilesRequest)(nil),              // 195: semantic.DidDeleteFilesRequest
-	(*DidDeleteFilesResponse)(nil),             // 196: semantic.DidDeleteFilesResponse
-	nil,                                        // 197: semantic.WorkspaceEdit.ChangesEntry
-	nil,                                        // 198: semantic.RelatedDocumentDiagnostics.RelatedDocumentsEntry
-	nil,                                        // 199: semantic.DocumentDiagnosticReport.RelatedDocumentsEntry
+	(*ExecuteRequestRequest)(nil),              // 133: semantic.ExecuteRequestRequest
+	(*ExecuteRequestResponse)(nil),             // 134: semantic.ExecuteRequestResponse
+	(*SendNotificationRequest)(nil),            // 135: semantic.SendNotificationRequest
+	(*SendNotificationResponse)(nil),           // 136: semantic.SendNotificationResponse
+	(*PrepareCallHierarchyRequest)(nil),        // 137: semantic.PrepareCallHierarchyRequest
+	(*PrepareCallHierarchyResponse)(nil),       // 138: semantic.PrepareCallHierarchyResponse
+	(*CallHierarchyIncomingCallsRequest)(nil),  // 139: semantic.CallHierarchyIncomingCallsRequest
+	(*CallHierarchyIncomingCallsResponse)(nil), // 140: semantic.CallHierarchyIncomingCallsResponse
+	(*CallHierarchyOutgoingCallsRequest)(nil),  // 141: semantic.CallHierarchyOutgoingCallsRequest
+	(*CallHierarchyOutgoingCallsResponse)(nil), // 142: semantic.CallHierarchyOutgoingCallsResponse
+	(*CompletionResolveRequest)(nil),           // 143: semantic.CompletionResolveRequest
+	(*CompletionResolveResponse)(nil),          // 144: semantic.CompletionResolveResponse
+	(*CodeLensResolveRequest)(nil),             // 145: semantic.CodeLensResolveRequest
+	(*CodeLensResolveResponse)(nil),            // 146: semantic.CodeLensResolveResponse
+	(*DocumentColorRequest)(nil),               // 147: semantic.DocumentColorRequest
+	(*DocumentColorResponse)(nil),              // 148: semantic.DocumentColorResponse
+	(*ColorPresentationRequest)(nil),           // 149: semantic.ColorPresentationRequest
+	(*ColorPresentationResponse)(nil),          // 150: semantic.ColorPresentationResponse
+	(*DocumentLinkRequest)(nil),                // 151: semantic.DocumentLinkRequest
+	(*DocumentLinkResponse)(nil),               // 152: semantic.DocumentLinkResponse
+	(*DocumentLinkResolveRequest)(nil),         // 153: semantic.DocumentLinkResolveRequest
+	(*DocumentLinkResolveResponse)(nil),        // 154: semantic.DocumentLinkResolveResponse
+	(*OnTypeFormattingRequest)(nil),            // 155: semantic.OnTypeFormattingRequest
+	(*OnTypeFormattingResponse)(nil),           // 156: semantic.OnTypeFormattingResponse
+	(*LinkedEditingRangeRequest)(nil),          // 157: semantic.LinkedEditingRangeRequest
+	(*LinkedEditingRangeResponse)(nil),         // 158: semantic.LinkedEditingRangeResponse
+	(*MonikerRequest)(nil),                     // 159: semantic.MonikerRequest
+	(*MonikerResponse)(nil),                    // 160: semantic.MonikerResponse
+	(*WillSaveRequest)(nil),                    // 161: semantic.WillSaveRequest
+	(*WillSaveResponse)(nil),                   // 162: semantic.WillSaveResponse
+	(*WillSaveWaitUntilRequest)(nil),           // 163: semantic.WillSaveWaitUntilRequest
+	(*WillSaveWaitUntilResponse)(nil),          // 164: semantic.WillSaveWaitUntilResponse
+	(*SemanticTokensFullDeltaRequest)(nil),     // 165: semantic.SemanticTokensFullDeltaRequest
+	(*SemanticTokensFullDeltaResponse)(nil),    // 166: semantic.SemanticTokensFullDeltaResponse
+	(*PrepareTypeHierarchyRequest)(nil),        // 167: semantic.PrepareTypeHierarchyRequest
+	(*PrepareTypeHierarchyResponse)(nil),       // 168: semantic.PrepareTypeHierarchyResponse
+	(*TypeHierarchySupertypesRequest)(nil),     // 169: semantic.TypeHierarchySupertypesRequest
+	(*TypeHierarchySupertypesResponse)(nil),    // 170: semantic.TypeHierarchySupertypesResponse
+	(*TypeHierarchySubtypesRequest)(nil),       // 171: semantic.TypeHierarchySubtypesRequest
+	(*TypeHierarchySubtypesResponse)(nil),      // 172: semantic.TypeHierarchySubtypesResponse
+	(*InlayHintRequest)(nil),                   // 173: semantic.InlayHintRequest
+	(*InlayHintResponse)(nil),                  // 174: semantic.InlayHintResponse
+	(*InlayHintResolveRequest)(nil),            // 175: semantic.InlayHintResolveRequest
+	(*InlayHintResolveResponse)(nil),           // 176: semantic.InlayHintResolveResponse
+	(*InlineValueRequest)(nil),                 // 177: semantic.InlineValueRequest
+	(*InlineValueResponse)(nil),                // 178: semantic.InlineValueResponse
+	(*WillCreateFilesRequest)(nil),             // 179: semantic.WillCreateFilesRequest
+	(*WillCreateFilesResponse)(nil),            // 180: semantic.WillCreateFilesResponse
+	(*WillRenameFilesRequest)(nil),             // 181: semantic.WillRenameFilesRequest
+	(*WillRenameFilesResponse)(nil),            // 182: semantic.WillRenameFilesResponse
+	(*WillDeleteFilesRequest)(nil),             // 183: semantic.WillDeleteFilesRequest
+	(*WillDeleteFilesResponse)(nil),            // 184: semantic.WillDeleteFilesResponse
+	(*DidChangeConfigurationRequest)(nil),      // 185: semantic.DidChangeConfigurationRequest
+	(*DidChangeConfigurationResponse)(nil),     // 186: semantic.DidChangeConfigurationResponse
+	(*DidChangeWatchedFilesRequest)(nil),       // 187: semantic.DidChangeWatchedFilesRequest
+	(*DidChangeWatchedFilesResponse)(nil),      // 188: semantic.DidChangeWatchedFilesResponse
+	(*DidChangeWorkspaceFoldersRequest)(nil),   // 189: semantic.DidChangeWorkspaceFoldersRequest
+	(*DidChangeWorkspaceFoldersResponse)(nil),  // 190: semantic.DidChangeWorkspaceFoldersResponse
+	(*WorkDoneProgressCancelRequest)(nil),      // 191: semantic.WorkDoneProgressCancelRequest
+	(*WorkDoneProgressCancelResponse)(nil),     // 192: semantic.WorkDoneProgressCancelResponse
+	(*SetTraceRequest)(nil),                    // 193: semantic.SetTraceRequest
+	(*SetTraceResponse)(nil),                   // 194: semantic.SetTraceResponse
+	(*DidCreateFilesRequest)(nil),              // 195: semantic.DidCreateFilesRequest
+	(*DidCreateFilesResponse)(nil),             // 196: semantic.DidCreateFilesResponse
+	(*DidRenameFilesRequest)(nil),              // 197: semantic.DidRenameFilesRequest
+	(*DidRenameFilesResponse)(nil),             // 198: semantic.DidRenameFilesResponse
+	(*DidDeleteFilesRequest)(nil),              // 199: semantic.DidDeleteFilesRequest
+	(*DidDeleteFilesResponse)(nil),             // 200: semantic.DidDeleteFilesResponse
+	nil,                                        // 201: semantic.WorkspaceEdit.ChangesEntry
+	nil,                                        // 202: semantic.RelatedDocumentDiagnostics.RelatedDocumentsEntry
+	nil,                                        // 203: semantic.DocumentDiagnosticReport.RelatedDocumentsEntry
 }
 var file_semanticrpc_semantic_proto_depIdxs = []int32{
 	0,   // 0: semantic.Range.start:type_name -> semantic.Position
@@ -11739,7 +11996,7 @@ var file_semanticrpc_semantic_proto_depIdxs = []int32{
 	29,  // 43: semantic.DocumentChange.create_file:type_name -> semantic.CreateFile
 	31,  // 44: semantic.DocumentChange.rename_file:type_name -> semantic.RenameFileOp
 	33,  // 45: semantic.DocumentChange.delete_file:type_name -> semantic.DeleteFile
-	197, // 46: semantic.WorkspaceEdit.changes:type_name -> semantic.WorkspaceEdit.ChangesEntry
+	201, // 46: semantic.WorkspaceEdit.changes:type_name -> semantic.WorkspaceEdit.ChangesEntry
 	34,  // 47: semantic.WorkspaceEdit.document_changes:type_name -> semantic.DocumentChange
 	1,   // 48: semantic.SelectionRange.range:type_name -> semantic.Range
 	37,  // 49: semantic.SelectionRange.parent:type_name -> semantic.SelectionRange
@@ -11749,10 +12006,10 @@ var file_semanticrpc_semantic_proto_depIdxs = []int32{
 	1,   // 53: semantic.CallHierarchyIncomingCall.from_ranges:type_name -> semantic.Range
 	39,  // 54: semantic.CallHierarchyOutgoingCall.to:type_name -> semantic.CallHierarchyItem
 	1,   // 55: semantic.CallHierarchyOutgoingCall.from_ranges:type_name -> semantic.Range
-	198, // 56: semantic.RelatedDocumentDiagnostics.related_documents:type_name -> semantic.RelatedDocumentDiagnostics.RelatedDocumentsEntry
+	202, // 56: semantic.RelatedDocumentDiagnostics.related_documents:type_name -> semantic.RelatedDocumentDiagnostics.RelatedDocumentsEntry
 	19,  // 57: semantic.DiagnosticList.diagnostics:type_name -> semantic.Diagnostic
 	19,  // 58: semantic.DocumentDiagnosticReport.items:type_name -> semantic.Diagnostic
-	199, // 59: semantic.DocumentDiagnosticReport.related_documents:type_name -> semantic.DocumentDiagnosticReport.RelatedDocumentsEntry
+	203, // 59: semantic.DocumentDiagnosticReport.related_documents:type_name -> semantic.DocumentDiagnosticReport.RelatedDocumentsEntry
 	1,   // 60: semantic.TextDocumentContentChangeEvent.range:type_name -> semantic.Range
 	1,   // 61: semantic.PrepareRenameResult.range:type_name -> semantic.Range
 	1,   // 62: semantic.ColorInformation.range:type_name -> semantic.Range
@@ -11950,104 +12207,108 @@ var file_semanticrpc_semantic_proto_depIdxs = []int32{
 	126, // 254: semantic.LSP.WorkspaceDiagnostic:input_type -> semantic.WorkspaceDiagnosticRequest
 	129, // 255: semantic.LSP.WorkspaceSymbol:input_type -> semantic.WorkspaceSymbolRequest
 	131, // 256: semantic.LSP.ExecuteCommand:input_type -> semantic.ExecuteCommandRequest
-	133, // 257: semantic.LSP.PrepareCallHierarchy:input_type -> semantic.PrepareCallHierarchyRequest
-	135, // 258: semantic.LSP.CallHierarchyIncomingCalls:input_type -> semantic.CallHierarchyIncomingCallsRequest
-	137, // 259: semantic.LSP.CallHierarchyOutgoingCalls:input_type -> semantic.CallHierarchyOutgoingCallsRequest
-	139, // 260: semantic.LSP.CompletionResolve:input_type -> semantic.CompletionResolveRequest
-	141, // 261: semantic.LSP.CodeLensResolve:input_type -> semantic.CodeLensResolveRequest
-	149, // 262: semantic.LSP.DocumentLinkResolve:input_type -> semantic.DocumentLinkResolveRequest
-	171, // 263: semantic.LSP.InlayHintResolve:input_type -> semantic.InlayHintResolveRequest
-	143, // 264: semantic.LSP.DocumentColor:input_type -> semantic.DocumentColorRequest
-	145, // 265: semantic.LSP.ColorPresentation:input_type -> semantic.ColorPresentationRequest
-	147, // 266: semantic.LSP.DocumentLink:input_type -> semantic.DocumentLinkRequest
-	151, // 267: semantic.LSP.OnTypeFormatting:input_type -> semantic.OnTypeFormattingRequest
-	153, // 268: semantic.LSP.LinkedEditingRange:input_type -> semantic.LinkedEditingRangeRequest
-	155, // 269: semantic.LSP.Moniker:input_type -> semantic.MonikerRequest
-	157, // 270: semantic.LSP.WillSave:input_type -> semantic.WillSaveRequest
-	159, // 271: semantic.LSP.WillSaveWaitUntil:input_type -> semantic.WillSaveWaitUntilRequest
-	161, // 272: semantic.LSP.SemanticTokensFullDelta:input_type -> semantic.SemanticTokensFullDeltaRequest
-	163, // 273: semantic.LSP.PrepareTypeHierarchy:input_type -> semantic.PrepareTypeHierarchyRequest
-	165, // 274: semantic.LSP.TypeHierarchySupertypes:input_type -> semantic.TypeHierarchySupertypesRequest
-	167, // 275: semantic.LSP.TypeHierarchySubtypes:input_type -> semantic.TypeHierarchySubtypesRequest
-	169, // 276: semantic.LSP.InlayHint:input_type -> semantic.InlayHintRequest
-	173, // 277: semantic.LSP.InlineValue:input_type -> semantic.InlineValueRequest
-	175, // 278: semantic.LSP.WillCreateFiles:input_type -> semantic.WillCreateFilesRequest
-	177, // 279: semantic.LSP.WillRenameFiles:input_type -> semantic.WillRenameFilesRequest
-	179, // 280: semantic.LSP.WillDeleteFiles:input_type -> semantic.WillDeleteFilesRequest
-	181, // 281: semantic.LSP.DidChangeConfiguration:input_type -> semantic.DidChangeConfigurationRequest
-	183, // 282: semantic.LSP.DidChangeWatchedFiles:input_type -> semantic.DidChangeWatchedFilesRequest
-	185, // 283: semantic.LSP.DidChangeWorkspaceFolders:input_type -> semantic.DidChangeWorkspaceFoldersRequest
-	187, // 284: semantic.LSP.WorkDoneProgressCancel:input_type -> semantic.WorkDoneProgressCancelRequest
-	189, // 285: semantic.LSP.SetTrace:input_type -> semantic.SetTraceRequest
-	191, // 286: semantic.LSP.DidCreateFiles:input_type -> semantic.DidCreateFilesRequest
-	193, // 287: semantic.LSP.DidRenameFiles:input_type -> semantic.DidRenameFilesRequest
-	195, // 288: semantic.LSP.DidDeleteFiles:input_type -> semantic.DidDeleteFilesRequest
-	67,  // 289: semantic.LSP.Initialize:output_type -> semantic.InitializeResponse
-	69,  // 290: semantic.LSP.Initialized:output_type -> semantic.InitializedResponse
-	71,  // 291: semantic.LSP.Shutdown:output_type -> semantic.ShutdownResponse
-	73,  // 292: semantic.LSP.Exit:output_type -> semantic.ExitResponse
-	75,  // 293: semantic.LSP.DidOpen:output_type -> semantic.DidOpenResponse
-	77,  // 294: semantic.LSP.DidChange:output_type -> semantic.DidChangeResponse
-	79,  // 295: semantic.LSP.DidClose:output_type -> semantic.DidCloseResponse
-	81,  // 296: semantic.LSP.DidSave:output_type -> semantic.DidSaveResponse
-	83,  // 297: semantic.LSP.Completion:output_type -> semantic.CompletionResponse
-	85,  // 298: semantic.LSP.Hover:output_type -> semantic.HoverResponse
-	87,  // 299: semantic.LSP.SignatureHelp:output_type -> semantic.SignatureHelpResponse
-	89,  // 300: semantic.LSP.Definition:output_type -> semantic.DefinitionResponse
-	91,  // 301: semantic.LSP.Declaration:output_type -> semantic.DeclarationResponse
-	93,  // 302: semantic.LSP.TypeDefinition:output_type -> semantic.TypeDefinitionResponse
-	95,  // 303: semantic.LSP.Implementation:output_type -> semantic.ImplementationResponse
-	97,  // 304: semantic.LSP.References:output_type -> semantic.ReferencesResponse
-	99,  // 305: semantic.LSP.DocumentHighlight:output_type -> semantic.DocumentHighlightResponse
-	101, // 306: semantic.LSP.DocumentSymbol:output_type -> semantic.DocumentSymbolResponse
-	104, // 307: semantic.LSP.CodeAction:output_type -> semantic.CodeActionResponse
-	106, // 308: semantic.LSP.CodeLens:output_type -> semantic.CodeLensResponse
-	108, // 309: semantic.LSP.Formatting:output_type -> semantic.FormattingResponse
-	110, // 310: semantic.LSP.RangeFormatting:output_type -> semantic.RangeFormattingResponse
-	112, // 311: semantic.LSP.Rename:output_type -> semantic.RenameResponse
-	114, // 312: semantic.LSP.PrepareRename:output_type -> semantic.PrepareRenameResponse
-	116, // 313: semantic.LSP.FoldingRange:output_type -> semantic.FoldingRangeResponse
-	118, // 314: semantic.LSP.SelectionRange:output_type -> semantic.SelectionRangeResponse
-	120, // 315: semantic.LSP.SemanticTokensFull:output_type -> semantic.SemanticTokensFullResponse
-	122, // 316: semantic.LSP.SemanticTokensRange:output_type -> semantic.SemanticTokensRangeResponse
-	124, // 317: semantic.LSP.Diagnostic:output_type -> semantic.DiagnosticResponse
-	128, // 318: semantic.LSP.WorkspaceDiagnostic:output_type -> semantic.WorkspaceDiagnosticResponse
-	130, // 319: semantic.LSP.WorkspaceSymbol:output_type -> semantic.WorkspaceSymbolResponse
-	132, // 320: semantic.LSP.ExecuteCommand:output_type -> semantic.ExecuteCommandResponse
-	134, // 321: semantic.LSP.PrepareCallHierarchy:output_type -> semantic.PrepareCallHierarchyResponse
-	136, // 322: semantic.LSP.CallHierarchyIncomingCalls:output_type -> semantic.CallHierarchyIncomingCallsResponse
-	138, // 323: semantic.LSP.CallHierarchyOutgoingCalls:output_type -> semantic.CallHierarchyOutgoingCallsResponse
-	140, // 324: semantic.LSP.CompletionResolve:output_type -> semantic.CompletionResolveResponse
-	142, // 325: semantic.LSP.CodeLensResolve:output_type -> semantic.CodeLensResolveResponse
-	150, // 326: semantic.LSP.DocumentLinkResolve:output_type -> semantic.DocumentLinkResolveResponse
-	172, // 327: semantic.LSP.InlayHintResolve:output_type -> semantic.InlayHintResolveResponse
-	144, // 328: semantic.LSP.DocumentColor:output_type -> semantic.DocumentColorResponse
-	146, // 329: semantic.LSP.ColorPresentation:output_type -> semantic.ColorPresentationResponse
-	148, // 330: semantic.LSP.DocumentLink:output_type -> semantic.DocumentLinkResponse
-	152, // 331: semantic.LSP.OnTypeFormatting:output_type -> semantic.OnTypeFormattingResponse
-	154, // 332: semantic.LSP.LinkedEditingRange:output_type -> semantic.LinkedEditingRangeResponse
-	156, // 333: semantic.LSP.Moniker:output_type -> semantic.MonikerResponse
-	158, // 334: semantic.LSP.WillSave:output_type -> semantic.WillSaveResponse
-	160, // 335: semantic.LSP.WillSaveWaitUntil:output_type -> semantic.WillSaveWaitUntilResponse
-	162, // 336: semantic.LSP.SemanticTokensFullDelta:output_type -> semantic.SemanticTokensFullDeltaResponse
-	164, // 337: semantic.LSP.PrepareTypeHierarchy:output_type -> semantic.PrepareTypeHierarchyResponse
-	166, // 338: semantic.LSP.TypeHierarchySupertypes:output_type -> semantic.TypeHierarchySupertypesResponse
-	168, // 339: semantic.LSP.TypeHierarchySubtypes:output_type -> semantic.TypeHierarchySubtypesResponse
-	170, // 340: semantic.LSP.InlayHint:output_type -> semantic.InlayHintResponse
-	174, // 341: semantic.LSP.InlineValue:output_type -> semantic.InlineValueResponse
-	176, // 342: semantic.LSP.WillCreateFiles:output_type -> semantic.WillCreateFilesResponse
-	178, // 343: semantic.LSP.WillRenameFiles:output_type -> semantic.WillRenameFilesResponse
-	180, // 344: semantic.LSP.WillDeleteFiles:output_type -> semantic.WillDeleteFilesResponse
-	182, // 345: semantic.LSP.DidChangeConfiguration:output_type -> semantic.DidChangeConfigurationResponse
-	184, // 346: semantic.LSP.DidChangeWatchedFiles:output_type -> semantic.DidChangeWatchedFilesResponse
-	186, // 347: semantic.LSP.DidChangeWorkspaceFolders:output_type -> semantic.DidChangeWorkspaceFoldersResponse
-	188, // 348: semantic.LSP.WorkDoneProgressCancel:output_type -> semantic.WorkDoneProgressCancelResponse
-	190, // 349: semantic.LSP.SetTrace:output_type -> semantic.SetTraceResponse
-	192, // 350: semantic.LSP.DidCreateFiles:output_type -> semantic.DidCreateFilesResponse
-	194, // 351: semantic.LSP.DidRenameFiles:output_type -> semantic.DidRenameFilesResponse
-	196, // 352: semantic.LSP.DidDeleteFiles:output_type -> semantic.DidDeleteFilesResponse
-	289, // [289:353] is the sub-list for method output_type
-	225, // [225:289] is the sub-list for method input_type
+	133, // 257: semantic.LSP.ExecuteRequest:input_type -> semantic.ExecuteRequestRequest
+	135, // 258: semantic.LSP.SendNotification:input_type -> semantic.SendNotificationRequest
+	137, // 259: semantic.LSP.PrepareCallHierarchy:input_type -> semantic.PrepareCallHierarchyRequest
+	139, // 260: semantic.LSP.CallHierarchyIncomingCalls:input_type -> semantic.CallHierarchyIncomingCallsRequest
+	141, // 261: semantic.LSP.CallHierarchyOutgoingCalls:input_type -> semantic.CallHierarchyOutgoingCallsRequest
+	143, // 262: semantic.LSP.CompletionResolve:input_type -> semantic.CompletionResolveRequest
+	145, // 263: semantic.LSP.CodeLensResolve:input_type -> semantic.CodeLensResolveRequest
+	153, // 264: semantic.LSP.DocumentLinkResolve:input_type -> semantic.DocumentLinkResolveRequest
+	175, // 265: semantic.LSP.InlayHintResolve:input_type -> semantic.InlayHintResolveRequest
+	147, // 266: semantic.LSP.DocumentColor:input_type -> semantic.DocumentColorRequest
+	149, // 267: semantic.LSP.ColorPresentation:input_type -> semantic.ColorPresentationRequest
+	151, // 268: semantic.LSP.DocumentLink:input_type -> semantic.DocumentLinkRequest
+	155, // 269: semantic.LSP.OnTypeFormatting:input_type -> semantic.OnTypeFormattingRequest
+	157, // 270: semantic.LSP.LinkedEditingRange:input_type -> semantic.LinkedEditingRangeRequest
+	159, // 271: semantic.LSP.Moniker:input_type -> semantic.MonikerRequest
+	161, // 272: semantic.LSP.WillSave:input_type -> semantic.WillSaveRequest
+	163, // 273: semantic.LSP.WillSaveWaitUntil:input_type -> semantic.WillSaveWaitUntilRequest
+	165, // 274: semantic.LSP.SemanticTokensFullDelta:input_type -> semantic.SemanticTokensFullDeltaRequest
+	167, // 275: semantic.LSP.PrepareTypeHierarchy:input_type -> semantic.PrepareTypeHierarchyRequest
+	169, // 276: semantic.LSP.TypeHierarchySupertypes:input_type -> semantic.TypeHierarchySupertypesRequest
+	171, // 277: semantic.LSP.TypeHierarchySubtypes:input_type -> semantic.TypeHierarchySubtypesRequest
+	173, // 278: semantic.LSP.InlayHint:input_type -> semantic.InlayHintRequest
+	177, // 279: semantic.LSP.InlineValue:input_type -> semantic.InlineValueRequest
+	179, // 280: semantic.LSP.WillCreateFiles:input_type -> semantic.WillCreateFilesRequest
+	181, // 281: semantic.LSP.WillRenameFiles:input_type -> semantic.WillRenameFilesRequest
+	183, // 282: semantic.LSP.WillDeleteFiles:input_type -> semantic.WillDeleteFilesRequest
+	185, // 283: semantic.LSP.DidChangeConfiguration:input_type -> semantic.DidChangeConfigurationRequest
+	187, // 284: semantic.LSP.DidChangeWatchedFiles:input_type -> semantic.DidChangeWatchedFilesRequest
+	189, // 285: semantic.LSP.DidChangeWorkspaceFolders:input_type -> semantic.DidChangeWorkspaceFoldersRequest
+	191, // 286: semantic.LSP.WorkDoneProgressCancel:input_type -> semantic.WorkDoneProgressCancelRequest
+	193, // 287: semantic.LSP.SetTrace:input_type -> semantic.SetTraceRequest
+	195, // 288: semantic.LSP.DidCreateFiles:input_type -> semantic.DidCreateFilesRequest
+	197, // 289: semantic.LSP.DidRenameFiles:input_type -> semantic.DidRenameFilesRequest
+	199, // 290: semantic.LSP.DidDeleteFiles:input_type -> semantic.DidDeleteFilesRequest
+	67,  // 291: semantic.LSP.Initialize:output_type -> semantic.InitializeResponse
+	69,  // 292: semantic.LSP.Initialized:output_type -> semantic.InitializedResponse
+	71,  // 293: semantic.LSP.Shutdown:output_type -> semantic.ShutdownResponse
+	73,  // 294: semantic.LSP.Exit:output_type -> semantic.ExitResponse
+	75,  // 295: semantic.LSP.DidOpen:output_type -> semantic.DidOpenResponse
+	77,  // 296: semantic.LSP.DidChange:output_type -> semantic.DidChangeResponse
+	79,  // 297: semantic.LSP.DidClose:output_type -> semantic.DidCloseResponse
+	81,  // 298: semantic.LSP.DidSave:output_type -> semantic.DidSaveResponse
+	83,  // 299: semantic.LSP.Completion:output_type -> semantic.CompletionResponse
+	85,  // 300: semantic.LSP.Hover:output_type -> semantic.HoverResponse
+	87,  // 301: semantic.LSP.SignatureHelp:output_type -> semantic.SignatureHelpResponse
+	89,  // 302: semantic.LSP.Definition:output_type -> semantic.DefinitionResponse
+	91,  // 303: semantic.LSP.Declaration:output_type -> semantic.DeclarationResponse
+	93,  // 304: semantic.LSP.TypeDefinition:output_type -> semantic.TypeDefinitionResponse
+	95,  // 305: semantic.LSP.Implementation:output_type -> semantic.ImplementationResponse
+	97,  // 306: semantic.LSP.References:output_type -> semantic.ReferencesResponse
+	99,  // 307: semantic.LSP.DocumentHighlight:output_type -> semantic.DocumentHighlightResponse
+	101, // 308: semantic.LSP.DocumentSymbol:output_type -> semantic.DocumentSymbolResponse
+	104, // 309: semantic.LSP.CodeAction:output_type -> semantic.CodeActionResponse
+	106, // 310: semantic.LSP.CodeLens:output_type -> semantic.CodeLensResponse
+	108, // 311: semantic.LSP.Formatting:output_type -> semantic.FormattingResponse
+	110, // 312: semantic.LSP.RangeFormatting:output_type -> semantic.RangeFormattingResponse
+	112, // 313: semantic.LSP.Rename:output_type -> semantic.RenameResponse
+	114, // 314: semantic.LSP.PrepareRename:output_type -> semantic.PrepareRenameResponse
+	116, // 315: semantic.LSP.FoldingRange:output_type -> semantic.FoldingRangeResponse
+	118, // 316: semantic.LSP.SelectionRange:output_type -> semantic.SelectionRangeResponse
+	120, // 317: semantic.LSP.SemanticTokensFull:output_type -> semantic.SemanticTokensFullResponse
+	122, // 318: semantic.LSP.SemanticTokensRange:output_type -> semantic.SemanticTokensRangeResponse
+	124, // 319: semantic.LSP.Diagnostic:output_type -> semantic.DiagnosticResponse
+	128, // 320: semantic.LSP.WorkspaceDiagnostic:output_type -> semantic.WorkspaceDiagnosticResponse
+	130, // 321: semantic.LSP.WorkspaceSymbol:output_type -> semantic.WorkspaceSymbolResponse
+	132, // 322: semantic.LSP.ExecuteCommand:output_type -> semantic.ExecuteCommandResponse
+	134, // 323: semantic.LSP.ExecuteRequest:output_type -> semantic.ExecuteRequestResponse
+	136, // 324: semantic.LSP.SendNotification:output_type -> semantic.SendNotificationResponse
+	138, // 325: semantic.LSP.PrepareCallHierarchy:output_type -> semantic.PrepareCallHierarchyResponse
+	140, // 326: semantic.LSP.CallHierarchyIncomingCalls:output_type -> semantic.CallHierarchyIncomingCallsResponse
+	142, // 327: semantic.LSP.CallHierarchyOutgoingCalls:output_type -> semantic.CallHierarchyOutgoingCallsResponse
+	144, // 328: semantic.LSP.CompletionResolve:output_type -> semantic.CompletionResolveResponse
+	146, // 329: semantic.LSP.CodeLensResolve:output_type -> semantic.CodeLensResolveResponse
+	154, // 330: semantic.LSP.DocumentLinkResolve:output_type -> semantic.DocumentLinkResolveResponse
+	176, // 331: semantic.LSP.InlayHintResolve:output_type -> semantic.InlayHintResolveResponse
+	148, // 332: semantic.LSP.DocumentColor:output_type -> semantic.DocumentColorResponse
+	150, // 333: semantic.LSP.ColorPresentation:output_type -> semantic.ColorPresentationResponse
+	152, // 334: semantic.LSP.DocumentLink:output_type -> semantic.DocumentLinkResponse
+	156, // 335: semantic.LSP.OnTypeFormatting:output_type -> semantic.OnTypeFormattingResponse
+	158, // 336: semantic.LSP.LinkedEditingRange:output_type -> semantic.LinkedEditingRangeResponse
+	160, // 337: semantic.LSP.Moniker:output_type -> semantic.MonikerResponse
+	162, // 338: semantic.LSP.WillSave:output_type -> semantic.WillSaveResponse
+	164, // 339: semantic.LSP.WillSaveWaitUntil:output_type -> semantic.WillSaveWaitUntilResponse
+	166, // 340: semantic.LSP.SemanticTokensFullDelta:output_type -> semantic.SemanticTokensFullDeltaResponse
+	168, // 341: semantic.LSP.PrepareTypeHierarchy:output_type -> semantic.PrepareTypeHierarchyResponse
+	170, // 342: semantic.LSP.TypeHierarchySupertypes:output_type -> semantic.TypeHierarchySupertypesResponse
+	172, // 343: semantic.LSP.TypeHierarchySubtypes:output_type -> semantic.TypeHierarchySubtypesResponse
+	174, // 344: semantic.LSP.InlayHint:output_type -> semantic.InlayHintResponse
+	178, // 345: semantic.LSP.InlineValue:output_type -> semantic.InlineValueResponse
+	180, // 346: semantic.LSP.WillCreateFiles:output_type -> semantic.WillCreateFilesResponse
+	182, // 347: semantic.LSP.WillRenameFiles:output_type -> semantic.WillRenameFilesResponse
+	184, // 348: semantic.LSP.WillDeleteFiles:output_type -> semantic.WillDeleteFilesResponse
+	186, // 349: semantic.LSP.DidChangeConfiguration:output_type -> semantic.DidChangeConfigurationResponse
+	188, // 350: semantic.LSP.DidChangeWatchedFiles:output_type -> semantic.DidChangeWatchedFilesResponse
+	190, // 351: semantic.LSP.DidChangeWorkspaceFolders:output_type -> semantic.DidChangeWorkspaceFoldersResponse
+	192, // 352: semantic.LSP.WorkDoneProgressCancel:output_type -> semantic.WorkDoneProgressCancelResponse
+	194, // 353: semantic.LSP.SetTrace:output_type -> semantic.SetTraceResponse
+	196, // 354: semantic.LSP.DidCreateFiles:output_type -> semantic.DidCreateFilesResponse
+	198, // 355: semantic.LSP.DidRenameFiles:output_type -> semantic.DidRenameFilesResponse
+	200, // 356: semantic.LSP.DidDeleteFiles:output_type -> semantic.DidDeleteFilesResponse
+	291, // [291:357] is the sub-list for method output_type
+	225, // [225:291] is the sub-list for method input_type
 	225, // [225:225] is the sub-list for extension type_name
 	225, // [225:225] is the sub-list for extension extendee
 	0,   // [0:225] is the sub-list for field type_name
@@ -12064,7 +12325,7 @@ func file_semanticrpc_semantic_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_semanticrpc_semantic_proto_rawDesc), len(file_semanticrpc_semantic_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   200,
+			NumMessages:   204,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
