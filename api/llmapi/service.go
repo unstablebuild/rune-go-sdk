@@ -98,6 +98,9 @@ const (
 	ReasoningEffortXHigh ReasoningEffort = "xhigh"
 	// ReasoningEffortMax requests the maximum supported reasoning effort.
 	ReasoningEffortMax ReasoningEffort = "max"
+	// ReasoningEffortUltra requests an ultra reasoning effort above max,
+	// supported only by select frontier models (e.g. gpt-5.6-sol).
+	ReasoningEffortUltra ReasoningEffort = "ultra"
 )
 
 // ReasoningSummary controls the level of reasoning summary output.
