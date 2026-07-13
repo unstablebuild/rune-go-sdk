@@ -74,6 +74,10 @@ type Config struct {
 	// Config is the user's configuration for the running extension.
 	Config  map[string]any `json:"config"`
 	DataDir string         `json:"datadir"`
+	// InstallDir is the root, pre-expanded on the workspace host, under
+	// which the host provisions resources packaged alongside this
+	// extension (e.g. <InstallDir>/bin/<tool>).
+	InstallDir string `json:"installdir"`
 }
 
 // FuncWorkspaceExtension returns a WorkspaceExtension that calls fn

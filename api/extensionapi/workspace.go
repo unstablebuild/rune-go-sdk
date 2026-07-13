@@ -20,6 +20,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
@@ -51,16 +53,72 @@ import (
 
 // Workspace abstracts resources associated with a Workspace.
 type Workspace struct {
-	dataDir  string
-	conn     grpc.ClientConnInterface
-	commands *textrpc.Client
-	config   config.Config
-	meta     Metadata
+	dataDir    string
+	installDir string
+	conn       grpc.ClientConnInterface
+	commands   *textrpc.Client
+	config     config.Config
+	meta       Metadata
 }
 
 // DataDir returns the data directory to store data to re-use across sessions.
 func (w *Workspace) DataDir(ctx context.Context) string {
 	return w.dataDir
+}
+
+// FindInstalledExecutable resolves a runnable binary provisioned alongside
+// this extension. It looks under <InstallDir>/bin/<name> — the canonical
+// location for executables — and verifies that the path exists on the
+// workspace host as a regular (non-directory) file. The returned path is
+// suitable for use with the workspace Executor.
+//
+// Resolution stats the path on the workspace host, which may be a remote
+// (e.g. ssh://) round-trip. It returns an error wrapping os.ErrNotExist
+// when the binary is absent or resolves to a directory; callers can test
+// this with errors.Is(err, os.ErrNotExist). Any other error (transport,
+// permission, ...) is returned as-is so callers can distinguish a genuine
+// miss from a probe failure. It performs no shell or command -v fallback.
+//
+// Unlike FindInstalledResource, which accepts an arbitrary relative path and
+// accepts directories, FindInstalledExecutable always looks under bin/ and
+// rejects directories.
+func (w *Workspace) FindInstalledExecutable(
+	ctx context.Context, name string,
+) (string, error) {
+	p := path.Join(w.installDir, "bin", name)
+	info, err := w.FileSystem(ctx).Stat(p)
+	if err != nil {
+		return "", fmt.Errorf("stat %s: %w", p, err)
+	}
+	if info == nil || info.IsDir() {
+		return "", fmt.Errorf("executable %s: %w", p, os.ErrNotExist)
+	}
+	return p, nil
+}
+
+// FindInstalledResource resolves an arbitrary payload artifact provisioned
+// alongside this extension. It looks under <InstallDir>/<relpath> and
+// verifies that the path exists on the workspace host, whether it is a file
+// or a directory. Use it for non-executable resources such as data files,
+// lib/…, pkg/…, sysroots, or templates.
+//
+// Resolution stats the path on the workspace host, which may be a remote
+// (e.g. ssh://) round-trip. It returns an error wrapping os.ErrNotExist
+// when the path is absent (testable with errors.Is(err, os.ErrNotExist));
+// any other error (transport, permission, ...) is returned as-is so callers
+// can distinguish a genuine miss from a probe failure.
+//
+// Unlike FindInstalledExecutable, which is restricted to bin/ and files,
+// FindInstalledResource accepts any relative path under the install root and
+// accepts directories.
+func (w *Workspace) FindInstalledResource(
+	ctx context.Context, relpath string,
+) (string, error) {
+	p := path.Join(w.installDir, relpath)
+	if _, err := w.FileSystem(ctx).Stat(p); err != nil {
+		return "", fmt.Errorf("stat %s: %w", p, err)
+	}
+	return p, nil
 }
 
 // WindowManager returns the workspace's window manager, which can be used
@@ -224,6 +282,10 @@ func parseSocket(socket string) (network, address string) {
 func NewWorkspace(req Config, meta Metadata) (*Workspace, error) {
 	ret := new(Workspace)
 	ret.dataDir = req.DataDir
+	ret.installDir = req.InstallDir
+	if ret.installDir == "" {
+		ret.installDir = req.DataDir
+	}
 	opts := []grpc.DialOption{
 		grpc.WithContextDialer(
 			func(ctx context.Context, _ string) (net.Conn, error) {
