@@ -2,6 +2,7 @@ extensions:
   rune-agent:
     config:
       force_builtin_tools: true
+      memory_recall_enabled: true
 workspace:
   notice:
     literal: |
