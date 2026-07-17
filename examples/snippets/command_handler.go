@@ -174,7 +174,7 @@ func (s *snippets) handleInsert(ctx context.Context, name string, cmd textapi.Co
 	if _, _, _, err := s.editor.CellEditor(cmd.Resource).Edit(ctx, at, at, doc.Body); err != nil {
 		return fmt.Errorf("insert snippet %q: %w", name, err)
 	}
-	_, err := s.notif.Notify(browserapi.LevelSuccess, "inserted snippet %q", name)
+	_, err := s.notif.Notify(browserapi.LevelSuccess, "inserted snippet '%s'", name)
 	return err
 }
 
@@ -212,7 +212,7 @@ func (s *snippets) handleDelete(ctx context.Context, name string) error {
 	if err := s.storage.Delete(ctx, name); err != nil {
 		return fmt.Errorf("delete snippet %q: %w", name, err)
 	}
-	_, err := s.notif.Notify(browserapi.LevelSuccess, "deleted snippet %q", name)
+	_, err := s.notif.Notify(browserapi.LevelSuccess, "deleted snippet '%s'", name)
 	return err
 }
 
@@ -258,7 +258,7 @@ func (s *snippets) openEditBuffer(name, seed string, win browserapi.Window) erro
 		}
 	}
 
-	_, err = s.notif.Notify(browserapi.LevelInfo, "editing snippet %q (save to persist)", name)
+	_, err = s.notif.Notify(browserapi.LevelInfo, "editing snippet '%s' (save to persist)", name)
 	return err
 }
 
