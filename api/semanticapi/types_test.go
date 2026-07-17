@@ -1182,3 +1182,48 @@ func TestSemanticTokensResultUnionType(t *testing.T) {
 		})
 	}
 }
+
+// TestWorkspaceDiagnosticParamsAlwaysEmitsPreviousResultIDs locks in
+// that previousResultIds is always serialized as a JSON array, never
+// null or omitted. The LSP spec marks it required, and strict servers
+// such as ty reject a request whose previousResultIds is missing or
+// null with "missing field `previousResultIds`".
+func TestWorkspaceDiagnosticParamsAlwaysEmitsPreviousResultIDs(t *testing.T) {
+	tests := []struct {
+		name     string
+		params   WorkspaceDiagnosticParams
+		expected string
+	}{
+		{
+			name:     "nil slice marshals to empty array",
+			params:   WorkspaceDiagnosticParams{},
+			expected: `{"previousResultIds":[]}`,
+		},
+		{
+			name:     "empty slice marshals to empty array",
+			params:   WorkspaceDiagnosticParams{PreviousResultIDs: []PreviousResultID{}},
+			expected: `{"previousResultIds":[]}`,
+		},
+		{
+			name: "populated slice preserved",
+			params: WorkspaceDiagnosticParams{
+				PreviousResultIDs: []PreviousResultID{{URI: "file:///a.py", Value: "r1"}},
+			},
+			expected: `{"previousResultIds":[{"uri":"file:///a.py","value":"r1"}]}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b, err := json.Marshal(tt.params)
+			require.NoError(t, err)
+			assert.JSONEq(t, tt.expected, string(b))
+
+			var raw map[string]json.RawMessage
+			require.NoError(t, json.Unmarshal(b, &raw))
+			v, ok := raw["previousResultIds"]
+			require.True(t, ok, "previousResultIds must be present")
+			assert.NotEqual(t, json.RawMessage("null"), v,
+				"previousResultIds must not serialize to null")
+		})
+	}
+}

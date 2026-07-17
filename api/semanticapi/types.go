@@ -2123,8 +2123,25 @@ type PreviousResultID struct {
 // WorkspaceDiagnosticParams contains the parameters for a WorkspaceDiagnostic request.
 type WorkspaceDiagnosticParams struct {
 	Identifier        string             `json:"identifier,omitempty"`
-	PreviousResultIDs []PreviousResultID `json:"previousResultIds,omitempty"`
+	// PreviousResultIDs is a required member per the LSP spec, so it is
+	// serialized even when empty. A nil slice would marshal to null,
+	// which strict servers (e.g. ty) reject, so MarshalJSON normalizes
+	// nil to an empty array. Use an empty slice to request a full
+	// report.
+	PreviousResultIDs []PreviousResultID `json:"previousResultIds"`
 	WorkDoneToken     *ProgressToken     `json:"workDoneToken,omitempty"`
+}
+
+// MarshalJSON ensures previousResultIds is always emitted as a JSON
+// array (never null), since the LSP spec marks it required and strict
+// servers reject a null or missing value.
+func (p WorkspaceDiagnosticParams) MarshalJSON() ([]byte, error) {
+	type alias WorkspaceDiagnosticParams
+	a := alias(p)
+	if a.PreviousResultIDs == nil {
+		a.PreviousResultIDs = []PreviousResultID{}
+	}
+	return json.Marshal(a)
 }
 
 // WorkspaceDocumentDiagnosticReport is a per-document diagnostic report
