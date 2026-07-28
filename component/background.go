@@ -180,8 +180,8 @@ func (w *bgWriter) UnionAttributes(pos term.Coordinates, attr term.Attributes) {
 	if pos.X >= w.width || pos.Y >= w.height || pos.X < 0 || pos.Y < 0 {
 		return
 	}
-	w.buffer[pos.Y][pos.X].Attributes = term.AttributesUnion(
-		w.buffer[pos.Y][pos.X].Attributes, attr)
+	w.buffer[pos.Y][pos.X].SetAttributes(term.AttributesUnion(
+		w.buffer[pos.Y][pos.X].Attributes(), attr))
 }
 
 func (w *bgWriter) Context() context.Context {

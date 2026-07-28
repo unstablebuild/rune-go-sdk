@@ -322,10 +322,10 @@ func (u *FrameUnion) setVerticalUnionFrameCells(
 		return
 	}
 	w.SetCell(term.Coordinates{Y: y},
-		term.Cell{Width: 1, Ch: left, Attributes: u.Attributes})
+		term.NewCell(left, 1, u.Attributes))
 	if u.width > 0 {
 		w.SetCell(term.Coordinates{X: u.width - 1, Y: y},
-			term.Cell{Width: 1, Ch: right, Attributes: u.Attributes})
+			term.NewCell(right, 1, u.Attributes))
 	}
 }
 
@@ -350,10 +350,10 @@ func (u *FrameUnion) setHorizontalUnionFrameCells(
 		return
 	}
 	w.SetCell(term.Coordinates{X: x, Y: y},
-		term.Cell{Width: 1, Ch: top, Attributes: u.Attributes})
+		term.NewCell(top, 1, u.Attributes))
 	if height > 0 {
 		w.SetCell(term.Coordinates{X: x, Y: y + height - 1},
-			term.Cell{Width: 1, Ch: bottom, Attributes: u.Attributes})
+			term.NewCell(bottom, 1, u.Attributes))
 	}
 }
 

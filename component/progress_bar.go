@@ -137,39 +137,23 @@ func (p *ProgressBar) Draw(w term.Writer) {
 	for y := range p.height {
 		w.SetCell(
 			term.Coordinates{X: 0, Y: y},
-			term.Cell{
-				Ch:         p.chars.Left,
-				Attributes: p.attr,
-				Width:      1,
-			},
+			term.NewCell(p.chars.Left, 1, p.attr),
 		)
 		for x, r := range bar {
 			w.SetCell(
 				term.Coordinates{X: x + 1, Y: y},
-				term.Cell{
-					Ch:         r,
-					Attributes: p.attr,
-					Width:      1,
-				},
+				term.NewCell(r, 1, p.attr),
 			)
 		}
 		w.SetCell(
 			term.Coordinates{X: barWidth - 1, Y: y},
-			term.Cell{
-				Ch:         p.chars.Right,
-				Attributes: p.attr,
-				Width:      1,
-			},
+			term.NewCell(p.chars.Right, 1, p.attr),
 		)
 
 		if barWidth < p.width && len(labelRunes) > 0 {
 			w.SetCell(
 				term.Coordinates{X: barWidth, Y: y},
-				term.Cell{
-					Ch:         ' ',
-					Attributes: p.attr,
-					Width:      1,
-				},
+				term.NewCell(' ', 1, p.attr),
 			)
 			for i, r := range labelRunes {
 				x := barWidth + 1 + i
@@ -178,11 +162,7 @@ func (p *ProgressBar) Draw(w term.Writer) {
 				}
 				w.SetCell(
 					term.Coordinates{X: x, Y: y},
-					term.Cell{
-						Ch:         r,
-						Attributes: p.attr,
-						Width:      1,
-					},
+					term.NewCell(r, 1, p.attr),
 				)
 			}
 		}

@@ -331,11 +331,9 @@ func (c *Cell) ToModel() term.Cell {
 		return term.Cell{}
 	}
 	cell := term.Cell{
-		Attributes: term.Attributes{
-			Bg:    term.Color(c.Background),
-			Fg:    term.Color(c.Foreground),
-			Attrs: term.AttrMask(c.Attrs),
-		},
+		Bg:    term.Color(c.Background),
+		Fg:    term.Color(c.Foreground),
+		Attrs: term.AttrMask(c.Attrs),
 		Ch:    rune(c.Character),
 		Width: uint8(c.Width),
 		Bytes: uint8(c.Bytes),

@@ -1545,7 +1545,7 @@ type ServerCapabilities struct {
 	// Experimental carries the raw JSON of the server's experimental
 	// capabilities, letting clients feature-detect non-standard
 	// extensions.
-	Experimental                     json.RawMessage                  `json:"experimental,omitempty"`
+	Experimental json.RawMessage `json:"experimental,omitempty"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for ServerCapabilities.
@@ -2122,7 +2122,7 @@ type PreviousResultID struct {
 
 // WorkspaceDiagnosticParams contains the parameters for a WorkspaceDiagnostic request.
 type WorkspaceDiagnosticParams struct {
-	Identifier        string             `json:"identifier,omitempty"`
+	Identifier string `json:"identifier,omitempty"`
 	// PreviousResultIDs is a required member per the LSP spec, so it is
 	// serialized even when empty. A nil slice would marshal to null,
 	// which strict servers (e.g. ty) reject, so MarshalJSON normalizes

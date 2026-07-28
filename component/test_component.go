@@ -41,7 +41,7 @@ func (t *TestComponent) Draw(w term.Writer) {
 	for tx := t.width - 1; tx >= 0; tx-- {
 		for ty := 0 + t.height - 1; ty >= 0; ty-- {
 			w.SetCell(term.Coordinates{X: tx, Y: ty},
-				term.Cell{Width: 1, Ch: t.Ch, Attributes: t.Attributes})
+				term.NewCell(t.Ch, 1, t.Attributes))
 		}
 	}
 }

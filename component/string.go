@@ -107,11 +107,8 @@ func (l LazyBytes) Resize(width, height int) {
 // Draw satisfies tui.Component.
 func (l LazyBytes) Draw(w term.Writer) {
 	for i, r := range l.Data {
-		w.SetCell(term.Coordinates{X: i, Y: 0}, term.Cell{
-			Ch:         rune(r),
-			Attributes: l.Attributes,
-			Width:      1, // only support width=1 graphemes
-		})
+		// only support width=1 graphemes
+		w.SetCell(term.Coordinates{X: i, Y: 0}, term.NewCell(rune(r), 1, l.Attributes))
 	}
 	if l.Tokens != nil {
 		for _, x := range *l.Tokens {
@@ -155,14 +152,9 @@ func (s *stringComp) Draw(w term.Writer) {
 			if xi >= s.width {
 				break
 			}
-			w.SetCell(term.Coordinates{X: xi, Y: y},
-				term.Cell{
-					Attributes: s.attr,
-					Ch:         c.Ch,
-					Combining:  c.Combining,
-					Width:      c.Width,
-					Bytes:      c.Bytes,
-				})
+			cell := c
+			cell.SetAttributes(s.attr)
+			w.SetCell(term.Coordinates{X: xi, Y: y}, cell)
 		}
 	}
 }
@@ -241,7 +233,7 @@ func newStringComp(
 	}
 	width := max(minWidth, term.CalculateOptimalWidth(cells))
 
-	background := term.Cell{Width: 1, Ch: c, Attributes: battr}
+	background := term.NewCell(c, 1, battr)
 	height = len(cells)
 	shouldPad := padWidth != 0 || padHeight != 0
 
@@ -250,7 +242,7 @@ func newStringComp(
 		if shouldPad {
 			// background of inner padding looks better if it's the same attr
 			// as the text.
-			background := term.Cell{Width: 1, Ch: c, Attributes: attr}
+			background := term.NewCell(c, 1, attr)
 			comp = withBackgroundWrapper(comp, height, width, background, false, false, alg)
 		}
 		width += 2 + padWidth

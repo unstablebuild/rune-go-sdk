@@ -353,11 +353,7 @@ func (ib *Handler) drawNoPrompt(w term.Writer) {
 		if ib.redact {
 			ch = ib.redactRune
 		}
-		w.SetCell(term.Coordinates{X: x, Y: y}, term.Cell{
-			Ch:         ch,
-			Attributes: attrs,
-			Width:      1,
-		})
+		w.SetCell(term.Coordinates{X: x, Y: y}, term.NewCell(ch, 1, attrs))
 		x++
 		if x < ib.width {
 			continue
@@ -377,11 +373,7 @@ func (ib *Handler) drawWithPrompt(w term.Writer) {
 			if i >= ib.width {
 				break
 			}
-			w.SetCell(term.Coordinates{X: i, Y: 0}, term.Cell{
-				Ch:         r,
-				Attributes: ib.attrs,
-				Width:      1,
-			})
+			w.SetCell(term.Coordinates{X: i, Y: 0}, term.NewCell(r, 1, ib.attrs))
 		}
 	}
 
@@ -409,11 +401,7 @@ func (ib *Handler) drawWithPrompt(w term.Writer) {
 		if ib.redact {
 			ch = ib.redactRune
 		}
-		w.SetCell(term.Coordinates{X: sx, Y: sy}, term.Cell{
-			Ch:         ch,
-			Attributes: attrs,
-			Width:      1,
-		})
+		w.SetCell(term.Coordinates{X: sx, Y: sy}, term.NewCell(ch, 1, attrs))
 	}
 }
 
@@ -426,9 +414,7 @@ func (ib *Handler) drawSearch(w term.Writer) {
 		}
 		w.SetCell(
 			term.Coordinates{X: i, Y: 0},
-			term.Cell{
-				Ch: r, Attributes: ib.attrs, Width: 1,
-			},
+			term.NewCell(r, 1, ib.attrs),
 		)
 	}
 }
@@ -475,11 +461,7 @@ func (ib *Handler) drawCompletions(w term.Writer) {
 			}
 			w.SetCell(
 				term.Coordinates{X: cx, Y: y},
-				term.Cell{
-					Ch:         r,
-					Attributes: ib.attrs,
-					Width:      1,
-				},
+				term.NewCell(r, 1, ib.attrs),
 			)
 		}
 		if col == cols-1 || i == len(ib.completions)-1 {

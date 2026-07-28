@@ -31,7 +31,7 @@ type (
 
 // Attributes represents a cell background, foreground and attribute
 // bitmask. It is layout-compatible with term.Style; the duplicated
-// type exists so Cell can embed it without growing.
+// type exists as the style currency exchanged with Cell.
 type Attributes struct {
 	Fg    Color
 	Bg    Color
@@ -51,21 +51,61 @@ func (attr Attributes) Style() Style {
 // codepoints do not fit in a single rune are stored across Ch and
 // Combining (Combining is a pointer so the common no-combining-marks
 // case costs 8 bytes instead of a 24-byte slice header).
+//
+// The field order is chosen so the struct packs into exactly 24 bytes
+// with no padding: the pointer leads (8-aligned), the two-byte and
+// one-byte fields trail. Style fields are inlined rather than embedding
+// Attributes because the embedded struct's internal padding would grow
+// Cell to 32 bytes.
 type Cell struct {
-	Attributes
+	// Combining holds the remaining grapheme-cluster codepoints that
+	// did not fit in Ch. nil when the cell has no combining marks
+	// (the common case).
+	Combining *[]rune
+	// Fg is the foreground color.
+	Fg Color
+	// Bg is the background color.
+	Bg Color
 	// Ch is the main character held by this cell.
 	// If character cannot fit in the storage provided by the
 	// builtin 'rune', then Width() returns > 1 and Cell.Combining
 	// contains the rest of data.
 	Ch rune
+	// Attrs is the text-rendering attribute bitmask.
+	Attrs AttrMask
 	// Width returns the monospace width of this Cell.
 	Width uint8
 	// Bytes is the number of bytes consumed by this Cell.
 	Bytes uint8
-	// Combining holds the remaining grapheme-cluster codepoints that
-	// did not fit in Ch. nil when the cell has no combining marks
-	// (the common case).
-	Combining *[]rune
+}
+
+// Attributes returns this cell's style as an Attributes value.
+func (c Cell) Attributes() Attributes {
+	return Attributes{Fg: c.Fg, Bg: c.Bg, Attrs: c.Attrs}
+}
+
+// NewCell returns a Cell holding ch with the given monospace width and
+// style attr.
+func NewCell(ch rune, width uint8, attr Attributes) Cell {
+	return Cell{
+		Ch:    ch,
+		Width: width,
+		Fg:    attr.Fg,
+		Bg:    attr.Bg,
+		Attrs: attr.Attrs,
+	}
+}
+
+// SetAttributes replaces this cell's style fields with attr.
+func (c *Cell) SetAttributes(attr Attributes) {
+	c.Fg = attr.Fg
+	c.Bg = attr.Bg
+	c.Attrs = attr.Attrs
+}
+
+// Style returns this cell's style as a term.Style.
+func (c Cell) Style() Style {
+	return Style{Fg: c.Fg, Bg: c.Bg, Attrs: c.Attrs}
 }
 
 // CombiningRunes returns the combining-mark slice, or nil when the

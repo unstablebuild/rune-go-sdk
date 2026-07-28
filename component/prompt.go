@@ -185,10 +185,7 @@ func (p *Prompt) Resize(width, height int) {
 // Draw satisfies tui.Component
 func (p *Prompt) Draw(w term.Writer) {
 	// Fill background.
-	bgCell := term.Cell{
-		Attributes: p.cfg.BackgroundAttributes,
-		Width:      1,
-	}
+	bgCell := term.NewCell(0, 1, p.cfg.BackgroundAttributes)
 	for y := 0; y < p.height; y++ {
 		for x := 0; x < p.width; x++ {
 			w.SetCell(term.Coordinates{X: x, Y: y}, bgCell)
@@ -309,9 +306,7 @@ func (p *Prompt) init(
 		messageComp = container
 	}
 
-	p.message = NewBackground(messageComp, term.Cell{
-		Attributes: p.cfg.BackgroundAttributes,
-	})
+	p.message = NewBackground(messageComp, term.NewCell(0, 0, p.cfg.BackgroundAttributes))
 
 	p.initOptions(cfg)
 }

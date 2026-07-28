@@ -86,7 +86,7 @@ func (w *StringWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 			pos.X, pos.Y, w.width, w.height))
 	}
 	idx := pos.Y*w.width + pos.X
-	w.cellbuf[idx].Attributes = AttributesUnion(w.cellbuf[idx].Attributes, attr)
+	w.cellbuf[idx].SetAttributes(AttributesUnion(w.cellbuf[idx].Attributes(), attr))
 }
 
 // Flush flushes the contents of this writer into the underlying cell buffer.

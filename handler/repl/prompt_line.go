@@ -81,11 +81,7 @@ func (p *promptLine) Draw(w term.Writer) {
 		if i < promptLen {
 			attr = p.promptAttr
 		}
-		w.SetCell(term.Coordinates{X: x, Y: y}, term.Cell{
-			Ch:         r,
-			Attributes: attr,
-			Width:      1,
-		})
+		w.SetCell(term.Coordinates{X: x, Y: y}, term.NewCell(r, 1, attr))
 		x++
 		if x >= p.width {
 			x = 0
