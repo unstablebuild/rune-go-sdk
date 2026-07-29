@@ -135,6 +135,17 @@ func (c *ServerStream[T]) ReceiveMessages() {
 			w := newDrawResponseWriter(ctx, width, height)
 			c.handler.Draw(w)
 			resp.Rows = w.rows
+			// Piggyback the cursor on the frame so the host does not have
+			// to ask for it separately before the draw, which would report
+			// a position computed against the previous frame.
+			coordinates, style, show := c.handler.Cursor()
+			var cursorPos termrpc.Coordinates
+			cursorPos.FromModel(coordinates)
+			resp.Cursor = &DrawStreamResponse_Cursor{
+				Position: &cursorPos,
+				Style:    int32(style),
+				Show:     show,
+			}
 
 			sendMsg.SetDraw(&resp)
 			err = c.stream.SendMsg(sendMsg)
