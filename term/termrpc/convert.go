@@ -383,3 +383,55 @@ func (c *Cell) FromModel(cc term.Cell) {
 		c.Combining = nil
 	}
 }
+
+// WriteTo blits this packed frame into w, one SetCell per cell. It is the
+// decode counterpart of the packed draw writer: the planes are read
+// directly, so no per-cell message is allocated. Cells carrying combining
+// marks are written a second time, from the sparse combining entries.
+//
+// A frame whose planes are shorter than width*height is truncated to the
+// rows that are fully present, so a malformed peer cannot panic the host.
+func (p *PackedCells) WriteTo(w term.Writer) {
+	if p == nil {
+		return
+	}
+	width := int(p.Width)
+	if width <= 0 {
+		return
+	}
+	total := min(
+		len(p.Chars), len(p.Fg), len(p.Bg),
+		len(p.Attrs), len(p.Widths), len(p.Bytes),
+	)
+	total = min(total, width*int(p.Height))
+	for i := range total {
+		w.SetCell(term.Coordinates{X: i % width, Y: i / width}, term.Cell{
+			Ch:    rune(p.Chars[i]),
+			Fg:    term.Color(p.Fg[i]),
+			Bg:    term.Color(p.Bg[i]),
+			Attrs: term.AttrMask(p.Attrs[i]),
+			Width: uint8(p.Widths[i]),
+			Bytes: uint8(p.Bytes[i]),
+		})
+	}
+	for _, entry := range p.Combining {
+		i := int(entry.GetIndex())
+		if i >= total || len(entry.GetRunes()) == 0 {
+			continue
+		}
+		cell := term.Cell{
+			Ch:    rune(p.Chars[i]),
+			Fg:    term.Color(p.Fg[i]),
+			Bg:    term.Color(p.Bg[i]),
+			Attrs: term.AttrMask(p.Attrs[i]),
+			Width: uint8(p.Widths[i]),
+			Bytes: uint8(p.Bytes[i]),
+		}
+		combining := make([]rune, len(entry.Runes))
+		for j, r := range entry.Runes {
+			combining[j] = rune(r)
+		}
+		cell.SetCombining(combining)
+		w.SetCell(term.Coordinates{X: i % width, Y: i / width}, cell)
+	}
+}

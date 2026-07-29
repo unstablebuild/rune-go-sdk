@@ -242,9 +242,11 @@ func (x *ServerMessage) GetResponse() *InstallResourceResponse {
 }
 
 type DrawStreamRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Width         int32                  `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
-	Height        int32                  `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Width  int32                  `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
+	Height int32                  `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	// packed_ok signals that the caller can decode a PackedCells frame.
+	PackedOk      bool `protobuf:"varint,3,opt,name=packed_ok,json=packedOk,proto3" json:"packed_ok,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -293,11 +295,20 @@ func (x *DrawStreamRequest) GetHeight() int32 {
 	return 0
 }
 
+func (x *DrawStreamRequest) GetPackedOk() bool {
+	if x != nil {
+		return x.PackedOk
+	}
+	return false
+}
+
 type DrawStreamResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Rows          []*termrpc.CellRow            `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
-	Cursor        *DrawStreamResponse_Cursor    `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	Selection     *DrawStreamResponse_Selection `protobuf:"bytes,3,opt,name=selection,proto3" json:"selection,omitempty"`
+	state     protoimpl.MessageState        `protogen:"open.v1"`
+	Rows      []*termrpc.CellRow            `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
+	Cursor    *DrawStreamResponse_Cursor    `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Selection *DrawStreamResponse_Selection `protobuf:"bytes,3,opt,name=selection,proto3" json:"selection,omitempty"`
+	// packed is set instead of rows when the request set packed_ok.
+	Packed        *termrpc.PackedCells `protobuf:"bytes,4,opt,name=packed,proto3" json:"packed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -349,6 +360,13 @@ func (x *DrawStreamResponse) GetCursor() *DrawStreamResponse_Cursor {
 func (x *DrawStreamResponse) GetSelection() *DrawStreamResponse_Selection {
 	if x != nil {
 		return x.Selection
+	}
+	return nil
+}
+
+func (x *DrawStreamResponse) GetPacked() *termrpc.PackedCells {
+	if x != nil {
+		return x.Packed
 	}
 	return nil
 }
@@ -983,14 +1001,16 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"dimensions\x18\a \x01(\v2 .handler.DimensionsStreamRequestR\n" +
 	"dimensions\x124\n" +
 	"\x06resize\x18\b \x01(\v2\x1c.handler.ResizeStreamRequestR\x06resize\x12<\n" +
-	"\bresponse\x18\t \x01(\v2 .handler.InstallResourceResponseR\bresponse\"A\n" +
+	"\bresponse\x18\t \x01(\v2 .handler.InstallResourceResponseR\bresponse\"^\n" +
 	"\x11DrawStreamRequest\x12\x14\n" +
 	"\x05width\x18\x01 \x01(\x05R\x05width\x12\x16\n" +
-	"\x06height\x18\x02 \x01(\x05R\x06height\"\xcc\x02\n" +
+	"\x06height\x18\x02 \x01(\x05R\x06height\x12\x1b\n" +
+	"\tpacked_ok\x18\x03 \x01(\bR\bpackedOk\"\xf7\x02\n" +
 	"\x12DrawStreamResponse\x12!\n" +
 	"\x04rows\x18\x01 \x03(\v2\r.term.CellRowR\x04rows\x12:\n" +
 	"\x06cursor\x18\x02 \x01(\v2\".handler.DrawStreamResponse.CursorR\x06cursor\x12C\n" +
-	"\tselection\x18\x03 \x01(\v2%.handler.DrawStreamResponse.SelectionR\tselection\x1aa\n" +
+	"\tselection\x18\x03 \x01(\v2%.handler.DrawStreamResponse.SelectionR\tselection\x12)\n" +
+	"\x06packed\x18\x04 \x01(\v2\x11.term.PackedCellsR\x06packed\x1aa\n" +
 	"\x06Cursor\x12-\n" +
 	"\bposition\x18\x01 \x01(\v2\x11.term.CoordinatesR\bposition\x12\x12\n" +
 	"\x04show\x18\x02 \x01(\bR\x04show\x12\x14\n" +
@@ -1071,8 +1091,9 @@ var file_handlerrpc_handler_proto_goTypes = []any{
 	(*DrawStreamResponse_Cursor)(nil),    // 16: handler.DrawStreamResponse.Cursor
 	(*DrawStreamResponse_Selection)(nil), // 17: handler.DrawStreamResponse.Selection
 	(*termrpc.CellRow)(nil),              // 18: term.CellRow
-	(*termrpc.Event)(nil),                // 19: term.Event
-	(*termrpc.Coordinates)(nil),          // 20: term.Coordinates
+	(*termrpc.PackedCells)(nil),          // 19: term.PackedCells
+	(*termrpc.Event)(nil),                // 20: term.Event
+	(*termrpc.Coordinates)(nil),          // 21: term.Coordinates
 }
 var file_handlerrpc_handler_proto_depIdxs = []int32{
 	0,  // 0: handler.ServerMessage.type:type_name -> handler.MessageType
@@ -1087,15 +1108,16 @@ var file_handlerrpc_handler_proto_depIdxs = []int32{
 	18, // 9: handler.DrawStreamResponse.rows:type_name -> term.CellRow
 	16, // 10: handler.DrawStreamResponse.cursor:type_name -> handler.DrawStreamResponse.Cursor
 	17, // 11: handler.DrawStreamResponse.selection:type_name -> handler.DrawStreamResponse.Selection
-	19, // 12: handler.HandleStreamRequest.event:type_name -> term.Event
-	19, // 13: handler.HandleStreamResponse.request:type_name -> term.Event
-	20, // 14: handler.CursorStreamResponse.position:type_name -> term.Coordinates
-	20, // 15: handler.DrawStreamResponse.Cursor.position:type_name -> term.Coordinates
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	19, // 12: handler.DrawStreamResponse.packed:type_name -> term.PackedCells
+	20, // 13: handler.HandleStreamRequest.event:type_name -> term.Event
+	20, // 14: handler.HandleStreamResponse.request:type_name -> term.Event
+	21, // 15: handler.CursorStreamResponse.position:type_name -> term.Coordinates
+	21, // 16: handler.DrawStreamResponse.Cursor.position:type_name -> term.Coordinates
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_handlerrpc_handler_proto_init() }

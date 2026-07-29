@@ -91,7 +91,7 @@ func (x Event_Type) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Event_Type.Descriptor instead.
 func (Event_Type) EnumDescriptor() ([]byte, []int) {
-	return file_termrpc_term_proto_rawDescGZIP(), []int{3, 0}
+	return file_termrpc_term_proto_rawDescGZIP(), []int{4, 0}
 }
 
 type Event_Mod int32
@@ -176,7 +176,7 @@ func (x Event_Mod) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Event_Mod.Descriptor instead.
 func (Event_Mod) EnumDescriptor() ([]byte, []int) {
-	return file_termrpc_term_proto_rawDescGZIP(), []int{3, 1}
+	return file_termrpc_term_proto_rawDescGZIP(), []int{4, 1}
 }
 
 type Event_Key int32
@@ -318,7 +318,7 @@ func (x Event_Key) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Event_Key.Descriptor instead.
 func (Event_Key) EnumDescriptor() ([]byte, []int) {
-	return file_termrpc_term_proto_rawDescGZIP(), []int{3, 2}
+	return file_termrpc_term_proto_rawDescGZIP(), []int{4, 2}
 }
 
 type Attributes struct {
@@ -517,6 +517,118 @@ func (x *CellRow) GetCells() []*Cell {
 	return nil
 }
 
+// PackedCells is a columnar encoding of a rectangular cell grid. Each
+// plane holds width*height packed varints in row-major order, so a frame
+// decodes into a handful of slices instead of one message per cell.
+type PackedCells struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Width  uint32                 `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
+	Height uint32                 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	Chars  []uint32               `protobuf:"varint,3,rep,packed,name=chars,proto3" json:"chars,omitempty"`
+	Fg     []uint32               `protobuf:"varint,4,rep,packed,name=fg,proto3" json:"fg,omitempty"`
+	Bg     []uint32               `protobuf:"varint,5,rep,packed,name=bg,proto3" json:"bg,omitempty"`
+	Attrs  []uint32               `protobuf:"varint,6,rep,packed,name=attrs,proto3" json:"attrs,omitempty"`
+	Widths []uint32               `protobuf:"varint,7,rep,packed,name=widths,proto3" json:"widths,omitempty"`
+	Bytes  []uint32               `protobuf:"varint,8,rep,packed,name=bytes,proto3" json:"bytes,omitempty"`
+	// combining is sparse: combining runes are rare.
+	Combining     []*PackedCells_Combining `protobuf:"bytes,9,rep,name=combining,proto3" json:"combining,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PackedCells) Reset() {
+	*x = PackedCells{}
+	mi := &file_termrpc_term_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PackedCells) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PackedCells) ProtoMessage() {}
+
+func (x *PackedCells) ProtoReflect() protoreflect.Message {
+	mi := &file_termrpc_term_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PackedCells.ProtoReflect.Descriptor instead.
+func (*PackedCells) Descriptor() ([]byte, []int) {
+	return file_termrpc_term_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PackedCells) GetWidth() uint32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *PackedCells) GetHeight() uint32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *PackedCells) GetChars() []uint32 {
+	if x != nil {
+		return x.Chars
+	}
+	return nil
+}
+
+func (x *PackedCells) GetFg() []uint32 {
+	if x != nil {
+		return x.Fg
+	}
+	return nil
+}
+
+func (x *PackedCells) GetBg() []uint32 {
+	if x != nil {
+		return x.Bg
+	}
+	return nil
+}
+
+func (x *PackedCells) GetAttrs() []uint32 {
+	if x != nil {
+		return x.Attrs
+	}
+	return nil
+}
+
+func (x *PackedCells) GetWidths() []uint32 {
+	if x != nil {
+		return x.Widths
+	}
+	return nil
+}
+
+func (x *PackedCells) GetBytes() []uint32 {
+	if x != nil {
+		return x.Bytes
+	}
+	return nil
+}
+
+func (x *PackedCells) GetCombining() []*PackedCells_Combining {
+	if x != nil {
+		return x.Combining
+	}
+	return nil
+}
+
 type Event struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          Event_Type             `protobuf:"varint,1,opt,name=type,proto3,enum=term.Event_Type" json:"type,omitempty"`
@@ -532,7 +644,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_termrpc_term_proto_msgTypes[3]
+	mi := &file_termrpc_term_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -544,7 +656,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_termrpc_term_proto_msgTypes[3]
+	mi := &file_termrpc_term_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -557,7 +669,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_termrpc_term_proto_rawDescGZIP(), []int{3}
+	return file_termrpc_term_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Event) GetType() Event_Type {
@@ -622,7 +734,7 @@ type Key struct {
 
 func (x *Key) Reset() {
 	*x = Key{}
-	mi := &file_termrpc_term_proto_msgTypes[4]
+	mi := &file_termrpc_term_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -634,7 +746,7 @@ func (x *Key) String() string {
 func (*Key) ProtoMessage() {}
 
 func (x *Key) ProtoReflect() protoreflect.Message {
-	mi := &file_termrpc_term_proto_msgTypes[4]
+	mi := &file_termrpc_term_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -647,7 +759,7 @@ func (x *Key) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Key.ProtoReflect.Descriptor instead.
 func (*Key) Descriptor() ([]byte, []int) {
-	return file_termrpc_term_proto_rawDescGZIP(), []int{4}
+	return file_termrpc_term_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Key) GetId() string {
@@ -695,7 +807,7 @@ type Coordinates struct {
 
 func (x *Coordinates) Reset() {
 	*x = Coordinates{}
-	mi := &file_termrpc_term_proto_msgTypes[5]
+	mi := &file_termrpc_term_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -707,7 +819,7 @@ func (x *Coordinates) String() string {
 func (*Coordinates) ProtoMessage() {}
 
 func (x *Coordinates) ProtoReflect() protoreflect.Message {
-	mi := &file_termrpc_term_proto_msgTypes[5]
+	mi := &file_termrpc_term_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -720,7 +832,7 @@ func (x *Coordinates) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Coordinates.ProtoReflect.Descriptor instead.
 func (*Coordinates) Descriptor() ([]byte, []int) {
-	return file_termrpc_term_proto_rawDescGZIP(), []int{5}
+	return file_termrpc_term_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Coordinates) GetX() int32 {
@@ -735,6 +847,58 @@ func (x *Coordinates) GetY() int32 {
 		return x.Y
 	}
 	return 0
+}
+
+type PackedCells_Combining struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Runes         []uint32               `protobuf:"varint,2,rep,packed,name=runes,proto3" json:"runes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PackedCells_Combining) Reset() {
+	*x = PackedCells_Combining{}
+	mi := &file_termrpc_term_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PackedCells_Combining) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PackedCells_Combining) ProtoMessage() {}
+
+func (x *PackedCells_Combining) ProtoReflect() protoreflect.Message {
+	mi := &file_termrpc_term_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PackedCells_Combining.ProtoReflect.Descriptor instead.
+func (*PackedCells_Combining) Descriptor() ([]byte, []int) {
+	return file_termrpc_term_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *PackedCells_Combining) GetIndex() uint32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *PackedCells_Combining) GetRunes() []uint32 {
+	if x != nil {
+		return x.Runes
+	}
+	return nil
 }
 
 var File_termrpc_term_proto protoreflect.FileDescriptor
@@ -765,7 +929,20 @@ const file_termrpc_term_proto_rawDesc = "" +
 	"\x05Bytes\x18\a \x01(\rR\x05Bytes\"+\n" +
 	"\aCellRow\x12 \n" +
 	"\x05cells\x18\x01 \x03(\v2\n" +
-	".term.CellR\x05cells\"\xee\a\n" +
+	".term.CellR\x05cells\"\xa9\x02\n" +
+	"\vPackedCells\x12\x14\n" +
+	"\x05width\x18\x01 \x01(\rR\x05width\x12\x16\n" +
+	"\x06height\x18\x02 \x01(\rR\x06height\x12\x14\n" +
+	"\x05chars\x18\x03 \x03(\rR\x05chars\x12\x0e\n" +
+	"\x02fg\x18\x04 \x03(\rR\x02fg\x12\x0e\n" +
+	"\x02bg\x18\x05 \x03(\rR\x02bg\x12\x14\n" +
+	"\x05attrs\x18\x06 \x03(\rR\x05attrs\x12\x16\n" +
+	"\x06widths\x18\a \x03(\rR\x06widths\x12\x14\n" +
+	"\x05bytes\x18\b \x03(\rR\x05bytes\x129\n" +
+	"\tcombining\x18\t \x03(\v2\x1b.term.PackedCells.CombiningR\tcombining\x1a7\n" +
+	"\tCombining\x12\x14\n" +
+	"\x05index\x18\x01 \x01(\rR\x05index\x12\x14\n" +
+	"\x05runes\x18\x02 \x03(\rR\x05runes\"\xee\a\n" +
 	"\x05Event\x12$\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x10.term.Event.TypeR\x04type\x12!\n" +
 	"\x03mod\x18\x02 \x01(\x0e2\x0f.term.Event.ModR\x03mod\x12!\n" +
@@ -867,30 +1044,33 @@ func file_termrpc_term_proto_rawDescGZIP() []byte {
 }
 
 var file_termrpc_term_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_termrpc_term_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_termrpc_term_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_termrpc_term_proto_goTypes = []any{
-	(Event_Type)(0),     // 0: term.Event.Type
-	(Event_Mod)(0),      // 1: term.Event.Mod
-	(Event_Key)(0),      // 2: term.Event.Key
-	(*Attributes)(nil),  // 3: term.Attributes
-	(*Cell)(nil),        // 4: term.Cell
-	(*CellRow)(nil),     // 5: term.CellRow
-	(*Event)(nil),       // 6: term.Event
-	(*Key)(nil),         // 7: term.Key
-	(*Coordinates)(nil), // 8: term.Coordinates
+	(Event_Type)(0),               // 0: term.Event.Type
+	(Event_Mod)(0),                // 1: term.Event.Mod
+	(Event_Key)(0),                // 2: term.Event.Key
+	(*Attributes)(nil),            // 3: term.Attributes
+	(*Cell)(nil),                  // 4: term.Cell
+	(*CellRow)(nil),               // 5: term.CellRow
+	(*PackedCells)(nil),           // 6: term.PackedCells
+	(*Event)(nil),                 // 7: term.Event
+	(*Key)(nil),                   // 8: term.Key
+	(*Coordinates)(nil),           // 9: term.Coordinates
+	(*PackedCells_Combining)(nil), // 10: term.PackedCells.Combining
 }
 var file_termrpc_term_proto_depIdxs = []int32{
-	4, // 0: term.CellRow.cells:type_name -> term.Cell
-	0, // 1: term.Event.type:type_name -> term.Event.Type
-	1, // 2: term.Event.mod:type_name -> term.Event.Mod
-	2, // 3: term.Event.key:type_name -> term.Event.Key
-	1, // 4: term.Key.mod:type_name -> term.Event.Mod
-	2, // 5: term.Key.key:type_name -> term.Event.Key
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4,  // 0: term.CellRow.cells:type_name -> term.Cell
+	10, // 1: term.PackedCells.combining:type_name -> term.PackedCells.Combining
+	0,  // 2: term.Event.type:type_name -> term.Event.Type
+	1,  // 3: term.Event.mod:type_name -> term.Event.Mod
+	2,  // 4: term.Event.key:type_name -> term.Event.Key
+	1,  // 5: term.Key.mod:type_name -> term.Event.Mod
+	2,  // 6: term.Key.key:type_name -> term.Event.Key
+	7,  // [7:7] is the sub-list for method output_type
+	7,  // [7:7] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_termrpc_term_proto_init() }
@@ -904,7 +1084,7 @@ func file_termrpc_term_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_termrpc_term_proto_rawDesc), len(file_termrpc_term_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

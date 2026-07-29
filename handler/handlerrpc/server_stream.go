@@ -132,9 +132,10 @@ func (c *ServerStream[T]) ReceiveMessages() {
 			var resp DrawStreamResponse
 			width := int(c.width.Load())
 			height := int(c.height.Load())
-			w := newDrawResponseWriter(ctx, width, height)
+			w := newDrawResponseWriter(ctx, width, height,
+				recvMsg.GetDraw().GetPackedOk())
 			c.handler.Draw(w)
-			resp.Rows = w.rows
+			w.fill(&resp)
 			// Piggyback the cursor on the frame so the host does not have
 			// to ask for it separately before the draw, which would report
 			// a position computed against the previous frame.

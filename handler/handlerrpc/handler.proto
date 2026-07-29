@@ -39,6 +39,8 @@ enum MessageType {
 message DrawStreamRequest {
 	int32 width = 1;
 	int32 height = 2;
+	// packed_ok signals that the caller can decode a PackedCells frame.
+	bool packed_ok = 3;
 }
 
 message DrawStreamResponse {
@@ -56,6 +58,8 @@ message DrawStreamResponse {
 	repeated term.CellRow rows = 1;
 	Cursor cursor = 2;
 	Selection selection = 3;
+	// packed is set instead of rows when the request set packed_ok.
+	term.PackedCells packed = 4;
 }
 
 message HandleStreamRequest {

@@ -24,6 +24,27 @@ message CellRow {
     repeated Cell cells = 1 ;
 }
 
+// PackedCells is a columnar encoding of a rectangular cell grid. Each
+// plane holds width*height packed varints in row-major order, so a frame
+// decodes into a handful of slices instead of one message per cell.
+message PackedCells {
+	message Combining {
+		uint32 index = 1;
+		repeated uint32 runes = 2;
+	}
+
+	uint32 width = 1;
+	uint32 height = 2;
+	repeated uint32 chars = 3;
+	repeated uint32 fg = 4;
+	repeated uint32 bg = 5;
+	repeated uint32 attrs = 6;
+	repeated uint32 widths = 7;
+	repeated uint32 bytes = 8;
+	// combining is sparse: combining runes are rare.
+	repeated Combining combining = 9;
+}
+
 message Event {
   enum Type {
 	TypeKey = 0;

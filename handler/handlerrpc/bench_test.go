@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"google.golang.org/protobuf/proto"
 )
 
 // ---------------------------------------------------------------------------
@@ -27,7 +28,7 @@ import (
 // of screen size.
 // ---------------------------------------------------------------------------
 
-func benchDrawResponseWriter(b *testing.B, width, height int) {
+func benchDrawResponseWriter(b *testing.B, width, height int, packed bool) {
 	ctx := context.Background()
 	cell := term.Cell{
 		Ch:    'A',
@@ -38,7 +39,7 @@ func benchDrawResponseWriter(b *testing.B, width, height int) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		w := newDrawResponseWriter(ctx, width, height)
+		w := newDrawResponseWriter(ctx, width, height, packed)
 		for y := range height {
 			for x := range width {
 				w.SetCell(term.Coordinates{X: x, Y: y}, cell)
@@ -50,7 +51,56 @@ func benchDrawResponseWriter(b *testing.B, width, height int) {
 func BenchmarkDrawResponseWriter(b *testing.B) {
 	// allocs/op should remain constant across sizes — only the slab
 	// allocations in newDrawResponseWriter, not one per cell.
-	b.Run("60x15", func(b *testing.B) { benchDrawResponseWriter(b, 60, 15) })
-	b.Run("120x30", func(b *testing.B) { benchDrawResponseWriter(b, 120, 30) })
-	b.Run("240x60", func(b *testing.B) { benchDrawResponseWriter(b, 240, 60) })
+	b.Run("rows/60x15", func(b *testing.B) { benchDrawResponseWriter(b, 60, 15, false) })
+	b.Run("rows/120x30", func(b *testing.B) { benchDrawResponseWriter(b, 120, 30, false) })
+	b.Run("rows/240x60", func(b *testing.B) { benchDrawResponseWriter(b, 240, 60, false) })
+	b.Run("packed/60x15", func(b *testing.B) { benchDrawResponseWriter(b, 60, 15, true) })
+	b.Run("packed/120x30", func(b *testing.B) { benchDrawResponseWriter(b, 120, 30, true) })
+	b.Run("packed/240x60", func(b *testing.B) { benchDrawResponseWriter(b, 240, 60, true) })
+}
+
+// ---------------------------------------------------------------------------
+// Draw response decode benchmark — the packed frame decodes into a fixed
+// number of slices, while the legacy rows frame allocates one message per
+// cell on the host.
+// ---------------------------------------------------------------------------
+
+func benchDrawResponseDecode(b *testing.B, width, height int, packed bool) {
+	ctx := context.Background()
+	cell := term.Cell{
+		Ch:    'A',
+		Width: 1,
+		Bytes: 1,
+	}
+	w := newDrawResponseWriter(ctx, width, height, packed)
+	for y := range height {
+		for x := range width {
+			w.SetCell(term.Coordinates{X: x, Y: y}, cell)
+		}
+	}
+	var resp DrawStreamResponse
+	w.fill(&resp)
+	wire, err := proto.Marshal(&resp)
+	if err != nil {
+		b.Fatalf("marshal draw response: %v", err)
+	}
+	b.SetBytes(int64(len(wire)))
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		var decoded DrawStreamResponse
+		if err := proto.Unmarshal(wire, &decoded); err != nil {
+			b.Fatalf("unmarshal draw response: %v", err)
+		}
+	}
+}
+
+func BenchmarkDrawResponseDecode(b *testing.B) {
+	b.Run("rows/60x15", func(b *testing.B) { benchDrawResponseDecode(b, 60, 15, false) })
+	b.Run("rows/120x30", func(b *testing.B) { benchDrawResponseDecode(b, 120, 30, false) })
+	b.Run("rows/240x60", func(b *testing.B) { benchDrawResponseDecode(b, 240, 60, false) })
+	b.Run("packed/60x15", func(b *testing.B) { benchDrawResponseDecode(b, 60, 15, true) })
+	b.Run("packed/120x30", func(b *testing.B) { benchDrawResponseDecode(b, 120, 30, true) })
+	b.Run("packed/240x60", func(b *testing.B) { benchDrawResponseDecode(b, 240, 60, true) })
 }
