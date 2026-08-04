@@ -19,13 +19,19 @@ import "github.com/rivo/uniseg"
 // StepString returns the first grapheme cluster (user-perceived character) found in
 // the given string. It also returns the monospace width of the cluster.
 //
-// See uniseg.StepString for more details.
+// The returned state is opaque and only valid when passed back into StepString
+// for the rest of the same string; pass -1 when starting a new string.
+//
+// See uniseg.FirstGraphemeClusterInString for more details.
 func StepString(str string, state int) (
 	cluster, rest string, width uint8, newState int,
 ) {
-	var boundaries int
-	cluster, rest, boundaries, newState = uniseg.StepString(str, state)
-	width = graphemeClusterWidth(cluster, boundaries)
+	// Deliberately not uniseg.StepString: it additionally runs word-,
+	// sentence- and line-break state machines whose results this wrapper
+	// has no way to return, roughly tripling the per-rune cost.
+	var w int
+	cluster, rest, w, newState = uniseg.FirstGraphemeClusterInString(str, state)
+	width = graphemeClusterWidth(cluster, w)
 	return
 }
 
@@ -41,8 +47,7 @@ func StringWidth(s string) (width int) {
 	return
 }
 
-func graphemeClusterWidth(cluster string, boundaries int) uint8 {
-	unisegWidth := boundaries >> uniseg.ShiftWidth
+func graphemeClusterWidth(cluster string, unisegWidth int) uint8 {
 	if unisegWidth == 0 || unisegWidth > 1 || len(cluster) == 0 /* don't trust uniseg */ {
 		return uint8(unisegWidth)
 	}
