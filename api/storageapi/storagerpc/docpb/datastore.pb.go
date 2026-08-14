@@ -273,6 +273,78 @@ func (x *DeleteDocumentRequest) GetId() string {
 	return ""
 }
 
+type DropRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DropRequest) Reset() {
+	*x = DropRequest{}
+	mi := &file_docpb_datastore_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DropRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DropRequest) ProtoMessage() {}
+
+func (x *DropRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_docpb_datastore_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DropRequest.ProtoReflect.Descriptor instead.
+func (*DropRequest) Descriptor() ([]byte, []int) {
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{5}
+}
+
+type DropResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DropResponse) Reset() {
+	*x = DropResponse{}
+	mi := &file_docpb_datastore_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DropResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DropResponse) ProtoMessage() {}
+
+func (x *DropResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_docpb_datastore_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DropResponse.ProtoReflect.Descriptor instead.
+func (*DropResponse) Descriptor() ([]byte, []int) {
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{6}
+}
+
 type ListDocumentRequest struct {
 	state         protoimpl.MessageState        `protogen:"open.v1"`
 	Filters       []*ListDocumentRequest_Filter `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
@@ -283,7 +355,7 @@ type ListDocumentRequest struct {
 
 func (x *ListDocumentRequest) Reset() {
 	*x = ListDocumentRequest{}
-	mi := &file_docpb_datastore_proto_msgTypes[5]
+	mi := &file_docpb_datastore_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -295,7 +367,7 @@ func (x *ListDocumentRequest) String() string {
 func (*ListDocumentRequest) ProtoMessage() {}
 
 func (x *ListDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[5]
+	mi := &file_docpb_datastore_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -308,7 +380,7 @@ func (x *ListDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDocumentRequest.ProtoReflect.Descriptor instead.
 func (*ListDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_docpb_datastore_proto_rawDescGZIP(), []int{5}
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListDocumentRequest) GetFilters() []*ListDocumentRequest_Filter {
@@ -333,7 +405,7 @@ type DocumentResponse struct {
 
 func (x *DocumentResponse) Reset() {
 	*x = DocumentResponse{}
-	mi := &file_docpb_datastore_proto_msgTypes[6]
+	mi := &file_docpb_datastore_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +417,7 @@ func (x *DocumentResponse) String() string {
 func (*DocumentResponse) ProtoMessage() {}
 
 func (x *DocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[6]
+	mi := &file_docpb_datastore_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +430,7 @@ func (x *DocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocumentResponse.ProtoReflect.Descriptor instead.
 func (*DocumentResponse) Descriptor() ([]byte, []int) {
-	return file_docpb_datastore_proto_rawDescGZIP(), []int{6}
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{8}
 }
 
 type GetDocumentResponse struct {
@@ -371,7 +443,7 @@ type GetDocumentResponse struct {
 
 func (x *GetDocumentResponse) Reset() {
 	*x = GetDocumentResponse{}
-	mi := &file_docpb_datastore_proto_msgTypes[7]
+	mi := &file_docpb_datastore_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +455,7 @@ func (x *GetDocumentResponse) String() string {
 func (*GetDocumentResponse) ProtoMessage() {}
 
 func (x *GetDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[7]
+	mi := &file_docpb_datastore_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +468,7 @@ func (x *GetDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDocumentResponse.ProtoReflect.Descriptor instead.
 func (*GetDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_docpb_datastore_proto_rawDescGZIP(), []int{7}
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetDocumentResponse) GetData() []byte {
@@ -423,7 +495,7 @@ type ListDocumentResponse struct {
 
 func (x *ListDocumentResponse) Reset() {
 	*x = ListDocumentResponse{}
-	mi := &file_docpb_datastore_proto_msgTypes[8]
+	mi := &file_docpb_datastore_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -435,7 +507,7 @@ func (x *ListDocumentResponse) String() string {
 func (*ListDocumentResponse) ProtoMessage() {}
 
 func (x *ListDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[8]
+	mi := &file_docpb_datastore_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -448,7 +520,7 @@ func (x *ListDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDocumentResponse.ProtoReflect.Descriptor instead.
 func (*ListDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_docpb_datastore_proto_rawDescGZIP(), []int{8}
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListDocumentResponse) GetData() []byte {
@@ -474,7 +546,7 @@ type CreateDocumentResponse struct {
 
 func (x *CreateDocumentResponse) Reset() {
 	*x = CreateDocumentResponse{}
-	mi := &file_docpb_datastore_proto_msgTypes[9]
+	mi := &file_docpb_datastore_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -486,7 +558,7 @@ func (x *CreateDocumentResponse) String() string {
 func (*CreateDocumentResponse) ProtoMessage() {}
 
 func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[9]
+	mi := &file_docpb_datastore_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -499,7 +571,7 @@ func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDocumentResponse.ProtoReflect.Descriptor instead.
 func (*CreateDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_docpb_datastore_proto_rawDescGZIP(), []int{9}
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CreateDocumentResponse) GetAlreadyExists() bool {
@@ -519,7 +591,7 @@ type UpdateDocumentResponse struct {
 
 func (x *UpdateDocumentResponse) Reset() {
 	*x = UpdateDocumentResponse{}
-	mi := &file_docpb_datastore_proto_msgTypes[10]
+	mi := &file_docpb_datastore_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +603,7 @@ func (x *UpdateDocumentResponse) String() string {
 func (*UpdateDocumentResponse) ProtoMessage() {}
 
 func (x *UpdateDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[10]
+	mi := &file_docpb_datastore_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +616,7 @@ func (x *UpdateDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDocumentResponse.ProtoReflect.Descriptor instead.
 func (*UpdateDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_docpb_datastore_proto_rawDescGZIP(), []int{10}
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateDocumentResponse) GetNotFound() bool {
@@ -571,7 +643,7 @@ type UpdateDocumentRequest_Field struct {
 
 func (x *UpdateDocumentRequest_Field) Reset() {
 	*x = UpdateDocumentRequest_Field{}
-	mi := &file_docpb_datastore_proto_msgTypes[11]
+	mi := &file_docpb_datastore_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -583,7 +655,7 @@ func (x *UpdateDocumentRequest_Field) String() string {
 func (*UpdateDocumentRequest_Field) ProtoMessage() {}
 
 func (x *UpdateDocumentRequest_Field) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[11]
+	mi := &file_docpb_datastore_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -624,7 +696,7 @@ type ListDocumentRequest_Filter struct {
 
 func (x *ListDocumentRequest_Filter) Reset() {
 	*x = ListDocumentRequest_Filter{}
-	mi := &file_docpb_datastore_proto_msgTypes[12]
+	mi := &file_docpb_datastore_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -636,7 +708,7 @@ func (x *ListDocumentRequest_Filter) String() string {
 func (*ListDocumentRequest_Filter) ProtoMessage() {}
 
 func (x *ListDocumentRequest_Filter) ProtoReflect() protoreflect.Message {
-	mi := &file_docpb_datastore_proto_msgTypes[12]
+	mi := &file_docpb_datastore_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -649,7 +721,7 @@ func (x *ListDocumentRequest_Filter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDocumentRequest_Filter.ProtoReflect.Descriptor instead.
 func (*ListDocumentRequest_Filter) Descriptor() ([]byte, []int) {
-	return file_docpb_datastore_proto_rawDescGZIP(), []int{5, 0}
+	return file_docpb_datastore_proto_rawDescGZIP(), []int{7, 0}
 }
 
 func (x *ListDocumentRequest_Filter) GetFieldPath() []string {
@@ -695,7 +767,9 @@ const file_docpb_datastore_proto_rawDesc = "" +
 	"\x12GetDocumentRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"'\n" +
 	"\x15DeleteDocumentRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xc5\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\r\n" +
+	"\vDropRequest\"\x0e\n" +
+	"\fDropResponse\"\xc5\x01\n" +
 	"\x13ListDocumentRequest\x12;\n" +
 	"\afilters\x18\x01 \x03(\v2!.proto.ListDocumentRequest.FilterR\afilters\x12\x16\n" +
 	"\x06fields\x18\x02 \x03(\tR\x06fields\x1aY\n" +
@@ -715,14 +789,15 @@ const file_docpb_datastore_proto_rawDesc = "" +
 	"\x0ealready_exists\x18\x01 \x01(\bR\ralreadyExists\"f\n" +
 	"\x16UpdateDocumentResponse\x12\x1b\n" +
 	"\tnot_found\x18\x01 \x01(\bR\bnotFound\x12/\n" +
-	"\x13precondition_failed\x18\x02 \x01(\bR\x12preconditionFailed2\xa2\x03\n" +
+	"\x13precondition_failed\x18\x02 \x01(\bR\x12preconditionFailed2\xd3\x03\n" +
 	"\rDocumentStore\x12G\n" +
 	"\x06Create\x12\x1c.proto.CreateDocumentRequest\x1a\x1d.proto.CreateDocumentResponse(\x01\x12;\n" +
 	"\x03Set\x12\x19.proto.SetDocumentRequest\x1a\x17.proto.DocumentResponse(\x01\x12G\n" +
 	"\x06Update\x12\x1c.proto.UpdateDocumentRequest\x1a\x1d.proto.UpdateDocumentResponse(\x01\x12>\n" +
 	"\x03Get\x12\x19.proto.GetDocumentRequest\x1a\x1a.proto.GetDocumentResponse0\x01\x12?\n" +
 	"\x06Delete\x12\x1c.proto.DeleteDocumentRequest\x1a\x17.proto.DocumentResponse\x12A\n" +
-	"\x04List\x12\x1a.proto.ListDocumentRequest\x1a\x1b.proto.ListDocumentResponse0\x01B\bZ\x06/docpbb\x06proto3"
+	"\x04List\x12\x1a.proto.ListDocumentRequest\x1a\x1b.proto.ListDocumentResponse0\x01\x12/\n" +
+	"\x04Drop\x12\x12.proto.DropRequest\x1a\x13.proto.DropResponseB\bZ\x06/docpbb\x06proto3"
 
 var (
 	file_docpb_datastore_proto_rawDescOnce sync.Once
@@ -736,40 +811,44 @@ func file_docpb_datastore_proto_rawDescGZIP() []byte {
 	return file_docpb_datastore_proto_rawDescData
 }
 
-var file_docpb_datastore_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_docpb_datastore_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_docpb_datastore_proto_goTypes = []any{
 	(*CreateDocumentRequest)(nil),       // 0: proto.CreateDocumentRequest
 	(*SetDocumentRequest)(nil),          // 1: proto.SetDocumentRequest
 	(*UpdateDocumentRequest)(nil),       // 2: proto.UpdateDocumentRequest
 	(*GetDocumentRequest)(nil),          // 3: proto.GetDocumentRequest
 	(*DeleteDocumentRequest)(nil),       // 4: proto.DeleteDocumentRequest
-	(*ListDocumentRequest)(nil),         // 5: proto.ListDocumentRequest
-	(*DocumentResponse)(nil),            // 6: proto.DocumentResponse
-	(*GetDocumentResponse)(nil),         // 7: proto.GetDocumentResponse
-	(*ListDocumentResponse)(nil),        // 8: proto.ListDocumentResponse
-	(*CreateDocumentResponse)(nil),      // 9: proto.CreateDocumentResponse
-	(*UpdateDocumentResponse)(nil),      // 10: proto.UpdateDocumentResponse
-	(*UpdateDocumentRequest_Field)(nil), // 11: proto.UpdateDocumentRequest.Field
-	(*ListDocumentRequest_Filter)(nil),  // 12: proto.ListDocumentRequest.Filter
+	(*DropRequest)(nil),                 // 5: proto.DropRequest
+	(*DropResponse)(nil),                // 6: proto.DropResponse
+	(*ListDocumentRequest)(nil),         // 7: proto.ListDocumentRequest
+	(*DocumentResponse)(nil),            // 8: proto.DocumentResponse
+	(*GetDocumentResponse)(nil),         // 9: proto.GetDocumentResponse
+	(*ListDocumentResponse)(nil),        // 10: proto.ListDocumentResponse
+	(*CreateDocumentResponse)(nil),      // 11: proto.CreateDocumentResponse
+	(*UpdateDocumentResponse)(nil),      // 12: proto.UpdateDocumentResponse
+	(*UpdateDocumentRequest_Field)(nil), // 13: proto.UpdateDocumentRequest.Field
+	(*ListDocumentRequest_Filter)(nil),  // 14: proto.ListDocumentRequest.Filter
 }
 var file_docpb_datastore_proto_depIdxs = []int32{
-	11, // 0: proto.UpdateDocumentRequest.updates:type_name -> proto.UpdateDocumentRequest.Field
-	11, // 1: proto.UpdateDocumentRequest.preconditions:type_name -> proto.UpdateDocumentRequest.Field
-	12, // 2: proto.ListDocumentRequest.filters:type_name -> proto.ListDocumentRequest.Filter
+	13, // 0: proto.UpdateDocumentRequest.updates:type_name -> proto.UpdateDocumentRequest.Field
+	13, // 1: proto.UpdateDocumentRequest.preconditions:type_name -> proto.UpdateDocumentRequest.Field
+	14, // 2: proto.ListDocumentRequest.filters:type_name -> proto.ListDocumentRequest.Filter
 	0,  // 3: proto.DocumentStore.Create:input_type -> proto.CreateDocumentRequest
 	1,  // 4: proto.DocumentStore.Set:input_type -> proto.SetDocumentRequest
 	2,  // 5: proto.DocumentStore.Update:input_type -> proto.UpdateDocumentRequest
 	3,  // 6: proto.DocumentStore.Get:input_type -> proto.GetDocumentRequest
 	4,  // 7: proto.DocumentStore.Delete:input_type -> proto.DeleteDocumentRequest
-	5,  // 8: proto.DocumentStore.List:input_type -> proto.ListDocumentRequest
-	9,  // 9: proto.DocumentStore.Create:output_type -> proto.CreateDocumentResponse
-	6,  // 10: proto.DocumentStore.Set:output_type -> proto.DocumentResponse
-	10, // 11: proto.DocumentStore.Update:output_type -> proto.UpdateDocumentResponse
-	7,  // 12: proto.DocumentStore.Get:output_type -> proto.GetDocumentResponse
-	6,  // 13: proto.DocumentStore.Delete:output_type -> proto.DocumentResponse
-	8,  // 14: proto.DocumentStore.List:output_type -> proto.ListDocumentResponse
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
+	7,  // 8: proto.DocumentStore.List:input_type -> proto.ListDocumentRequest
+	5,  // 9: proto.DocumentStore.Drop:input_type -> proto.DropRequest
+	11, // 10: proto.DocumentStore.Create:output_type -> proto.CreateDocumentResponse
+	8,  // 11: proto.DocumentStore.Set:output_type -> proto.DocumentResponse
+	12, // 12: proto.DocumentStore.Update:output_type -> proto.UpdateDocumentResponse
+	9,  // 13: proto.DocumentStore.Get:output_type -> proto.GetDocumentResponse
+	8,  // 14: proto.DocumentStore.Delete:output_type -> proto.DocumentResponse
+	10, // 15: proto.DocumentStore.List:output_type -> proto.ListDocumentResponse
+	6,  // 16: proto.DocumentStore.Drop:output_type -> proto.DropResponse
+	10, // [10:17] is the sub-list for method output_type
+	3,  // [3:10] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -786,7 +865,7 @@ func file_docpb_datastore_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_docpb_datastore_proto_rawDesc), len(file_docpb_datastore_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

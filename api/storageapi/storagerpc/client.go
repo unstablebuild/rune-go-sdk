@@ -272,6 +272,17 @@ func (c *Client) Delete(
 	return nil
 }
 
+// Drop satisfies storageapi.DroppableService.
+func (c *Client) Drop(ctx context.Context) error {
+	var req docpb.DropRequest
+	_, err := c.pb.Drop(c.partitionContext(ctx), &req)
+	if err != nil {
+		return convertRpcError(err)
+	}
+	return nil
+}
+
+
 type rpcIterator struct {
 	marshaler docmarshal.Marshaler
 	cc        docpb.DocumentStore_ListClient

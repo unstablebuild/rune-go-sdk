@@ -25,6 +25,7 @@ const (
 	DocumentStore_Get_FullMethodName    = "/proto.DocumentStore/Get"
 	DocumentStore_Delete_FullMethodName = "/proto.DocumentStore/Delete"
 	DocumentStore_List_FullMethodName   = "/proto.DocumentStore/List"
+	DocumentStore_Drop_FullMethodName   = "/proto.DocumentStore/Drop"
 )
 
 // DocumentStoreClient is the client API for DocumentStore service.
@@ -48,6 +49,9 @@ type DocumentStoreClient interface {
 	Get(ctx context.Context, in *GetDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetDocumentResponse], error)
 	Delete(ctx context.Context, in *DeleteDocumentRequest, opts ...grpc.CallOption) (*DocumentResponse, error)
 	List(ctx context.Context, in *ListDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListDocumentResponse], error)
+	// Drop deletes every document of the partition addressed by the request
+	// metadata. It is not recursive: sub-partitions are left untouched.
+	Drop(ctx context.Context, in *DropRequest, opts ...grpc.CallOption) (*DropResponse, error)
 }
 
 type documentStoreClient struct {
@@ -145,6 +149,16 @@ func (c *documentStoreClient) List(ctx context.Context, in *ListDocumentRequest,
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DocumentStore_ListClient = grpc.ServerStreamingClient[ListDocumentResponse]
 
+func (c *documentStoreClient) Drop(ctx context.Context, in *DropRequest, opts ...grpc.CallOption) (*DropResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DropResponse)
+	err := c.cc.Invoke(ctx, DocumentStore_Drop_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DocumentStoreServer is the server API for DocumentStore service.
 // All implementations must embed UnimplementedDocumentStoreServer
 // for forward compatibility.
@@ -166,6 +180,9 @@ type DocumentStoreServer interface {
 	Get(*GetDocumentRequest, grpc.ServerStreamingServer[GetDocumentResponse]) error
 	Delete(context.Context, *DeleteDocumentRequest) (*DocumentResponse, error)
 	List(*ListDocumentRequest, grpc.ServerStreamingServer[ListDocumentResponse]) error
+	// Drop deletes every document of the partition addressed by the request
+	// metadata. It is not recursive: sub-partitions are left untouched.
+	Drop(context.Context, *DropRequest) (*DropResponse, error)
 	mustEmbedUnimplementedDocumentStoreServer()
 }
 
@@ -193,6 +210,9 @@ func (UnimplementedDocumentStoreServer) Delete(context.Context, *DeleteDocumentR
 }
 func (UnimplementedDocumentStoreServer) List(*ListDocumentRequest, grpc.ServerStreamingServer[ListDocumentResponse]) error {
 	return status.Error(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedDocumentStoreServer) Drop(context.Context, *DropRequest) (*DropResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Drop not implemented")
 }
 func (UnimplementedDocumentStoreServer) mustEmbedUnimplementedDocumentStoreServer() {}
 func (UnimplementedDocumentStoreServer) testEmbeddedByValue()                       {}
@@ -276,6 +296,24 @@ func _DocumentStore_List_Handler(srv interface{}, stream grpc.ServerStream) erro
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DocumentStore_ListServer = grpc.ServerStreamingServer[ListDocumentResponse]
 
+func _DocumentStore_Drop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DropRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocumentStoreServer).Drop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocumentStore_Drop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocumentStoreServer).Drop(ctx, req.(*DropRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DocumentStore_ServiceDesc is the grpc.ServiceDesc for DocumentStore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -286,6 +324,10 @@ var DocumentStore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _DocumentStore_Delete_Handler,
+		},
+		{
+			MethodName: "Drop",
+			Handler:    _DocumentStore_Drop_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

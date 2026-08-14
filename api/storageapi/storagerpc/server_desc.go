@@ -188,6 +188,18 @@ type documentStoreListClient struct {
 	grpc.ClientStream
 }
 
+func (c *documentStoreClient) Drop(
+	ctx context.Context, in *docpb.DropRequest, opts ...grpc.CallOption,
+) (*docpb.DropResponse, error) {
+	out := new(docpb.DropResponse)
+	err := c.cc.Invoke(ctx,
+		fmt.Sprintf("/proto.DocumentStore.%s/Drop", c.collection), in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (x *documentStoreListClient) Recv() (*docpb.ListDocumentResponse, error) {
 	m := new(docpb.ListDocumentResponse)
 	if err := x.RecvMsg(m); err != nil {

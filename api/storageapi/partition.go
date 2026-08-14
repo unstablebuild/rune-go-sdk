@@ -61,6 +61,10 @@ func (s *partitionErrorService) Partition(name string) (Service, error) {
 	return s, s.err
 }
 
+func (s *partitionErrorService) Drop(context.Context) error {
+	return s.err
+}
+
 func (s *partitionErrorService) Close() error {
 	return nil
 }

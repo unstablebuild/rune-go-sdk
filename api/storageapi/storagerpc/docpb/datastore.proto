@@ -33,6 +33,12 @@ message DeleteDocumentRequest {
 	string id = 1;
 }
 
+message DropRequest {
+}
+
+message DropResponse {
+}
+
 message ListDocumentRequest {
 	message Filter {
 		repeated string field_path = 1;
@@ -81,4 +87,7 @@ service DocumentStore {
 	rpc Get(GetDocumentRequest) returns (stream GetDocumentResponse);
 	rpc Delete(DeleteDocumentRequest) returns (DocumentResponse);
 	rpc List(ListDocumentRequest) returns (stream ListDocumentResponse);
+	// Drop deletes every document of the partition addressed by the request
+	// metadata. It is not recursive: sub-partitions are left untouched.
+	rpc Drop(DropRequest) returns (DropResponse);
 }
