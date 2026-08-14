@@ -39,6 +39,38 @@ message DropRequest {
 message DropResponse {
 }
 
+message BatchRequest {
+	enum OpType {
+		Create = 0;
+		Set = 1;
+		Update = 2;
+		Delete = 3;
+	}
+
+	message Op {
+		OpType type = 1;
+		string id = 2;
+		bytes data = 3;
+		repeated UpdateDocumentRequest.Field updates = 4;
+		repeated UpdateDocumentRequest.Field preconditions = 5;
+		// continuation marks an entry that carries more chunks of the
+		// previous op rather than starting a new one.
+		bool continuation = 6;
+	}
+
+	repeated Op ops = 1;
+}
+
+message BatchResponse {
+	message OpResult {
+		bool not_found = 1;
+		bool already_exists = 2;
+		bool precondition_failed = 3;
+	}
+
+	repeated OpResult results = 1;
+}
+
 message ListDocumentRequest {
 	message Filter {
 		repeated string field_path = 1;
@@ -90,4 +122,10 @@ service DocumentStore {
 	// Drop deletes every document of the partition addressed by the request
 	// metadata. It is not recursive: sub-partitions are left untouched.
 	rpc Drop(DropRequest) returns (DropResponse);
+	// Batch applies several writes to the partition addressed by the request
+	// metadata in one atomic operation. Operations are streamed with the same
+	// chunked framing as Create/Set/Update: an op with continuation set
+	// carries further chunks of the preceding op. The response reports one
+	// result per op, in request order.
+	rpc Batch(stream BatchRequest) returns (BatchResponse);
 }

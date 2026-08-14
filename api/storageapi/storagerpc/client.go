@@ -282,6 +282,150 @@ func (c *Client) Drop(ctx context.Context) error {
 	return nil
 }
 
+// ApplyBatch satisfies storageapi.BatchWriter.
+func (c *Client) ApplyBatch(
+	ctx context.Context, ops []storageapi.BatchOp,
+) ([]storageapi.BatchOpResult, error) {
+	if len(ops) == 0 {
+		return nil, nil
+	}
+	var entries []*docpb.BatchRequest_Op
+	for _, op := range ops {
+		encoded, err := c.batchOpEntries(op)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, encoded...)
+	}
+
+	stream, err := c.pb.Batch(c.partitionContext(ctx))
+	if err != nil {
+		return nil, convertRpcError(err)
+	}
+	if err := sendBatchStream(stream, entries); err != nil {
+		return nil, convertRpcError(err)
+	}
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		return nil, convertRpcError(err)
+	}
+
+	pbResults := res.GetResults()
+	if len(pbResults) != len(ops) {
+		return nil, fmt.Errorf(
+			"storagerpc: batch returned %d results for %d operations",
+			len(pbResults), len(ops))
+	}
+	results := make([]storageapi.BatchOpResult, len(ops))
+	for i, result := range pbResults {
+		switch {
+		case result.GetNotFound():
+			results[i].Err = storageapi.ErrNotFound
+		case result.GetAlreadyExists():
+			results[i].Err = storageapi.ErrAlreadyExists
+		case result.GetPreconditionFailed():
+			results[i].Err = storageapi.ErrPreconditionFailed
+		}
+	}
+	return results, nil
+}
+
+// batchOpEntries splits one operation into the stream entries that carry
+// it: a head entry with the operation identity and, when the payload
+// exceeds a chunk, continuation entries with the remaining chunks.
+func (c *Client) batchOpEntries(
+	op storageapi.BatchOp,
+) ([]*docpb.BatchRequest_Op, error) {
+	head := &docpb.BatchRequest_Op{Id: op.ID}
+	entries := []*docpb.BatchRequest_Op{head}
+	switch op.Type {
+	case storageapi.BatchCreate, storageapi.BatchSet:
+		head.Type = docpb.BatchRequest_Create
+		if op.Type == storageapi.BatchSet {
+			head.Type = docpb.BatchRequest_Set
+		}
+		data, err := c.encodeCreateData(op.Doc)
+		if err != nil {
+			return nil, err
+		}
+		chunks := chunkBytes(data)
+		head.Data = chunks[0]
+		for _, chunk := range chunks[1:] {
+			entries = append(entries, &docpb.BatchRequest_Op{
+				Continuation: true, Data: chunk,
+			})
+		}
+	case storageapi.BatchUpdate:
+		head.Type = docpb.BatchRequest_Update
+		if len(op.Updates) == 0 {
+			panic("invalid arguments: empty updates")
+		}
+		fields := makeProtoUpdates(c.marshaler, op.Updates)
+		preconds := makeProtoPreconditions(c.marshaler, op.Preconditions...)
+		appendField := func(field *docpb.UpdateDocumentRequest_Field, precond bool) {
+			for i, chunk := range chunkBytes(field.GetData()) {
+				entry := &docpb.UpdateDocumentRequest_Field{Data: chunk}
+				if i == 0 {
+					entry.FieldPath = field.GetFieldPath()
+				}
+				op := &docpb.BatchRequest_Op{Continuation: true}
+				if precond {
+					op.Preconditions = []*docpb.UpdateDocumentRequest_Field{entry}
+				} else {
+					op.Updates = []*docpb.UpdateDocumentRequest_Field{entry}
+				}
+				entries = append(entries, op)
+			}
+		}
+		for _, field := range fields {
+			appendField(field, false)
+		}
+		for _, field := range preconds {
+			appendField(field, true)
+		}
+	case storageapi.BatchDelete:
+		head.Type = docpb.BatchRequest_Delete
+	default:
+		return nil, fmt.Errorf("storagerpc: unknown batch operation %d", op.Type)
+	}
+	return entries, nil
+}
+
+// sendBatchStream packs entries into as few messages as the chunk budget
+// allows, so a batch of small documents costs a single stream message.
+func sendBatchStream(
+	stream grpc.ClientStreamingClient[docpb.BatchRequest, docpb.BatchResponse],
+	entries []*docpb.BatchRequest_Op,
+) error {
+	var msg docpb.BatchRequest
+	var size int
+	flush := func() error {
+		if len(msg.GetOps()) == 0 {
+			return nil
+		}
+		err := stream.Send(&msg)
+		msg = docpb.BatchRequest{}
+		size = 0
+		return err
+	}
+	for _, entry := range entries {
+		entrySize := len(entry.GetData()) + len(entry.GetId())
+		for _, field := range entry.GetUpdates() {
+			entrySize += len(field.GetData())
+		}
+		for _, field := range entry.GetPreconditions() {
+			entrySize += len(field.GetData())
+		}
+		if size > 0 && size+entrySize > maxChunkBytes {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+		msg.Ops = append(msg.Ops, entry)
+		size += entrySize
+	}
+	return flush()
+}
 
 type rpcIterator struct {
 	marshaler docmarshal.Marshaler

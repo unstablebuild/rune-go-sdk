@@ -26,6 +26,7 @@ const (
 	DocumentStore_Delete_FullMethodName = "/proto.DocumentStore/Delete"
 	DocumentStore_List_FullMethodName   = "/proto.DocumentStore/List"
 	DocumentStore_Drop_FullMethodName   = "/proto.DocumentStore/Drop"
+	DocumentStore_Batch_FullMethodName  = "/proto.DocumentStore/Batch"
 )
 
 // DocumentStoreClient is the client API for DocumentStore service.
@@ -52,6 +53,12 @@ type DocumentStoreClient interface {
 	// Drop deletes every document of the partition addressed by the request
 	// metadata. It is not recursive: sub-partitions are left untouched.
 	Drop(ctx context.Context, in *DropRequest, opts ...grpc.CallOption) (*DropResponse, error)
+	// Batch applies several writes to the partition addressed by the request
+	// metadata in one atomic operation. Operations are streamed with the same
+	// chunked framing as Create/Set/Update: an op with continuation set
+	// carries further chunks of the preceding op. The response reports one
+	// result per op, in request order.
+	Batch(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[BatchRequest, BatchResponse], error)
 }
 
 type documentStoreClient struct {
@@ -159,6 +166,19 @@ func (c *documentStoreClient) Drop(ctx context.Context, in *DropRequest, opts ..
 	return out, nil
 }
 
+func (c *documentStoreClient) Batch(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[BatchRequest, BatchResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DocumentStore_ServiceDesc.Streams[5], DocumentStore_Batch_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[BatchRequest, BatchResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_BatchClient = grpc.ClientStreamingClient[BatchRequest, BatchResponse]
+
 // DocumentStoreServer is the server API for DocumentStore service.
 // All implementations must embed UnimplementedDocumentStoreServer
 // for forward compatibility.
@@ -183,6 +203,12 @@ type DocumentStoreServer interface {
 	// Drop deletes every document of the partition addressed by the request
 	// metadata. It is not recursive: sub-partitions are left untouched.
 	Drop(context.Context, *DropRequest) (*DropResponse, error)
+	// Batch applies several writes to the partition addressed by the request
+	// metadata in one atomic operation. Operations are streamed with the same
+	// chunked framing as Create/Set/Update: an op with continuation set
+	// carries further chunks of the preceding op. The response reports one
+	// result per op, in request order.
+	Batch(grpc.ClientStreamingServer[BatchRequest, BatchResponse]) error
 	mustEmbedUnimplementedDocumentStoreServer()
 }
 
@@ -213,6 +239,9 @@ func (UnimplementedDocumentStoreServer) List(*ListDocumentRequest, grpc.ServerSt
 }
 func (UnimplementedDocumentStoreServer) Drop(context.Context, *DropRequest) (*DropResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Drop not implemented")
+}
+func (UnimplementedDocumentStoreServer) Batch(grpc.ClientStreamingServer[BatchRequest, BatchResponse]) error {
+	return status.Error(codes.Unimplemented, "method Batch not implemented")
 }
 func (UnimplementedDocumentStoreServer) mustEmbedUnimplementedDocumentStoreServer() {}
 func (UnimplementedDocumentStoreServer) testEmbeddedByValue()                       {}
@@ -314,6 +343,13 @@ func _DocumentStore_Drop_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DocumentStore_Batch_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DocumentStoreServer).Batch(&grpc.GenericServerStream[BatchRequest, BatchResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentStore_BatchServer = grpc.ClientStreamingServer[BatchRequest, BatchResponse]
+
 // DocumentStore_ServiceDesc is the grpc.ServiceDesc for DocumentStore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -355,6 +391,11 @@ var DocumentStore_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "List",
 			Handler:       _DocumentStore_List_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "Batch",
+			Handler:       _DocumentStore_Batch_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "docpb/datastore.proto",

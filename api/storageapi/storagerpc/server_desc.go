@@ -200,6 +200,17 @@ func (c *documentStoreClient) Drop(
 	return out, nil
 }
 
+func (c *documentStoreClient) Batch(
+	ctx context.Context, opts ...grpc.CallOption,
+) (grpc.ClientStreamingClient[docpb.BatchRequest, docpb.BatchResponse], error) {
+	stream, err := c.cc.NewStream(ctx, &docpb.DocumentStore_ServiceDesc.Streams[5],
+		fmt.Sprintf("/proto.DocumentStore.%s/Batch", c.collection), opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &grpc.GenericClientStream[docpb.BatchRequest, docpb.BatchResponse]{ClientStream: stream}, nil
+}
+
 func (x *documentStoreListClient) Recv() (*docpb.ListDocumentResponse, error) {
 	m := new(docpb.ListDocumentResponse)
 	if err := x.RecvMsg(m); err != nil {

@@ -65,6 +65,12 @@ func (s *partitionErrorService) Drop(context.Context) error {
 	return s.err
 }
 
+func (s *partitionErrorService) ApplyBatch(
+	context.Context, []BatchOp,
+) ([]BatchOpResult, error) {
+	return nil, s.err
+}
+
 func (s *partitionErrorService) Close() error {
 	return nil
 }

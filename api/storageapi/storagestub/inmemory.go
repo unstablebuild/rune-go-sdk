@@ -15,6 +15,7 @@ package storagestub
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sync"
 
@@ -87,14 +88,19 @@ func (c *inMemoryService) set(
 	c.m.Lock()
 	defer c.m.Unlock()
 
+	return c.setValue(ID, data, errAlreadyExists)
+}
+
+func (c *inMemoryService) setValue(
+	ID string, data interface{}, errAlreadyExists bool,
+) error {
 	if errAlreadyExists {
-		_, ok := c.storage[ID]
-		if ok {
+		if _, ok := c.storage[ID]; ok {
 			return storageapi.ErrAlreadyExists
 		}
 	}
 	c.storage[ID] = Encode(c.marshaler, data, true)
-	return
+	return nil
 }
 
 func (c *inMemoryService) getValue(ID string, doc interface{}) (
@@ -133,6 +139,12 @@ func (c *inMemoryService) Update(
 	c.m.Lock()
 	defer c.m.Unlock()
 
+	return c.updateValue(ID, updates, preconds)
+}
+
+func (c *inMemoryService) updateValue(
+	ID string, updates []storageapi.Update, preconds []storageapi.Precondition,
+) error {
 	var proto map[string]interface{}
 	err := c.getValue(ID, &proto)
 	if err != nil {
@@ -183,4 +195,55 @@ func (c *inMemoryService) Drop(ctx context.Context) error {
 	c.storage = make(map[string][]byte)
 	c.partitions = make(map[string]*inMemoryService)
 	return nil
+}
+
+// ApplyBatch satisfies storageapi.BatchWriter.
+func (c *inMemoryService) ApplyBatch(
+	ctx context.Context, ops []storageapi.BatchOp,
+) ([]storageapi.BatchOpResult, error) {
+	staged := make([]interface{}, len(ops))
+	for i, op := range ops {
+		switch op.Type {
+		case storageapi.BatchCreate, storageapi.BatchSet:
+			if op.Doc == nil {
+				panic("invalid nil data argument to batch Create/Set")
+			}
+			data, err := DerefCreateValue(reflect.ValueOf(op.Doc))
+			if err != nil {
+				return nil, err
+			}
+			staged[i] = data
+		case storageapi.BatchUpdate:
+			if len(op.Updates) == 0 {
+				panic("batch Update: no paths to update")
+			}
+		}
+	}
+
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	results := make([]storageapi.BatchOpResult, len(ops))
+	for i, op := range ops {
+		var err error
+		switch op.Type {
+		case storageapi.BatchCreate:
+			err = c.setValue(op.ID, staged[i], true)
+		case storageapi.BatchSet:
+			err = c.setValue(op.ID, staged[i], false)
+		case storageapi.BatchUpdate:
+			err = c.updateValue(op.ID, op.Updates, op.Preconditions)
+		case storageapi.BatchDelete:
+			delete(c.storage, op.ID)
+		}
+		switch {
+		case errors.Is(err, storageapi.ErrAlreadyExists),
+			errors.Is(err, storageapi.ErrNotFound),
+			errors.Is(err, storageapi.ErrPreconditionFailed):
+			results[i].Err = err
+		case err != nil:
+			return nil, err
+		}
+	}
+	return results, nil
 }
