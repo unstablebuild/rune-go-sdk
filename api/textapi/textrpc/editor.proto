@@ -158,6 +158,11 @@ service Editor {
 
 message SubscribeCommandRequest {
 	CommandManual command = 1;
+	// advertises that the extension understands
+	// ServerCommandMessage.CompleteCancel; editors must not send cancels
+	// to extensions that do not set it, since older SDKs terminate the
+	// stream on unknown message types.
+	bool supports_complete_cancel = 2;
 }
 
 message CommandManual {
@@ -189,11 +194,13 @@ message ServerCommandMessage {
 		Handle = 0;
 		Complete = 1;
 		Response = 2;
+		CompleteCancel = 3;
 	}
 	MessageType type = 1;
 	HandleCommandRequest handle = 2;
 	CompleteCommandRequest complete = 3;
 	SubscribeCommandResponse response = 4;
+	CompleteCommandCancel complete_cancel = 5;
 }
 
 message HandleCommandRequest {
@@ -225,10 +232,15 @@ message CompleteCommandDone {
 	string error = 2;
 }
 
+message CompleteCommandCancel {
+	int64 id = 1;
+}
+
 // REPL command streaming
 
 message SubscribeREPLCommandRequest {
 	CommandManual command = 1;
+	bool supports_complete_cancel = 2;
 }
 
 message SubscribeREPLCommandResponse {}
@@ -261,12 +273,14 @@ message ServerREPLCommandMessage {
 		Complete = 1;
 		Help = 2;
 		Response = 3;
+		CompleteCancel = 4;
 	}
 	MessageType type = 1;
 	HandleREPLCommandRequest handle = 2;
 	CompleteCommandRequest complete = 3;
 	HelpCommandRequest help = 4;
 	SubscribeREPLCommandResponse response = 5;
+	CompleteCommandCancel complete_cancel = 6;
 }
 
 message HandleREPLCommandRequest {

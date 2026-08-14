@@ -162,9 +162,10 @@ func (ClientCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
 type ServerCommandMessage_MessageType int32
 
 const (
-	ServerCommandMessage_Handle   ServerCommandMessage_MessageType = 0
-	ServerCommandMessage_Complete ServerCommandMessage_MessageType = 1
-	ServerCommandMessage_Response ServerCommandMessage_MessageType = 2
+	ServerCommandMessage_Handle         ServerCommandMessage_MessageType = 0
+	ServerCommandMessage_Complete       ServerCommandMessage_MessageType = 1
+	ServerCommandMessage_Response       ServerCommandMessage_MessageType = 2
+	ServerCommandMessage_CompleteCancel ServerCommandMessage_MessageType = 3
 )
 
 // Enum value maps for ServerCommandMessage_MessageType.
@@ -173,11 +174,13 @@ var (
 		0: "Handle",
 		1: "Complete",
 		2: "Response",
+		3: "CompleteCancel",
 	}
 	ServerCommandMessage_MessageType_value = map[string]int32{
-		"Handle":   0,
-		"Complete": 1,
-		"Response": 2,
+		"Handle":         0,
+		"Complete":       1,
+		"Response":       2,
+		"CompleteCancel": 3,
 	}
 )
 
@@ -269,16 +272,17 @@ func (x ClientREPLCommandMessage_MessageType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ClientREPLCommandMessage_MessageType.Descriptor instead.
 func (ClientREPLCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{33, 0}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{34, 0}
 }
 
 type ServerREPLCommandMessage_MessageType int32
 
 const (
-	ServerREPLCommandMessage_Handle   ServerREPLCommandMessage_MessageType = 0
-	ServerREPLCommandMessage_Complete ServerREPLCommandMessage_MessageType = 1
-	ServerREPLCommandMessage_Help     ServerREPLCommandMessage_MessageType = 2
-	ServerREPLCommandMessage_Response ServerREPLCommandMessage_MessageType = 3
+	ServerREPLCommandMessage_Handle         ServerREPLCommandMessage_MessageType = 0
+	ServerREPLCommandMessage_Complete       ServerREPLCommandMessage_MessageType = 1
+	ServerREPLCommandMessage_Help           ServerREPLCommandMessage_MessageType = 2
+	ServerREPLCommandMessage_Response       ServerREPLCommandMessage_MessageType = 3
+	ServerREPLCommandMessage_CompleteCancel ServerREPLCommandMessage_MessageType = 4
 )
 
 // Enum value maps for ServerREPLCommandMessage_MessageType.
@@ -288,12 +292,14 @@ var (
 		1: "Complete",
 		2: "Help",
 		3: "Response",
+		4: "CompleteCancel",
 	}
 	ServerREPLCommandMessage_MessageType_value = map[string]int32{
-		"Handle":   0,
-		"Complete": 1,
-		"Help":     2,
-		"Response": 3,
+		"Handle":         0,
+		"Complete":       1,
+		"Help":           2,
+		"Response":       3,
+		"CompleteCancel": 4,
 	}
 )
 
@@ -321,7 +327,7 @@ func (x ServerREPLCommandMessage_MessageType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ServerREPLCommandMessage_MessageType.Descriptor instead.
 func (ServerREPLCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{34, 0}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{35, 0}
 }
 
 type URI struct {
@@ -1369,10 +1375,15 @@ func (*SetDefaultAttributesResponse) Descriptor() ([]byte, []int) {
 }
 
 type SubscribeCommandRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Command       *CommandManual         `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Command *CommandManual         `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
+	// advertises that the extension understands
+	// ServerCommandMessage.CompleteCancel; editors must not send cancels
+	// to extensions that do not set it, since older SDKs terminate the
+	// stream on unknown message types.
+	SupportsCompleteCancel bool `protobuf:"varint,2,opt,name=supports_complete_cancel,json=supportsCompleteCancel,proto3" json:"supports_complete_cancel,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *SubscribeCommandRequest) Reset() {
@@ -1410,6 +1421,13 @@ func (x *SubscribeCommandRequest) GetCommand() *CommandManual {
 		return x.Command
 	}
 	return nil
+}
+
+func (x *SubscribeCommandRequest) GetSupportsCompleteCancel() bool {
+	if x != nil {
+		return x.SupportsCompleteCancel
+	}
+	return false
 }
 
 type CommandManual struct {
@@ -1593,13 +1611,14 @@ func (x *ClientCommandMessage) GetRequest() *SubscribeCommandRequest {
 }
 
 type ServerCommandMessage struct {
-	state         protoimpl.MessageState           `protogen:"open.v1"`
-	Type          ServerCommandMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerCommandMessage_MessageType" json:"type,omitempty"`
-	Handle        *HandleCommandRequest            `protobuf:"bytes,2,opt,name=handle,proto3" json:"handle,omitempty"`
-	Complete      *CompleteCommandRequest          `protobuf:"bytes,3,opt,name=complete,proto3" json:"complete,omitempty"`
-	Response      *SubscribeCommandResponse        `protobuf:"bytes,4,opt,name=response,proto3" json:"response,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState           `protogen:"open.v1"`
+	Type           ServerCommandMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerCommandMessage_MessageType" json:"type,omitempty"`
+	Handle         *HandleCommandRequest            `protobuf:"bytes,2,opt,name=handle,proto3" json:"handle,omitempty"`
+	Complete       *CompleteCommandRequest          `protobuf:"bytes,3,opt,name=complete,proto3" json:"complete,omitempty"`
+	Response       *SubscribeCommandResponse        `protobuf:"bytes,4,opt,name=response,proto3" json:"response,omitempty"`
+	CompleteCancel *CompleteCommandCancel           `protobuf:"bytes,5,opt,name=complete_cancel,json=completeCancel,proto3" json:"complete_cancel,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ServerCommandMessage) Reset() {
@@ -1656,6 +1675,13 @@ func (x *ServerCommandMessage) GetComplete() *CompleteCommandRequest {
 func (x *ServerCommandMessage) GetResponse() *SubscribeCommandResponse {
 	if x != nil {
 		return x.Response
+	}
+	return nil
+}
+
+func (x *ServerCommandMessage) GetCompleteCancel() *CompleteCommandCancel {
+	if x != nil {
+		return x.CompleteCancel
 	}
 	return nil
 }
@@ -1952,16 +1978,61 @@ func (x *CompleteCommandDone) GetError() string {
 	return ""
 }
 
-type SubscribeREPLCommandRequest struct {
+type CompleteCommandCancel struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Command       *CommandManual         `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *CompleteCommandCancel) Reset() {
+	*x = CompleteCommandCancel{}
+	mi := &file_textrpc_editor_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteCommandCancel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteCommandCancel) ProtoMessage() {}
+
+func (x *CompleteCommandCancel) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteCommandCancel.ProtoReflect.Descriptor instead.
+func (*CompleteCommandCancel) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *CompleteCommandCancel) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type SubscribeREPLCommandRequest struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Command                *CommandManual         `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
+	SupportsCompleteCancel bool                   `protobuf:"varint,2,opt,name=supports_complete_cancel,json=supportsCompleteCancel,proto3" json:"supports_complete_cancel,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
 func (x *SubscribeREPLCommandRequest) Reset() {
 	*x = SubscribeREPLCommandRequest{}
-	mi := &file_textrpc_editor_proto_msgTypes[31]
+	mi := &file_textrpc_editor_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1973,7 +2044,7 @@ func (x *SubscribeREPLCommandRequest) String() string {
 func (*SubscribeREPLCommandRequest) ProtoMessage() {}
 
 func (x *SubscribeREPLCommandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[31]
+	mi := &file_textrpc_editor_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1986,7 +2057,7 @@ func (x *SubscribeREPLCommandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeREPLCommandRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeREPLCommandRequest) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{31}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *SubscribeREPLCommandRequest) GetCommand() *CommandManual {
@@ -1994,6 +2065,13 @@ func (x *SubscribeREPLCommandRequest) GetCommand() *CommandManual {
 		return x.Command
 	}
 	return nil
+}
+
+func (x *SubscribeREPLCommandRequest) GetSupportsCompleteCancel() bool {
+	if x != nil {
+		return x.SupportsCompleteCancel
+	}
+	return false
 }
 
 type SubscribeREPLCommandResponse struct {
@@ -2004,7 +2082,7 @@ type SubscribeREPLCommandResponse struct {
 
 func (x *SubscribeREPLCommandResponse) Reset() {
 	*x = SubscribeREPLCommandResponse{}
-	mi := &file_textrpc_editor_proto_msgTypes[32]
+	mi := &file_textrpc_editor_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2016,7 +2094,7 @@ func (x *SubscribeREPLCommandResponse) String() string {
 func (*SubscribeREPLCommandResponse) ProtoMessage() {}
 
 func (x *SubscribeREPLCommandResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[32]
+	mi := &file_textrpc_editor_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2029,7 +2107,7 @@ func (x *SubscribeREPLCommandResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeREPLCommandResponse.ProtoReflect.Descriptor instead.
 func (*SubscribeREPLCommandResponse) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{32}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{33}
 }
 
 type ClientREPLCommandMessage struct {
@@ -2049,7 +2127,7 @@ type ClientREPLCommandMessage struct {
 
 func (x *ClientREPLCommandMessage) Reset() {
 	*x = ClientREPLCommandMessage{}
-	mi := &file_textrpc_editor_proto_msgTypes[33]
+	mi := &file_textrpc_editor_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2061,7 +2139,7 @@ func (x *ClientREPLCommandMessage) String() string {
 func (*ClientREPLCommandMessage) ProtoMessage() {}
 
 func (x *ClientREPLCommandMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[33]
+	mi := &file_textrpc_editor_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2074,7 +2152,7 @@ func (x *ClientREPLCommandMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClientREPLCommandMessage.ProtoReflect.Descriptor instead.
 func (*ClientREPLCommandMessage) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{33}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ClientREPLCommandMessage) GetType() ClientREPLCommandMessage_MessageType {
@@ -2141,19 +2219,20 @@ func (x *ClientREPLCommandMessage) GetHandleProgress() *HandleREPLCommandProgres
 }
 
 type ServerREPLCommandMessage struct {
-	state         protoimpl.MessageState               `protogen:"open.v1"`
-	Type          ServerREPLCommandMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerREPLCommandMessage_MessageType" json:"type,omitempty"`
-	Handle        *HandleREPLCommandRequest            `protobuf:"bytes,2,opt,name=handle,proto3" json:"handle,omitempty"`
-	Complete      *CompleteCommandRequest              `protobuf:"bytes,3,opt,name=complete,proto3" json:"complete,omitempty"`
-	Help          *HelpCommandRequest                  `protobuf:"bytes,4,opt,name=help,proto3" json:"help,omitempty"`
-	Response      *SubscribeREPLCommandResponse        `protobuf:"bytes,5,opt,name=response,proto3" json:"response,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState               `protogen:"open.v1"`
+	Type           ServerREPLCommandMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerREPLCommandMessage_MessageType" json:"type,omitempty"`
+	Handle         *HandleREPLCommandRequest            `protobuf:"bytes,2,opt,name=handle,proto3" json:"handle,omitempty"`
+	Complete       *CompleteCommandRequest              `protobuf:"bytes,3,opt,name=complete,proto3" json:"complete,omitempty"`
+	Help           *HelpCommandRequest                  `protobuf:"bytes,4,opt,name=help,proto3" json:"help,omitempty"`
+	Response       *SubscribeREPLCommandResponse        `protobuf:"bytes,5,opt,name=response,proto3" json:"response,omitempty"`
+	CompleteCancel *CompleteCommandCancel               `protobuf:"bytes,6,opt,name=complete_cancel,json=completeCancel,proto3" json:"complete_cancel,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ServerREPLCommandMessage) Reset() {
 	*x = ServerREPLCommandMessage{}
-	mi := &file_textrpc_editor_proto_msgTypes[34]
+	mi := &file_textrpc_editor_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2165,7 +2244,7 @@ func (x *ServerREPLCommandMessage) String() string {
 func (*ServerREPLCommandMessage) ProtoMessage() {}
 
 func (x *ServerREPLCommandMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[34]
+	mi := &file_textrpc_editor_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2178,7 +2257,7 @@ func (x *ServerREPLCommandMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerREPLCommandMessage.ProtoReflect.Descriptor instead.
 func (*ServerREPLCommandMessage) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{34}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ServerREPLCommandMessage) GetType() ServerREPLCommandMessage_MessageType {
@@ -2216,6 +2295,13 @@ func (x *ServerREPLCommandMessage) GetResponse() *SubscribeREPLCommandResponse {
 	return nil
 }
 
+func (x *ServerREPLCommandMessage) GetCompleteCancel() *CompleteCommandCancel {
+	if x != nil {
+		return x.CompleteCancel
+	}
+	return nil
+}
+
 type HandleREPLCommandRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -2227,7 +2313,7 @@ type HandleREPLCommandRequest struct {
 
 func (x *HandleREPLCommandRequest) Reset() {
 	*x = HandleREPLCommandRequest{}
-	mi := &file_textrpc_editor_proto_msgTypes[35]
+	mi := &file_textrpc_editor_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2239,7 +2325,7 @@ func (x *HandleREPLCommandRequest) String() string {
 func (*HandleREPLCommandRequest) ProtoMessage() {}
 
 func (x *HandleREPLCommandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[35]
+	mi := &file_textrpc_editor_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2252,7 +2338,7 @@ func (x *HandleREPLCommandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HandleREPLCommandRequest.ProtoReflect.Descriptor instead.
 func (*HandleREPLCommandRequest) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{35}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *HandleREPLCommandRequest) GetName() string {
@@ -2285,7 +2371,7 @@ type HandleREPLCommandValue struct {
 
 func (x *HandleREPLCommandValue) Reset() {
 	*x = HandleREPLCommandValue{}
-	mi := &file_textrpc_editor_proto_msgTypes[36]
+	mi := &file_textrpc_editor_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2297,7 +2383,7 @@ func (x *HandleREPLCommandValue) String() string {
 func (*HandleREPLCommandValue) ProtoMessage() {}
 
 func (x *HandleREPLCommandValue) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[36]
+	mi := &file_textrpc_editor_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2310,7 +2396,7 @@ func (x *HandleREPLCommandValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HandleREPLCommandValue.ProtoReflect.Descriptor instead.
 func (*HandleREPLCommandValue) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{36}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *HandleREPLCommandValue) GetRows() []*termrpc.CellRow {
@@ -2329,7 +2415,7 @@ type HandleREPLCommandDone struct {
 
 func (x *HandleREPLCommandDone) Reset() {
 	*x = HandleREPLCommandDone{}
-	mi := &file_textrpc_editor_proto_msgTypes[37]
+	mi := &file_textrpc_editor_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2341,7 +2427,7 @@ func (x *HandleREPLCommandDone) String() string {
 func (*HandleREPLCommandDone) ProtoMessage() {}
 
 func (x *HandleREPLCommandDone) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[37]
+	mi := &file_textrpc_editor_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2354,7 +2440,7 @@ func (x *HandleREPLCommandDone) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HandleREPLCommandDone.ProtoReflect.Descriptor instead.
 func (*HandleREPLCommandDone) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{37}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *HandleREPLCommandDone) GetError() string {
@@ -2375,7 +2461,7 @@ type HandleREPLCommandProgress struct {
 
 func (x *HandleREPLCommandProgress) Reset() {
 	*x = HandleREPLCommandProgress{}
-	mi := &file_textrpc_editor_proto_msgTypes[38]
+	mi := &file_textrpc_editor_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2387,7 +2473,7 @@ func (x *HandleREPLCommandProgress) String() string {
 func (*HandleREPLCommandProgress) ProtoMessage() {}
 
 func (x *HandleREPLCommandProgress) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[38]
+	mi := &file_textrpc_editor_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2400,7 +2486,7 @@ func (x *HandleREPLCommandProgress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HandleREPLCommandProgress.ProtoReflect.Descriptor instead.
 func (*HandleREPLCommandProgress) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{38}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *HandleREPLCommandProgress) GetProgress() int64 {
@@ -2434,7 +2520,7 @@ type HelpCommandRequest struct {
 
 func (x *HelpCommandRequest) Reset() {
 	*x = HelpCommandRequest{}
-	mi := &file_textrpc_editor_proto_msgTypes[39]
+	mi := &file_textrpc_editor_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2446,7 +2532,7 @@ func (x *HelpCommandRequest) String() string {
 func (*HelpCommandRequest) ProtoMessage() {}
 
 func (x *HelpCommandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[39]
+	mi := &file_textrpc_editor_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2459,7 +2545,7 @@ func (x *HelpCommandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelpCommandRequest.ProtoReflect.Descriptor instead.
 func (*HelpCommandRequest) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{39}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *HelpCommandRequest) GetArgs() []string {
@@ -2485,7 +2571,7 @@ type HelpCommandValue struct {
 
 func (x *HelpCommandValue) Reset() {
 	*x = HelpCommandValue{}
-	mi := &file_textrpc_editor_proto_msgTypes[40]
+	mi := &file_textrpc_editor_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2497,7 +2583,7 @@ func (x *HelpCommandValue) String() string {
 func (*HelpCommandValue) ProtoMessage() {}
 
 func (x *HelpCommandValue) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[40]
+	mi := &file_textrpc_editor_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2510,7 +2596,7 @@ func (x *HelpCommandValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelpCommandValue.ProtoReflect.Descriptor instead.
 func (*HelpCommandValue) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{40}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *HelpCommandValue) GetRows() []*termrpc.CellRow {
@@ -2529,7 +2615,7 @@ type HelpCommandDone struct {
 
 func (x *HelpCommandDone) Reset() {
 	*x = HelpCommandDone{}
-	mi := &file_textrpc_editor_proto_msgTypes[41]
+	mi := &file_textrpc_editor_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2541,7 +2627,7 @@ func (x *HelpCommandDone) String() string {
 func (*HelpCommandDone) ProtoMessage() {}
 
 func (x *HelpCommandDone) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[41]
+	mi := &file_textrpc_editor_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2554,7 +2640,7 @@ func (x *HelpCommandDone) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelpCommandDone.ProtoReflect.Descriptor instead.
 func (*HelpCommandDone) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{41}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *HelpCommandDone) GetError() string {
@@ -2577,7 +2663,7 @@ type SetLocationListRequest_Location struct {
 
 func (x *SetLocationListRequest_Location) Reset() {
 	*x = SetLocationListRequest_Location{}
-	mi := &file_textrpc_editor_proto_msgTypes[42]
+	mi := &file_textrpc_editor_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2589,7 +2675,7 @@ func (x *SetLocationListRequest_Location) String() string {
 func (*SetLocationListRequest_Location) ProtoMessage() {}
 
 func (x *SetLocationListRequest_Location) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[42]
+	mi := &file_textrpc_editor_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2733,9 +2819,10 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\n" +
 	"attributes\x18\x02 \x01(\v2\x10.term.AttributesR\n" +
 	"attributes\"\x1e\n" +
-	"\x1cSetDefaultAttributesResponse\"H\n" +
+	"\x1cSetDefaultAttributesResponse\"\x82\x01\n" +
 	"\x17SubscribeCommandRequest\x12-\n" +
-	"\acommand\x18\x01 \x01(\v2\x13.text.CommandManualR\acommand\"\x8a\x01\n" +
+	"\acommand\x18\x01 \x01(\v2\x13.text.CommandManualR\acommand\x128\n" +
+	"\x18supports_complete_cancel\x18\x02 \x01(\bR\x16supportsCompleteCancel\"\x8a\x01\n" +
 	"\rCommandManual\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\asummary\x18\x02 \x01(\tR\asummary\x12\x1a\n" +
@@ -2753,17 +2840,19 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\x06Handle\x10\x00\x12\x11\n" +
 	"\rCompleteValue\x10\x01\x12\x10\n" +
 	"\fCompleteDone\x10\x02\x12\v\n" +
-	"\aRequest\x10\x03\"\xb3\x02\n" +
+	"\aRequest\x10\x03\"\x8d\x03\n" +
 	"\x14ServerCommandMessage\x12:\n" +
 	"\x04type\x18\x01 \x01(\x0e2&.text.ServerCommandMessage.MessageTypeR\x04type\x122\n" +
 	"\x06handle\x18\x02 \x01(\v2\x1a.text.HandleCommandRequestR\x06handle\x128\n" +
 	"\bcomplete\x18\x03 \x01(\v2\x1c.text.CompleteCommandRequestR\bcomplete\x12:\n" +
-	"\bresponse\x18\x04 \x01(\v2\x1e.text.SubscribeCommandResponseR\bresponse\"5\n" +
+	"\bresponse\x18\x04 \x01(\v2\x1e.text.SubscribeCommandResponseR\bresponse\x12D\n" +
+	"\x0fcomplete_cancel\x18\x05 \x01(\v2\x1b.text.CompleteCommandCancelR\x0ecompleteCancel\"I\n" +
 	"\vMessageType\x12\n" +
 	"\n" +
 	"\x06Handle\x10\x00\x12\f\n" +
 	"\bComplete\x10\x01\x12\f\n" +
-	"\bResponse\x10\x02\"\xfd\x01\n" +
+	"\bResponse\x10\x02\x12\x12\n" +
+	"\x0eCompleteCancel\x10\x03\"\xfd\x01\n" +
 	"\x14HandleCommandRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04args\x18\x02 \x03(\tR\x04args\x12.\n" +
@@ -2782,9 +2871,12 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value\";\n" +
 	"\x13CompleteCommandDone\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"L\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"'\n" +
+	"\x15CompleteCommandCancel\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\x86\x01\n" +
 	"\x1bSubscribeREPLCommandRequest\x12-\n" +
-	"\acommand\x18\x01 \x01(\v2\x13.text.CommandManualR\acommand\"\x1e\n" +
+	"\acommand\x18\x01 \x01(\v2\x13.text.CommandManualR\acommand\x128\n" +
+	"\x18supports_complete_cancel\x18\x02 \x01(\bR\x16supportsCompleteCancel\"\x1e\n" +
 	"\x1cSubscribeREPLCommandResponse\"\xe2\x05\n" +
 	"\x18ClientREPLCommandMessage\x12>\n" +
 	"\x04type\x18\x01 \x01(\x0e2*.text.ClientREPLCommandMessage.MessageTypeR\x04type\x12?\n" +
@@ -2807,19 +2899,21 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\tHelpValue\x10\x04\x12\f\n" +
 	"\bHelpDone\x10\x05\x12\v\n" +
 	"\aRequest\x10\x06\x12\x12\n" +
-	"\x0eHandleProgress\x10\a\"\xfb\x02\n" +
+	"\x0eHandleProgress\x10\a\"\xd5\x03\n" +
 	"\x18ServerREPLCommandMessage\x12>\n" +
 	"\x04type\x18\x01 \x01(\x0e2*.text.ServerREPLCommandMessage.MessageTypeR\x04type\x126\n" +
 	"\x06handle\x18\x02 \x01(\v2\x1e.text.HandleREPLCommandRequestR\x06handle\x128\n" +
 	"\bcomplete\x18\x03 \x01(\v2\x1c.text.CompleteCommandRequestR\bcomplete\x12,\n" +
 	"\x04help\x18\x04 \x01(\v2\x18.text.HelpCommandRequestR\x04help\x12>\n" +
-	"\bresponse\x18\x05 \x01(\v2\".text.SubscribeREPLCommandResponseR\bresponse\"?\n" +
+	"\bresponse\x18\x05 \x01(\v2\".text.SubscribeREPLCommandResponseR\bresponse\x12D\n" +
+	"\x0fcomplete_cancel\x18\x06 \x01(\v2\x1b.text.CompleteCommandCancelR\x0ecompleteCancel\"S\n" +
 	"\vMessageType\x12\n" +
 	"\n" +
 	"\x06Handle\x10\x00\x12\f\n" +
 	"\bComplete\x10\x01\x12\b\n" +
 	"\x04Help\x10\x02\x12\f\n" +
-	"\bResponse\x10\x03\"X\n" +
+	"\bResponse\x10\x03\x12\x12\n" +
+	"\x0eCompleteCancel\x10\x04\"X\n" +
 	"\x18HandleREPLCommandRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04args\x18\x02 \x03(\tR\x04args\x12\x14\n" +
@@ -2867,7 +2961,7 @@ func file_textrpc_editor_proto_rawDescGZIP() []byte {
 }
 
 var file_textrpc_editor_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
+var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
 var file_textrpc_editor_proto_goTypes = []any{
 	(EditorEvent_Type)(0),                     // 0: text.EditorEvent.Type
 	(ClientCommandMessage_MessageType)(0),     // 1: text.ClientCommandMessage.MessageType
@@ -2905,49 +2999,50 @@ var file_textrpc_editor_proto_goTypes = []any{
 	(*CompleteCommandRequest)(nil),          // 33: text.CompleteCommandRequest
 	(*CompleteCommandValue)(nil),            // 34: text.CompleteCommandValue
 	(*CompleteCommandDone)(nil),             // 35: text.CompleteCommandDone
-	(*SubscribeREPLCommandRequest)(nil),     // 36: text.SubscribeREPLCommandRequest
-	(*SubscribeREPLCommandResponse)(nil),    // 37: text.SubscribeREPLCommandResponse
-	(*ClientREPLCommandMessage)(nil),        // 38: text.ClientREPLCommandMessage
-	(*ServerREPLCommandMessage)(nil),        // 39: text.ServerREPLCommandMessage
-	(*HandleREPLCommandRequest)(nil),        // 40: text.HandleREPLCommandRequest
-	(*HandleREPLCommandValue)(nil),          // 41: text.HandleREPLCommandValue
-	(*HandleREPLCommandDone)(nil),           // 42: text.HandleREPLCommandDone
-	(*HandleREPLCommandProgress)(nil),       // 43: text.HandleREPLCommandProgress
-	(*HelpCommandRequest)(nil),              // 44: text.HelpCommandRequest
-	(*HelpCommandValue)(nil),                // 45: text.HelpCommandValue
-	(*HelpCommandDone)(nil),                 // 46: text.HelpCommandDone
-	(*SetLocationListRequest_Location)(nil), // 47: text.SetLocationListRequest.Location
-	(*termrpc.CellRow)(nil),                 // 48: term.CellRow
-	(*termrpc.Coordinates)(nil),             // 49: term.Coordinates
-	(*termrpc.Attributes)(nil),              // 50: term.Attributes
+	(*CompleteCommandCancel)(nil),           // 36: text.CompleteCommandCancel
+	(*SubscribeREPLCommandRequest)(nil),     // 37: text.SubscribeREPLCommandRequest
+	(*SubscribeREPLCommandResponse)(nil),    // 38: text.SubscribeREPLCommandResponse
+	(*ClientREPLCommandMessage)(nil),        // 39: text.ClientREPLCommandMessage
+	(*ServerREPLCommandMessage)(nil),        // 40: text.ServerREPLCommandMessage
+	(*HandleREPLCommandRequest)(nil),        // 41: text.HandleREPLCommandRequest
+	(*HandleREPLCommandValue)(nil),          // 42: text.HandleREPLCommandValue
+	(*HandleREPLCommandDone)(nil),           // 43: text.HandleREPLCommandDone
+	(*HandleREPLCommandProgress)(nil),       // 44: text.HandleREPLCommandProgress
+	(*HelpCommandRequest)(nil),              // 45: text.HelpCommandRequest
+	(*HelpCommandValue)(nil),                // 46: text.HelpCommandValue
+	(*HelpCommandDone)(nil),                 // 47: text.HelpCommandDone
+	(*SetLocationListRequest_Location)(nil), // 48: text.SetLocationListRequest.Location
+	(*termrpc.CellRow)(nil),                 // 49: term.CellRow
+	(*termrpc.Coordinates)(nil),             // 50: term.Coordinates
+	(*termrpc.Attributes)(nil),              // 51: term.Attributes
 }
 var file_textrpc_editor_proto_depIdxs = []int32{
 	5,  // 0: text.EditRequest.resource_name:type_name -> text.URI
-	48, // 1: text.EditRequest.buffer:type_name -> term.CellRow
+	49, // 1: text.EditRequest.buffer:type_name -> term.CellRow
 	0,  // 2: text.EditorEvent.type:type_name -> text.EditorEvent.Type
 	5,  // 3: text.EditorEvent.resource_name:type_name -> text.URI
-	49, // 4: text.EditorEvent.start:type_name -> term.Coordinates
-	49, // 5: text.EditorEvent.end:type_name -> term.Coordinates
-	49, // 6: text.EditorEvent.from:type_name -> term.Coordinates
-	49, // 7: text.EditorEvent.to:type_name -> term.Coordinates
+	50, // 4: text.EditorEvent.start:type_name -> term.Coordinates
+	50, // 5: text.EditorEvent.end:type_name -> term.Coordinates
+	50, // 6: text.EditorEvent.from:type_name -> term.Coordinates
+	50, // 7: text.EditorEvent.to:type_name -> term.Coordinates
 	0,  // 8: text.SubscribeEventRequest.type:type_name -> text.EditorEvent.Type
 	5,  // 9: text.SetLocationListRequest.resource_name:type_name -> text.URI
-	47, // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
+	48, // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
 	5,  // 11: text.EditCellRequest.resource_name:type_name -> text.URI
-	49, // 12: text.EditCellRequest.start:type_name -> term.Coordinates
-	49, // 13: text.EditCellRequest.end:type_name -> term.Coordinates
-	49, // 14: text.EditCellResponse.from:type_name -> term.Coordinates
-	49, // 15: text.EditCellResponse.to:type_name -> term.Coordinates
+	50, // 12: text.EditCellRequest.start:type_name -> term.Coordinates
+	50, // 13: text.EditCellRequest.end:type_name -> term.Coordinates
+	50, // 14: text.EditCellResponse.from:type_name -> term.Coordinates
+	50, // 15: text.EditCellResponse.to:type_name -> term.Coordinates
 	5,  // 16: text.RawCellsRequest.resource_name:type_name -> text.URI
-	48, // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
+	49, // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
 	5,  // 18: text.MoveToLocationRequest.resource_name:type_name -> text.URI
-	49, // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
+	50, // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
 	5,  // 20: text.SetCursorRequest.resource_name:type_name -> text.URI
 	5,  // 21: text.CursorRequest.resource_name:type_name -> text.URI
-	49, // 22: text.CursorResponse.pos:type_name -> term.Coordinates
+	50, // 22: text.CursorResponse.pos:type_name -> term.Coordinates
 	5,  // 23: text.EditorRequest.resource_name:type_name -> text.URI
 	5,  // 24: text.SetDefaultAttributesRequest.resource_name:type_name -> text.URI
-	50, // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
+	51, // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
 	27, // 26: text.SubscribeCommandRequest.command:type_name -> text.CommandManual
 	27, // 27: text.CommandManual.commands:type_name -> text.CommandManual
 	1,  // 28: text.ClientCommandMessage.type:type_name -> text.ClientCommandMessage.MessageType
@@ -2959,60 +3054,62 @@ var file_textrpc_editor_proto_depIdxs = []int32{
 	31, // 34: text.ServerCommandMessage.handle:type_name -> text.HandleCommandRequest
 	33, // 35: text.ServerCommandMessage.complete:type_name -> text.CompleteCommandRequest
 	28, // 36: text.ServerCommandMessage.response:type_name -> text.SubscribeCommandResponse
-	5,  // 37: text.HandleCommandRequest.resource_name:type_name -> text.URI
-	49, // 38: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
-	49, // 39: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
-	27, // 40: text.SubscribeREPLCommandRequest.command:type_name -> text.CommandManual
-	3,  // 41: text.ClientREPLCommandMessage.type:type_name -> text.ClientREPLCommandMessage.MessageType
-	41, // 42: text.ClientREPLCommandMessage.handle_value:type_name -> text.HandleREPLCommandValue
-	42, // 43: text.ClientREPLCommandMessage.handle_done:type_name -> text.HandleREPLCommandDone
-	34, // 44: text.ClientREPLCommandMessage.complete_value:type_name -> text.CompleteCommandValue
-	35, // 45: text.ClientREPLCommandMessage.complete_done:type_name -> text.CompleteCommandDone
-	45, // 46: text.ClientREPLCommandMessage.help_value:type_name -> text.HelpCommandValue
-	46, // 47: text.ClientREPLCommandMessage.help_done:type_name -> text.HelpCommandDone
-	36, // 48: text.ClientREPLCommandMessage.request:type_name -> text.SubscribeREPLCommandRequest
-	43, // 49: text.ClientREPLCommandMessage.handle_progress:type_name -> text.HandleREPLCommandProgress
-	4,  // 50: text.ServerREPLCommandMessage.type:type_name -> text.ServerREPLCommandMessage.MessageType
-	40, // 51: text.ServerREPLCommandMessage.handle:type_name -> text.HandleREPLCommandRequest
-	33, // 52: text.ServerREPLCommandMessage.complete:type_name -> text.CompleteCommandRequest
-	44, // 53: text.ServerREPLCommandMessage.help:type_name -> text.HelpCommandRequest
-	37, // 54: text.ServerREPLCommandMessage.response:type_name -> text.SubscribeREPLCommandResponse
-	48, // 55: text.HandleREPLCommandValue.rows:type_name -> term.CellRow
-	48, // 56: text.HelpCommandValue.rows:type_name -> term.CellRow
-	49, // 57: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
-	49, // 58: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
-	50, // 59: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
-	6,  // 60: text.Editor.Edit:input_type -> text.EditRequest
-	18, // 61: text.Editor.SetCursor:input_type -> text.SetCursorRequest
-	20, // 62: text.Editor.Cursor:input_type -> text.CursorRequest
-	22, // 63: text.Editor.Editor:input_type -> text.EditorRequest
-	10, // 64: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
-	16, // 65: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
-	16, // 66: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
-	12, // 67: text.Editor.EditCell:input_type -> text.EditCellRequest
-	14, // 68: text.Editor.RawCells:input_type -> text.RawCellsRequest
-	24, // 69: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
-	9,  // 70: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
-	29, // 71: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
-	38, // 72: text.Editor.SubscribeREPLCommand:input_type -> text.ClientREPLCommandMessage
-	7,  // 73: text.Editor.Edit:output_type -> text.EditResponse
-	19, // 74: text.Editor.SetCursor:output_type -> text.SetCursorResponse
-	21, // 75: text.Editor.Cursor:output_type -> text.CursorResponse
-	23, // 76: text.Editor.Editor:output_type -> text.EditorResponse
-	11, // 77: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
-	17, // 78: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
-	17, // 79: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
-	13, // 80: text.Editor.EditCell:output_type -> text.EditCellResponse
-	15, // 81: text.Editor.RawCells:output_type -> text.RawCellsResponse
-	25, // 82: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
-	8,  // 83: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
-	30, // 84: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
-	39, // 85: text.Editor.SubscribeREPLCommand:output_type -> text.ServerREPLCommandMessage
-	73, // [73:86] is the sub-list for method output_type
-	60, // [60:73] is the sub-list for method input_type
-	60, // [60:60] is the sub-list for extension type_name
-	60, // [60:60] is the sub-list for extension extendee
-	0,  // [0:60] is the sub-list for field type_name
+	36, // 37: text.ServerCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
+	5,  // 38: text.HandleCommandRequest.resource_name:type_name -> text.URI
+	50, // 39: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
+	50, // 40: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
+	27, // 41: text.SubscribeREPLCommandRequest.command:type_name -> text.CommandManual
+	3,  // 42: text.ClientREPLCommandMessage.type:type_name -> text.ClientREPLCommandMessage.MessageType
+	42, // 43: text.ClientREPLCommandMessage.handle_value:type_name -> text.HandleREPLCommandValue
+	43, // 44: text.ClientREPLCommandMessage.handle_done:type_name -> text.HandleREPLCommandDone
+	34, // 45: text.ClientREPLCommandMessage.complete_value:type_name -> text.CompleteCommandValue
+	35, // 46: text.ClientREPLCommandMessage.complete_done:type_name -> text.CompleteCommandDone
+	46, // 47: text.ClientREPLCommandMessage.help_value:type_name -> text.HelpCommandValue
+	47, // 48: text.ClientREPLCommandMessage.help_done:type_name -> text.HelpCommandDone
+	37, // 49: text.ClientREPLCommandMessage.request:type_name -> text.SubscribeREPLCommandRequest
+	44, // 50: text.ClientREPLCommandMessage.handle_progress:type_name -> text.HandleREPLCommandProgress
+	4,  // 51: text.ServerREPLCommandMessage.type:type_name -> text.ServerREPLCommandMessage.MessageType
+	41, // 52: text.ServerREPLCommandMessage.handle:type_name -> text.HandleREPLCommandRequest
+	33, // 53: text.ServerREPLCommandMessage.complete:type_name -> text.CompleteCommandRequest
+	45, // 54: text.ServerREPLCommandMessage.help:type_name -> text.HelpCommandRequest
+	38, // 55: text.ServerREPLCommandMessage.response:type_name -> text.SubscribeREPLCommandResponse
+	36, // 56: text.ServerREPLCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
+	49, // 57: text.HandleREPLCommandValue.rows:type_name -> term.CellRow
+	49, // 58: text.HelpCommandValue.rows:type_name -> term.CellRow
+	50, // 59: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
+	50, // 60: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
+	51, // 61: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
+	6,  // 62: text.Editor.Edit:input_type -> text.EditRequest
+	18, // 63: text.Editor.SetCursor:input_type -> text.SetCursorRequest
+	20, // 64: text.Editor.Cursor:input_type -> text.CursorRequest
+	22, // 65: text.Editor.Editor:input_type -> text.EditorRequest
+	10, // 66: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
+	16, // 67: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
+	16, // 68: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
+	12, // 69: text.Editor.EditCell:input_type -> text.EditCellRequest
+	14, // 70: text.Editor.RawCells:input_type -> text.RawCellsRequest
+	24, // 71: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
+	9,  // 72: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
+	29, // 73: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
+	39, // 74: text.Editor.SubscribeREPLCommand:input_type -> text.ClientREPLCommandMessage
+	7,  // 75: text.Editor.Edit:output_type -> text.EditResponse
+	19, // 76: text.Editor.SetCursor:output_type -> text.SetCursorResponse
+	21, // 77: text.Editor.Cursor:output_type -> text.CursorResponse
+	23, // 78: text.Editor.Editor:output_type -> text.EditorResponse
+	11, // 79: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
+	17, // 80: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
+	17, // 81: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
+	13, // 82: text.Editor.EditCell:output_type -> text.EditCellResponse
+	15, // 83: text.Editor.RawCells:output_type -> text.RawCellsResponse
+	25, // 84: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
+	8,  // 85: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
+	30, // 86: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
+	40, // 87: text.Editor.SubscribeREPLCommand:output_type -> text.ServerREPLCommandMessage
+	75, // [75:88] is the sub-list for method output_type
+	62, // [62:75] is the sub-list for method input_type
+	62, // [62:62] is the sub-list for extension type_name
+	62, // [62:62] is the sub-list for extension extendee
+	0,  // [0:62] is the sub-list for field type_name
 }
 
 func init() { file_textrpc_editor_proto_init() }
@@ -3026,7 +3123,7 @@ func file_textrpc_editor_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_textrpc_editor_proto_rawDesc), len(file_textrpc_editor_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   43,
+			NumMessages:   44,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

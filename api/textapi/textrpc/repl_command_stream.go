@@ -19,6 +19,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"sync"
 
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/component"
@@ -44,6 +45,9 @@ type replCommandServerStream struct {
 	stream    replClientStream
 	sendChan  chan *ClientREPLCommandMessage
 	h         textapi.REPLHandler
+
+	// completion id -> cancel func of its streaming context
+	completions sync.Map
 }
 
 func newREPLCommandServerStream(
@@ -122,6 +126,8 @@ func (s *replCommandServerStream) receiveMessages() {
 			}
 		case ServerREPLCommandMessage_Help:
 			s.handleHelp(reqMsg.GetHelp())
+		case ServerREPLCommandMessage_CompleteCancel:
+			s.cancelComplete(reqMsg.GetCompleteCancel().GetId())
 		default:
 			slog.Error(
 				"extraneous server repl command message",
@@ -246,6 +252,12 @@ func (s *replCommandServerStream) sendHelpDone(err error) {
 	}
 }
 
+func (s *replCommandServerStream) cancelComplete(id int64) {
+	if cancel, ok := s.completions.LoadAndDelete(id); ok {
+		cancel.(context.CancelFunc)()
+	}
+}
+
 func (s *replCommandServerStream) handleComplete(
 	req *CompleteCommandRequest,
 ) error {
@@ -260,17 +272,24 @@ func (s *replCommandServerStream) handleComplete(
 		)
 	}
 
-	ctx := s.ctx
+	ctx, cancelCtx := context.WithCancel(s.ctx)
 	completer, err := s.h.Complete(ctx, req.Name, req.Args)
 	if err != nil {
+		cancelCtx()
 		return err
 	}
 
 	id := req.Id
+	s.completions.Store(id, context.CancelFunc(cancelCtx))
 	go debug.CapturePanicReport(func() {
+		defer func() {
+			s.completions.Delete(id)
+			cancelCtx()
+			_ = completer.Close()
+		}()
 		var resp CompleteCommandDone
-		err := s.streamCompleteValues(id, completer)
-		if err != nil {
+		err := s.streamCompleteValues(ctx, id, completer)
+		if err != nil && ctx.Err() == nil {
 			resp.Error = err.Error()
 		}
 		resp.Id = id
@@ -288,11 +307,12 @@ func (s *replCommandServerStream) handleComplete(
 }
 
 func (s *replCommandServerStream) streamCompleteValues(
+	ctx context.Context,
 	id int64,
 	completer iterator.Iterator[string],
 ) error {
 	for {
-		next, ok := completer.Next(s.ctx)
+		next, ok := completer.Next(ctx)
 		if !ok {
 			return completer.Err()
 		}
@@ -303,8 +323,8 @@ func (s *replCommandServerStream) streamCompleteValues(
 		}
 		select {
 		case s.sendChan <- respMsg:
-		case <-s.ctx.Done():
-			return s.ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }

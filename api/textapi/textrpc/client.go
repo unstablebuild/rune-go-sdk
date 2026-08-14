@@ -244,7 +244,10 @@ func (c *Client) RegisterCommand(
 		return err
 	}
 	rpcMan := makeProtoManual(man)
-	req := SubscribeCommandRequest{Command: &rpcMan}
+	req := SubscribeCommandRequest{
+		Command:                &rpcMan,
+		SupportsCompleteCancel: true,
+	}
 	sendMsg := ClientCommandMessage{
 		Request: &req,
 		Type:    ClientCommandMessage_Request,
@@ -288,7 +291,10 @@ func (c *Client) RegisterREPLCommand(
 		return err
 	}
 	rpcMan := makeProtoManual(man)
-	req := SubscribeREPLCommandRequest{Command: &rpcMan}
+	req := SubscribeREPLCommandRequest{
+		Command:                &rpcMan,
+		SupportsCompleteCancel: true,
+	}
 	sendMsg := ClientREPLCommandMessage{
 		Request: &req,
 		Type:    ClientREPLCommandMessage_Request,

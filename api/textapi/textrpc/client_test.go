@@ -64,6 +64,11 @@ type testServer struct {
 			textrpc.ServerREPLCommandMessage,
 		],
 	) error
+
+	// requests, when set, receives the subscription requests
+	// as they arrive so tests can assert on capability flags.
+	commandRequests     chan *textrpc.SubscribeCommandRequest
+	replCommandRequests chan *textrpc.SubscribeREPLCommandRequest
 }
 
 func (s *testServer) SubscribeCommand(
@@ -81,6 +86,9 @@ func (s *testServer) SubscribeCommand(
 		return errors.New("expected Request message")
 	}
 	manual := msg.GetRequest().GetCommand()
+	if s.commandRequests != nil {
+		s.commandRequests <- msg.GetRequest()
+	}
 
 	// Acknowledge with a Response.
 	err = stream.Send(&textrpc.ServerCommandMessage{
@@ -111,6 +119,9 @@ func (s *testServer) SubscribeREPLCommand(
 		return errors.New("expected Request message")
 	}
 	manual := msg.GetRequest().GetCommand()
+	if s.replCommandRequests != nil {
+		s.replCommandRequests <- msg.GetRequest()
+	}
 
 	err = stream.Send(&textrpc.ServerREPLCommandMessage{
 		Type:     textrpc.ServerREPLCommandMessage_Response,
@@ -1848,4 +1859,143 @@ func nopHelp(
 	_ context.Context, _ []string,
 ) (iterator.Iterator[component.Responsive], error) {
 	return iterator.FromSlice[component.Responsive](nil), nil
+}
+
+// ---------------------------------------------------------------
+// Completion cancellation
+// ---------------------------------------------------------------
+
+// An editor that abandons a completion cancels it, which must stop the
+// completer without tearing down the whole command stream.
+func TestCommandStreamCompleteCancel(t *testing.T) {
+	it := newBlockingIterator[string]()
+	h := textapi.FuncCommandHandler(
+		func(_ context.Context, _ textapi.Command) error {
+			return nil
+		},
+		func(
+			_ context.Context, _ string, _ []string,
+		) (iterator.Iterator[string], error) {
+			return it, nil
+		},
+	)
+
+	serverDone := make(chan struct{})
+	impl := &testServer{
+		commandRequests: make(
+			chan *textrpc.SubscribeCommandRequest, 1,
+		),
+		onSubscribeCommand: func(
+			_ *textrpc.CommandManual,
+			stream grpc.BidiStreamingServer[
+				textrpc.ClientCommandMessage,
+				textrpc.ServerCommandMessage,
+			],
+		) error {
+			defer close(serverDone)
+			err := stream.Send(&textrpc.ServerCommandMessage{
+				Type: textrpc.ServerCommandMessage_Complete,
+				Complete: &textrpc.CompleteCommandRequest{
+					Id: 7, Name: "c",
+				},
+			})
+			require.NoError(t, err)
+			waitChan(t, it.started, testTimeout)
+
+			err = stream.Send(&textrpc.ServerCommandMessage{
+				Type: textrpc.ServerCommandMessage_CompleteCancel,
+				CompleteCancel: &textrpc.CompleteCommandCancel{
+					Id: 7,
+				},
+			})
+			require.NoError(t, err)
+
+			msg, err := stream.Recv()
+			require.NoError(t, err)
+			require.Equal(t,
+				textrpc.ClientCommandMessage_CompleteDone,
+				msg.GetType(),
+			)
+			require.Equal(t, int64(7), msg.GetCompleteDone().GetId())
+			require.Empty(t, msg.GetCompleteDone().GetError())
+			return nil
+		},
+	}
+	env := newTestEnv(t, impl)
+
+	man := textapi.CommandManual{Name: "c"}
+	require.NoError(t, env.client.RegisterCommand(man, h))
+
+	req := waitChan(t, impl.commandRequests, testTimeout)
+	require.True(t, req.GetSupportsCompleteCancel(),
+		"the editor only cancels completions for extensions "+
+			"that advertise support")
+
+	waitChan(t, it.done, testTimeout)
+	waitChan(t, serverDone, testTimeout)
+}
+
+func TestREPLCommandStreamCompleteCancel(t *testing.T) {
+	it := newBlockingIterator[string]()
+	h := &testREPLHandler{
+		handleFn: nopHandle,
+		completeFn: func(
+			_ context.Context, _ string, _ []string,
+		) (iterator.Iterator[string], error) {
+			return it, nil
+		},
+		helpFn: nopHelp,
+	}
+
+	serverDone := make(chan struct{})
+	impl := &testServer{
+		replCommandRequests: make(
+			chan *textrpc.SubscribeREPLCommandRequest, 1,
+		),
+		onSubscribeREPLCommand: func(
+			_ *textrpc.CommandManual,
+			stream grpc.BidiStreamingServer[
+				textrpc.ClientREPLCommandMessage,
+				textrpc.ServerREPLCommandMessage,
+			],
+		) error {
+			defer close(serverDone)
+			err := stream.Send(&textrpc.ServerREPLCommandMessage{
+				Type: textrpc.ServerREPLCommandMessage_Complete,
+				Complete: &textrpc.CompleteCommandRequest{
+					Id: 7, Name: "r",
+				},
+			})
+			require.NoError(t, err)
+			waitChan(t, it.started, testTimeout)
+
+			err = stream.Send(&textrpc.ServerREPLCommandMessage{
+				Type: textrpc.ServerREPLCommandMessage_CompleteCancel,
+				CompleteCancel: &textrpc.CompleteCommandCancel{
+					Id: 7,
+				},
+			})
+			require.NoError(t, err)
+
+			msg, err := stream.Recv()
+			require.NoError(t, err)
+			require.Equal(t,
+				textrpc.ClientREPLCommandMessage_CompleteDone,
+				msg.GetType(),
+			)
+			require.Equal(t, int64(7), msg.GetCompleteDone().GetId())
+			require.Empty(t, msg.GetCompleteDone().GetError())
+			return nil
+		},
+	}
+	env := newTestEnv(t, impl)
+
+	man := textapi.CommandManual{Name: "r"}
+	require.NoError(t, env.client.RegisterREPLCommand(man, h))
+
+	req := waitChan(t, impl.replCommandRequests, testTimeout)
+	require.True(t, req.GetSupportsCompleteCancel())
+
+	waitChan(t, it.done, testTimeout)
+	waitChan(t, serverDone, testTimeout)
 }
