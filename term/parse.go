@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 // ParseKeys parses the given sequence of key combinations.
@@ -2530,7 +2531,62 @@ func ParseKey(str string) (KeyComb, error) {
 			return KeyComb{Mod: ModAltShift}, nil
 
 		default:
+			if k, ok := parseModifiedChar(str); ok {
+				return k, nil
+			}
 			return KeyComb{}, fmt.Errorf("invalid key: '%s'", str)
 		}
 	}
+}
+
+// parseModifiedChar parses the generic <[mods-]X> form, where mods is any
+// combination of c|ctrl, s|shift, a|alt and m|meta in any order and X is a
+// single character other than '<', '>', '\' or space.
+//
+// The enumerated cases above name only the characters a US keyboard can
+// produce, which leaves chords on every other layout inexpressible: '¨' and
+// 'ø' are ordinary unshifted keys on a Nordic layout.
+func parseModifiedChar(str string) (KeyComb, bool) {
+	runes := []rune(str)
+	if len(runes) < 3 || runes[0] != '<' || runes[len(runes)-1] != '>' {
+		return KeyComb{}, false
+	}
+
+	inner := runes[1 : len(runes)-1]
+	ch := inner[len(inner)-1]
+	switch ch {
+	case '<', '>', '\\', ' ':
+		return KeyComb{}, false
+	}
+
+	var mod Modifier
+	if mods := inner[:len(inner)-1]; len(mods) > 0 {
+		if mods[len(mods)-1] != '-' {
+			return KeyComb{}, false
+		}
+		for _, name := range strings.Split(string(mods[:len(mods)-1]), "-") {
+			switch name {
+			case "c", "ctrl":
+				mod |= ModCtrl
+			case "s", "shift":
+				mod |= ModShift
+			case "a", "alt":
+				mod |= ModAlt
+			case "m", "meta":
+				mod |= ModMeta
+			default:
+				return KeyComb{}, false
+			}
+		}
+	}
+
+	// Shift on a cased letter is spelled by the uppercase character, the way
+	// the enumerated <a-s-p> yields 'P'. Characters with no uppercase form
+	// keep the modifier as written.
+	if mod&ModShift != 0 && unicode.ToUpper(ch) != ch {
+		ch = unicode.ToUpper(ch)
+		mod &^= ModShift
+	}
+
+	return KeyComb{Mod: mod, Ch: ch}, true
 }

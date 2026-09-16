@@ -16,6 +16,7 @@ package term
 
 import (
 	"fmt"
+	"unicode"
 )
 
 // String returns the long string representation of this KeyComb.
@@ -2249,59 +2250,13 @@ func processCharacter(ch rune, mod Modifier) (unshifCh string, shiftedMod Modifi
 		shiftedMod = mod
 	}
 
+	// Any cased letter is spelled as its lowercase form plus Shift, so that
+	// layouts whose ordinary keys are not ASCII round-trip too.
+	if unicode.IsUpper(ch) && unicode.ToLower(ch) != ch {
+		return string(unicode.ToLower(ch)), shiftedMod
+	}
+
 	switch ch {
-	case 'A':
-		return "a", shiftedMod
-	case 'B':
-		return "b", shiftedMod
-	case 'C':
-		return "c", shiftedMod
-	case 'D':
-		return "d", shiftedMod
-	case 'E':
-		return "e", shiftedMod
-	case 'F':
-		return "f", shiftedMod
-	case 'G':
-		return "g", shiftedMod
-	case 'H':
-		return "h", shiftedMod
-	case 'I':
-		return "i", shiftedMod
-	case 'J':
-		return "j", shiftedMod
-	case 'K':
-		return "k", shiftedMod
-	case 'L':
-		return "l", shiftedMod
-	case 'M':
-		return "m", shiftedMod
-	case 'N':
-		return "n", shiftedMod
-	case 'O':
-		return "o", shiftedMod
-	case 'P':
-		return "p", shiftedMod
-	case 'Q':
-		return "q", shiftedMod
-	case 'R':
-		return "r", shiftedMod
-	case 'S':
-		return "s", shiftedMod
-	case 'T':
-		return "t", shiftedMod
-	case 'U':
-		return "u", shiftedMod
-	case 'V':
-		return "v", shiftedMod
-	case 'W':
-		return "w", shiftedMod
-	case 'X':
-		return "x", shiftedMod
-	case 'Y':
-		return "y", shiftedMod
-	case 'Z':
-		return "z", shiftedMod
 	case '_':
 		return "-", shiftedMod
 	case ')':

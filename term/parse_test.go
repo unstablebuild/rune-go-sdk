@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -809,4 +810,118 @@ func TestParseNonKeyChar(t *testing.T) {
 		require.NoError(t, err)
 		assert.ElementsMatch(t, suite, keys)
 	})
+}
+
+// allModifierMasks is every combination of the four modifier bits, in the
+// order the long spelling lists them.
+var allModifierMasks = []struct {
+	mod   Modifier
+	long  string
+	short string
+}{
+	{0, "", ""},
+	{ModCtrl, "ctrl-", "c-"},
+	{ModShift, "shift-", "s-"},
+	{ModAlt, "alt-", "a-"},
+	{ModMeta, "meta-", "m-"},
+	{ModCtrlShift, "ctrl-shift-", "c-s-"},
+	{ModCtrlAlt, "ctrl-alt-", "c-a-"},
+	{ModCtrlMeta, "ctrl-meta-", "c-m-"},
+	{ModAltShift, "shift-alt-", "s-a-"},
+	{ModShiftMeta, "shift-meta-", "s-m-"},
+	{ModAltMeta, "alt-meta-", "a-m-"},
+	{ModCtrlShiftAlt, "ctrl-shift-alt-", "c-s-a-"},
+	{ModCtrlShiftMeta, "ctrl-shift-meta-", "c-s-m-"},
+	{ModCtrlAltMeta, "ctrl-alt-meta-", "c-a-m-"},
+	{ModAltShiftMeta, "shift-alt-meta-", "s-a-m-"},
+	{ModCtrl | ModShift | ModAlt | ModMeta, "ctrl-shift-alt-meta-", "c-s-a-m-"},
+}
+
+// TestParseModifiedChar covers chords on characters no US keyboard produces.
+// They are ordinary unshifted keys elsewhere: '¨' and 'ø' on a Nordic layout,
+// 'é' on a French one, 'ß' on a German one.
+func TestParseModifiedChar(t *testing.T) {
+	cases := []struct {
+		ch rune
+		// upper is the uppercase form Shift folds into, or 0 when the
+		// character has none and Shift stays a modifier bit.
+		upper rune
+	}{
+		{ch: '¨'},
+		{ch: 'ø', upper: 'Ø'},
+		{ch: 'é', upper: 'É'},
+		{ch: 'ß'},
+		{ch: '€'},
+		{ch: '§'},
+	}
+
+	for _, tc := range cases {
+		for _, mask := range allModifierMasks {
+			want := KeyComb{Mod: mask.mod, Ch: tc.ch}
+			if mask.mod&ModShift != 0 && tc.upper != 0 {
+				want = KeyComb{Mod: mask.mod &^ ModShift, Ch: tc.upper}
+			}
+
+			for _, in := range []string{
+				fmt.Sprintf("<%s%c>", mask.long, tc.ch),
+				fmt.Sprintf("<%s%c>", mask.short, tc.ch),
+			} {
+				t.Run(in, func(t *testing.T) {
+					got, err := ParseKey(in)
+					require.NoError(t, err)
+					assert.Equal(t, want, got)
+				})
+			}
+		}
+	}
+}
+
+// TestParseModifiedCharRoundTrip pins the property the configuration layer
+// relies on: a chord Rune renders is a chord Rune can parse back.
+func TestParseModifiedCharRoundTrip(t *testing.T) {
+	chars := []rune{'¨', 'ø', 'Ø', 'é', 'É', 'ß', '€', '§'}
+
+	for _, ch := range chars {
+		for _, mask := range allModifierMasks {
+			// Four modifiers at once has no spelling, and a cased
+			// character already spends the Shift slot on its uppercase
+			// form, so it can only carry three of the other bits.
+			cased := unicode.ToUpper(ch) != ch || unicode.ToLower(ch) != ch
+			if mask.mod == ModCtrl|ModShift|ModAlt|ModMeta {
+				continue
+			}
+			if cased && (mask.mod&ModShift != 0 || mask.mod == ModCtrlAltMeta) {
+				continue
+			}
+
+			comb := KeyComb{Mod: mask.mod, Ch: ch}
+			t.Run(comb.String(), func(t *testing.T) {
+				got, err := ParseKey(comb.String())
+				require.NoError(t, err)
+				assert.Equal(t, comb, got)
+
+				got, err = ParseKey(comb.ShortString())
+				require.NoError(t, err)
+				assert.Equal(t, comb, got)
+			})
+		}
+	}
+}
+
+func TestParseModifiedCharErrors(t *testing.T) {
+	for _, in := range []string{
+		"<alt-ab>",
+		"<alt-<>",
+		"<alt- >",
+		"<bogus-x>",
+		"<alt-x-y>",
+		"<-x>",
+		"<alt->",
+		"<>",
+	} {
+		t.Run(in, func(t *testing.T) {
+			_, err := ParseKey(in)
+			require.Error(t, err)
+		})
+	}
 }
