@@ -46,6 +46,8 @@ type commandServerStream struct {
 
 	// completion id -> cancel func of its streaming context
 	completions sync.Map
+	// handle request id -> cancel func of its command's context
+	handles sync.Map
 }
 
 func newCommandServerStream(
@@ -108,6 +110,8 @@ func (s *commandServerStream) receiveMessages() {
 			s.handleCommand(reqMsg.GetHandle())
 		case ServerCommandMessage_CompleteCancel:
 			s.cancelComplete(reqMsg.GetCompleteCancel().GetId())
+		case ServerCommandMessage_HandleCancel:
+			cancelRequest(&s.handles, reqMsg.GetHandleCancel().GetId())
 		case ServerCommandMessage_Complete:
 			err = s.handleComplete(reqMsg.GetComplete())
 			if err != nil {
@@ -134,11 +138,32 @@ func (s *commandServerStream) receiveMessages() {
 	}
 }
 
+// handleCommand dispatches off the receive loop, which must stay free to
+// take the editor's cancel for this very command. An editor that predates
+// request ids matches replies by arrival order, so it keeps the old
+// synchronous behaviour.
 func (s *commandServerStream) handleCommand(
 	req *HandleCommandRequest,
 ) {
-	err := s.doHandleCommand(req)
-	var res HandleCommandResponse
+	id := req.GetId()
+	if id == 0 {
+		s.sendHandleResponse(id, s.runCommand(s.ctx, req))
+		return
+	}
+
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.handles.Store(id, context.CancelFunc(cancel))
+	go debug.CapturePanicReport(func() {
+		defer func() {
+			s.handles.Delete(id)
+			cancel()
+		}()
+		s.sendHandleResponse(id, s.runCommand(ctx, req))
+	})
+}
+
+func (s *commandServerStream) sendHandleResponse(id int64, err error) {
+	res := HandleCommandResponse{Id: id}
 	if err != nil {
 		res.Error = err.Error()
 	}
@@ -152,8 +177,8 @@ func (s *commandServerStream) handleCommand(
 	}
 }
 
-func (s *commandServerStream) doHandleCommand(
-	req *HandleCommandRequest,
+func (s *commandServerStream) runCommand(
+	ctx context.Context, req *HandleCommandRequest,
 ) error {
 	var cmd textapi.Command
 	err := s.commandFromProto(&cmd, req)
@@ -161,10 +186,7 @@ func (s *commandServerStream) doHandleCommand(
 		return fmt.Errorf("command from protobuf: %w", err)
 	}
 
-	// NOTE: commands cancels are not currently being
-	// propagated from client to server. We must add an extra
-	// message that we handle here to do so.
-	return s.h.HandleCommand(s.ctx, cmd)
+	return s.h.HandleCommand(ctx, cmd)
 }
 
 func (s *commandServerStream) cancelComplete(id int64) {

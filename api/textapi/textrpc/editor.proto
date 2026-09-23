@@ -163,6 +163,10 @@ message SubscribeCommandRequest {
 	// to extensions that do not set it, since older SDKs terminate the
 	// stream on unknown message types.
 	bool supports_complete_cancel = 2;
+	// advertises that the extension understands
+	// ServerCommandMessage.HandleCancel and correlates handle replies by
+	// request id. Same caveat as supports_complete_cancel.
+	bool supports_handle_cancel = 3;
 }
 
 message CommandManual {
@@ -195,12 +199,14 @@ message ServerCommandMessage {
 		Complete = 1;
 		Response = 2;
 		CompleteCancel = 3;
+		HandleCancel = 4;
 	}
 	MessageType type = 1;
 	HandleCommandRequest handle = 2;
 	CompleteCommandRequest complete = 3;
 	SubscribeCommandResponse response = 4;
 	CompleteCommandCancel complete_cancel = 5;
+	RequestCancel handle_cancel = 6;
 }
 
 message HandleCommandRequest {
@@ -210,10 +216,14 @@ message HandleCommandRequest {
 	term.Coordinates cursor_content = 4;
 	term.Coordinates cursor_window = 5;
 	uint64 window_id = 6;
+	// zero when the editor predates request ids, in which case replies
+	// keep their historical arrival-order meaning.
+	int64 id = 7;
 }
 
 message HandleCommandResponse {
 	string error = 1;
+	int64 id = 2;
 }
 
 message CompleteCommandRequest {
@@ -236,11 +246,18 @@ message CompleteCommandCancel {
 	int64 id = 1;
 }
 
+// RequestCancel asks the extension to abandon an in-flight request by
+// cancelling the context its handler was invoked with.
+message RequestCancel {
+	int64 id = 1;
+}
+
 // REPL command streaming
 
 message SubscribeREPLCommandRequest {
 	CommandManual command = 1;
 	bool supports_complete_cancel = 2;
+	bool supports_handle_cancel = 3;
 }
 
 message SubscribeREPLCommandResponse {}
@@ -274,6 +291,8 @@ message ServerREPLCommandMessage {
 		Help = 2;
 		Response = 3;
 		CompleteCancel = 4;
+		HandleCancel = 5;
+		HelpCancel = 6;
 	}
 	MessageType type = 1;
 	HandleREPLCommandRequest handle = 2;
@@ -281,37 +300,49 @@ message ServerREPLCommandMessage {
 	HelpCommandRequest help = 4;
 	SubscribeREPLCommandResponse response = 5;
 	CompleteCommandCancel complete_cancel = 6;
+	RequestCancel handle_cancel = 7;
+	RequestCancel help_cancel = 8;
 }
 
 message HandleREPLCommandRequest {
 	string name = 1;
 	repeated string args = 2;
 	int32 width = 3;
+	// tags every message of this command's response stream. Zero when
+	// the editor predates request ids, in which case the extension
+	// replies with a zero id too.
+	int64 id = 4;
 }
 
 message HandleREPLCommandValue {
 	repeated term.CellRow rows = 1;
+	int64 id = 2;
 }
 
 message HandleREPLCommandDone {
 	string error = 1;
+	int64 id = 2;
 }
 
 message HandleREPLCommandProgress {
 	int64 progress = 1;
 	int64 total = 2;
 	string units = 3;
+	int64 id = 4;
 }
 
 message HelpCommandRequest {
 	repeated string args = 1;
 	int32 width = 2;
+	int64 id = 3;
 }
 
 message HelpCommandValue {
 	repeated term.CellRow rows = 1;
+	int64 id = 2;
 }
 
 message HelpCommandDone {
 	string error = 1;
+	int64 id = 2;
 }

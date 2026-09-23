@@ -48,6 +48,10 @@ type replCommandServerStream struct {
 
 	// completion id -> cancel func of its streaming context
 	completions sync.Map
+	// handle request id -> cancel func of its command's context
+	handles sync.Map
+	// help request id -> cancel func of its help's context
+	helps sync.Map
 }
 
 func newREPLCommandServerStream(
@@ -128,6 +132,10 @@ func (s *replCommandServerStream) receiveMessages() {
 			s.handleHelp(reqMsg.GetHelp())
 		case ServerREPLCommandMessage_CompleteCancel:
 			s.cancelComplete(reqMsg.GetCompleteCancel().GetId())
+		case ServerREPLCommandMessage_HandleCancel:
+			cancelRequest(&s.handles, reqMsg.GetHandleCancel().GetId())
+		case ServerREPLCommandMessage_HelpCancel:
+			cancelRequest(&s.helps, reqMsg.GetHelpCancel().GetId())
 		default:
 			slog.Error(
 				"extraneous server repl command message",
@@ -138,6 +146,9 @@ func (s *replCommandServerStream) receiveMessages() {
 	}
 }
 
+// handleCommand dispatches off the receive loop, which must stay free to
+// take the editor's cancel for this very command. The handler therefore
+// only ever overlaps with handlers that have already been cancelled.
 func (s *replCommandServerStream) handleCommand(
 	req *HandleREPLCommandRequest,
 ) {
@@ -146,27 +157,44 @@ func (s *replCommandServerStream) handleCommand(
 		Args: req.GetArgs(),
 	}
 	width := int(req.GetWidth())
+	id := req.GetId()
 
-	pw := &grpcProgressWriter{stream: s}
-	iter, err := s.h.HandleCommand(s.ctx, cmd, pw)
-	if err != nil {
-		s.sendHandleDone(err)
-		return
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.handles.Store(id, context.CancelFunc(cancel))
+	go debug.CapturePanicReport(func() {
+		defer func() {
+			s.handles.Delete(id)
+			cancel()
+		}()
+
+		pw := &grpcProgressWriter{stream: s, ctx: ctx, id: id}
+		iter, err := s.h.HandleCommand(ctx, cmd, pw)
+		if err != nil {
+			s.sendHandleDone(id, err)
+			return
+		}
+		defer func() { _ = iter.Close() }()
+
+		err = s.streamResponsive(
+			ctx, iter, width,
+			func(rows []*termrpc.CellRow) *ClientREPLCommandMessage {
+				return &ClientREPLCommandMessage{
+					Type: ClientREPLCommandMessage_HandleValue,
+					HandleValue: &HandleREPLCommandValue{
+						Rows: rows,
+						Id:   id,
+					},
+				}
+			},
+		)
+		s.sendHandleDone(id, err)
+	})
+}
+
+func cancelRequest(m *sync.Map, id int64) {
+	if cancel, ok := m.LoadAndDelete(id); ok {
+		cancel.(context.CancelFunc)()
 	}
-	defer func() { _ = iter.Close() }()
-
-	err = s.streamResponsive(
-		iter, width,
-		func(rows []*termrpc.CellRow) *ClientREPLCommandMessage {
-			return &ClientREPLCommandMessage{
-				Type: ClientREPLCommandMessage_HandleValue,
-				HandleValue: &HandleREPLCommandValue{
-					Rows: rows,
-				},
-			}
-		},
-	)
-	s.sendHandleDone(err)
 }
 
 // grpcProgressWriter is a repl.ProgressWriter that forwards Progress
@@ -175,6 +203,8 @@ func (s *replCommandServerStream) handleCommand(
 // extension's command handler.
 type grpcProgressWriter struct {
 	stream *replCommandServerStream
+	ctx    context.Context
+	id     int64
 }
 
 func (w *grpcProgressWriter) Progress(
@@ -186,6 +216,7 @@ func (w *grpcProgressWriter) Progress(
 			Progress: progress,
 			Total:    total,
 			Units:    units,
+			Id:       w.id,
 		},
 	}
 	// Non-blocking send: progress is informational. If the client falls
@@ -193,12 +224,12 @@ func (w *grpcProgressWriter) Progress(
 	// stall the handler goroutine.
 	select {
 	case w.stream.sendChan <- msg:
-	case <-w.stream.ctx.Done():
+	case <-w.ctx.Done():
 	}
 }
 
-func (s *replCommandServerStream) sendHandleDone(err error) {
-	var resp HandleREPLCommandDone
+func (s *replCommandServerStream) sendHandleDone(id int64, err error) {
+	resp := HandleREPLCommandDone{Id: id}
 	if err != nil {
 		resp.Error = err.Error()
 	}
@@ -216,29 +247,41 @@ func (s *replCommandServerStream) handleHelp(
 	req *HelpCommandRequest,
 ) {
 	width := int(req.GetWidth())
-	iter, err := s.h.Help(s.ctx, req.GetArgs())
-	if err != nil {
-		s.sendHelpDone(err)
-		return
-	}
-	defer func() { _ = iter.Close() }()
+	id := req.GetId()
 
-	err = s.streamResponsive(
-		iter, width,
-		func(rows []*termrpc.CellRow) *ClientREPLCommandMessage {
-			return &ClientREPLCommandMessage{
-				Type: ClientREPLCommandMessage_HelpValue,
-				HelpValue: &HelpCommandValue{
-					Rows: rows,
-				},
-			}
-		},
-	)
-	s.sendHelpDone(err)
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.helps.Store(id, context.CancelFunc(cancel))
+	go debug.CapturePanicReport(func() {
+		defer func() {
+			s.helps.Delete(id)
+			cancel()
+		}()
+
+		iter, err := s.h.Help(ctx, req.GetArgs())
+		if err != nil {
+			s.sendHelpDone(id, err)
+			return
+		}
+		defer func() { _ = iter.Close() }()
+
+		err = s.streamResponsive(
+			ctx, iter, width,
+			func(rows []*termrpc.CellRow) *ClientREPLCommandMessage {
+				return &ClientREPLCommandMessage{
+					Type: ClientREPLCommandMessage_HelpValue,
+					HelpValue: &HelpCommandValue{
+						Rows: rows,
+						Id:   id,
+					},
+				}
+			},
+		)
+		s.sendHelpDone(id, err)
+	})
 }
 
-func (s *replCommandServerStream) sendHelpDone(err error) {
-	var resp HelpCommandDone
+func (s *replCommandServerStream) sendHelpDone(id int64, err error) {
+	resp := HelpCommandDone{Id: id}
 	if err != nil {
 		resp.Error = err.Error()
 	}
@@ -330,12 +373,13 @@ func (s *replCommandServerStream) streamCompleteValues(
 }
 
 func (s *replCommandServerStream) streamResponsive(
+	ctx context.Context,
 	iter iterator.Iterator[component.Responsive],
 	width int,
 	wrap func([]*termrpc.CellRow) *ClientREPLCommandMessage,
 ) error {
 	for {
-		item, ok := iter.Next(s.ctx)
+		item, ok := iter.Next(ctx)
 		if !ok {
 			return iter.Err()
 		}
@@ -343,8 +387,8 @@ func (s *replCommandServerStream) streamResponsive(
 		msg := wrap(rows)
 		select {
 		case s.sendChan <- msg:
-		case <-s.ctx.Done():
-			return s.ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
