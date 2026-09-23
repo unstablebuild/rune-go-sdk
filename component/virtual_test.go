@@ -15,6 +15,8 @@
 package component
 
 import (
+	"context"
+	"image"
 	"testing"
 
 	"github.com/unstablebuild/rune-go-sdk/component/comptest"
@@ -89,4 +91,96 @@ $$$$`,
 		},
 	}
 	comptest.TestComponent(t, &v, w, tests)
+}
+
+// imageRecorder records the placements forwarded to it.
+type imageRecorder struct {
+	term.NoopWriter
+	images  []term.Image
+	graphic bool
+}
+
+func (w *imageRecorder) DrawImage(img term.Image) bool {
+	w.images = append(w.images, img)
+	return w.graphic
+}
+
+func (w *imageRecorder) Context() context.Context { return context.Background() }
+
+func TestVirtualWriterDrawImage(t *testing.T) {
+	tests := []struct {
+		name          string
+		offset        term.Coordinates
+		img           term.Image
+		graphic       bool
+		expectedOK    bool
+		expectedPos   term.Coordinates
+		expectedVis   image.Rectangle
+		expectDropped bool
+	}{
+		{
+			name:        "translates by offset",
+			offset:      term.Coordinates{X: 3, Y: 2},
+			img:         term.Image{Width: 2, Height: 2},
+			graphic:     true,
+			expectedOK:  true,
+			expectedPos: term.Coordinates{X: 3, Y: 2},
+			expectedVis: image.Rect(3, 2, 5, 4),
+		},
+		{
+			name:        "clips to viewport before translating",
+			offset:      term.Coordinates{X: 10, Y: 10},
+			img:         term.Image{Pos: term.Coordinates{X: 2, Y: 2}, Width: 8, Height: 8},
+			graphic:     true,
+			expectedOK:  true,
+			expectedPos: term.Coordinates{X: 12, Y: 12},
+			expectedVis: image.Rect(12, 12, 14, 14),
+		},
+		{
+			name:          "outside the viewport is dropped",
+			offset:        term.Coordinates{X: 5, Y: 5},
+			img:           term.Image{Pos: term.Coordinates{X: 9, Y: 9}, Width: 2, Height: 2},
+			graphic:       true,
+			expectedOK:    true,
+			expectDropped: true,
+		},
+		{
+			name:        "forwards false from wrapped writer",
+			img:         term.Image{Width: 2, Height: 2},
+			graphic:     false,
+			expectedOK:  false,
+			expectedPos: term.Coordinates{},
+			expectedVis: image.Rect(0, 0, 2, 2),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rec := &imageRecorder{graphic: test.graphic}
+			w := &VirtualWriter{
+				Writer: rec,
+				Offset: test.offset,
+				Width:  4, Height: 4,
+			}
+
+			if got := w.DrawImage(test.img); got != test.expectedOK {
+				t.Fatalf("DrawImage() = %v; expected %v", got, test.expectedOK)
+			}
+			if test.expectDropped {
+				if len(rec.images) != 0 {
+					t.Fatalf("forwarded %d placements; expected none", len(rec.images))
+				}
+				return
+			}
+			if len(rec.images) != 1 {
+				t.Fatalf("forwarded %d placements; expected 1", len(rec.images))
+			}
+			got := rec.images[0]
+			if got.Pos != test.expectedPos {
+				t.Fatalf("Pos = %v; expected %v", got.Pos, test.expectedPos)
+			}
+			if vis := got.Visible(); vis != test.expectedVis {
+				t.Fatalf("Visible() = %v; expected %v", vis, test.expectedVis)
+			}
+		})
+	}
 }

@@ -65,6 +65,12 @@ func (w *ScreenWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 	)
 }
 
+// DrawImage satisfies term.Writer. Screens carry cells only, so callers
+// draw a cell-based fallback instead.
+func (w *ScreenWriter) DrawImage(Image) bool {
+	return false
+}
+
 // Flush makes all the content changes made using SetCell and
 // UnionAttributes visible on the display.
 func (w *ScreenWriter) Flush() error {

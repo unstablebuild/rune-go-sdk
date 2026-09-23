@@ -55,6 +55,8 @@ func (r *recordWriter) UnionAttributes(pos term.Coordinates, attr term.Attribute
 
 func (r *recordWriter) Context() context.Context { return context.Background() }
 
+func (r *recordWriter) DrawImage(term.Image) bool { return false }
+
 // drawFunc adapts a draw callback into a tui.Component.
 type drawFunc func(term.Writer)
 

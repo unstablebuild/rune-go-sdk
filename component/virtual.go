@@ -16,6 +16,7 @@ package component
 
 import (
 	"context"
+	"image"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
@@ -102,4 +103,13 @@ func (w *VirtualWriter) UnionAttributes(pos term.Coordinates, attr term.Attribut
 // Context satisfies term.Writer.
 func (w *VirtualWriter) Context() context.Context {
 	return w.Writer.Context()
+}
+
+// DrawImage satisfies term.Writer.
+func (w *VirtualWriter) DrawImage(img term.Image) bool {
+	img, ok := img.Clipped(image.Rect(0, 0, w.Width, w.Height))
+	if !ok {
+		return true
+	}
+	return w.Writer.DrawImage(img.Translated(w.Offset))
 }

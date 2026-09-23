@@ -89,6 +89,12 @@ func (w *StringWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 	w.cellbuf[idx].SetAttributes(AttributesUnion(w.cellbuf[idx].Attributes(), attr))
 }
 
+// DrawImage satisfies Writer. The rendered string carries cells only, so
+// callers draw a cell-based fallback instead.
+func (w *StringWriter) DrawImage(Image) bool {
+	return false
+}
+
 // Flush flushes the contents of this writer into the underlying cell buffer.
 func (w *StringWriter) Flush() (err error) {
 	for i, c := range w.cellbuf {

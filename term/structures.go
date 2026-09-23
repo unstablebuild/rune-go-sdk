@@ -178,4 +178,11 @@ type Writer interface {
 	// that contain all the bit flags set in a, b or both, and uses the color
 	// defined in b or if not set, uses the color in a.
 	UnionAttributes(Coordinates, Attributes)
+	// DrawImage places img over its cell rectangle, above the cells
+	// written there, and reports whether this writer renders graphics
+	// at all; on false the caller should draw a cell-based fallback.
+	// Placements are discarded on the writer's next Clear, so an image
+	// is re-placed on every Draw like any other content. Fully clipped
+	// placements are dropped and still report true.
+	DrawImage(Image) bool
 }

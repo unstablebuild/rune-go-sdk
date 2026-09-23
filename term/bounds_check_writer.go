@@ -16,6 +16,7 @@ package term
 
 import (
 	"context"
+	"image"
 )
 
 type boundsCheckWriter struct {
@@ -43,6 +44,14 @@ func (p boundsCheckWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 		return
 	}
 	p.w.UnionAttributes(pos, attr)
+}
+
+func (p boundsCheckWriter) DrawImage(img Image) bool {
+	img, ok := img.Clipped(image.Rect(0, 0, p.width, p.height))
+	if !ok {
+		return true
+	}
+	return p.w.DrawImage(img)
 }
 
 func (p boundsCheckWriter) Context() context.Context {

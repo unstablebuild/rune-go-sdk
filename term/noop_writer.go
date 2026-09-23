@@ -28,6 +28,10 @@ func (w NoopWriter) SetCell(pos Coordinates, cell Cell) {
 func (w NoopWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 }
 
+func (w NoopWriter) DrawImage(Image) bool {
+	return false
+}
+
 func (w NoopWriter) Flush() (err error) {
 	return
 }

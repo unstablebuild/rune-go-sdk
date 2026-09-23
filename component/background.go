@@ -187,3 +187,9 @@ func (w *bgWriter) UnionAttributes(pos term.Coordinates, attr term.Attributes) {
 func (w *bgWriter) Context() context.Context {
 	return w.ctx
 }
+
+// DrawImage satisfies term.Writer. The background buffer carries cells
+// only, so callers draw a cell-based fallback instead.
+func (w *bgWriter) DrawImage(term.Image) bool {
+	return false
+}

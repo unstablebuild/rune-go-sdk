@@ -190,6 +190,12 @@ func (r drawResponseWriter) Clear(term.Attributes) error {
 func (r drawResponseWriter) SetCursor(term.Coordinates) {
 }
 
+// DrawImage satisfies term.Writer. The draw-response wire format carries
+// cells only, so callers draw a cell-based fallback instead.
+func (r drawResponseWriter) DrawImage(term.Image) bool {
+	return false
+}
+
 func (r drawResponseWriter) Context() context.Context {
 	return r.ctx
 }
