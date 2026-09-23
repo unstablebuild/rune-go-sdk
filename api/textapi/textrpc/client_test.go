@@ -1999,3 +1999,206 @@ func TestREPLCommandStreamCompleteCancel(t *testing.T) {
 	waitChan(t, it.done, testTimeout)
 	waitChan(t, serverDone, testTimeout)
 }
+
+// An interrupted command must stop running, not keep streaming output
+// the editor has nowhere to put.
+func TestREPLCommandStreamHandleCancel(t *testing.T) {
+	it := newBlockingIterator[component.Responsive]()
+	h := &testREPLHandler{
+		handleFn: func(
+			_ context.Context, _ repl.Command, _ repl.ProgressWriter,
+		) (iterator.Iterator[component.Responsive], error) {
+			return it, nil
+		},
+		completeFn: nopComplete,
+		helpFn:     nopHelp,
+	}
+
+	serverDone := make(chan struct{})
+	impl := &testServer{
+		replCommandRequests: make(
+			chan *textrpc.SubscribeREPLCommandRequest, 1,
+		),
+		onSubscribeREPLCommand: func(
+			_ *textrpc.CommandManual,
+			stream grpc.BidiStreamingServer[
+				textrpc.ClientREPLCommandMessage,
+				textrpc.ServerREPLCommandMessage,
+			],
+		) error {
+			defer close(serverDone)
+			err := stream.Send(&textrpc.ServerREPLCommandMessage{
+				Type: textrpc.ServerREPLCommandMessage_Handle,
+				Handle: &textrpc.HandleREPLCommandRequest{
+					Id: 3, Name: "block", Width: 80,
+				},
+			})
+			require.NoError(t, err)
+			waitChan(t, it.started, testTimeout)
+
+			err = stream.Send(&textrpc.ServerREPLCommandMessage{
+				Type:         textrpc.ServerREPLCommandMessage_HandleCancel,
+				HandleCancel: &textrpc.RequestCancel{Id: 3},
+			})
+			require.NoError(t, err)
+
+			msg, err := stream.Recv()
+			require.NoError(t, err)
+			require.Equal(t,
+				textrpc.ClientREPLCommandMessage_HandleDone,
+				msg.GetType(),
+			)
+			require.Equal(t, int64(3), msg.GetHandleDone().GetId())
+			return nil
+		},
+	}
+	env := newTestEnv(t, impl)
+
+	man := textapi.CommandManual{Name: "r"}
+	require.NoError(t, env.client.RegisterREPLCommand(man, h))
+
+	req := waitChan(t, impl.replCommandRequests, testTimeout)
+	require.True(t, req.GetSupportsHandleCancel(),
+		"the editor only cancels commands for extensions "+
+			"that advertise support")
+
+	waitChan(t, it.done, testTimeout)
+	waitChan(t, serverDone, testTimeout)
+}
+
+// A command that ignores its cancel must not wedge every later command
+// on the same stream.
+func TestREPLCommandStreamServesNextCommandWhileBlocked(t *testing.T) {
+	it := newBlockingIterator[component.Responsive]()
+	h := &testREPLHandler{
+		handleFn: func(
+			_ context.Context, cmd repl.Command, _ repl.ProgressWriter,
+		) (iterator.Iterator[component.Responsive], error) {
+			if cmd.Name == "block" {
+				return it, nil
+			}
+			return iterator.FromSlice([]component.Responsive{
+				component.NopResponsive(),
+			}), nil
+		},
+		completeFn: nopComplete,
+		helpFn:     nopHelp,
+	}
+
+	serverDone := make(chan struct{})
+	impl := &testServer{
+		onSubscribeREPLCommand: func(
+			_ *textrpc.CommandManual,
+			stream grpc.BidiStreamingServer[
+				textrpc.ClientREPLCommandMessage,
+				textrpc.ServerREPLCommandMessage,
+			],
+		) error {
+			defer close(serverDone)
+			err := stream.Send(&textrpc.ServerREPLCommandMessage{
+				Type: textrpc.ServerREPLCommandMessage_Handle,
+				Handle: &textrpc.HandleREPLCommandRequest{
+					Id: 1, Name: "block", Width: 80,
+				},
+			})
+			require.NoError(t, err)
+			waitChan(t, it.started, testTimeout)
+
+			err = stream.Send(&textrpc.ServerREPLCommandMessage{
+				Type: textrpc.ServerREPLCommandMessage_Handle,
+				Handle: &textrpc.HandleREPLCommandRequest{
+					Id: 2, Name: "quick", Width: 80,
+				},
+			})
+			require.NoError(t, err)
+
+			for {
+				msg, err := stream.Recv()
+				require.NoError(t, err)
+				if msg.GetType() ==
+					textrpc.ClientREPLCommandMessage_HandleValue {
+					require.Equal(t, int64(2),
+						msg.GetHandleValue().GetId())
+					continue
+				}
+				require.Equal(t,
+					textrpc.ClientREPLCommandMessage_HandleDone,
+					msg.GetType(),
+				)
+				require.Equal(t, int64(2), msg.GetHandleDone().GetId(),
+					"the blocked command must not report done first")
+				return nil
+			}
+		},
+	}
+	env := newTestEnv(t, impl)
+
+	man := textapi.CommandManual{Name: "r"}
+	require.NoError(t, env.client.RegisterREPLCommand(man, h))
+
+	waitChan(t, serverDone, testTimeout)
+	waitChan(t, it.done, testTimeout)
+}
+
+func TestCommandStreamHandleCancel(t *testing.T) {
+	blocked := make(chan struct{})
+	canceled := make(chan struct{})
+	h := textapi.FuncCommandHandler(
+		func(ctx context.Context, _ textapi.Command) error {
+			close(blocked)
+			<-ctx.Done()
+			close(canceled)
+			return ctx.Err()
+		},
+		nopComplete,
+	)
+
+	serverDone := make(chan struct{})
+	impl := &testServer{
+		commandRequests: make(
+			chan *textrpc.SubscribeCommandRequest, 1,
+		),
+		onSubscribeCommand: func(
+			_ *textrpc.CommandManual,
+			stream grpc.BidiStreamingServer[
+				textrpc.ClientCommandMessage,
+				textrpc.ServerCommandMessage,
+			],
+		) error {
+			defer close(serverDone)
+			err := stream.Send(&textrpc.ServerCommandMessage{
+				Type: textrpc.ServerCommandMessage_Handle,
+				Handle: &textrpc.HandleCommandRequest{
+					Id: 5, Name: "c",
+				},
+			})
+			require.NoError(t, err)
+			waitChan(t, blocked, testTimeout)
+
+			err = stream.Send(&textrpc.ServerCommandMessage{
+				Type:         textrpc.ServerCommandMessage_HandleCancel,
+				HandleCancel: &textrpc.RequestCancel{Id: 5},
+			})
+			require.NoError(t, err)
+
+			msg, err := stream.Recv()
+			require.NoError(t, err)
+			require.Equal(t,
+				textrpc.ClientCommandMessage_Handle, msg.GetType())
+			require.Equal(t, int64(5), msg.GetHandle().GetId())
+			require.Equal(t, context.Canceled.Error(),
+				msg.GetHandle().GetError())
+			return nil
+		},
+	}
+	env := newTestEnv(t, impl)
+
+	man := textapi.CommandManual{Name: "c"}
+	require.NoError(t, env.client.RegisterCommand(man, h))
+
+	req := waitChan(t, impl.commandRequests, testTimeout)
+	require.True(t, req.GetSupportsHandleCancel())
+
+	waitChan(t, canceled, testTimeout)
+	waitChan(t, serverDone, testTimeout)
+}

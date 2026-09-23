@@ -24,6 +24,11 @@ import (
 
 // REPLHandler extends repl.CommandHandler with a Help
 // method that returns documentation for a command.
+//
+// The editor runs one command at a time, but it cancels the context of
+// a command its user interrupted and may dispatch the next one before
+// the interrupted handler has unwound. An implementation therefore has
+// to tolerate overlapping with its own cancelled invocations.
 type REPLHandler interface {
 	repl.CommandHandler
 

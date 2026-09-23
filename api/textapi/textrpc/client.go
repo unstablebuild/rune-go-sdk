@@ -247,6 +247,7 @@ func (c *Client) RegisterCommand(
 	req := SubscribeCommandRequest{
 		Command:                &rpcMan,
 		SupportsCompleteCancel: true,
+		SupportsHandleCancel:   true,
 	}
 	sendMsg := ClientCommandMessage{
 		Request: &req,
@@ -294,6 +295,7 @@ func (c *Client) RegisterREPLCommand(
 	req := SubscribeREPLCommandRequest{
 		Command:                &rpcMan,
 		SupportsCompleteCancel: true,
+		SupportsHandleCancel:   true,
 	}
 	sendMsg := ClientREPLCommandMessage{
 		Request: &req,
