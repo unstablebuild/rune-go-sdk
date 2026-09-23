@@ -175,6 +175,21 @@ func TestPackedFrameMatchesRows(t *testing.T) {
 			w.SetCell(term.Coordinates{X: 3, Y: 2}, other)
 		},
 	}, {
+		name: "underline colour",
+		draw: func(w term.Writer) {
+			w.SetCell(term.Coordinates{X: 1, Y: 0}, term.NewCell('u', 1, term.Attributes{
+				Attrs:     term.AttrUnderline,
+				Underline: term.ColorRed,
+			}))
+			both := term.NewCell('e', 1, term.Attributes{Underline: term.ColorBlue})
+			both.SetCombining([]rune{0x0301})
+			w.SetCell(term.Coordinates{X: 2, Y: 0}, both)
+			w.SetCell(term.Coordinates{X: 3, Y: 0}, term.NewCell('x', 1, term.Attributes{Underline: term.ColorLime}))
+			w.SetCell(term.Coordinates{X: 3, Y: 0}, term.Cell{Ch: 'x', Width: 1, Bytes: 1})
+			w.UnionAttributes(term.Coordinates{X: 4, Y: 0}, term.Attributes{Underline: term.ColorTeal})
+			w.UnionAttributes(term.Coordinates{X: 1, Y: 0}, term.Attributes{Attrs: term.AttrBold})
+		},
+	}, {
 		name: "union attributes over an existing cell",
 		draw: func(w term.Writer) {
 			w.SetCell(term.Coordinates{X: 2, Y: 2}, term.Cell{
@@ -221,6 +236,31 @@ func TestPackedFrameMatchesRows(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestPackedFrameUnderlineRoundTrip(t *testing.T) {
+	rows, packed := drawFrames(t, 5, 1, func(w term.Writer) {
+		w.SetCell(term.Coordinates{X: 1, Y: 0}, term.NewCell('u', 1, term.Attributes{Underline: term.ColorRed}))
+		both := term.NewCell('e', 1, term.Attributes{Underline: term.ColorBlue})
+		both.SetCombining([]rune{0x0301})
+		w.SetCell(term.Coordinates{X: 2, Y: 0}, both)
+		w.SetCell(term.Coordinates{X: 3, Y: 0}, term.NewCell('x', 1, term.Attributes{Underline: term.ColorLime}))
+		w.SetCell(term.Coordinates{X: 3, Y: 0}, term.Cell{Ch: 'x', Width: 1, Bytes: 1})
+	})
+	for _, got := range []*recordWriter{rows, packed} {
+		if c := got.cells[1].UnderlineColor(); c != term.ColorRed {
+			t.Errorf("cell 1 underline = %v, want red", c)
+		}
+		if c := got.cells[2].UnderlineColor(); c != term.ColorBlue {
+			t.Errorf("cell 2 underline = %v, want blue", c)
+		}
+		if r := got.cells[2].CombiningRunes(); len(r) != 1 || r[0] != 0x0301 {
+			t.Errorf("cell 2 combining = %v, want [0x301]", r)
+		}
+		if c := got.cells[3].UnderlineColor(); c != term.ColorDefault {
+			t.Errorf("cell 3 underline = %v, want default after overwrite", c)
+		}
 	}
 }
 

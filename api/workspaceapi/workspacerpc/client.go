@@ -396,16 +396,17 @@ func (c *Client) NewPty(ctx context.Context) (workspaceapi.Pty, error) {
 	return ret, nil
 }
 
-// SetPtySize sets the width and height in columns and rows of
-// a pseudoterminal.
-func (c *Client) SetPtySize(p workspaceapi.Pty, width, height int) error {
+// SetPtySize sets the size of a pseudoterminal.
+func (c *Client) SetPtySize(p workspaceapi.Pty, size workspaceapi.PtySize) error {
 	req := SetPtySizeRequest{
-		Master:   p.Master.Name(),
-		MasterFd: uint32(p.Master.Fd()),
-		Slave:    p.Slave.Name(),
-		SlaveFd:  uint32(p.Slave.Fd()),
-		Width:    int32(width),
-		Height:   int32(height),
+		Master:      p.Master.Name(),
+		MasterFd:    uint32(p.Master.Fd()),
+		Slave:       p.Slave.Name(),
+		SlaveFd:     uint32(p.Slave.Fd()),
+		Width:       int32(size.Columns),
+		Height:      int32(size.Rows),
+		PixelWidth:  int32(size.PixelWidth),
+		PixelHeight: int32(size.PixelHeight),
 	}
 	_, err := c.term.SetPtySize(c.ctx, &req)
 	return err

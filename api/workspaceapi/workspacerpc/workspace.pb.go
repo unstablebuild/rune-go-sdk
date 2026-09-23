@@ -2204,6 +2204,8 @@ type SetPtySizeRequest struct {
 	SlaveFd       uint32                 `protobuf:"varint,4,opt,name=slave_fd,json=slaveFd,proto3" json:"slave_fd,omitempty"`
 	Height        int32                  `protobuf:"varint,5,opt,name=height,proto3" json:"height,omitempty"`
 	Width         int32                  `protobuf:"varint,6,opt,name=width,proto3" json:"width,omitempty"`
+	PixelWidth    int32                  `protobuf:"varint,7,opt,name=pixel_width,json=pixelWidth,proto3" json:"pixel_width,omitempty"`
+	PixelHeight   int32                  `protobuf:"varint,8,opt,name=pixel_height,json=pixelHeight,proto3" json:"pixel_height,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2276,6 +2278,20 @@ func (x *SetPtySizeRequest) GetHeight() int32 {
 func (x *SetPtySizeRequest) GetWidth() int32 {
 	if x != nil {
 		return x.Width
+	}
+	return 0
+}
+
+func (x *SetPtySizeRequest) GetPixelWidth() int32 {
+	if x != nil {
+		return x.PixelWidth
+	}
+	return 0
+}
+
+func (x *SetPtySizeRequest) GetPixelHeight() int32 {
+	if x != nil {
+		return x.PixelHeight
 	}
 	return 0
 }
@@ -3675,14 +3691,17 @@ const file_workspacerpc_workspace_proto_rawDesc = "" +
 	"\x06master\x18\x01 \x01(\tR\x06master\x12\x1b\n" +
 	"\tmaster_fd\x18\x02 \x01(\rR\bmasterFd\x12\x14\n" +
 	"\x05slave\x18\x03 \x01(\tR\x05slave\x12\x19\n" +
-	"\bslave_fd\x18\x04 \x01(\rR\aslaveFd\"\xa7\x01\n" +
+	"\bslave_fd\x18\x04 \x01(\rR\aslaveFd\"\xeb\x01\n" +
 	"\x11SetPtySizeRequest\x12\x16\n" +
 	"\x06master\x18\x01 \x01(\tR\x06master\x12\x1b\n" +
 	"\tmaster_fd\x18\x02 \x01(\rR\bmasterFd\x12\x14\n" +
 	"\x05slave\x18\x03 \x01(\tR\x05slave\x12\x19\n" +
 	"\bslave_fd\x18\x04 \x01(\rR\aslaveFd\x12\x16\n" +
 	"\x06height\x18\x05 \x01(\x05R\x06height\x12\x14\n" +
-	"\x05width\x18\x06 \x01(\x05R\x05width\"\x14\n" +
+	"\x05width\x18\x06 \x01(\x05R\x05width\x12\x1f\n" +
+	"\vpixel_width\x18\a \x01(\x05R\n" +
+	"pixelWidth\x12!\n" +
+	"\fpixel_height\x18\b \x01(\x05R\vpixelHeight\"\x14\n" +
 	"\x12SetPtySizeResponse\"6\n" +
 	"\x0eReadDirRequest\x12\x10\n" +
 	"\x03dir\x18\x01 \x01(\tR\x03dir\x12\x12\n" +

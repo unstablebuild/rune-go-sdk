@@ -158,9 +158,8 @@ type Terminal interface {
 	// its own.
 	NewPty(context.Context) (workspaceapi.Pty, error)
 
-	// SetPtySize sets the width and height in columns and rows of
-	// a pseudoterminal.
-	SetPtySize(p workspaceapi.Pty, width, height int) error
+	// SetPtySize sets the size of a pseudoterminal.
+	SetPtySize(p workspaceapi.Pty, size workspaceapi.PtySize) error
 }
 
 // Executor is the public facing API of a workspace's command execution.

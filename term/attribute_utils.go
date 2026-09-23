@@ -22,13 +22,19 @@ package term
 func AttributesDifference(a, b Attributes) Attributes {
 	retFgColor := a.Fg
 	retBgColor := a.Bg
+	retUnderline := a.Underline
 	if a.Fg == b.Fg {
 		retFgColor = ColorDefault
 	}
 	if a.Bg == b.Bg {
 		retBgColor = ColorDefault
 	}
-	return Attributes{Fg: retFgColor, Bg: retBgColor, Attrs: (a.Attrs &^ b.Attrs)}
+	if a.Underline == b.Underline {
+		retUnderline = ColorDefault
+	}
+	return Attributes{
+		Fg: retFgColor, Bg: retBgColor, Attrs: (a.Attrs &^ b.Attrs), Underline: retUnderline,
+	}
 }
 
 // AttributesUnion computes the set union between a and b,
@@ -38,11 +44,17 @@ func AttributesDifference(a, b Attributes) Attributes {
 func AttributesUnion(a, b Attributes) Attributes {
 	retFgColor := b.Fg
 	retBgColor := b.Bg
+	retUnderline := b.Underline
 	if b.Fg == ColorDefault {
 		retFgColor = a.Fg
 	}
 	if b.Bg == ColorDefault {
 		retBgColor = a.Bg
 	}
-	return Attributes{Fg: retFgColor, Bg: retBgColor, Attrs: (a.Attrs | b.Attrs)}
+	if b.Underline == ColorDefault {
+		retUnderline = a.Underline
+	}
+	return Attributes{
+		Fg: retFgColor, Bg: retBgColor, Attrs: (a.Attrs | b.Attrs), Underline: retUnderline,
+	}
 }

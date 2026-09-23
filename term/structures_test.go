@@ -36,4 +36,31 @@ func TestCellAttributesRoundTrip(t *testing.T) {
 	assert.Equal(t, attr, c2.Attributes())
 	assert.Equal(t, 'x', c2.Ch)
 	assert.Equal(t, uint8(1), c2.Width)
+	assert.Nil(t, c2.Extra, "no underline colour allocates nothing")
+}
+
+func TestCellExtra(t *testing.T) {
+	var c Cell
+	assert.Equal(t, ColorDefault, c.UnderlineColor())
+	assert.Nil(t, c.CombiningRunes())
+
+	c.SetUnderlineColor(ColorRed)
+	assert.Equal(t, ColorRed, c.UnderlineColor())
+	assert.Equal(t, Attributes{Underline: ColorRed}, c.Attributes())
+
+	copied := c
+	c.SetCombining([]rune{0x301})
+	assert.Equal(t, []rune{0x301}, c.CombiningRunes())
+	assert.Equal(t, ColorRed, c.UnderlineColor(), "setting marks keeps the colour")
+	assert.Nil(t, copied.CombiningRunes(), "copies do not share mutations")
+
+	c.SetUnderlineColor(ColorDefault)
+	assert.Equal(t, []rune{0x301}, c.CombiningRunes(), "clearing the colour keeps the marks")
+	c.SetCombining(nil)
+	assert.Nil(t, c.Extra, "nothing left to hold")
+
+	c.SetAttributes(Attributes{Fg: ColorBlue, Underline: ColorLime})
+	assert.Equal(t, ColorLime, c.UnderlineColor())
+	c.SetAttributes(Attributes{Fg: ColorBlue})
+	assert.Nil(t, c.Extra)
 }

@@ -212,6 +212,8 @@ message SetPtySizeRequest {
 	uint32 slave_fd = 4;
 	int32 height = 5;
 	int32 width = 6;
+	int32 pixel_width = 7;
+	int32 pixel_height = 8;
 }
 
 message SetPtySizeResponse {

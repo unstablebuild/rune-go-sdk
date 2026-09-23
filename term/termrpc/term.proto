@@ -8,6 +8,7 @@ message Attributes {
 	uint32 Foreground = 2;
 	uint32 Background = 3;
 	uint32 Attrs = 4;
+	uint32 Underline = 5;
 }
 
 message Cell {
@@ -18,6 +19,7 @@ message Cell {
 	uint32 Width = 5;
 	uint32 Attrs = 6;
 	uint32 Bytes = 7;
+	uint32 Underline = 8;
 }
 
 message CellRow {
@@ -32,6 +34,10 @@ message PackedCells {
 		uint32 index = 1;
 		repeated uint32 runes = 2;
 	}
+	message Underline {
+		uint32 index = 1;
+		uint32 color = 2;
+	}
 
 	uint32 width = 1;
 	uint32 height = 2;
@@ -43,6 +49,8 @@ message PackedCells {
 	repeated uint32 bytes = 8;
 	// combining is sparse: combining runes are rare.
 	repeated Combining combining = 9;
+	// underline is sparse: coloured underlines are rare.
+	repeated Underline underline = 10;
 }
 
 message Event {

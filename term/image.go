@@ -42,6 +42,22 @@ const (
 	ImageFitContain
 )
 
+// ImageLayer selects where a placement is composited relative to the
+// cells it covers.
+type ImageLayer uint8
+
+const (
+	// ImageLayerAboveText draws the placement over the cells' glyphs.
+	ImageLayerAboveText ImageLayer = iota
+	// ImageLayerBelowText draws the placement over the cells'
+	// backgrounds but under their glyphs.
+	ImageLayerBelowText
+	// ImageLayerBelowBackground draws the placement under the cells'
+	// backgrounds, over the writer's default background fill, so it
+	// shows only through cells whose background is the default.
+	ImageLayerBelowBackground
+)
+
 // Image is a raster placed over a rectangle of cells.
 type Image struct {
 	// Src holds the pixels. It is only read between DrawImage and the
@@ -58,10 +74,17 @@ type Image struct {
 	Crop image.Rectangle
 	// Pos is the top-left cell of the placement.
 	Pos Coordinates
+	// Offset shifts the raster from Pos by whole pixels, for placements
+	// that do not start on a cell boundary. The cell rectangle is not
+	// moved, so the raster is cut at its edges.
+	Offset image.Point
 	// Width and Height are the placement size in cells.
 	Width, Height int
 	// Fit selects how Src is scaled into the cell rectangle.
 	Fit ImageFit
+	// Layer selects where the placement is composited relative to the
+	// cells it covers.
+	Layer ImageLayer
 	// Clip is an absolute, right-exclusive cell rectangle the placement
 	// is confined to. The zero value is unclipped.
 	Clip image.Rectangle

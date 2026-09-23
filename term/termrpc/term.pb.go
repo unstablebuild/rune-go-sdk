@@ -326,6 +326,7 @@ type Attributes struct {
 	Foreground    uint32                 `protobuf:"varint,2,opt,name=Foreground,proto3" json:"Foreground,omitempty"`
 	Background    uint32                 `protobuf:"varint,3,opt,name=Background,proto3" json:"Background,omitempty"`
 	Attrs         uint32                 `protobuf:"varint,4,opt,name=Attrs,proto3" json:"Attrs,omitempty"`
+	Underline     uint32                 `protobuf:"varint,5,opt,name=Underline,proto3" json:"Underline,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -381,6 +382,13 @@ func (x *Attributes) GetAttrs() uint32 {
 	return 0
 }
 
+func (x *Attributes) GetUnderline() uint32 {
+	if x != nil {
+		return x.Underline
+	}
+	return 0
+}
+
 type Cell struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Character     uint32                 `protobuf:"varint,1,opt,name=Character,proto3" json:"Character,omitempty"`
@@ -390,6 +398,7 @@ type Cell struct {
 	Width         uint32                 `protobuf:"varint,5,opt,name=Width,proto3" json:"Width,omitempty"`
 	Attrs         uint32                 `protobuf:"varint,6,opt,name=Attrs,proto3" json:"Attrs,omitempty"`
 	Bytes         uint32                 `protobuf:"varint,7,opt,name=Bytes,proto3" json:"Bytes,omitempty"`
+	Underline     uint32                 `protobuf:"varint,8,opt,name=Underline,proto3" json:"Underline,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -473,6 +482,13 @@ func (x *Cell) GetBytes() uint32 {
 	return 0
 }
 
+func (x *Cell) GetUnderline() uint32 {
+	if x != nil {
+		return x.Underline
+	}
+	return 0
+}
+
 type CellRow struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Cells         []*Cell                `protobuf:"bytes,1,rep,name=cells,proto3" json:"cells,omitempty"`
@@ -531,7 +547,9 @@ type PackedCells struct {
 	Widths []uint32               `protobuf:"varint,7,rep,packed,name=widths,proto3" json:"widths,omitempty"`
 	Bytes  []uint32               `protobuf:"varint,8,rep,packed,name=bytes,proto3" json:"bytes,omitempty"`
 	// combining is sparse: combining runes are rare.
-	Combining     []*PackedCells_Combining `protobuf:"bytes,9,rep,name=combining,proto3" json:"combining,omitempty"`
+	Combining []*PackedCells_Combining `protobuf:"bytes,9,rep,name=combining,proto3" json:"combining,omitempty"`
+	// underline is sparse: coloured underlines are rare.
+	Underline     []*PackedCells_Underline `protobuf:"bytes,10,rep,name=underline,proto3" json:"underline,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -625,6 +643,13 @@ func (x *PackedCells) GetBytes() []uint32 {
 func (x *PackedCells) GetCombining() []*PackedCells_Combining {
 	if x != nil {
 		return x.Combining
+	}
+	return nil
+}
+
+func (x *PackedCells) GetUnderline() []*PackedCells_Underline {
+	if x != nil {
+		return x.Underline
 	}
 	return nil
 }
@@ -901,11 +926,63 @@ func (x *PackedCells_Combining) GetRunes() []uint32 {
 	return nil
 }
 
+type PackedCells_Underline struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Color         uint32                 `protobuf:"varint,2,opt,name=color,proto3" json:"color,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PackedCells_Underline) Reset() {
+	*x = PackedCells_Underline{}
+	mi := &file_termrpc_term_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PackedCells_Underline) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PackedCells_Underline) ProtoMessage() {}
+
+func (x *PackedCells_Underline) ProtoReflect() protoreflect.Message {
+	mi := &file_termrpc_term_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PackedCells_Underline.ProtoReflect.Descriptor instead.
+func (*PackedCells_Underline) Descriptor() ([]byte, []int) {
+	return file_termrpc_term_proto_rawDescGZIP(), []int{3, 1}
+}
+
+func (x *PackedCells_Underline) GetIndex() uint32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *PackedCells_Underline) GetColor() uint32 {
+	if x != nil {
+		return x.Color
+	}
+	return 0
+}
+
 var File_termrpc_term_proto protoreflect.FileDescriptor
 
 const file_termrpc_term_proto_rawDesc = "" +
 	"\n" +
-	"\x12termrpc/term.proto\x12\x04term\"b\n" +
+	"\x12termrpc/term.proto\x12\x04term\"\x80\x01\n" +
 	"\n" +
 	"Attributes\x12\x1e\n" +
 	"\n" +
@@ -914,7 +991,8 @@ const file_termrpc_term_proto_rawDesc = "" +
 	"\n" +
 	"Background\x18\x03 \x01(\rR\n" +
 	"Background\x12\x14\n" +
-	"\x05Attrs\x18\x04 \x01(\rR\x05Attrs\"\xc4\x01\n" +
+	"\x05Attrs\x18\x04 \x01(\rR\x05Attrs\x12\x1c\n" +
+	"\tUnderline\x18\x05 \x01(\rR\tUnderline\"\xe2\x01\n" +
 	"\x04Cell\x12\x1c\n" +
 	"\tCharacter\x18\x01 \x01(\rR\tCharacter\x12\x1e\n" +
 	"\n" +
@@ -926,10 +1004,11 @@ const file_termrpc_term_proto_rawDesc = "" +
 	"\tCombining\x18\x04 \x03(\rR\tCombining\x12\x14\n" +
 	"\x05Width\x18\x05 \x01(\rR\x05Width\x12\x14\n" +
 	"\x05Attrs\x18\x06 \x01(\rR\x05Attrs\x12\x14\n" +
-	"\x05Bytes\x18\a \x01(\rR\x05Bytes\"+\n" +
+	"\x05Bytes\x18\a \x01(\rR\x05Bytes\x12\x1c\n" +
+	"\tUnderline\x18\b \x01(\rR\tUnderline\"+\n" +
 	"\aCellRow\x12 \n" +
 	"\x05cells\x18\x01 \x03(\v2\n" +
-	".term.CellR\x05cells\"\xa9\x02\n" +
+	".term.CellR\x05cells\"\x9d\x03\n" +
 	"\vPackedCells\x12\x14\n" +
 	"\x05width\x18\x01 \x01(\rR\x05width\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\rR\x06height\x12\x14\n" +
@@ -939,10 +1018,15 @@ const file_termrpc_term_proto_rawDesc = "" +
 	"\x05attrs\x18\x06 \x03(\rR\x05attrs\x12\x16\n" +
 	"\x06widths\x18\a \x03(\rR\x06widths\x12\x14\n" +
 	"\x05bytes\x18\b \x03(\rR\x05bytes\x129\n" +
-	"\tcombining\x18\t \x03(\v2\x1b.term.PackedCells.CombiningR\tcombining\x1a7\n" +
+	"\tcombining\x18\t \x03(\v2\x1b.term.PackedCells.CombiningR\tcombining\x129\n" +
+	"\tunderline\x18\n" +
+	" \x03(\v2\x1b.term.PackedCells.UnderlineR\tunderline\x1a7\n" +
 	"\tCombining\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\rR\x05index\x12\x14\n" +
-	"\x05runes\x18\x02 \x03(\rR\x05runes\"\xee\a\n" +
+	"\x05runes\x18\x02 \x03(\rR\x05runes\x1a7\n" +
+	"\tUnderline\x12\x14\n" +
+	"\x05index\x18\x01 \x01(\rR\x05index\x12\x14\n" +
+	"\x05color\x18\x02 \x01(\rR\x05color\"\xee\a\n" +
 	"\x05Event\x12$\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x10.term.Event.TypeR\x04type\x12!\n" +
 	"\x03mod\x18\x02 \x01(\x0e2\x0f.term.Event.ModR\x03mod\x12!\n" +
@@ -1044,7 +1128,7 @@ func file_termrpc_term_proto_rawDescGZIP() []byte {
 }
 
 var file_termrpc_term_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_termrpc_term_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_termrpc_term_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_termrpc_term_proto_goTypes = []any{
 	(Event_Type)(0),               // 0: term.Event.Type
 	(Event_Mod)(0),                // 1: term.Event.Mod
@@ -1057,20 +1141,22 @@ var file_termrpc_term_proto_goTypes = []any{
 	(*Key)(nil),                   // 8: term.Key
 	(*Coordinates)(nil),           // 9: term.Coordinates
 	(*PackedCells_Combining)(nil), // 10: term.PackedCells.Combining
+	(*PackedCells_Underline)(nil), // 11: term.PackedCells.Underline
 }
 var file_termrpc_term_proto_depIdxs = []int32{
 	4,  // 0: term.CellRow.cells:type_name -> term.Cell
 	10, // 1: term.PackedCells.combining:type_name -> term.PackedCells.Combining
-	0,  // 2: term.Event.type:type_name -> term.Event.Type
-	1,  // 3: term.Event.mod:type_name -> term.Event.Mod
-	2,  // 4: term.Event.key:type_name -> term.Event.Key
-	1,  // 5: term.Key.mod:type_name -> term.Event.Mod
-	2,  // 6: term.Key.key:type_name -> term.Event.Key
-	7,  // [7:7] is the sub-list for method output_type
-	7,  // [7:7] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	11, // 2: term.PackedCells.underline:type_name -> term.PackedCells.Underline
+	0,  // 3: term.Event.type:type_name -> term.Event.Type
+	1,  // 4: term.Event.mod:type_name -> term.Event.Mod
+	2,  // 5: term.Event.key:type_name -> term.Event.Key
+	1,  // 6: term.Key.mod:type_name -> term.Event.Mod
+	2,  // 7: term.Key.key:type_name -> term.Event.Key
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_termrpc_term_proto_init() }
@@ -1084,7 +1170,7 @@ func file_termrpc_term_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_termrpc_term_proto_rawDesc), len(file_termrpc_term_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

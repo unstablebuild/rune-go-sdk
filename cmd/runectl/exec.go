@@ -91,7 +91,7 @@ func runInteractive(
 	resetPtySize := func() {
 		width, height, err := term.GetSize(int(os.Stdin.Fd()))
 		if err == nil {
-			err := terminal.SetPtySize(pty, width, height)
+			err := terminal.SetPtySize(pty, workspaceapi.PtySize{Columns: width, Rows: height})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "warning: could not propagate pty size: %v", err)
 			}

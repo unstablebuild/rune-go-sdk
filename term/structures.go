@@ -36,6 +36,9 @@ type Attributes struct {
 	Fg    Color
 	Bg    Color
 	Attrs AttrMask
+	// Underline colours an AttrUnderline stroke; when not valid the
+	// stroke takes Fg.
+	Underline Color
 }
 
 // Style returns attr as a term.Style. The values are layout-identical;
@@ -45,12 +48,24 @@ func (attr Attributes) Style() Style {
 	return Style(attr)
 }
 
+// CellExtra holds the parts of a Cell that are rarely present. A cell
+// keeps them behind one pointer so the common cell stays 24 bytes.
+// Cells are copied by value and share their CellExtra, so it must be
+// replaced rather than mutated; the Cell setters do that.
+type CellExtra struct {
+	// Combining holds the remaining grapheme-cluster codepoints that
+	// did not fit in Ch.
+	Combining []rune
+	// Underline colours the cell's underline; when not valid the
+	// underline takes Fg.
+	Underline Color
+}
+
 // Cell represents a location with content on a terminal screen.
 // 'Ch' is a unicode character, 'Fg' and 'Bg' are foreground and
 // background attributes respectively. Unicode grapheme clusters whose
 // codepoints do not fit in a single rune are stored across Ch and
-// Combining (Combining is a pointer so the common no-combining-marks
-// case costs 8 bytes instead of a 24-byte slice header).
+// Extra.Combining.
 //
 // The field order is chosen so the struct packs into exactly 24 bytes
 // with no padding: the pointer leads (8-aligned), the two-byte and
@@ -58,18 +73,17 @@ func (attr Attributes) Style() Style {
 // Attributes because the embedded struct's internal padding would grow
 // Cell to 32 bytes.
 type Cell struct {
-	// Combining holds the remaining grapheme-cluster codepoints that
-	// did not fit in Ch. nil when the cell has no combining marks
-	// (the common case).
-	Combining *[]rune
+	// Extra holds the combining marks and the underline colour. nil
+	// when the cell has neither (the common case).
+	Extra *CellExtra
 	// Fg is the foreground color.
 	Fg Color
 	// Bg is the background color.
 	Bg Color
 	// Ch is the main character held by this cell.
 	// If character cannot fit in the storage provided by the
-	// builtin 'rune', then Width() returns > 1 and Cell.Combining
-	// contains the rest of data.
+	// builtin 'rune', then Width() returns > 1 and CombiningRunes
+	// returns the rest of data.
 	Ch rune
 	// Attrs is the text-rendering attribute bitmask.
 	Attrs AttrMask
@@ -81,19 +95,23 @@ type Cell struct {
 
 // Attributes returns this cell's style as an Attributes value.
 func (c Cell) Attributes() Attributes {
-	return Attributes{Fg: c.Fg, Bg: c.Bg, Attrs: c.Attrs}
+	return Attributes{Fg: c.Fg, Bg: c.Bg, Attrs: c.Attrs, Underline: c.UnderlineColor()}
 }
 
 // NewCell returns a Cell holding ch with the given monospace width and
 // style attr.
 func NewCell(ch rune, width uint8, attr Attributes) Cell {
-	return Cell{
+	cell := Cell{
 		Ch:    ch,
 		Width: width,
 		Fg:    attr.Fg,
 		Bg:    attr.Bg,
 		Attrs: attr.Attrs,
 	}
+	if attr.Underline.Valid() {
+		cell.Extra = &CellExtra{Underline: attr.Underline}
+	}
+	return cell
 }
 
 // SetAttributes replaces this cell's style fields with attr.
@@ -101,31 +119,55 @@ func (c *Cell) SetAttributes(attr Attributes) {
 	c.Fg = attr.Fg
 	c.Bg = attr.Bg
 	c.Attrs = attr.Attrs
+	c.SetUnderlineColor(attr.Underline)
 }
 
 // Style returns this cell's style as a term.Style.
 func (c Cell) Style() Style {
-	return Style{Fg: c.Fg, Bg: c.Bg, Attrs: c.Attrs}
+	return Style{Fg: c.Fg, Bg: c.Bg, Attrs: c.Attrs, Underline: c.UnderlineColor()}
 }
 
 // CombiningRunes returns the combining-mark slice, or nil when the
 // cell has no combining marks. Callers must not mutate the returned
 // slice in place; allocate a new slice and assign via SetCombining.
 func (c Cell) CombiningRunes() []rune {
-	if c.Combining == nil {
+	if c.Extra == nil {
 		return nil
 	}
-	return *c.Combining
+	return c.Extra.Combining
 }
 
 // SetCombining replaces this cell's combining-mark slice. Pass nil to
 // drop combining marks.
 func (c *Cell) SetCombining(runes []rune) {
-	if runes == nil {
-		c.Combining = nil
+	c.setExtra(runes, c.UnderlineColor())
+}
+
+// UnderlineColor returns the cell's underline colour, ColorDefault
+// when the underline takes Fg.
+func (c Cell) UnderlineColor() Color {
+	if c.Extra == nil {
+		return ColorDefault
+	}
+	return c.Extra.Underline
+}
+
+// SetUnderlineColor replaces this cell's underline colour. Pass
+// ColorDefault to have the underline take Fg.
+func (c *Cell) SetUnderlineColor(color Color) {
+	c.setExtra(c.CombiningRunes(), color)
+}
+
+func (c *Cell) setExtra(runes []rune, underline Color) {
+	if runes == nil && !underline.Valid() {
+		c.Extra = nil
 		return
 	}
-	c.Combining = &runes
+	if c.Extra != nil && c.Extra.Underline == underline &&
+		len(c.Extra.Combining) == len(runes) && (len(runes) == 0 || &c.Extra.Combining[0] == &runes[0]) {
+		return
+	}
+	c.Extra = &CellExtra{Combining: runes, Underline: underline}
 }
 
 // Event represents a terminal event. The 'Mod', 'Key' and 'Ch' fields are
@@ -178,9 +220,10 @@ type Writer interface {
 	// that contain all the bit flags set in a, b or both, and uses the color
 	// defined in b or if not set, uses the color in a.
 	UnionAttributes(Coordinates, Attributes)
-	// DrawImage places img over its cell rectangle, above the cells
-	// written there, and reports whether this writer renders graphics
-	// at all; on false the caller should draw a cell-based fallback.
+	// DrawImage places img over its cell rectangle, composited with
+	// the cells written there as img.Layer selects, and reports whether
+	// this writer renders graphics at all; on false the caller should
+	// draw a cell-based fallback.
 	// Placements are discarded on the writer's next Clear, so an image
 	// is re-placed on every Draw like any other content. Fully clipped
 	// placements are dropped and still report true.

@@ -52,6 +52,9 @@ type Style struct {
 	Fg    Color
 	Bg    Color
 	Attrs AttrMask
+	// Underline colours an AttrUnderline stroke; when not valid the
+	// stroke takes Fg.
+	Underline Color
 }
 
 // StyleDefault is the zero-valued Style.

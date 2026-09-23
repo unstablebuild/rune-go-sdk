@@ -71,6 +71,8 @@ type packedWriter struct {
 	// is allocated on the first cell carrying combining marks, which is
 	// rare, so the common frame pays nothing for it.
 	combiningAt map[uint32]int
+	// underlineAt is combiningAt's counterpart for cells.Underline.
+	underlineAt map[uint32]int
 }
 
 // set records the combining marks of the cell at index i, overwriting any
@@ -96,6 +98,25 @@ func (p *packedWriter) setCombining(i uint32, runes []rune) {
 	}
 }
 
+// setUnderline records the underline colour of the cell at index i,
+// overwriting any previously recorded colour for that cell.
+func (p *packedWriter) setUnderline(i uint32, color term.Color) {
+	idx, ok := p.underlineAt[i]
+	if !ok {
+		if color == term.ColorDefault {
+			return
+		}
+		if p.underlineAt == nil {
+			p.underlineAt = make(map[uint32]int)
+		}
+		idx = len(p.cells.Underline)
+		p.underlineAt[i] = idx
+		p.cells.Underline = append(p.cells.Underline,
+			&termrpc.PackedCells_Underline{Index: i})
+	}
+	p.cells.Underline[idx].Color = uint32(color)
+}
+
 // SetCell satisfies term.Writer
 func (r drawResponseWriter) SetCell(pos term.Coordinates, c term.Cell) {
 	if pos.Y >= r.height || pos.X >= r.width || pos.X < 0 || pos.Y < 0 {
@@ -111,6 +132,7 @@ func (r drawResponseWriter) SetCell(pos term.Coordinates, c term.Cell) {
 		p.cells.Widths[i] = uint32(c.Width)
 		p.cells.Bytes[i] = uint32(c.Bytes)
 		p.setCombining(uint32(i), c.CombiningRunes())
+		p.setUnderline(uint32(i), c.UnderlineColor())
 		return
 	}
 
@@ -127,6 +149,7 @@ func (r drawResponseWriter) SetCell(pos term.Coordinates, c term.Cell) {
 	cell.Attrs = uint32(c.Attrs)
 	cell.Width = uint32(c.Width)
 	cell.Bytes = uint32(c.Bytes)
+	cell.Underline = uint32(c.UnderlineColor())
 	runes := c.CombiningRunes()
 	combining := make([]uint32, 0, len(runes))
 	for _, r := range runes {
@@ -144,14 +167,20 @@ func (r drawResponseWriter) UnionAttributes(pos term.Coordinates, attr term.Attr
 
 	if p := r.packed; p != nil {
 		i := pos.Y*r.width + pos.X
+		var underline term.Color
+		if idx, ok := p.underlineAt[uint32(i)]; ok {
+			underline = term.Color(p.cells.Underline[idx].Color)
+		}
 		uattr := term.AttributesUnion(term.Attributes{
-			Fg:    term.Color(p.cells.Fg[i]),
-			Bg:    term.Color(p.cells.Bg[i]),
-			Attrs: term.AttrMask(p.cells.Attrs[i]),
+			Fg:        term.Color(p.cells.Fg[i]),
+			Bg:        term.Color(p.cells.Bg[i]),
+			Attrs:     term.AttrMask(p.cells.Attrs[i]),
+			Underline: underline,
 		}, attr)
 		p.cells.Fg[i] = uint32(uattr.Fg)
 		p.cells.Bg[i] = uint32(uattr.Bg)
 		p.cells.Attrs[i] = uint32(uattr.Attrs)
+		p.setUnderline(uint32(i), uattr.Underline)
 		return
 	}
 
@@ -164,14 +193,16 @@ func (r drawResponseWriter) UnionAttributes(pos term.Coordinates, attr term.Attr
 	}
 
 	uattr := term.AttributesUnion(term.Attributes{
-		Fg:    term.Color(cell.Foreground),
-		Bg:    term.Color(cell.Background),
-		Attrs: term.AttrMask(cell.Attrs),
+		Fg:        term.Color(cell.Foreground),
+		Bg:        term.Color(cell.Background),
+		Attrs:     term.AttrMask(cell.Attrs),
+		Underline: term.Color(cell.Underline),
 	}, attr)
 
 	cell.Foreground = uint32(uattr.Fg)
 	cell.Background = uint32(uattr.Bg)
 	cell.Attrs = uint32(uattr.Attrs)
+	cell.Underline = uint32(uattr.Underline)
 
 	r.rows[pos.Y].Cells[pos.X] = cell
 }

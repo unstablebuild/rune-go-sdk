@@ -93,9 +93,18 @@ type Terminal interface {
 	// StartPty creates a new pseudoterminal.
 	StartPty() (Pty, error)
 
-	// SetPtySize sets the width and height in columns and rows of
-	// a pseudoterminal.
-	SetPtySize(p Pty, width, height int) error
+	// SetPtySize sets the size of a pseudoterminal.
+	SetPtySize(p Pty, size PtySize) error
+}
+
+// PtySize is the window size of a pseudoterminal. The pixel dimensions
+// are what programs read from TIOCGWINSZ to size graphics; a display
+// that cannot draw pixels leaves them zero.
+type PtySize struct {
+	// Columns and Rows are the size in cells.
+	Columns, Rows int
+	// PixelWidth and PixelHeight are the size in pixels.
+	PixelWidth, PixelHeight int
 }
 
 // Pty is a pseudoterminal on a Workspace.

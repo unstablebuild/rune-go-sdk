@@ -346,15 +346,17 @@ func (c *Cell) ToModel() term.Cell {
 		}
 		cell.SetCombining(combining)
 	}
+	cell.SetUnderlineColor(term.Color(c.Underline))
 	return cell
 }
 
 // ToModel maps this Attributes into the corresponding term.Attributes.
 func (a *Attributes) ToModel() term.Attributes {
 	return term.Attributes{
-		Bg:    term.Color(a.Background),
-		Fg:    term.Color(a.Foreground),
-		Attrs: term.AttrMask(a.Attrs),
+		Bg:        term.Color(a.Background),
+		Fg:        term.Color(a.Foreground),
+		Attrs:     term.AttrMask(a.Attrs),
+		Underline: term.Color(a.Underline),
 	}
 }
 
@@ -363,6 +365,7 @@ func (a *Attributes) FromModel(attr term.Attributes) {
 	a.Background = uint32(attr.Bg)
 	a.Foreground = uint32(attr.Fg)
 	a.Attrs = uint32(attr.Attrs)
+	a.Underline = uint32(attr.Underline)
 }
 
 // FromModel takes cc and maps it into this Cell.
@@ -373,6 +376,7 @@ func (c *Cell) FromModel(cc term.Cell) {
 	c.Character = uint32(cc.Ch)
 	c.Width = uint32(cc.Width)
 	c.Bytes = uint32(cc.Bytes)
+	c.Underline = uint32(cc.UnderlineColor())
 	if runes := cc.CombiningRunes(); len(runes) > 0 {
 		combining := make([]uint32, len(runes))
 		for i, r := range runes {
@@ -387,7 +391,8 @@ func (c *Cell) FromModel(cc term.Cell) {
 // WriteTo blits this packed frame into w, one SetCell per cell. It is the
 // decode counterpart of the packed draw writer: the planes are read
 // directly, so no per-cell message is allocated. Cells carrying combining
-// marks are written a second time, from the sparse combining entries.
+// marks or an underline colour are written a second time, from the
+// sparse entries.
 //
 // A frame whose planes are shorter than width*height is truncated to the
 // rows that are fully present, so a malformed peer cannot panic the host.
@@ -404,34 +409,42 @@ func (p *PackedCells) WriteTo(w term.Writer) {
 		len(p.Attrs), len(p.Widths), len(p.Bytes),
 	)
 	total = min(total, width*int(p.Height))
-	for i := range total {
-		w.SetCell(term.Coordinates{X: i % width, Y: i / width}, term.Cell{
+	cellAt := func(i int) term.Cell {
+		return term.Cell{
 			Ch:    rune(p.Chars[i]),
 			Fg:    term.Color(p.Fg[i]),
 			Bg:    term.Color(p.Bg[i]),
 			Attrs: term.AttrMask(p.Attrs[i]),
 			Width: uint8(p.Widths[i]),
 			Bytes: uint8(p.Bytes[i]),
-		})
+		}
+	}
+	for i := range total {
+		w.SetCell(term.Coordinates{X: i % width, Y: i / width}, cellAt(i))
+	}
+	underlines := make(map[int]term.Color, len(p.Underline))
+	for _, entry := range p.Underline {
+		if i := int(entry.GetIndex()); i < total {
+			underlines[i] = term.Color(entry.GetColor())
+		}
 	}
 	for _, entry := range p.Combining {
 		i := int(entry.GetIndex())
 		if i >= total || len(entry.GetRunes()) == 0 {
 			continue
 		}
-		cell := term.Cell{
-			Ch:    rune(p.Chars[i]),
-			Fg:    term.Color(p.Fg[i]),
-			Bg:    term.Color(p.Bg[i]),
-			Attrs: term.AttrMask(p.Attrs[i]),
-			Width: uint8(p.Widths[i]),
-			Bytes: uint8(p.Bytes[i]),
-		}
+		cell := cellAt(i)
 		combining := make([]rune, len(entry.Runes))
 		for j, r := range entry.Runes {
 			combining[j] = rune(r)
 		}
-		cell.SetCombining(combining)
+		cell.Extra = &term.CellExtra{Combining: combining, Underline: underlines[i]}
+		delete(underlines, i)
+		w.SetCell(term.Coordinates{X: i % width, Y: i / width}, cell)
+	}
+	for i, color := range underlines {
+		cell := cellAt(i)
+		cell.SetUnderlineColor(color)
 		w.SetCell(term.Coordinates{X: i % width, Y: i / width}, cell)
 	}
 }
