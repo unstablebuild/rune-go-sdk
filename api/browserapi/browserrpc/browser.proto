@@ -84,6 +84,14 @@ message FocusResponse {
 	uint64 window_id = 1;
 }
 
+message SetTabActivityRequest {
+	string resource_id = 1;
+	bool active = 2;
+}
+
+message SetTabActivityResponse {
+}
+
 message PublishRequest {
 	term.Event ev = 1;
 }
@@ -113,6 +121,7 @@ service WindowManager {
 	rpc Tab(stream TabMessage) returns (stream handler.ServerMessage);
 	rpc SetContent(stream WindowSetContentMessage) returns (stream handler.ServerMessage) {};
 	rpc CloseWindow(WindowCloseRequest) returns (WindowCloseResponse);
+	rpc SetTabActivity(SetTabActivityRequest) returns (SetTabActivityResponse);
 }
 
 message WindowCloseRequest {

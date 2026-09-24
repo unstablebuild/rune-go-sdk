@@ -310,6 +310,13 @@ func (c *Client) Focus() (browserapi.Window, error) {
 	return win, err
 }
 
+// SetTabActivity satisfies browser.WindowManager.
+func (c *Client) SetTabActivity(uri workspaceapi.URI, active bool) error {
+	req := SetTabActivityRequest{ResourceId: uri.String(), Active: active}
+	_, err := c.wm.SetTabActivity(c.clientCtx, &req)
+	return err
+}
+
 // Floating satisfies browser.WindowManager
 func (c *Client) Floating(
 	h browserapi.Floating, cfg browserapi.FloatingConfig,

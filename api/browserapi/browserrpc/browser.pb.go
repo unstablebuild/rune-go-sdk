@@ -795,6 +795,94 @@ func (x *FocusResponse) GetWindowId() uint64 {
 	return 0
 }
 
+type SetTabActivityRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ResourceId    string                 `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	Active        bool                   `protobuf:"varint,2,opt,name=active,proto3" json:"active,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetTabActivityRequest) Reset() {
+	*x = SetTabActivityRequest{}
+	mi := &file_browserrpc_browser_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetTabActivityRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetTabActivityRequest) ProtoMessage() {}
+
+func (x *SetTabActivityRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_browserrpc_browser_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetTabActivityRequest.ProtoReflect.Descriptor instead.
+func (*SetTabActivityRequest) Descriptor() ([]byte, []int) {
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *SetTabActivityRequest) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *SetTabActivityRequest) GetActive() bool {
+	if x != nil {
+		return x.Active
+	}
+	return false
+}
+
+type SetTabActivityResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetTabActivityResponse) Reset() {
+	*x = SetTabActivityResponse{}
+	mi := &file_browserrpc_browser_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetTabActivityResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetTabActivityResponse) ProtoMessage() {}
+
+func (x *SetTabActivityResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_browserrpc_browser_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetTabActivityResponse.ProtoReflect.Descriptor instead.
+func (*SetTabActivityResponse) Descriptor() ([]byte, []int) {
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{14}
+}
+
 type PublishRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ev            *termrpc.Event         `protobuf:"bytes,1,opt,name=ev,proto3" json:"ev,omitempty"`
@@ -804,7 +892,7 @@ type PublishRequest struct {
 
 func (x *PublishRequest) Reset() {
 	*x = PublishRequest{}
-	mi := &file_browserrpc_browser_proto_msgTypes[13]
+	mi := &file_browserrpc_browser_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -816,7 +904,7 @@ func (x *PublishRequest) String() string {
 func (*PublishRequest) ProtoMessage() {}
 
 func (x *PublishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[13]
+	mi := &file_browserrpc_browser_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -829,7 +917,7 @@ func (x *PublishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishRequest.ProtoReflect.Descriptor instead.
 func (*PublishRequest) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{13}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *PublishRequest) GetEv() *termrpc.Event {
@@ -847,7 +935,7 @@ type PublishResponse struct {
 
 func (x *PublishResponse) Reset() {
 	*x = PublishResponse{}
-	mi := &file_browserrpc_browser_proto_msgTypes[14]
+	mi := &file_browserrpc_browser_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +947,7 @@ func (x *PublishResponse) String() string {
 func (*PublishResponse) ProtoMessage() {}
 
 func (x *PublishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[14]
+	mi := &file_browserrpc_browser_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +960,7 @@ func (x *PublishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishResponse.ProtoReflect.Descriptor instead.
 func (*PublishResponse) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{14}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{16}
 }
 
 type WindowCloseRequest struct {
@@ -884,7 +972,7 @@ type WindowCloseRequest struct {
 
 func (x *WindowCloseRequest) Reset() {
 	*x = WindowCloseRequest{}
-	mi := &file_browserrpc_browser_proto_msgTypes[15]
+	mi := &file_browserrpc_browser_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +984,7 @@ func (x *WindowCloseRequest) String() string {
 func (*WindowCloseRequest) ProtoMessage() {}
 
 func (x *WindowCloseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[15]
+	mi := &file_browserrpc_browser_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -909,7 +997,7 @@ func (x *WindowCloseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WindowCloseRequest.ProtoReflect.Descriptor instead.
 func (*WindowCloseRequest) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{15}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *WindowCloseRequest) GetWindowId() uint64 {
@@ -927,7 +1015,7 @@ type WindowCloseResponse struct {
 
 func (x *WindowCloseResponse) Reset() {
 	*x = WindowCloseResponse{}
-	mi := &file_browserrpc_browser_proto_msgTypes[16]
+	mi := &file_browserrpc_browser_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -939,7 +1027,7 @@ func (x *WindowCloseResponse) String() string {
 func (*WindowCloseResponse) ProtoMessage() {}
 
 func (x *WindowCloseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[16]
+	mi := &file_browserrpc_browser_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -952,7 +1040,7 @@ func (x *WindowCloseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WindowCloseResponse.ProtoReflect.Descriptor instead.
 func (*WindowCloseResponse) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{16}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{18}
 }
 
 type WindowSetContentRequest struct {
@@ -965,7 +1053,7 @@ type WindowSetContentRequest struct {
 
 func (x *WindowSetContentRequest) Reset() {
 	*x = WindowSetContentRequest{}
-	mi := &file_browserrpc_browser_proto_msgTypes[17]
+	mi := &file_browserrpc_browser_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -977,7 +1065,7 @@ func (x *WindowSetContentRequest) String() string {
 func (*WindowSetContentRequest) ProtoMessage() {}
 
 func (x *WindowSetContentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[17]
+	mi := &file_browserrpc_browser_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -990,7 +1078,7 @@ func (x *WindowSetContentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WindowSetContentRequest.ProtoReflect.Descriptor instead.
 func (*WindowSetContentRequest) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{17}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *WindowSetContentRequest) GetWindowId() uint64 {
@@ -1015,7 +1103,7 @@ type DimensionsRequest struct {
 
 func (x *DimensionsRequest) Reset() {
 	*x = DimensionsRequest{}
-	mi := &file_browserrpc_browser_proto_msgTypes[18]
+	mi := &file_browserrpc_browser_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1027,7 +1115,7 @@ func (x *DimensionsRequest) String() string {
 func (*DimensionsRequest) ProtoMessage() {}
 
 func (x *DimensionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[18]
+	mi := &file_browserrpc_browser_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1040,7 +1128,7 @@ func (x *DimensionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DimensionsRequest.ProtoReflect.Descriptor instead.
 func (*DimensionsRequest) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{18}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{20}
 }
 
 type DimensionsResponse struct {
@@ -1053,7 +1141,7 @@ type DimensionsResponse struct {
 
 func (x *DimensionsResponse) Reset() {
 	*x = DimensionsResponse{}
-	mi := &file_browserrpc_browser_proto_msgTypes[19]
+	mi := &file_browserrpc_browser_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1065,7 +1153,7 @@ func (x *DimensionsResponse) String() string {
 func (*DimensionsResponse) ProtoMessage() {}
 
 func (x *DimensionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[19]
+	mi := &file_browserrpc_browser_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1078,7 +1166,7 @@ func (x *DimensionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DimensionsResponse.ProtoReflect.Descriptor instead.
 func (*DimensionsResponse) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{19}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DimensionsResponse) GetWidth() uint32 {
@@ -1111,7 +1199,7 @@ type FloatingWindowMessage struct {
 
 func (x *FloatingWindowMessage) Reset() {
 	*x = FloatingWindowMessage{}
-	mi := &file_browserrpc_browser_proto_msgTypes[20]
+	mi := &file_browserrpc_browser_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1123,7 +1211,7 @@ func (x *FloatingWindowMessage) String() string {
 func (*FloatingWindowMessage) ProtoMessage() {}
 
 func (x *FloatingWindowMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[20]
+	mi := &file_browserrpc_browser_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1136,7 +1224,7 @@ func (x *FloatingWindowMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FloatingWindowMessage.ProtoReflect.Descriptor instead.
 func (*FloatingWindowMessage) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{20}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *FloatingWindowMessage) GetType() handlerrpc.MessageType {
@@ -1211,7 +1299,7 @@ type SplitWindowMessage struct {
 
 func (x *SplitWindowMessage) Reset() {
 	*x = SplitWindowMessage{}
-	mi := &file_browserrpc_browser_proto_msgTypes[21]
+	mi := &file_browserrpc_browser_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1223,7 +1311,7 @@ func (x *SplitWindowMessage) String() string {
 func (*SplitWindowMessage) ProtoMessage() {}
 
 func (x *SplitWindowMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[21]
+	mi := &file_browserrpc_browser_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1236,7 +1324,7 @@ func (x *SplitWindowMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SplitWindowMessage.ProtoReflect.Descriptor instead.
 func (*SplitWindowMessage) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{21}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SplitWindowMessage) GetType() handlerrpc.MessageType {
@@ -1311,7 +1399,7 @@ type BarMessage struct {
 
 func (x *BarMessage) Reset() {
 	*x = BarMessage{}
-	mi := &file_browserrpc_browser_proto_msgTypes[22]
+	mi := &file_browserrpc_browser_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1323,7 +1411,7 @@ func (x *BarMessage) String() string {
 func (*BarMessage) ProtoMessage() {}
 
 func (x *BarMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[22]
+	mi := &file_browserrpc_browser_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1336,7 +1424,7 @@ func (x *BarMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BarMessage.ProtoReflect.Descriptor instead.
 func (*BarMessage) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{22}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *BarMessage) GetType() handlerrpc.MessageType {
@@ -1411,7 +1499,7 @@ type WindowSetContentMessage struct {
 
 func (x *WindowSetContentMessage) Reset() {
 	*x = WindowSetContentMessage{}
-	mi := &file_browserrpc_browser_proto_msgTypes[23]
+	mi := &file_browserrpc_browser_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1423,7 +1511,7 @@ func (x *WindowSetContentMessage) String() string {
 func (*WindowSetContentMessage) ProtoMessage() {}
 
 func (x *WindowSetContentMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[23]
+	mi := &file_browserrpc_browser_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1436,7 +1524,7 @@ func (x *WindowSetContentMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WindowSetContentMessage.ProtoReflect.Descriptor instead.
 func (*WindowSetContentMessage) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{23}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *WindowSetContentMessage) GetType() handlerrpc.MessageType {
@@ -1511,7 +1599,7 @@ type TabMessage struct {
 
 func (x *TabMessage) Reset() {
 	*x = TabMessage{}
-	mi := &file_browserrpc_browser_proto_msgTypes[24]
+	mi := &file_browserrpc_browser_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1523,7 +1611,7 @@ func (x *TabMessage) String() string {
 func (*TabMessage) ProtoMessage() {}
 
 func (x *TabMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_browserrpc_browser_proto_msgTypes[24]
+	mi := &file_browserrpc_browser_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1536,7 +1624,7 @@ func (x *TabMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TabMessage.ProtoReflect.Descriptor instead.
 func (*TabMessage) Descriptor() ([]byte, []int) {
-	return file_browserrpc_browser_proto_rawDescGZIP(), []int{24}
+	return file_browserrpc_browser_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *TabMessage) GetType() handlerrpc.MessageType {
@@ -1645,7 +1733,12 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"\rresource_icon\x18\x03 \x01(\tR\fresourceIcon\"\x0e\n" +
 	"\fFocusRequest\",\n" +
 	"\rFocusResponse\x12\x1b\n" +
-	"\twindow_id\x18\x01 \x01(\x04R\bwindowId\"-\n" +
+	"\twindow_id\x18\x01 \x01(\x04R\bwindowId\"P\n" +
+	"\x15SetTabActivityRequest\x12\x1f\n" +
+	"\vresource_id\x18\x01 \x01(\tR\n" +
+	"resourceId\x12\x16\n" +
+	"\x06active\x18\x02 \x01(\bR\x06active\"\x18\n" +
+	"\x16SetTabActivityResponse\"-\n" +
 	"\x0ePublishRequest\x12\x1b\n" +
 	"\x02ev\x18\x01 \x01(\v2\v.term.EventR\x02ev\"\x11\n" +
 	"\x0fPublishResponse\"1\n" +
@@ -1736,7 +1829,7 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"NotifyOnce\x12\x16.browser.NotifyRequest\x1a\x17.browser.NotifyResponse\x12u\n" +
 	"\x1aUpdateNotificationProgress\x12*.browser.UpdateNotificationProgressRequest\x1a+.browser.UpdateNotificationProgressResponse2N\n" +
 	"\x0eEventPublisher\x12<\n" +
-	"\aPublish\x12\x17.browser.PublishRequest\x1a\x18.browser.PublishResponse2\xdf\x03\n" +
+	"\aPublish\x12\x17.browser.PublishRequest\x1a\x18.browser.PublishResponse2\xb2\x04\n" +
 	"\rWindowManager\x126\n" +
 	"\x05Focus\x12\x15.browser.FocusRequest\x1a\x16.browser.FocusResponse\x12B\n" +
 	"\x05Split\x12\x1b.browser.SplitWindowMessage\x1a\x16.handler.ServerMessage\"\x00(\x010\x01\x128\n" +
@@ -1745,7 +1838,8 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"\x03Tab\x12\x13.browser.TabMessage\x1a\x16.handler.ServerMessage(\x010\x01\x12L\n" +
 	"\n" +
 	"SetContent\x12 .browser.WindowSetContentMessage\x1a\x16.handler.ServerMessage\"\x00(\x010\x01\x12H\n" +
-	"\vCloseWindow\x12\x1b.browser.WindowCloseRequest\x1a\x1c.browser.WindowCloseResponse2Q\n" +
+	"\vCloseWindow\x12\x1b.browser.WindowCloseRequest\x1a\x1c.browser.WindowCloseResponse\x12Q\n" +
+	"\x0eSetTabActivity\x12\x1e.browser.SetTabActivityRequest\x1a\x1f.browser.SetTabActivityResponse2Q\n" +
 	"\bFloating\x12E\n" +
 	"\n" +
 	"Dimensions\x12\x1a.browser.DimensionsRequest\x1a\x1b.browser.DimensionsResponseB@Z>github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpcb\x06proto3"
@@ -1763,7 +1857,7 @@ func file_browserrpc_browser_proto_rawDescGZIP() []byte {
 }
 
 var file_browserrpc_browser_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_browserrpc_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_browserrpc_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_browserrpc_browser_proto_goTypes = []any{
 	(Orientation)(0),                            // 0: browser.Orientation
 	(BarRequest_Frame)(0),                       // 1: browser.BarRequest.Frame
@@ -1780,105 +1874,109 @@ var file_browserrpc_browser_proto_goTypes = []any{
 	(*TabRequest)(nil),                          // 12: browser.TabRequest
 	(*FocusRequest)(nil),                        // 13: browser.FocusRequest
 	(*FocusResponse)(nil),                       // 14: browser.FocusResponse
-	(*PublishRequest)(nil),                      // 15: browser.PublishRequest
-	(*PublishResponse)(nil),                     // 16: browser.PublishResponse
-	(*WindowCloseRequest)(nil),                  // 17: browser.WindowCloseRequest
-	(*WindowCloseResponse)(nil),                 // 18: browser.WindowCloseResponse
-	(*WindowSetContentRequest)(nil),             // 19: browser.WindowSetContentRequest
-	(*DimensionsRequest)(nil),                   // 20: browser.DimensionsRequest
-	(*DimensionsResponse)(nil),                  // 21: browser.DimensionsResponse
-	(*FloatingWindowMessage)(nil),               // 22: browser.FloatingWindowMessage
-	(*SplitWindowMessage)(nil),                  // 23: browser.SplitWindowMessage
-	(*BarMessage)(nil),                          // 24: browser.BarMessage
-	(*WindowSetContentMessage)(nil),             // 25: browser.WindowSetContentMessage
-	(*TabMessage)(nil),                          // 26: browser.TabMessage
-	(*termrpc.Event)(nil),                       // 27: term.Event
-	(*termrpc.Coordinates)(nil),                 // 28: term.Coordinates
-	(handlerrpc.MessageType)(0),                 // 29: handler.MessageType
-	(*handlerrpc.DrawStreamResponse)(nil),       // 30: handler.DrawStreamResponse
-	(*handlerrpc.HandleStreamResponse)(nil),     // 31: handler.HandleStreamResponse
-	(*handlerrpc.CloseStreamResponse)(nil),      // 32: handler.CloseStreamResponse
-	(*handlerrpc.CursorStreamResponse)(nil),     // 33: handler.CursorStreamResponse
-	(*handlerrpc.SelectionStreamResponse)(nil),  // 34: handler.SelectionStreamResponse
-	(*handlerrpc.DimensionsStreamResponse)(nil), // 35: handler.DimensionsStreamResponse
-	(*handlerrpc.ServerMessage)(nil),            // 36: handler.ServerMessage
+	(*SetTabActivityRequest)(nil),               // 15: browser.SetTabActivityRequest
+	(*SetTabActivityResponse)(nil),              // 16: browser.SetTabActivityResponse
+	(*PublishRequest)(nil),                      // 17: browser.PublishRequest
+	(*PublishResponse)(nil),                     // 18: browser.PublishResponse
+	(*WindowCloseRequest)(nil),                  // 19: browser.WindowCloseRequest
+	(*WindowCloseResponse)(nil),                 // 20: browser.WindowCloseResponse
+	(*WindowSetContentRequest)(nil),             // 21: browser.WindowSetContentRequest
+	(*DimensionsRequest)(nil),                   // 22: browser.DimensionsRequest
+	(*DimensionsResponse)(nil),                  // 23: browser.DimensionsResponse
+	(*FloatingWindowMessage)(nil),               // 24: browser.FloatingWindowMessage
+	(*SplitWindowMessage)(nil),                  // 25: browser.SplitWindowMessage
+	(*BarMessage)(nil),                          // 26: browser.BarMessage
+	(*WindowSetContentMessage)(nil),             // 27: browser.WindowSetContentMessage
+	(*TabMessage)(nil),                          // 28: browser.TabMessage
+	(*termrpc.Event)(nil),                       // 29: term.Event
+	(*termrpc.Coordinates)(nil),                 // 30: term.Coordinates
+	(handlerrpc.MessageType)(0),                 // 31: handler.MessageType
+	(*handlerrpc.DrawStreamResponse)(nil),       // 32: handler.DrawStreamResponse
+	(*handlerrpc.HandleStreamResponse)(nil),     // 33: handler.HandleStreamResponse
+	(*handlerrpc.CloseStreamResponse)(nil),      // 34: handler.CloseStreamResponse
+	(*handlerrpc.CursorStreamResponse)(nil),     // 35: handler.CursorStreamResponse
+	(*handlerrpc.SelectionStreamResponse)(nil),  // 36: handler.SelectionStreamResponse
+	(*handlerrpc.DimensionsStreamResponse)(nil), // 37: handler.DimensionsStreamResponse
+	(*handlerrpc.ServerMessage)(nil),            // 38: handler.ServerMessage
 }
 var file_browserrpc_browser_proto_depIdxs = []int32{
-	27, // 0: browser.Mapping.from:type_name -> term.Event
-	27, // 1: browser.Mapping.to:type_name -> term.Event
+	29, // 0: browser.Mapping.from:type_name -> term.Event
+	29, // 1: browser.Mapping.to:type_name -> term.Event
 	0,  // 2: browser.SplitRequest.orientation:type_name -> browser.Orientation
 	0,  // 3: browser.BarRequest.orientation:type_name -> browser.Orientation
 	1,  // 4: browser.BarRequest.frame:type_name -> browser.BarRequest.Frame
-	28, // 5: browser.FloatingWindowRequest.offset:type_name -> term.Coordinates
-	27, // 6: browser.PublishRequest.ev:type_name -> term.Event
-	29, // 7: browser.FloatingWindowMessage.type:type_name -> handler.MessageType
-	30, // 8: browser.FloatingWindowMessage.draw:type_name -> handler.DrawStreamResponse
-	31, // 9: browser.FloatingWindowMessage.handle:type_name -> handler.HandleStreamResponse
-	32, // 10: browser.FloatingWindowMessage.close:type_name -> handler.CloseStreamResponse
-	33, // 11: browser.FloatingWindowMessage.cursor:type_name -> handler.CursorStreamResponse
-	34, // 12: browser.FloatingWindowMessage.selection:type_name -> handler.SelectionStreamResponse
-	35, // 13: browser.FloatingWindowMessage.dimensions:type_name -> handler.DimensionsStreamResponse
+	30, // 5: browser.FloatingWindowRequest.offset:type_name -> term.Coordinates
+	29, // 6: browser.PublishRequest.ev:type_name -> term.Event
+	31, // 7: browser.FloatingWindowMessage.type:type_name -> handler.MessageType
+	32, // 8: browser.FloatingWindowMessage.draw:type_name -> handler.DrawStreamResponse
+	33, // 9: browser.FloatingWindowMessage.handle:type_name -> handler.HandleStreamResponse
+	34, // 10: browser.FloatingWindowMessage.close:type_name -> handler.CloseStreamResponse
+	35, // 11: browser.FloatingWindowMessage.cursor:type_name -> handler.CursorStreamResponse
+	36, // 12: browser.FloatingWindowMessage.selection:type_name -> handler.SelectionStreamResponse
+	37, // 13: browser.FloatingWindowMessage.dimensions:type_name -> handler.DimensionsStreamResponse
 	11, // 14: browser.FloatingWindowMessage.request:type_name -> browser.FloatingWindowRequest
-	29, // 15: browser.SplitWindowMessage.type:type_name -> handler.MessageType
-	30, // 16: browser.SplitWindowMessage.draw:type_name -> handler.DrawStreamResponse
-	31, // 17: browser.SplitWindowMessage.handle:type_name -> handler.HandleStreamResponse
-	32, // 18: browser.SplitWindowMessage.close:type_name -> handler.CloseStreamResponse
-	33, // 19: browser.SplitWindowMessage.cursor:type_name -> handler.CursorStreamResponse
-	34, // 20: browser.SplitWindowMessage.selection:type_name -> handler.SelectionStreamResponse
-	35, // 21: browser.SplitWindowMessage.dimensions:type_name -> handler.DimensionsStreamResponse
+	31, // 15: browser.SplitWindowMessage.type:type_name -> handler.MessageType
+	32, // 16: browser.SplitWindowMessage.draw:type_name -> handler.DrawStreamResponse
+	33, // 17: browser.SplitWindowMessage.handle:type_name -> handler.HandleStreamResponse
+	34, // 18: browser.SplitWindowMessage.close:type_name -> handler.CloseStreamResponse
+	35, // 19: browser.SplitWindowMessage.cursor:type_name -> handler.CursorStreamResponse
+	36, // 20: browser.SplitWindowMessage.selection:type_name -> handler.SelectionStreamResponse
+	37, // 21: browser.SplitWindowMessage.dimensions:type_name -> handler.DimensionsStreamResponse
 	9,  // 22: browser.SplitWindowMessage.request:type_name -> browser.SplitRequest
-	29, // 23: browser.BarMessage.type:type_name -> handler.MessageType
-	30, // 24: browser.BarMessage.draw:type_name -> handler.DrawStreamResponse
-	31, // 25: browser.BarMessage.handle:type_name -> handler.HandleStreamResponse
-	32, // 26: browser.BarMessage.close:type_name -> handler.CloseStreamResponse
-	33, // 27: browser.BarMessage.cursor:type_name -> handler.CursorStreamResponse
-	34, // 28: browser.BarMessage.selection:type_name -> handler.SelectionStreamResponse
-	35, // 29: browser.BarMessage.dimensions:type_name -> handler.DimensionsStreamResponse
+	31, // 23: browser.BarMessage.type:type_name -> handler.MessageType
+	32, // 24: browser.BarMessage.draw:type_name -> handler.DrawStreamResponse
+	33, // 25: browser.BarMessage.handle:type_name -> handler.HandleStreamResponse
+	34, // 26: browser.BarMessage.close:type_name -> handler.CloseStreamResponse
+	35, // 27: browser.BarMessage.cursor:type_name -> handler.CursorStreamResponse
+	36, // 28: browser.BarMessage.selection:type_name -> handler.SelectionStreamResponse
+	37, // 29: browser.BarMessage.dimensions:type_name -> handler.DimensionsStreamResponse
 	10, // 30: browser.BarMessage.request:type_name -> browser.BarRequest
-	29, // 31: browser.WindowSetContentMessage.type:type_name -> handler.MessageType
-	30, // 32: browser.WindowSetContentMessage.draw:type_name -> handler.DrawStreamResponse
-	31, // 33: browser.WindowSetContentMessage.handle:type_name -> handler.HandleStreamResponse
-	32, // 34: browser.WindowSetContentMessage.close:type_name -> handler.CloseStreamResponse
-	33, // 35: browser.WindowSetContentMessage.cursor:type_name -> handler.CursorStreamResponse
-	34, // 36: browser.WindowSetContentMessage.selection:type_name -> handler.SelectionStreamResponse
-	35, // 37: browser.WindowSetContentMessage.dimensions:type_name -> handler.DimensionsStreamResponse
-	19, // 38: browser.WindowSetContentMessage.request:type_name -> browser.WindowSetContentRequest
-	29, // 39: browser.TabMessage.type:type_name -> handler.MessageType
-	30, // 40: browser.TabMessage.draw:type_name -> handler.DrawStreamResponse
-	31, // 41: browser.TabMessage.handle:type_name -> handler.HandleStreamResponse
-	32, // 42: browser.TabMessage.close:type_name -> handler.CloseStreamResponse
-	33, // 43: browser.TabMessage.cursor:type_name -> handler.CursorStreamResponse
-	34, // 44: browser.TabMessage.selection:type_name -> handler.SelectionStreamResponse
-	35, // 45: browser.TabMessage.dimensions:type_name -> handler.DimensionsStreamResponse
+	31, // 31: browser.WindowSetContentMessage.type:type_name -> handler.MessageType
+	32, // 32: browser.WindowSetContentMessage.draw:type_name -> handler.DrawStreamResponse
+	33, // 33: browser.WindowSetContentMessage.handle:type_name -> handler.HandleStreamResponse
+	34, // 34: browser.WindowSetContentMessage.close:type_name -> handler.CloseStreamResponse
+	35, // 35: browser.WindowSetContentMessage.cursor:type_name -> handler.CursorStreamResponse
+	36, // 36: browser.WindowSetContentMessage.selection:type_name -> handler.SelectionStreamResponse
+	37, // 37: browser.WindowSetContentMessage.dimensions:type_name -> handler.DimensionsStreamResponse
+	21, // 38: browser.WindowSetContentMessage.request:type_name -> browser.WindowSetContentRequest
+	31, // 39: browser.TabMessage.type:type_name -> handler.MessageType
+	32, // 40: browser.TabMessage.draw:type_name -> handler.DrawStreamResponse
+	33, // 41: browser.TabMessage.handle:type_name -> handler.HandleStreamResponse
+	34, // 42: browser.TabMessage.close:type_name -> handler.CloseStreamResponse
+	35, // 43: browser.TabMessage.cursor:type_name -> handler.CursorStreamResponse
+	36, // 44: browser.TabMessage.selection:type_name -> handler.SelectionStreamResponse
+	37, // 45: browser.TabMessage.dimensions:type_name -> handler.DimensionsStreamResponse
 	12, // 46: browser.TabMessage.request:type_name -> browser.TabRequest
 	2,  // 47: browser.ResourceOpener.Open:input_type -> browser.OpenResourceRequest
 	4,  // 48: browser.Notifications.Notify:input_type -> browser.NotifyRequest
 	4,  // 49: browser.Notifications.NotifyOnce:input_type -> browser.NotifyRequest
 	6,  // 50: browser.Notifications.UpdateNotificationProgress:input_type -> browser.UpdateNotificationProgressRequest
-	15, // 51: browser.EventPublisher.Publish:input_type -> browser.PublishRequest
+	17, // 51: browser.EventPublisher.Publish:input_type -> browser.PublishRequest
 	13, // 52: browser.WindowManager.Focus:input_type -> browser.FocusRequest
-	23, // 53: browser.WindowManager.Split:input_type -> browser.SplitWindowMessage
-	24, // 54: browser.WindowManager.Bar:input_type -> browser.BarMessage
-	22, // 55: browser.WindowManager.Floating:input_type -> browser.FloatingWindowMessage
-	26, // 56: browser.WindowManager.Tab:input_type -> browser.TabMessage
-	25, // 57: browser.WindowManager.SetContent:input_type -> browser.WindowSetContentMessage
-	17, // 58: browser.WindowManager.CloseWindow:input_type -> browser.WindowCloseRequest
-	20, // 59: browser.Floating.Dimensions:input_type -> browser.DimensionsRequest
-	3,  // 60: browser.ResourceOpener.Open:output_type -> browser.OpenResourceResponse
-	5,  // 61: browser.Notifications.Notify:output_type -> browser.NotifyResponse
-	5,  // 62: browser.Notifications.NotifyOnce:output_type -> browser.NotifyResponse
-	7,  // 63: browser.Notifications.UpdateNotificationProgress:output_type -> browser.UpdateNotificationProgressResponse
-	16, // 64: browser.EventPublisher.Publish:output_type -> browser.PublishResponse
-	14, // 65: browser.WindowManager.Focus:output_type -> browser.FocusResponse
-	36, // 66: browser.WindowManager.Split:output_type -> handler.ServerMessage
-	36, // 67: browser.WindowManager.Bar:output_type -> handler.ServerMessage
-	36, // 68: browser.WindowManager.Floating:output_type -> handler.ServerMessage
-	36, // 69: browser.WindowManager.Tab:output_type -> handler.ServerMessage
-	36, // 70: browser.WindowManager.SetContent:output_type -> handler.ServerMessage
-	18, // 71: browser.WindowManager.CloseWindow:output_type -> browser.WindowCloseResponse
-	21, // 72: browser.Floating.Dimensions:output_type -> browser.DimensionsResponse
-	60, // [60:73] is the sub-list for method output_type
-	47, // [47:60] is the sub-list for method input_type
+	25, // 53: browser.WindowManager.Split:input_type -> browser.SplitWindowMessage
+	26, // 54: browser.WindowManager.Bar:input_type -> browser.BarMessage
+	24, // 55: browser.WindowManager.Floating:input_type -> browser.FloatingWindowMessage
+	28, // 56: browser.WindowManager.Tab:input_type -> browser.TabMessage
+	27, // 57: browser.WindowManager.SetContent:input_type -> browser.WindowSetContentMessage
+	19, // 58: browser.WindowManager.CloseWindow:input_type -> browser.WindowCloseRequest
+	15, // 59: browser.WindowManager.SetTabActivity:input_type -> browser.SetTabActivityRequest
+	22, // 60: browser.Floating.Dimensions:input_type -> browser.DimensionsRequest
+	3,  // 61: browser.ResourceOpener.Open:output_type -> browser.OpenResourceResponse
+	5,  // 62: browser.Notifications.Notify:output_type -> browser.NotifyResponse
+	5,  // 63: browser.Notifications.NotifyOnce:output_type -> browser.NotifyResponse
+	7,  // 64: browser.Notifications.UpdateNotificationProgress:output_type -> browser.UpdateNotificationProgressResponse
+	18, // 65: browser.EventPublisher.Publish:output_type -> browser.PublishResponse
+	14, // 66: browser.WindowManager.Focus:output_type -> browser.FocusResponse
+	38, // 67: browser.WindowManager.Split:output_type -> handler.ServerMessage
+	38, // 68: browser.WindowManager.Bar:output_type -> handler.ServerMessage
+	38, // 69: browser.WindowManager.Floating:output_type -> handler.ServerMessage
+	38, // 70: browser.WindowManager.Tab:output_type -> handler.ServerMessage
+	38, // 71: browser.WindowManager.SetContent:output_type -> handler.ServerMessage
+	20, // 72: browser.WindowManager.CloseWindow:output_type -> browser.WindowCloseResponse
+	16, // 73: browser.WindowManager.SetTabActivity:output_type -> browser.SetTabActivityResponse
+	23, // 74: browser.Floating.Dimensions:output_type -> browser.DimensionsResponse
+	61, // [61:75] is the sub-list for method output_type
+	47, // [47:61] is the sub-list for method input_type
 	47, // [47:47] is the sub-list for extension type_name
 	47, // [47:47] is the sub-list for extension extendee
 	0,  // [0:47] is the sub-list for field type_name
@@ -1895,7 +1993,7 @@ func file_browserrpc_browser_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_browserrpc_browser_proto_rawDesc), len(file_browserrpc_browser_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   25,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

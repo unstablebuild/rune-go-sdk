@@ -446,6 +446,8 @@ func (m *fakeWM) SetWindowContent(w browserapi.Window, h browserapi.Handler) err
 }
 func (m *fakeWM) CloseWindow(browserapi.Window) error { return nil }
 
+func (m *fakeWM) SetTabActivity(workspaceapi.URI, bool) error { return nil }
+
 type notification struct {
 	level browserapi.NotificationLevel
 	msg   string

@@ -113,6 +113,12 @@ type WindowManager interface {
 
 	// Close closes the given window.
 	CloseWindow(Window) error
+
+	// SetTabActivity marks the tab identified by uri as having work in
+	// progress or as idle. The host decides how activity is rendered on
+	// the tab and on the workspace that owns it. The mark is dropped when
+	// the tab closes. This method is idempotent.
+	SetTabActivity(uri workspaceapi.URI, active bool) error
 }
 
 // FloatingConfig abstracts configuration for
