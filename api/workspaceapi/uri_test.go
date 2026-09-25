@@ -210,19 +210,30 @@ func TestExpandPath(t *testing.T) {
 			"/~", "/home/testuser",
 		},
 		{
-			"env var $VAR expanded",
-			"$TEST_EXPAND_DIR/file",
-			"/expanded/file",
+			"tilde inside a name is literal",
+			"a/~/b", "/cwd/a/~/b",
 		},
 		{
-			"env var ${VAR} expanded",
+			"set env var is literal",
+			"/a/$TEST_EXPAND_DIR/file",
+			"/a/$TEST_EXPAND_DIR/file",
+		},
+		{
+			"braced env var is literal",
 			"${TEST_EXPAND_DIR}/file",
-			"/expanded/file",
+			"/cwd/${TEST_EXPAND_DIR}/file",
 		},
 		{
-			"unset env var removed",
-			"$UNSET_VAR_12345/file",
-			"/file",
+			// Expanding the unset variable to "" would resolve the
+			// directory to its parent.
+			"unset env var is literal",
+			"a/$UNSET_VAR_12345/file",
+			"/cwd/a/$UNSET_VAR_12345/file",
+		},
+		{
+			"env var under home is literal",
+			"~/$TEST_EXPAND_DIR",
+			"/home/testuser/$TEST_EXPAND_DIR",
 		},
 		{
 			"no expansion needed",

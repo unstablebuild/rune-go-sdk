@@ -153,12 +153,15 @@ func ExpandPathWithURI(
 // ExpandPath finds the absolute path of a relative path and
 // expands the home shortcut (~) if any. If path is already
 // absolute then this function returns the path unchanged.
+//
+// Only a leading "~" or "/~" component is expanded; every other
+// character, including "$", is literal because file names may contain
+// it. Callers resolving a path from configuration that may reference
+// environment variables must expand them first, e.g. with os.ExpandEnv.
 func ExpandPath(
 	path string, getUser func() (*user.User, error),
 	cwdFn func() (string, error),
 ) (string, error) {
-	// best effort expand with env vars
-	path = os.ExpandEnv(path)
 	if path == "~" || path == "/~" {
 		usr, err := getUser()
 		if err != nil {
