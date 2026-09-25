@@ -19,19 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Editor_Edit_FullMethodName                 = "/text.Editor/Edit"
-	Editor_SetCursor_FullMethodName            = "/text.Editor/SetCursor"
-	Editor_Cursor_FullMethodName               = "/text.Editor/Cursor"
-	Editor_Editor_FullMethodName               = "/text.Editor/Editor"
-	Editor_SetLocationList_FullMethodName      = "/text.Editor/SetLocationList"
-	Editor_MoveToNextLocation_FullMethodName   = "/text.Editor/MoveToNextLocation"
-	Editor_MoveToPrevLocation_FullMethodName   = "/text.Editor/MoveToPrevLocation"
-	Editor_EditCell_FullMethodName             = "/text.Editor/EditCell"
-	Editor_RawCells_FullMethodName             = "/text.Editor/RawCells"
-	Editor_SetDefaultAttributes_FullMethodName = "/text.Editor/SetDefaultAttributes"
-	Editor_SubscribeEvent_FullMethodName       = "/text.Editor/SubscribeEvent"
-	Editor_SubscribeCommand_FullMethodName     = "/text.Editor/SubscribeCommand"
-	Editor_SubscribeREPLCommand_FullMethodName = "/text.Editor/SubscribeREPLCommand"
+	Editor_Edit_FullMethodName                    = "/text.Editor/Edit"
+	Editor_SetCursor_FullMethodName               = "/text.Editor/SetCursor"
+	Editor_Cursor_FullMethodName                  = "/text.Editor/Cursor"
+	Editor_Editor_FullMethodName                  = "/text.Editor/Editor"
+	Editor_SetLocationList_FullMethodName         = "/text.Editor/SetLocationList"
+	Editor_MoveToNextLocation_FullMethodName      = "/text.Editor/MoveToNextLocation"
+	Editor_MoveToPrevLocation_FullMethodName      = "/text.Editor/MoveToPrevLocation"
+	Editor_EditCell_FullMethodName                = "/text.Editor/EditCell"
+	Editor_RawCells_FullMethodName                = "/text.Editor/RawCells"
+	Editor_SetDefaultAttributes_FullMethodName    = "/text.Editor/SetDefaultAttributes"
+	Editor_SubscribeEvent_FullMethodName          = "/text.Editor/SubscribeEvent"
+	Editor_SubscribeCommand_FullMethodName        = "/text.Editor/SubscribeCommand"
+	Editor_SubscribeREPLCommand_FullMethodName    = "/text.Editor/SubscribeREPLCommand"
+	Editor_SubscribeResourceOpener_FullMethodName = "/text.Editor/SubscribeResourceOpener"
 )
 
 // EditorClient is the client API for Editor service.
@@ -55,6 +56,7 @@ type EditorClient interface {
 	SubscribeEvent(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SubscribeEventRequest, EditorEvent], error)
 	SubscribeCommand(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ClientCommandMessage, ServerCommandMessage], error)
 	SubscribeREPLCommand(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ClientREPLCommandMessage, ServerREPLCommandMessage], error)
+	SubscribeResourceOpener(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ClientResourceOpenerMessage, ServerResourceOpenerMessage], error)
 }
 
 type editorClient struct {
@@ -204,6 +206,19 @@ func (c *editorClient) SubscribeREPLCommand(ctx context.Context, opts ...grpc.Ca
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Editor_SubscribeREPLCommandClient = grpc.BidiStreamingClient[ClientREPLCommandMessage, ServerREPLCommandMessage]
 
+func (c *editorClient) SubscribeResourceOpener(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ClientResourceOpenerMessage, ServerResourceOpenerMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Editor_ServiceDesc.Streams[3], Editor_SubscribeResourceOpener_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ClientResourceOpenerMessage, ServerResourceOpenerMessage]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Editor_SubscribeResourceOpenerClient = grpc.BidiStreamingClient[ClientResourceOpenerMessage, ServerResourceOpenerMessage]
+
 // EditorServer is the server API for Editor service.
 // All implementations must embed UnimplementedEditorServer
 // for forward compatibility.
@@ -225,6 +240,7 @@ type EditorServer interface {
 	SubscribeEvent(grpc.BidiStreamingServer[SubscribeEventRequest, EditorEvent]) error
 	SubscribeCommand(grpc.BidiStreamingServer[ClientCommandMessage, ServerCommandMessage]) error
 	SubscribeREPLCommand(grpc.BidiStreamingServer[ClientREPLCommandMessage, ServerREPLCommandMessage]) error
+	SubscribeResourceOpener(grpc.BidiStreamingServer[ClientResourceOpenerMessage, ServerResourceOpenerMessage]) error
 	mustEmbedUnimplementedEditorServer()
 }
 
@@ -273,6 +289,9 @@ func (UnimplementedEditorServer) SubscribeCommand(grpc.BidiStreamingServer[Clien
 }
 func (UnimplementedEditorServer) SubscribeREPLCommand(grpc.BidiStreamingServer[ClientREPLCommandMessage, ServerREPLCommandMessage]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeREPLCommand not implemented")
+}
+func (UnimplementedEditorServer) SubscribeResourceOpener(grpc.BidiStreamingServer[ClientResourceOpenerMessage, ServerResourceOpenerMessage]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeResourceOpener not implemented")
 }
 func (UnimplementedEditorServer) mustEmbedUnimplementedEditorServer() {}
 func (UnimplementedEditorServer) testEmbeddedByValue()                {}
@@ -496,6 +515,13 @@ func _Editor_SubscribeREPLCommand_Handler(srv interface{}, stream grpc.ServerStr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Editor_SubscribeREPLCommandServer = grpc.BidiStreamingServer[ClientREPLCommandMessage, ServerREPLCommandMessage]
 
+func _Editor_SubscribeResourceOpener_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(EditorServer).SubscribeResourceOpener(&grpc.GenericServerStream[ClientResourceOpenerMessage, ServerResourceOpenerMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Editor_SubscribeResourceOpenerServer = grpc.BidiStreamingServer[ClientResourceOpenerMessage, ServerResourceOpenerMessage]
+
 // Editor_ServiceDesc is the grpc.ServiceDesc for Editor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -560,6 +586,12 @@ var Editor_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeREPLCommand",
 			Handler:       _Editor_SubscribeREPLCommand_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "SubscribeResourceOpener",
+			Handler:       _Editor_SubscribeResourceOpener_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

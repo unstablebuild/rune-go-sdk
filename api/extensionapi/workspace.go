@@ -218,6 +218,20 @@ func (w *Workspace) RegisterREPLCommand(
 	return w.editorClient().RegisterREPLCommand(cmd, h)
 }
 
+// RegisterResourceOpener registers h as the opener of the resources
+// whose URI has the given scheme, typically the scheme of the tabs
+// this extension creates. The editor calls it to reopen such a tab
+// in a given window, e.g. when restoring a workspace session. It is
+// not a command and never appears in the command prompt. A later
+// registration for the same scheme replaces the earlier one. Editors
+// that predate resource openers fail with a codes.Unimplemented
+// status.
+func (w *Workspace) RegisterResourceOpener(
+	scheme string, h textapi.ResourceOpenHandler,
+) error {
+	return w.editorClient().RegisterResourceOpener(scheme, h)
+}
+
 // Parser returns the workspace's syntax parser, which can be used
 // to perform AST-level searches and parsing across workspace files.
 func (w *Workspace) Parser(ctx context.Context) syntaxapi.Parser {

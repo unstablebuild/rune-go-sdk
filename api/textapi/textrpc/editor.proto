@@ -154,6 +154,7 @@ service Editor {
 	rpc SubscribeEvent(stream SubscribeEventRequest) returns (stream EditorEvent);
 	rpc SubscribeCommand(stream ClientCommandMessage) returns (stream ServerCommandMessage);
 	rpc SubscribeREPLCommand(stream ClientREPLCommandMessage) returns (stream ServerREPLCommandMessage);
+	rpc SubscribeResourceOpener(stream ClientResourceOpenerMessage) returns (stream ServerResourceOpenerMessage);
 }
 
 message SubscribeCommandRequest {
@@ -345,4 +346,45 @@ message HelpCommandValue {
 message HelpCommandDone {
 	string error = 1;
 	int64 id = 2;
+}
+
+// Resource opener streaming
+
+message SubscribeResourceOpenerRequest {
+	string scheme = 1;
+}
+
+message SubscribeResourceOpenerResponse {}
+
+message OpenResourceRequest {
+	int64 id = 1;
+	URI uri = 2;
+	uint64 window_id = 3;
+}
+
+message OpenResourceResponse {
+	int64 id = 1;
+	string error = 2;
+}
+
+message ClientResourceOpenerMessage {
+	enum MessageType {
+		Request = 0;
+		Open = 1;
+	}
+	MessageType type = 1;
+	SubscribeResourceOpenerRequest request = 2;
+	OpenResourceResponse open = 3;
+}
+
+message ServerResourceOpenerMessage {
+	enum MessageType {
+		Response = 0;
+		Open = 1;
+		OpenCancel = 2;
+	}
+	MessageType type = 1;
+	SubscribeResourceOpenerResponse response = 2;
+	OpenResourceRequest open = 3;
+	RequestCancel open_cancel = 4;
 }

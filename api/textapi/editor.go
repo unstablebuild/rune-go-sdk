@@ -78,6 +78,11 @@ type CommandRegistry interface {
 	// review, such as a debugger, a log viewer, or a status
 	// dashboard.
 	RegisterREPLCommand(CommandManual, REPLHandler) error
+
+	// RegisterResourceOpener registers h as the opener of the
+	// resources whose URI has the given scheme. The editor calls
+	// it to reopen such a resource in a given window.
+	RegisterResourceOpener(scheme string, h ResourceOpenHandler) error
 }
 
 // Editor is the interface that wraps an API to manage a text editor.
@@ -122,4 +127,15 @@ type Editor interface {
 	// SetDefaultAttributes sets the default attributes of the given Handler
 	// before any LocationList overwrites.
 	SetDefaultAttributes(Handler, term.Attributes) error
+}
+
+// ResourceOpenHandler opens the resources of a URI scheme an extension owns,
+// typically the scheme of the tabs it creates with browserapi.WindowManager.Tab.
+//
+// OpenResource must install the content of uri into win, for example with
+// browserapi.WindowManager.SetWindowContent, before it returns; win is never
+// nil. ctx is cancelled when the editor stops waiting for the resource, and
+// a returned error is shown to the user. Calls for different URIs may overlap.
+type ResourceOpenHandler interface {
+	OpenResource(ctx context.Context, uri workspaceapi.URI, win browserapi.Window) error
 }
