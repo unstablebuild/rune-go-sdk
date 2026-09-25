@@ -1,0 +1,57 @@
+// Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package textrpc
+
+import handlerrpc "github.com/unstablebuild/rune-go-sdk/handler/handlerrpc"
+
+/* boilerplate so we can re-use handlerrpc stream implementation */
+
+var _ handlerrpc.StreamMessage = (*OpenResourceMessage)(nil)
+
+// SetDraw satisfies handlerrpc.StreamMessage.
+func (m *OpenResourceMessage) SetDraw(r *handlerrpc.DrawStreamResponse) {
+	m.Draw = r
+	m.Type = handlerrpc.MessageType_Draw
+}
+
+// SetHandle satisfies handlerrpc.StreamMessage.
+func (m *OpenResourceMessage) SetHandle(r *handlerrpc.HandleStreamResponse) {
+	m.Handle = r
+	m.Type = handlerrpc.MessageType_Handle
+}
+
+// SetClose satisfies handlerrpc.StreamMessage.
+func (m *OpenResourceMessage) SetClose(r *handlerrpc.CloseStreamResponse) {
+	m.Close = r
+	m.Type = handlerrpc.MessageType_Close
+}
+
+// SetCursor satisfies handlerrpc.StreamMessage.
+func (m *OpenResourceMessage) SetCursor(r *handlerrpc.CursorStreamResponse) {
+	m.Cursor = r
+	m.Type = handlerrpc.MessageType_Cursor
+}
+
+// SetSelection satisfies handlerrpc.StreamMessage.
+func (m *OpenResourceMessage) SetSelection(r *handlerrpc.SelectionStreamResponse) {
+	m.Selection = r
+	m.Type = handlerrpc.MessageType_Selection
+}
+
+// SetDimensions satisfies handlerrpc.StreamMessage.
+func (m *OpenResourceMessage) SetDimensions(r *handlerrpc.DimensionsStreamResponse) {
+	m.Dimensions = r
+	m.Type = handlerrpc.MessageType_Dimensions
+}

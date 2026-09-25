@@ -5,6 +5,7 @@ option go_package = "github.com/unstablebuild/rune-go-sdk/api/textapi/textrpc";
 package text;
 
 import "term/termrpc/term.proto";
+import "handler/handlerrpc/handler.proto";
 
 message URI {
 	string uri = 1;
@@ -154,6 +155,10 @@ service Editor {
 	rpc SubscribeEvent(stream SubscribeEventRequest) returns (stream EditorEvent);
 	rpc SubscribeCommand(stream ClientCommandMessage) returns (stream ServerCommandMessage);
 	rpc SubscribeREPLCommand(stream ClientREPLCommandMessage) returns (stream ServerREPLCommandMessage);
+	rpc SubscribeResourceOpener(stream ClientResourceOpenerMessage) returns (stream ServerResourceOpenerMessage);
+	// OpenResource serves the handler a resource opener returned for the
+	// OpenResourceRequest its request names.
+	rpc OpenResource(stream OpenResourceMessage) returns (stream handler.ServerMessage);
 }
 
 message SubscribeCommandRequest {
@@ -345,4 +350,63 @@ message HelpCommandValue {
 message HelpCommandDone {
 	string error = 1;
 	int64 id = 2;
+}
+
+// Resource opener streaming
+
+message SubscribeResourceOpenerRequest {
+	string scheme = 1;
+}
+
+message SubscribeResourceOpenerResponse {}
+
+message OpenResourceRequest {
+	reserved 3;
+	int64 id = 1;
+	URI uri = 2;
+}
+
+// OpenResourceResponse reports that the opener failed the OpenResourceRequest
+// with the given id. A successful open is reported by the handler stream
+// (Editor.OpenResource) instead.
+message OpenResourceResponse {
+	int64 id = 1;
+	string error = 2;
+}
+message OpenResourceStreamRequest {
+	// id is the OpenResourceRequest this handler answers.
+	int64 id = 1;
+}
+message OpenResourceMessage {
+	handler.MessageType type = 1;
+	handler.DrawStreamResponse draw = 2;
+	handler.HandleStreamResponse handle = 3;
+	handler.CloseStreamResponse close = 5;
+	handler.CursorStreamResponse cursor = 6;
+	handler.SelectionStreamResponse selection = 7;
+	handler.DimensionsStreamResponse dimensions = 8;
+
+	OpenResourceStreamRequest request = 10;
+}
+
+message ClientResourceOpenerMessage {
+	enum MessageType {
+		Request = 0;
+		Open = 1;
+	}
+	MessageType type = 1;
+	SubscribeResourceOpenerRequest request = 2;
+	OpenResourceResponse open = 3;
+}
+
+message ServerResourceOpenerMessage {
+	enum MessageType {
+		Response = 0;
+		Open = 1;
+		OpenCancel = 2;
+	}
+	MessageType type = 1;
+	SubscribeResourceOpenerResponse response = 2;
+	OpenResourceRequest open = 3;
+	RequestCancel open_cancel = 4;
 }

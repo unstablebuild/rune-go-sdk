@@ -7,6 +7,7 @@
 package textrpc
 
 import (
+	handlerrpc "github.com/unstablebuild/rune-go-sdk/handler/handlerrpc"
 	termrpc "github.com/unstablebuild/rune-go-sdk/term/termrpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -337,6 +338,101 @@ func (x ServerREPLCommandMessage_MessageType) Number() protoreflect.EnumNumber {
 // Deprecated: Use ServerREPLCommandMessage_MessageType.Descriptor instead.
 func (ServerREPLCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
 	return file_textrpc_editor_proto_rawDescGZIP(), []int{36, 0}
+}
+
+type ClientResourceOpenerMessage_MessageType int32
+
+const (
+	ClientResourceOpenerMessage_Request ClientResourceOpenerMessage_MessageType = 0
+	ClientResourceOpenerMessage_Open    ClientResourceOpenerMessage_MessageType = 1
+)
+
+// Enum value maps for ClientResourceOpenerMessage_MessageType.
+var (
+	ClientResourceOpenerMessage_MessageType_name = map[int32]string{
+		0: "Request",
+		1: "Open",
+	}
+	ClientResourceOpenerMessage_MessageType_value = map[string]int32{
+		"Request": 0,
+		"Open":    1,
+	}
+)
+
+func (x ClientResourceOpenerMessage_MessageType) Enum() *ClientResourceOpenerMessage_MessageType {
+	p := new(ClientResourceOpenerMessage_MessageType)
+	*p = x
+	return p
+}
+
+func (x ClientResourceOpenerMessage_MessageType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ClientResourceOpenerMessage_MessageType) Descriptor() protoreflect.EnumDescriptor {
+	return file_textrpc_editor_proto_enumTypes[5].Descriptor()
+}
+
+func (ClientResourceOpenerMessage_MessageType) Type() protoreflect.EnumType {
+	return &file_textrpc_editor_proto_enumTypes[5]
+}
+
+func (x ClientResourceOpenerMessage_MessageType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ClientResourceOpenerMessage_MessageType.Descriptor instead.
+func (ClientResourceOpenerMessage_MessageType) EnumDescriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{50, 0}
+}
+
+type ServerResourceOpenerMessage_MessageType int32
+
+const (
+	ServerResourceOpenerMessage_Response   ServerResourceOpenerMessage_MessageType = 0
+	ServerResourceOpenerMessage_Open       ServerResourceOpenerMessage_MessageType = 1
+	ServerResourceOpenerMessage_OpenCancel ServerResourceOpenerMessage_MessageType = 2
+)
+
+// Enum value maps for ServerResourceOpenerMessage_MessageType.
+var (
+	ServerResourceOpenerMessage_MessageType_name = map[int32]string{
+		0: "Response",
+		1: "Open",
+		2: "OpenCancel",
+	}
+	ServerResourceOpenerMessage_MessageType_value = map[string]int32{
+		"Response":   0,
+		"Open":       1,
+		"OpenCancel": 2,
+	}
+)
+
+func (x ServerResourceOpenerMessage_MessageType) Enum() *ServerResourceOpenerMessage_MessageType {
+	p := new(ServerResourceOpenerMessage_MessageType)
+	*p = x
+	return p
+}
+
+func (x ServerResourceOpenerMessage_MessageType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ServerResourceOpenerMessage_MessageType) Descriptor() protoreflect.EnumDescriptor {
+	return file_textrpc_editor_proto_enumTypes[6].Descriptor()
+}
+
+func (ServerResourceOpenerMessage_MessageType) Type() protoreflect.EnumType {
+	return &file_textrpc_editor_proto_enumTypes[6]
+}
+
+func (x ServerResourceOpenerMessage_MessageType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ServerResourceOpenerMessage_MessageType.Descriptor instead.
+func (ServerResourceOpenerMessage_MessageType) EnumDescriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{51, 0}
 }
 
 type URI struct {
@@ -2825,6 +2921,466 @@ func (x *HelpCommandDone) GetId() int64 {
 	return 0
 }
 
+type SubscribeResourceOpenerRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Scheme        string                 `protobuf:"bytes,1,opt,name=scheme,proto3" json:"scheme,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeResourceOpenerRequest) Reset() {
+	*x = SubscribeResourceOpenerRequest{}
+	mi := &file_textrpc_editor_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeResourceOpenerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeResourceOpenerRequest) ProtoMessage() {}
+
+func (x *SubscribeResourceOpenerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeResourceOpenerRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeResourceOpenerRequest) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *SubscribeResourceOpenerRequest) GetScheme() string {
+	if x != nil {
+		return x.Scheme
+	}
+	return ""
+}
+
+type SubscribeResourceOpenerResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeResourceOpenerResponse) Reset() {
+	*x = SubscribeResourceOpenerResponse{}
+	mi := &file_textrpc_editor_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeResourceOpenerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeResourceOpenerResponse) ProtoMessage() {}
+
+func (x *SubscribeResourceOpenerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeResourceOpenerResponse.ProtoReflect.Descriptor instead.
+func (*SubscribeResourceOpenerResponse) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{45}
+}
+
+type OpenResourceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Uri           *URI                   `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenResourceRequest) Reset() {
+	*x = OpenResourceRequest{}
+	mi := &file_textrpc_editor_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenResourceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenResourceRequest) ProtoMessage() {}
+
+func (x *OpenResourceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenResourceRequest.ProtoReflect.Descriptor instead.
+func (*OpenResourceRequest) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *OpenResourceRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *OpenResourceRequest) GetUri() *URI {
+	if x != nil {
+		return x.Uri
+	}
+	return nil
+}
+
+// OpenResourceResponse reports that the opener failed the OpenResourceRequest
+// with the given id. A successful open is reported by the handler stream
+// (Editor.OpenResource) instead.
+type OpenResourceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenResourceResponse) Reset() {
+	*x = OpenResourceResponse{}
+	mi := &file_textrpc_editor_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenResourceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenResourceResponse) ProtoMessage() {}
+
+func (x *OpenResourceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenResourceResponse.ProtoReflect.Descriptor instead.
+func (*OpenResourceResponse) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *OpenResourceResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *OpenResourceResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type OpenResourceStreamRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id is the OpenResourceRequest this handler answers.
+	Id            int64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenResourceStreamRequest) Reset() {
+	*x = OpenResourceStreamRequest{}
+	mi := &file_textrpc_editor_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenResourceStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenResourceStreamRequest) ProtoMessage() {}
+
+func (x *OpenResourceStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenResourceStreamRequest.ProtoReflect.Descriptor instead.
+func (*OpenResourceStreamRequest) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *OpenResourceStreamRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type OpenResourceMessage struct {
+	state         protoimpl.MessageState               `protogen:"open.v1"`
+	Type          handlerrpc.MessageType               `protobuf:"varint,1,opt,name=type,proto3,enum=handler.MessageType" json:"type,omitempty"`
+	Draw          *handlerrpc.DrawStreamResponse       `protobuf:"bytes,2,opt,name=draw,proto3" json:"draw,omitempty"`
+	Handle        *handlerrpc.HandleStreamResponse     `protobuf:"bytes,3,opt,name=handle,proto3" json:"handle,omitempty"`
+	Close         *handlerrpc.CloseStreamResponse      `protobuf:"bytes,5,opt,name=close,proto3" json:"close,omitempty"`
+	Cursor        *handlerrpc.CursorStreamResponse     `protobuf:"bytes,6,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Selection     *handlerrpc.SelectionStreamResponse  `protobuf:"bytes,7,opt,name=selection,proto3" json:"selection,omitempty"`
+	Dimensions    *handlerrpc.DimensionsStreamResponse `protobuf:"bytes,8,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
+	Request       *OpenResourceStreamRequest           `protobuf:"bytes,10,opt,name=request,proto3" json:"request,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenResourceMessage) Reset() {
+	*x = OpenResourceMessage{}
+	mi := &file_textrpc_editor_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenResourceMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenResourceMessage) ProtoMessage() {}
+
+func (x *OpenResourceMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenResourceMessage.ProtoReflect.Descriptor instead.
+func (*OpenResourceMessage) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *OpenResourceMessage) GetType() handlerrpc.MessageType {
+	if x != nil {
+		return x.Type
+	}
+	return handlerrpc.MessageType(0)
+}
+
+func (x *OpenResourceMessage) GetDraw() *handlerrpc.DrawStreamResponse {
+	if x != nil {
+		return x.Draw
+	}
+	return nil
+}
+
+func (x *OpenResourceMessage) GetHandle() *handlerrpc.HandleStreamResponse {
+	if x != nil {
+		return x.Handle
+	}
+	return nil
+}
+
+func (x *OpenResourceMessage) GetClose() *handlerrpc.CloseStreamResponse {
+	if x != nil {
+		return x.Close
+	}
+	return nil
+}
+
+func (x *OpenResourceMessage) GetCursor() *handlerrpc.CursorStreamResponse {
+	if x != nil {
+		return x.Cursor
+	}
+	return nil
+}
+
+func (x *OpenResourceMessage) GetSelection() *handlerrpc.SelectionStreamResponse {
+	if x != nil {
+		return x.Selection
+	}
+	return nil
+}
+
+func (x *OpenResourceMessage) GetDimensions() *handlerrpc.DimensionsStreamResponse {
+	if x != nil {
+		return x.Dimensions
+	}
+	return nil
+}
+
+func (x *OpenResourceMessage) GetRequest() *OpenResourceStreamRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+type ClientResourceOpenerMessage struct {
+	state         protoimpl.MessageState                  `protogen:"open.v1"`
+	Type          ClientResourceOpenerMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ClientResourceOpenerMessage_MessageType" json:"type,omitempty"`
+	Request       *SubscribeResourceOpenerRequest         `protobuf:"bytes,2,opt,name=request,proto3" json:"request,omitempty"`
+	Open          *OpenResourceResponse                   `protobuf:"bytes,3,opt,name=open,proto3" json:"open,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClientResourceOpenerMessage) Reset() {
+	*x = ClientResourceOpenerMessage{}
+	mi := &file_textrpc_editor_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientResourceOpenerMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientResourceOpenerMessage) ProtoMessage() {}
+
+func (x *ClientResourceOpenerMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientResourceOpenerMessage.ProtoReflect.Descriptor instead.
+func (*ClientResourceOpenerMessage) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ClientResourceOpenerMessage) GetType() ClientResourceOpenerMessage_MessageType {
+	if x != nil {
+		return x.Type
+	}
+	return ClientResourceOpenerMessage_Request
+}
+
+func (x *ClientResourceOpenerMessage) GetRequest() *SubscribeResourceOpenerRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+func (x *ClientResourceOpenerMessage) GetOpen() *OpenResourceResponse {
+	if x != nil {
+		return x.Open
+	}
+	return nil
+}
+
+type ServerResourceOpenerMessage struct {
+	state         protoimpl.MessageState                  `protogen:"open.v1"`
+	Type          ServerResourceOpenerMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerResourceOpenerMessage_MessageType" json:"type,omitempty"`
+	Response      *SubscribeResourceOpenerResponse        `protobuf:"bytes,2,opt,name=response,proto3" json:"response,omitempty"`
+	Open          *OpenResourceRequest                    `protobuf:"bytes,3,opt,name=open,proto3" json:"open,omitempty"`
+	OpenCancel    *RequestCancel                          `protobuf:"bytes,4,opt,name=open_cancel,json=openCancel,proto3" json:"open_cancel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServerResourceOpenerMessage) Reset() {
+	*x = ServerResourceOpenerMessage{}
+	mi := &file_textrpc_editor_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerResourceOpenerMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerResourceOpenerMessage) ProtoMessage() {}
+
+func (x *ServerResourceOpenerMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerResourceOpenerMessage.ProtoReflect.Descriptor instead.
+func (*ServerResourceOpenerMessage) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *ServerResourceOpenerMessage) GetType() ServerResourceOpenerMessage_MessageType {
+	if x != nil {
+		return x.Type
+	}
+	return ServerResourceOpenerMessage_Response
+}
+
+func (x *ServerResourceOpenerMessage) GetResponse() *SubscribeResourceOpenerResponse {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
+func (x *ServerResourceOpenerMessage) GetOpen() *OpenResourceRequest {
+	if x != nil {
+		return x.Open
+	}
+	return nil
+}
+
+func (x *ServerResourceOpenerMessage) GetOpenCancel() *RequestCancel {
+	if x != nil {
+		return x.OpenCancel
+	}
+	return nil
+}
+
 type SetLocationListRequest_Location struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	From          *termrpc.Coordinates   `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
@@ -2838,7 +3394,7 @@ type SetLocationListRequest_Location struct {
 
 func (x *SetLocationListRequest_Location) Reset() {
 	*x = SetLocationListRequest_Location{}
-	mi := &file_textrpc_editor_proto_msgTypes[44]
+	mi := &file_textrpc_editor_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2850,7 +3406,7 @@ func (x *SetLocationListRequest_Location) String() string {
 func (*SetLocationListRequest_Location) ProtoMessage() {}
 
 func (x *SetLocationListRequest_Location) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[44]
+	mi := &file_textrpc_editor_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2905,7 +3461,7 @@ var File_textrpc_editor_proto protoreflect.FileDescriptor
 
 const file_textrpc_editor_proto_rawDesc = "" +
 	"\n" +
-	"\x14textrpc/editor.proto\x12\x04text\x1a\x17term/termrpc/term.proto\"\x17\n" +
+	"\x14textrpc/editor.proto\x12\x04text\x1a\x17term/termrpc/term.proto\x1a handler/handlerrpc/handler.proto\"\x17\n" +
 	"\x03URI\x12\x10\n" +
 	"\x03uri\x18\x01 \x01(\tR\x03uri\"\x9f\x01\n" +
 	"\vEditRequest\x12.\n" +
@@ -3128,7 +3684,48 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\"7\n" +
 	"\x0fHelpCommandDone\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\tR\x05error\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\x03R\x02id2\x98\a\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\"8\n" +
+	"\x1eSubscribeResourceOpenerRequest\x12\x16\n" +
+	"\x06scheme\x18\x01 \x01(\tR\x06scheme\"!\n" +
+	"\x1fSubscribeResourceOpenerResponse\"H\n" +
+	"\x13OpenResourceRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
+	"\x03uri\x18\x02 \x01(\v2\t.text.URIR\x03uriJ\x04\b\x03\x10\x04\"<\n" +
+	"\x14OpenResourceResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"+\n" +
+	"\x19OpenResourceStreamRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\xd0\x03\n" +
+	"\x13OpenResourceMessage\x12(\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x14.handler.MessageTypeR\x04type\x12/\n" +
+	"\x04draw\x18\x02 \x01(\v2\x1b.handler.DrawStreamResponseR\x04draw\x125\n" +
+	"\x06handle\x18\x03 \x01(\v2\x1d.handler.HandleStreamResponseR\x06handle\x122\n" +
+	"\x05close\x18\x05 \x01(\v2\x1c.handler.CloseStreamResponseR\x05close\x125\n" +
+	"\x06cursor\x18\x06 \x01(\v2\x1d.handler.CursorStreamResponseR\x06cursor\x12>\n" +
+	"\tselection\x18\a \x01(\v2 .handler.SelectionStreamResponseR\tselection\x12A\n" +
+	"\n" +
+	"dimensions\x18\b \x01(\v2!.handler.DimensionsStreamResponseR\n" +
+	"dimensions\x129\n" +
+	"\arequest\x18\n" +
+	" \x01(\v2\x1f.text.OpenResourceStreamRequestR\arequest\"\xf6\x01\n" +
+	"\x1bClientResourceOpenerMessage\x12A\n" +
+	"\x04type\x18\x01 \x01(\x0e2-.text.ClientResourceOpenerMessage.MessageTypeR\x04type\x12>\n" +
+	"\arequest\x18\x02 \x01(\v2$.text.SubscribeResourceOpenerRequestR\arequest\x12.\n" +
+	"\x04open\x18\x03 \x01(\v2\x1a.text.OpenResourceResponseR\x04open\"$\n" +
+	"\vMessageType\x12\v\n" +
+	"\aRequest\x10\x00\x12\b\n" +
+	"\x04Open\x10\x01\"\xbf\x02\n" +
+	"\x1bServerResourceOpenerMessage\x12A\n" +
+	"\x04type\x18\x01 \x01(\x0e2-.text.ServerResourceOpenerMessage.MessageTypeR\x04type\x12A\n" +
+	"\bresponse\x18\x02 \x01(\v2%.text.SubscribeResourceOpenerResponseR\bresponse\x12-\n" +
+	"\x04open\x18\x03 \x01(\v2\x19.text.OpenResourceRequestR\x04open\x124\n" +
+	"\vopen_cancel\x18\x04 \x01(\v2\x13.text.RequestCancelR\n" +
+	"openCancel\"5\n" +
+	"\vMessageType\x12\f\n" +
+	"\bResponse\x10\x00\x12\b\n" +
+	"\x04Open\x10\x01\x12\x0e\n" +
+	"\n" +
+	"OpenCancel\x10\x022\xc4\b\n" +
 	"\x06Editor\x12-\n" +
 	"\x04Edit\x12\x11.text.EditRequest\x1a\x12.text.EditResponse\x12<\n" +
 	"\tSetCursor\x12\x16.text.SetCursorRequest\x1a\x17.text.SetCursorResponse\x123\n" +
@@ -3142,7 +3739,9 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\x14SetDefaultAttributes\x12!.text.SetDefaultAttributesRequest\x1a\".text.SetDefaultAttributesResponse\x12D\n" +
 	"\x0eSubscribeEvent\x12\x1b.text.SubscribeEventRequest\x1a\x11.text.EditorEvent(\x010\x01\x12N\n" +
 	"\x10SubscribeCommand\x12\x1a.text.ClientCommandMessage\x1a\x1a.text.ServerCommandMessage(\x010\x01\x12Z\n" +
-	"\x14SubscribeREPLCommand\x12\x1e.text.ClientREPLCommandMessage\x1a\x1e.text.ServerREPLCommandMessage(\x010\x01B:Z8github.com/unstablebuild/rune-go-sdk/api/textapi/textrpcb\x06proto3"
+	"\x14SubscribeREPLCommand\x12\x1e.text.ClientREPLCommandMessage\x1a\x1e.text.ServerREPLCommandMessage(\x010\x01\x12c\n" +
+	"\x17SubscribeResourceOpener\x12!.text.ClientResourceOpenerMessage\x1a!.text.ServerResourceOpenerMessage(\x010\x01\x12E\n" +
+	"\fOpenResource\x12\x19.text.OpenResourceMessage\x1a\x16.handler.ServerMessage(\x010\x01B:Z8github.com/unstablebuild/rune-go-sdk/api/textapi/textrpcb\x06proto3"
 
 var (
 	file_textrpc_editor_proto_rawDescOnce sync.Once
@@ -3156,160 +3755,198 @@ func file_textrpc_editor_proto_rawDescGZIP() []byte {
 	return file_textrpc_editor_proto_rawDescData
 }
 
-var file_textrpc_editor_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_textrpc_editor_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 53)
 var file_textrpc_editor_proto_goTypes = []any{
-	(EditorEvent_Type)(0),                     // 0: text.EditorEvent.Type
-	(ClientCommandMessage_MessageType)(0),     // 1: text.ClientCommandMessage.MessageType
-	(ServerCommandMessage_MessageType)(0),     // 2: text.ServerCommandMessage.MessageType
-	(ClientREPLCommandMessage_MessageType)(0), // 3: text.ClientREPLCommandMessage.MessageType
-	(ServerREPLCommandMessage_MessageType)(0), // 4: text.ServerREPLCommandMessage.MessageType
-	(*URI)(nil),                             // 5: text.URI
-	(*EditRequest)(nil),                     // 6: text.EditRequest
-	(*EditResponse)(nil),                    // 7: text.EditResponse
-	(*EditorEvent)(nil),                     // 8: text.EditorEvent
-	(*SubscribeEventRequest)(nil),           // 9: text.SubscribeEventRequest
-	(*SetLocationListRequest)(nil),          // 10: text.SetLocationListRequest
-	(*SetLocationListResponse)(nil),         // 11: text.SetLocationListResponse
-	(*EditCellRequest)(nil),                 // 12: text.EditCellRequest
-	(*EditCellResponse)(nil),                // 13: text.EditCellResponse
-	(*RawCellsRequest)(nil),                 // 14: text.RawCellsRequest
-	(*RawCellsResponse)(nil),                // 15: text.RawCellsResponse
-	(*MoveToLocationRequest)(nil),           // 16: text.MoveToLocationRequest
-	(*MoveToLocationResponse)(nil),          // 17: text.MoveToLocationResponse
-	(*SetCursorRequest)(nil),                // 18: text.SetCursorRequest
-	(*SetCursorResponse)(nil),               // 19: text.SetCursorResponse
-	(*CursorRequest)(nil),                   // 20: text.CursorRequest
-	(*CursorResponse)(nil),                  // 21: text.CursorResponse
-	(*EditorRequest)(nil),                   // 22: text.EditorRequest
-	(*EditorResponse)(nil),                  // 23: text.EditorResponse
-	(*SetDefaultAttributesRequest)(nil),     // 24: text.SetDefaultAttributesRequest
-	(*SetDefaultAttributesResponse)(nil),    // 25: text.SetDefaultAttributesResponse
-	(*SubscribeCommandRequest)(nil),         // 26: text.SubscribeCommandRequest
-	(*CommandManual)(nil),                   // 27: text.CommandManual
-	(*SubscribeCommandResponse)(nil),        // 28: text.SubscribeCommandResponse
-	(*ClientCommandMessage)(nil),            // 29: text.ClientCommandMessage
-	(*ServerCommandMessage)(nil),            // 30: text.ServerCommandMessage
-	(*HandleCommandRequest)(nil),            // 31: text.HandleCommandRequest
-	(*HandleCommandResponse)(nil),           // 32: text.HandleCommandResponse
-	(*CompleteCommandRequest)(nil),          // 33: text.CompleteCommandRequest
-	(*CompleteCommandValue)(nil),            // 34: text.CompleteCommandValue
-	(*CompleteCommandDone)(nil),             // 35: text.CompleteCommandDone
-	(*CompleteCommandCancel)(nil),           // 36: text.CompleteCommandCancel
-	(*RequestCancel)(nil),                   // 37: text.RequestCancel
-	(*SubscribeREPLCommandRequest)(nil),     // 38: text.SubscribeREPLCommandRequest
-	(*SubscribeREPLCommandResponse)(nil),    // 39: text.SubscribeREPLCommandResponse
-	(*ClientREPLCommandMessage)(nil),        // 40: text.ClientREPLCommandMessage
-	(*ServerREPLCommandMessage)(nil),        // 41: text.ServerREPLCommandMessage
-	(*HandleREPLCommandRequest)(nil),        // 42: text.HandleREPLCommandRequest
-	(*HandleREPLCommandValue)(nil),          // 43: text.HandleREPLCommandValue
-	(*HandleREPLCommandDone)(nil),           // 44: text.HandleREPLCommandDone
-	(*HandleREPLCommandProgress)(nil),       // 45: text.HandleREPLCommandProgress
-	(*HelpCommandRequest)(nil),              // 46: text.HelpCommandRequest
-	(*HelpCommandValue)(nil),                // 47: text.HelpCommandValue
-	(*HelpCommandDone)(nil),                 // 48: text.HelpCommandDone
-	(*SetLocationListRequest_Location)(nil), // 49: text.SetLocationListRequest.Location
-	(*termrpc.CellRow)(nil),                 // 50: term.CellRow
-	(*termrpc.Coordinates)(nil),             // 51: term.Coordinates
-	(*termrpc.Attributes)(nil),              // 52: term.Attributes
+	(EditorEvent_Type)(0),                        // 0: text.EditorEvent.Type
+	(ClientCommandMessage_MessageType)(0),        // 1: text.ClientCommandMessage.MessageType
+	(ServerCommandMessage_MessageType)(0),        // 2: text.ServerCommandMessage.MessageType
+	(ClientREPLCommandMessage_MessageType)(0),    // 3: text.ClientREPLCommandMessage.MessageType
+	(ServerREPLCommandMessage_MessageType)(0),    // 4: text.ServerREPLCommandMessage.MessageType
+	(ClientResourceOpenerMessage_MessageType)(0), // 5: text.ClientResourceOpenerMessage.MessageType
+	(ServerResourceOpenerMessage_MessageType)(0), // 6: text.ServerResourceOpenerMessage.MessageType
+	(*URI)(nil),                                 // 7: text.URI
+	(*EditRequest)(nil),                         // 8: text.EditRequest
+	(*EditResponse)(nil),                        // 9: text.EditResponse
+	(*EditorEvent)(nil),                         // 10: text.EditorEvent
+	(*SubscribeEventRequest)(nil),               // 11: text.SubscribeEventRequest
+	(*SetLocationListRequest)(nil),              // 12: text.SetLocationListRequest
+	(*SetLocationListResponse)(nil),             // 13: text.SetLocationListResponse
+	(*EditCellRequest)(nil),                     // 14: text.EditCellRequest
+	(*EditCellResponse)(nil),                    // 15: text.EditCellResponse
+	(*RawCellsRequest)(nil),                     // 16: text.RawCellsRequest
+	(*RawCellsResponse)(nil),                    // 17: text.RawCellsResponse
+	(*MoveToLocationRequest)(nil),               // 18: text.MoveToLocationRequest
+	(*MoveToLocationResponse)(nil),              // 19: text.MoveToLocationResponse
+	(*SetCursorRequest)(nil),                    // 20: text.SetCursorRequest
+	(*SetCursorResponse)(nil),                   // 21: text.SetCursorResponse
+	(*CursorRequest)(nil),                       // 22: text.CursorRequest
+	(*CursorResponse)(nil),                      // 23: text.CursorResponse
+	(*EditorRequest)(nil),                       // 24: text.EditorRequest
+	(*EditorResponse)(nil),                      // 25: text.EditorResponse
+	(*SetDefaultAttributesRequest)(nil),         // 26: text.SetDefaultAttributesRequest
+	(*SetDefaultAttributesResponse)(nil),        // 27: text.SetDefaultAttributesResponse
+	(*SubscribeCommandRequest)(nil),             // 28: text.SubscribeCommandRequest
+	(*CommandManual)(nil),                       // 29: text.CommandManual
+	(*SubscribeCommandResponse)(nil),            // 30: text.SubscribeCommandResponse
+	(*ClientCommandMessage)(nil),                // 31: text.ClientCommandMessage
+	(*ServerCommandMessage)(nil),                // 32: text.ServerCommandMessage
+	(*HandleCommandRequest)(nil),                // 33: text.HandleCommandRequest
+	(*HandleCommandResponse)(nil),               // 34: text.HandleCommandResponse
+	(*CompleteCommandRequest)(nil),              // 35: text.CompleteCommandRequest
+	(*CompleteCommandValue)(nil),                // 36: text.CompleteCommandValue
+	(*CompleteCommandDone)(nil),                 // 37: text.CompleteCommandDone
+	(*CompleteCommandCancel)(nil),               // 38: text.CompleteCommandCancel
+	(*RequestCancel)(nil),                       // 39: text.RequestCancel
+	(*SubscribeREPLCommandRequest)(nil),         // 40: text.SubscribeREPLCommandRequest
+	(*SubscribeREPLCommandResponse)(nil),        // 41: text.SubscribeREPLCommandResponse
+	(*ClientREPLCommandMessage)(nil),            // 42: text.ClientREPLCommandMessage
+	(*ServerREPLCommandMessage)(nil),            // 43: text.ServerREPLCommandMessage
+	(*HandleREPLCommandRequest)(nil),            // 44: text.HandleREPLCommandRequest
+	(*HandleREPLCommandValue)(nil),              // 45: text.HandleREPLCommandValue
+	(*HandleREPLCommandDone)(nil),               // 46: text.HandleREPLCommandDone
+	(*HandleREPLCommandProgress)(nil),           // 47: text.HandleREPLCommandProgress
+	(*HelpCommandRequest)(nil),                  // 48: text.HelpCommandRequest
+	(*HelpCommandValue)(nil),                    // 49: text.HelpCommandValue
+	(*HelpCommandDone)(nil),                     // 50: text.HelpCommandDone
+	(*SubscribeResourceOpenerRequest)(nil),      // 51: text.SubscribeResourceOpenerRequest
+	(*SubscribeResourceOpenerResponse)(nil),     // 52: text.SubscribeResourceOpenerResponse
+	(*OpenResourceRequest)(nil),                 // 53: text.OpenResourceRequest
+	(*OpenResourceResponse)(nil),                // 54: text.OpenResourceResponse
+	(*OpenResourceStreamRequest)(nil),           // 55: text.OpenResourceStreamRequest
+	(*OpenResourceMessage)(nil),                 // 56: text.OpenResourceMessage
+	(*ClientResourceOpenerMessage)(nil),         // 57: text.ClientResourceOpenerMessage
+	(*ServerResourceOpenerMessage)(nil),         // 58: text.ServerResourceOpenerMessage
+	(*SetLocationListRequest_Location)(nil),     // 59: text.SetLocationListRequest.Location
+	(*termrpc.CellRow)(nil),                     // 60: term.CellRow
+	(*termrpc.Coordinates)(nil),                 // 61: term.Coordinates
+	(*termrpc.Attributes)(nil),                  // 62: term.Attributes
+	(handlerrpc.MessageType)(0),                 // 63: handler.MessageType
+	(*handlerrpc.DrawStreamResponse)(nil),       // 64: handler.DrawStreamResponse
+	(*handlerrpc.HandleStreamResponse)(nil),     // 65: handler.HandleStreamResponse
+	(*handlerrpc.CloseStreamResponse)(nil),      // 66: handler.CloseStreamResponse
+	(*handlerrpc.CursorStreamResponse)(nil),     // 67: handler.CursorStreamResponse
+	(*handlerrpc.SelectionStreamResponse)(nil),  // 68: handler.SelectionStreamResponse
+	(*handlerrpc.DimensionsStreamResponse)(nil), // 69: handler.DimensionsStreamResponse
+	(*handlerrpc.ServerMessage)(nil),            // 70: handler.ServerMessage
 }
 var file_textrpc_editor_proto_depIdxs = []int32{
-	5,  // 0: text.EditRequest.resource_name:type_name -> text.URI
-	50, // 1: text.EditRequest.buffer:type_name -> term.CellRow
+	7,  // 0: text.EditRequest.resource_name:type_name -> text.URI
+	60, // 1: text.EditRequest.buffer:type_name -> term.CellRow
 	0,  // 2: text.EditorEvent.type:type_name -> text.EditorEvent.Type
-	5,  // 3: text.EditorEvent.resource_name:type_name -> text.URI
-	51, // 4: text.EditorEvent.start:type_name -> term.Coordinates
-	51, // 5: text.EditorEvent.end:type_name -> term.Coordinates
-	51, // 6: text.EditorEvent.from:type_name -> term.Coordinates
-	51, // 7: text.EditorEvent.to:type_name -> term.Coordinates
+	7,  // 3: text.EditorEvent.resource_name:type_name -> text.URI
+	61, // 4: text.EditorEvent.start:type_name -> term.Coordinates
+	61, // 5: text.EditorEvent.end:type_name -> term.Coordinates
+	61, // 6: text.EditorEvent.from:type_name -> term.Coordinates
+	61, // 7: text.EditorEvent.to:type_name -> term.Coordinates
 	0,  // 8: text.SubscribeEventRequest.type:type_name -> text.EditorEvent.Type
-	5,  // 9: text.SetLocationListRequest.resource_name:type_name -> text.URI
-	49, // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
-	5,  // 11: text.EditCellRequest.resource_name:type_name -> text.URI
-	51, // 12: text.EditCellRequest.start:type_name -> term.Coordinates
-	51, // 13: text.EditCellRequest.end:type_name -> term.Coordinates
-	51, // 14: text.EditCellResponse.from:type_name -> term.Coordinates
-	51, // 15: text.EditCellResponse.to:type_name -> term.Coordinates
-	5,  // 16: text.RawCellsRequest.resource_name:type_name -> text.URI
-	50, // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
-	5,  // 18: text.MoveToLocationRequest.resource_name:type_name -> text.URI
-	51, // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
-	5,  // 20: text.SetCursorRequest.resource_name:type_name -> text.URI
-	5,  // 21: text.CursorRequest.resource_name:type_name -> text.URI
-	51, // 22: text.CursorResponse.pos:type_name -> term.Coordinates
-	5,  // 23: text.EditorRequest.resource_name:type_name -> text.URI
-	5,  // 24: text.SetDefaultAttributesRequest.resource_name:type_name -> text.URI
-	52, // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
-	27, // 26: text.SubscribeCommandRequest.command:type_name -> text.CommandManual
-	27, // 27: text.CommandManual.commands:type_name -> text.CommandManual
+	7,  // 9: text.SetLocationListRequest.resource_name:type_name -> text.URI
+	59, // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
+	7,  // 11: text.EditCellRequest.resource_name:type_name -> text.URI
+	61, // 12: text.EditCellRequest.start:type_name -> term.Coordinates
+	61, // 13: text.EditCellRequest.end:type_name -> term.Coordinates
+	61, // 14: text.EditCellResponse.from:type_name -> term.Coordinates
+	61, // 15: text.EditCellResponse.to:type_name -> term.Coordinates
+	7,  // 16: text.RawCellsRequest.resource_name:type_name -> text.URI
+	60, // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
+	7,  // 18: text.MoveToLocationRequest.resource_name:type_name -> text.URI
+	61, // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
+	7,  // 20: text.SetCursorRequest.resource_name:type_name -> text.URI
+	7,  // 21: text.CursorRequest.resource_name:type_name -> text.URI
+	61, // 22: text.CursorResponse.pos:type_name -> term.Coordinates
+	7,  // 23: text.EditorRequest.resource_name:type_name -> text.URI
+	7,  // 24: text.SetDefaultAttributesRequest.resource_name:type_name -> text.URI
+	62, // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
+	29, // 26: text.SubscribeCommandRequest.command:type_name -> text.CommandManual
+	29, // 27: text.CommandManual.commands:type_name -> text.CommandManual
 	1,  // 28: text.ClientCommandMessage.type:type_name -> text.ClientCommandMessage.MessageType
-	32, // 29: text.ClientCommandMessage.handle:type_name -> text.HandleCommandResponse
-	34, // 30: text.ClientCommandMessage.complete_value:type_name -> text.CompleteCommandValue
-	35, // 31: text.ClientCommandMessage.complete_done:type_name -> text.CompleteCommandDone
-	26, // 32: text.ClientCommandMessage.request:type_name -> text.SubscribeCommandRequest
+	34, // 29: text.ClientCommandMessage.handle:type_name -> text.HandleCommandResponse
+	36, // 30: text.ClientCommandMessage.complete_value:type_name -> text.CompleteCommandValue
+	37, // 31: text.ClientCommandMessage.complete_done:type_name -> text.CompleteCommandDone
+	28, // 32: text.ClientCommandMessage.request:type_name -> text.SubscribeCommandRequest
 	2,  // 33: text.ServerCommandMessage.type:type_name -> text.ServerCommandMessage.MessageType
-	31, // 34: text.ServerCommandMessage.handle:type_name -> text.HandleCommandRequest
-	33, // 35: text.ServerCommandMessage.complete:type_name -> text.CompleteCommandRequest
-	28, // 36: text.ServerCommandMessage.response:type_name -> text.SubscribeCommandResponse
-	36, // 37: text.ServerCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
-	37, // 38: text.ServerCommandMessage.handle_cancel:type_name -> text.RequestCancel
-	5,  // 39: text.HandleCommandRequest.resource_name:type_name -> text.URI
-	51, // 40: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
-	51, // 41: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
-	27, // 42: text.SubscribeREPLCommandRequest.command:type_name -> text.CommandManual
+	33, // 34: text.ServerCommandMessage.handle:type_name -> text.HandleCommandRequest
+	35, // 35: text.ServerCommandMessage.complete:type_name -> text.CompleteCommandRequest
+	30, // 36: text.ServerCommandMessage.response:type_name -> text.SubscribeCommandResponse
+	38, // 37: text.ServerCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
+	39, // 38: text.ServerCommandMessage.handle_cancel:type_name -> text.RequestCancel
+	7,  // 39: text.HandleCommandRequest.resource_name:type_name -> text.URI
+	61, // 40: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
+	61, // 41: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
+	29, // 42: text.SubscribeREPLCommandRequest.command:type_name -> text.CommandManual
 	3,  // 43: text.ClientREPLCommandMessage.type:type_name -> text.ClientREPLCommandMessage.MessageType
-	43, // 44: text.ClientREPLCommandMessage.handle_value:type_name -> text.HandleREPLCommandValue
-	44, // 45: text.ClientREPLCommandMessage.handle_done:type_name -> text.HandleREPLCommandDone
-	34, // 46: text.ClientREPLCommandMessage.complete_value:type_name -> text.CompleteCommandValue
-	35, // 47: text.ClientREPLCommandMessage.complete_done:type_name -> text.CompleteCommandDone
-	47, // 48: text.ClientREPLCommandMessage.help_value:type_name -> text.HelpCommandValue
-	48, // 49: text.ClientREPLCommandMessage.help_done:type_name -> text.HelpCommandDone
-	38, // 50: text.ClientREPLCommandMessage.request:type_name -> text.SubscribeREPLCommandRequest
-	45, // 51: text.ClientREPLCommandMessage.handle_progress:type_name -> text.HandleREPLCommandProgress
+	45, // 44: text.ClientREPLCommandMessage.handle_value:type_name -> text.HandleREPLCommandValue
+	46, // 45: text.ClientREPLCommandMessage.handle_done:type_name -> text.HandleREPLCommandDone
+	36, // 46: text.ClientREPLCommandMessage.complete_value:type_name -> text.CompleteCommandValue
+	37, // 47: text.ClientREPLCommandMessage.complete_done:type_name -> text.CompleteCommandDone
+	49, // 48: text.ClientREPLCommandMessage.help_value:type_name -> text.HelpCommandValue
+	50, // 49: text.ClientREPLCommandMessage.help_done:type_name -> text.HelpCommandDone
+	40, // 50: text.ClientREPLCommandMessage.request:type_name -> text.SubscribeREPLCommandRequest
+	47, // 51: text.ClientREPLCommandMessage.handle_progress:type_name -> text.HandleREPLCommandProgress
 	4,  // 52: text.ServerREPLCommandMessage.type:type_name -> text.ServerREPLCommandMessage.MessageType
-	42, // 53: text.ServerREPLCommandMessage.handle:type_name -> text.HandleREPLCommandRequest
-	33, // 54: text.ServerREPLCommandMessage.complete:type_name -> text.CompleteCommandRequest
-	46, // 55: text.ServerREPLCommandMessage.help:type_name -> text.HelpCommandRequest
-	39, // 56: text.ServerREPLCommandMessage.response:type_name -> text.SubscribeREPLCommandResponse
-	36, // 57: text.ServerREPLCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
-	37, // 58: text.ServerREPLCommandMessage.handle_cancel:type_name -> text.RequestCancel
-	37, // 59: text.ServerREPLCommandMessage.help_cancel:type_name -> text.RequestCancel
-	50, // 60: text.HandleREPLCommandValue.rows:type_name -> term.CellRow
-	50, // 61: text.HelpCommandValue.rows:type_name -> term.CellRow
-	51, // 62: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
-	51, // 63: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
-	52, // 64: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
-	6,  // 65: text.Editor.Edit:input_type -> text.EditRequest
-	18, // 66: text.Editor.SetCursor:input_type -> text.SetCursorRequest
-	20, // 67: text.Editor.Cursor:input_type -> text.CursorRequest
-	22, // 68: text.Editor.Editor:input_type -> text.EditorRequest
-	10, // 69: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
-	16, // 70: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
-	16, // 71: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
-	12, // 72: text.Editor.EditCell:input_type -> text.EditCellRequest
-	14, // 73: text.Editor.RawCells:input_type -> text.RawCellsRequest
-	24, // 74: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
-	9,  // 75: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
-	29, // 76: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
-	40, // 77: text.Editor.SubscribeREPLCommand:input_type -> text.ClientREPLCommandMessage
-	7,  // 78: text.Editor.Edit:output_type -> text.EditResponse
-	19, // 79: text.Editor.SetCursor:output_type -> text.SetCursorResponse
-	21, // 80: text.Editor.Cursor:output_type -> text.CursorResponse
-	23, // 81: text.Editor.Editor:output_type -> text.EditorResponse
-	11, // 82: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
-	17, // 83: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
-	17, // 84: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
-	13, // 85: text.Editor.EditCell:output_type -> text.EditCellResponse
-	15, // 86: text.Editor.RawCells:output_type -> text.RawCellsResponse
-	25, // 87: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
-	8,  // 88: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
-	30, // 89: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
-	41, // 90: text.Editor.SubscribeREPLCommand:output_type -> text.ServerREPLCommandMessage
-	78, // [78:91] is the sub-list for method output_type
-	65, // [65:78] is the sub-list for method input_type
-	65, // [65:65] is the sub-list for extension type_name
-	65, // [65:65] is the sub-list for extension extendee
-	0,  // [0:65] is the sub-list for field type_name
+	44, // 53: text.ServerREPLCommandMessage.handle:type_name -> text.HandleREPLCommandRequest
+	35, // 54: text.ServerREPLCommandMessage.complete:type_name -> text.CompleteCommandRequest
+	48, // 55: text.ServerREPLCommandMessage.help:type_name -> text.HelpCommandRequest
+	41, // 56: text.ServerREPLCommandMessage.response:type_name -> text.SubscribeREPLCommandResponse
+	38, // 57: text.ServerREPLCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
+	39, // 58: text.ServerREPLCommandMessage.handle_cancel:type_name -> text.RequestCancel
+	39, // 59: text.ServerREPLCommandMessage.help_cancel:type_name -> text.RequestCancel
+	60, // 60: text.HandleREPLCommandValue.rows:type_name -> term.CellRow
+	60, // 61: text.HelpCommandValue.rows:type_name -> term.CellRow
+	7,  // 62: text.OpenResourceRequest.uri:type_name -> text.URI
+	63, // 63: text.OpenResourceMessage.type:type_name -> handler.MessageType
+	64, // 64: text.OpenResourceMessage.draw:type_name -> handler.DrawStreamResponse
+	65, // 65: text.OpenResourceMessage.handle:type_name -> handler.HandleStreamResponse
+	66, // 66: text.OpenResourceMessage.close:type_name -> handler.CloseStreamResponse
+	67, // 67: text.OpenResourceMessage.cursor:type_name -> handler.CursorStreamResponse
+	68, // 68: text.OpenResourceMessage.selection:type_name -> handler.SelectionStreamResponse
+	69, // 69: text.OpenResourceMessage.dimensions:type_name -> handler.DimensionsStreamResponse
+	55, // 70: text.OpenResourceMessage.request:type_name -> text.OpenResourceStreamRequest
+	5,  // 71: text.ClientResourceOpenerMessage.type:type_name -> text.ClientResourceOpenerMessage.MessageType
+	51, // 72: text.ClientResourceOpenerMessage.request:type_name -> text.SubscribeResourceOpenerRequest
+	54, // 73: text.ClientResourceOpenerMessage.open:type_name -> text.OpenResourceResponse
+	6,  // 74: text.ServerResourceOpenerMessage.type:type_name -> text.ServerResourceOpenerMessage.MessageType
+	52, // 75: text.ServerResourceOpenerMessage.response:type_name -> text.SubscribeResourceOpenerResponse
+	53, // 76: text.ServerResourceOpenerMessage.open:type_name -> text.OpenResourceRequest
+	39, // 77: text.ServerResourceOpenerMessage.open_cancel:type_name -> text.RequestCancel
+	61, // 78: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
+	61, // 79: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
+	62, // 80: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
+	8,  // 81: text.Editor.Edit:input_type -> text.EditRequest
+	20, // 82: text.Editor.SetCursor:input_type -> text.SetCursorRequest
+	22, // 83: text.Editor.Cursor:input_type -> text.CursorRequest
+	24, // 84: text.Editor.Editor:input_type -> text.EditorRequest
+	12, // 85: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
+	18, // 86: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
+	18, // 87: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
+	14, // 88: text.Editor.EditCell:input_type -> text.EditCellRequest
+	16, // 89: text.Editor.RawCells:input_type -> text.RawCellsRequest
+	26, // 90: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
+	11, // 91: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
+	31, // 92: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
+	42, // 93: text.Editor.SubscribeREPLCommand:input_type -> text.ClientREPLCommandMessage
+	57, // 94: text.Editor.SubscribeResourceOpener:input_type -> text.ClientResourceOpenerMessage
+	56, // 95: text.Editor.OpenResource:input_type -> text.OpenResourceMessage
+	9,  // 96: text.Editor.Edit:output_type -> text.EditResponse
+	21, // 97: text.Editor.SetCursor:output_type -> text.SetCursorResponse
+	23, // 98: text.Editor.Cursor:output_type -> text.CursorResponse
+	25, // 99: text.Editor.Editor:output_type -> text.EditorResponse
+	13, // 100: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
+	19, // 101: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
+	19, // 102: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
+	15, // 103: text.Editor.EditCell:output_type -> text.EditCellResponse
+	17, // 104: text.Editor.RawCells:output_type -> text.RawCellsResponse
+	27, // 105: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
+	10, // 106: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
+	32, // 107: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
+	43, // 108: text.Editor.SubscribeREPLCommand:output_type -> text.ServerREPLCommandMessage
+	58, // 109: text.Editor.SubscribeResourceOpener:output_type -> text.ServerResourceOpenerMessage
+	70, // 110: text.Editor.OpenResource:output_type -> handler.ServerMessage
+	96, // [96:111] is the sub-list for method output_type
+	81, // [81:96] is the sub-list for method input_type
+	81, // [81:81] is the sub-list for extension type_name
+	81, // [81:81] is the sub-list for extension extendee
+	0,  // [0:81] is the sub-list for field type_name
 }
 
 func init() { file_textrpc_editor_proto_init() }
@@ -3322,8 +3959,8 @@ func file_textrpc_editor_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_textrpc_editor_proto_rawDesc), len(file_textrpc_editor_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   45,
+			NumEnums:      7,
+			NumMessages:   53,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

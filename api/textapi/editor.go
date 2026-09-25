@@ -78,6 +78,10 @@ type CommandRegistry interface {
 	// review, such as a debugger, a log viewer, or a status
 	// dashboard.
 	RegisterREPLCommand(CommandManual, REPLHandler) error
+
+	// RegisterResourceOpener registers h as the opener of the
+	// resources whose URI has the given scheme.
+	RegisterResourceOpener(scheme string, h ResourceOpenHandler) error
 }
 
 // Editor is the interface that wraps an API to manage a text editor.
@@ -122,4 +126,9 @@ type Editor interface {
 	// SetDefaultAttributes sets the default attributes of the given Handler
 	// before any LocationList overwrites.
 	SetDefaultAttributes(Handler, term.Attributes) error
+}
+
+// ResourceOpenHandler opens the resources of a URI scheme an extension owns.
+type ResourceOpenHandler interface {
+	OpenResource(ctx context.Context, uri workspaceapi.URI) (browserapi.Handler, error)
 }

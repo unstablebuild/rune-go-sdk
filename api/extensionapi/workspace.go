@@ -218,6 +218,15 @@ func (w *Workspace) RegisterREPLCommand(
 	return w.editorClient().RegisterREPLCommand(cmd, h)
 }
 
+// RegisterResourceOpener registers h as the opener of the resources
+// whose URI has the given scheme, typically the scheme of the tabs
+// this extension creates.
+func (w *Workspace) RegisterResourceOpener(
+	scheme string, h textapi.ResourceOpenHandler,
+) error {
+	return w.editorClient().RegisterResourceOpener(scheme, h)
+}
+
 // Parser returns the workspace's syntax parser, which can be used
 // to perform AST-level searches and parsing across workspace files.
 func (w *Workspace) Parser(ctx context.Context) syntaxapi.Parser {

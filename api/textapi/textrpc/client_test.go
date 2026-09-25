@@ -26,14 +26,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi"
 	"github.com/unstablebuild/rune-go-sdk/api/textapi/textrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/component"
+	"github.com/unstablebuild/rune-go-sdk/handler"
+	"github.com/unstablebuild/rune-go-sdk/handler/handlerrpc"
 	"github.com/unstablebuild/rune-go-sdk/handler/repl"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"github.com/unstablebuild/rune-go-sdk/term/termrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 // ---------------------------------------------------------------
@@ -69,6 +75,22 @@ type testServer struct {
 	// as they arrive so tests can assert on capability flags.
 	commandRequests     chan *textrpc.SubscribeCommandRequest
 	replCommandRequests chan *textrpc.SubscribeREPLCommandRequest
+
+	// onSubscribeResourceOpener mirrors the above for resource
+	// openers.
+	onSubscribeResourceOpener func(
+		stream grpc.BidiStreamingServer[
+			textrpc.ClientResourceOpenerMessage,
+			textrpc.ServerResourceOpenerMessage,
+		],
+	) error
+	resourceOpenerRequests chan *textrpc.SubscribeResourceOpenerRequest
+	// resourceOpenerErr, when set, ends the resource opener stream
+	// with this error instead of acknowledging the subscription.
+	resourceOpenerErr error
+	// openResourceStreams receives the id of every handler stream
+	// opened for a resource, once the handler on it answered Close.
+	openResourceStreams chan int64
 }
 
 func (s *testServer) SubscribeCommand(
@@ -133,6 +155,83 @@ func (s *testServer) SubscribeREPLCommand(
 
 	if s.onSubscribeREPLCommand != nil {
 		return s.onSubscribeREPLCommand(manual, stream)
+	}
+	return nil
+}
+
+func (s *testServer) SubscribeResourceOpener(
+	stream grpc.BidiStreamingServer[
+		textrpc.ClientResourceOpenerMessage,
+		textrpc.ServerResourceOpenerMessage,
+	],
+) error {
+	msg, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	if msg.GetType() != textrpc.ClientResourceOpenerMessage_Request {
+		return errors.New("expected Request message")
+	}
+	if s.resourceOpenerRequests != nil {
+		s.resourceOpenerRequests <- msg.GetRequest()
+	}
+	if s.resourceOpenerErr != nil {
+		return s.resourceOpenerErr
+	}
+
+	err = stream.Send(&textrpc.ServerResourceOpenerMessage{
+		Type:     textrpc.ServerResourceOpenerMessage_Response,
+		Response: &textrpc.SubscribeResourceOpenerResponse{},
+	})
+	if err != nil {
+		return err
+	}
+
+	if s.onSubscribeResourceOpener != nil {
+		return s.onSubscribeResourceOpener(stream)
+	}
+	return nil
+}
+
+// OpenResource acknowledges the handler stream, then closes the handler
+// it serves so the test can tell that it was the one the opener returned.
+func (s *testServer) OpenResource(
+	stream grpc.BidiStreamingServer[
+		textrpc.OpenResourceMessage,
+		handlerrpc.ServerMessage,
+	],
+) error {
+	msg, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	if msg.GetType() != handlerrpc.MessageType_Request {
+		return errors.New("expected Request message")
+	}
+	id := msg.GetRequest().GetId()
+	err = stream.Send(&handlerrpc.ServerMessage{
+		Type:     handlerrpc.MessageType_Response,
+		Response: &handlerrpc.InstallResourceResponse{},
+	})
+	if err != nil {
+		return err
+	}
+	err = stream.Send(&handlerrpc.ServerMessage{
+		Type:  handlerrpc.MessageType_Close,
+		Close: &handlerrpc.CloseStreamRequest{},
+	})
+	if err != nil {
+		return err
+	}
+	msg, err = stream.Recv()
+	if err != nil {
+		return err
+	}
+	if msg.GetClose() == nil {
+		return errors.New("expected Close response")
+	}
+	if s.openResourceStreams != nil {
+		s.openResourceStreams <- id
 	}
 	return nil
 }
@@ -2201,4 +2300,179 @@ func TestCommandStreamHandleCancel(t *testing.T) {
 
 	waitChan(t, canceled, testTimeout)
 	waitChan(t, serverDone, testTimeout)
+}
+
+// ---------------------------------------------------------------
+// RegisterResourceOpener tests
+// ---------------------------------------------------------------
+
+type openerFunc func(
+	context.Context, workspaceapi.URI,
+) (browserapi.Handler, error)
+
+func (f openerFunc) OpenResource(
+	ctx context.Context, uri workspaceapi.URI,
+) (browserapi.Handler, error) {
+	return f(ctx, uri)
+}
+
+func TestRegisterResourceOpener(t *testing.T) {
+	const (
+		openID  = int64(3)
+		openURI = "fake://host/a"
+	)
+	tests := []struct {
+		name   string
+		scheme string
+		// subscribeErr ends the stream before the editor
+		// acknowledges the subscription.
+		subscribeErr error
+		// open runs as the handler; a nil handler with a nil
+		// error is what an opener must not return.
+		open func(ctx context.Context) (browserapi.Handler, error)
+		// cancel sends OpenCancel once the handler is running.
+		cancel bool
+
+		wantRegisterErr  string
+		wantRegisterCode codes.Code
+		wantOpenErr      string
+	}{
+		{
+			name:   "returned handler is served on its own stream",
+			scheme: "fake",
+			open: func(context.Context) (browserapi.Handler, error) {
+				return browserapi.NopHandler(handler.Nop()), nil
+			},
+		},
+		{
+			name:   "handler error is returned",
+			scheme: "fake",
+			open: func(context.Context) (browserapi.Handler, error) {
+				return nil, errors.New("boom")
+			},
+			wantOpenErr: "boom",
+		},
+		{
+			name:   "no handler is an error",
+			scheme: "fake",
+			open: func(context.Context) (browserapi.Handler, error) {
+				return nil, nil
+			},
+			wantOpenErr: "resource opener returned no handler",
+		},
+		{
+			name:   "open cancel cancels the handler context",
+			scheme: "fake",
+			open: func(ctx context.Context) (browserapi.Handler, error) {
+				<-ctx.Done()
+				return nil, ctx.Err()
+			},
+			cancel:      true,
+			wantOpenErr: context.Canceled.Error(),
+		},
+		{
+			name:             "editor without resource openers",
+			scheme:           "fake",
+			subscribeErr:     status.Error(codes.Unimplemented, "unknown method"),
+			wantRegisterErr:  "recv subscribe resource opener response",
+			wantRegisterCode: codes.Unimplemented,
+		},
+		{
+			name:            "empty scheme",
+			wantRegisterErr: "empty scheme",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			calls := make(chan string, 1)
+			started := make(chan struct{})
+			h := openerFunc(func(
+				ctx context.Context, uri workspaceapi.URI,
+			) (browserapi.Handler, error) {
+				calls <- uri.String()
+				close(started)
+				return tt.open(ctx)
+			})
+
+			responses := make(chan *textrpc.ClientResourceOpenerMessage, 1)
+			impl := &testServer{
+				resourceOpenerRequests: make(
+					chan *textrpc.SubscribeResourceOpenerRequest, 1,
+				),
+				resourceOpenerErr:   tt.subscribeErr,
+				openResourceStreams: make(chan int64, 1),
+				onSubscribeResourceOpener: func(
+					stream grpc.BidiStreamingServer[
+						textrpc.ClientResourceOpenerMessage,
+						textrpc.ServerResourceOpenerMessage,
+					],
+				) error {
+					err := stream.Send(&textrpc.ServerResourceOpenerMessage{
+						Type: textrpc.ServerResourceOpenerMessage_Open,
+						Open: &textrpc.OpenResourceRequest{
+							Id:  openID,
+							Uri: &textrpc.URI{Uri: openURI},
+						},
+					})
+					if err != nil {
+						return err
+					}
+					if tt.cancel {
+						select {
+						case <-started:
+						case <-time.After(testTimeout):
+							return errors.New("handler did not start")
+						}
+						err = stream.Send(&textrpc.ServerResourceOpenerMessage{
+							Type:       textrpc.ServerResourceOpenerMessage_OpenCancel,
+							OpenCancel: &textrpc.RequestCancel{Id: openID},
+						})
+						if err != nil {
+							return err
+						}
+					}
+					if tt.wantOpenErr == "" {
+						// Success is only reported on the handler stream.
+						<-stream.Context().Done()
+						return nil
+					}
+					msg, err := stream.Recv()
+					if err != nil {
+						return err
+					}
+					responses <- msg
+					return nil
+				},
+			}
+			env := newTestEnv(t, impl)
+
+			err := env.client.RegisterResourceOpener(tt.scheme, h)
+			if tt.wantRegisterErr != "" {
+				require.ErrorContains(t, err, tt.wantRegisterErr)
+				if tt.wantRegisterCode != codes.OK {
+					assert.Equal(t, tt.wantRegisterCode, status.Code(err))
+				}
+				assert.Empty(t, calls)
+				return
+			}
+			require.NoError(t, err)
+
+			req := waitChan(t, impl.resourceOpenerRequests, testTimeout)
+			assert.Equal(t, tt.scheme, req.GetScheme())
+
+			assert.Equal(t, openURI, waitChan(t, calls, testTimeout))
+
+			if tt.wantOpenErr == "" {
+				id := waitChan(t, impl.openResourceStreams, testTimeout)
+				assert.Equal(t, openID, id)
+				assert.Empty(t, responses)
+				return
+			}
+			msg := waitChan(t, responses, testTimeout)
+			require.Equal(t,
+				textrpc.ClientResourceOpenerMessage_Open, msg.GetType())
+			assert.Equal(t, openID, msg.GetOpen().GetId())
+			assert.Equal(t, tt.wantOpenErr, msg.GetOpen().GetError())
+		})
+	}
 }

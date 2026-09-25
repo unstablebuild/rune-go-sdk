@@ -332,6 +332,46 @@ func (c *Client) RegisterREPLCommand(
 	return nil
 }
 
+// RegisterResourceOpener satisfies textapi.CommandRegistry.
+func (c *Client) RegisterResourceOpener(
+	scheme string, h textapi.ResourceOpenHandler,
+) error {
+	if scheme == "" {
+		return errors.New("register resource opener: empty scheme")
+	}
+	stream, err := c.ed.SubscribeResourceOpener(c.clientCtx)
+	if err != nil {
+		return err
+	}
+	sendMsg := ClientResourceOpenerMessage{
+		Type:    ClientResourceOpenerMessage_Request,
+		Request: &SubscribeResourceOpenerRequest{Scheme: scheme},
+	}
+	if err := stream.Send(&sendMsg); err != nil {
+		return fmt.Errorf(
+			"send subscribe resource opener request: %w", err,
+		)
+	}
+
+	var recvMsg ServerResourceOpenerMessage
+	if err := stream.RecvMsg(&recvMsg); err != nil {
+		return fmt.Errorf(
+			"recv subscribe resource opener response: %w", err,
+		)
+	}
+	if recvMsg.GetType() != ServerResourceOpenerMessage_Response ||
+		recvMsg.GetResponse() == nil {
+		return errors.New(
+			"recv subscribe resource opener response: nil response",
+		)
+	}
+
+	srvStream := newResourceOpenerServerStream(c.clientCtx, stream, c.ed, h)
+	go debug.CapturePanicReport(srvStream.receiveMessages)
+
+	return nil
+}
+
 // Close closes all resources associated with this client.
 func (c *Client) Close() (ret error) {
 	if c.clientCancelCtx != nil {
