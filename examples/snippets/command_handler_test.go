@@ -440,6 +440,7 @@ func (m *fakeWM) Bar(browserapi.BarConfig, tui.Handler) error { return nil }
 func (m *fakeWM) Tab(workspaceapi.URI, rune, string, browserapi.Handler) (browserapi.Handler, error) {
 	return nil, nil
 }
+func (m *fakeWM) SetTabName(workspaceapi.URI, string) error { return nil }
 func (m *fakeWM) SetWindowContent(w browserapi.Window, h browserapi.Handler) error {
 	m.setContent = append(m.setContent, setContentCall{win: w, h: h})
 	return nil
