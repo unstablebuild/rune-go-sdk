@@ -122,6 +122,7 @@ service WindowManager {
 	rpc SetContent(stream WindowSetContentMessage) returns (stream handler.ServerMessage) {};
 	rpc CloseWindow(WindowCloseRequest) returns (WindowCloseResponse);
 	rpc SetTabActivity(SetTabActivityRequest) returns (SetTabActivityResponse);
+	rpc SetTabName(SetTabNameRequest) returns (SetTabNameResponse);
 }
 
 message WindowCloseRequest {
@@ -129,6 +130,14 @@ message WindowCloseRequest {
 }
 
 message WindowCloseResponse {
+}
+
+message SetTabNameRequest {
+	string resource_id = 1;
+	string name = 2;
+}
+
+message SetTabNameResponse {
 }
 
 message WindowSetContentRequest {

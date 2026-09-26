@@ -119,6 +119,11 @@ type WindowManager interface {
 	// the tab and on the workspace that owns it. The mark is dropped when
 	// the tab closes. This method is idempotent.
 	SetTabActivity(uri workspaceapi.URI, active bool) error
+
+	// SetTabName sets the label shown in the tab bar for the tab identified
+	// by uri. The name applies while the tab stays open; it is dropped when
+	// the tab closes.
+	SetTabName(uri workspaceapi.URI, name string) error
 }
 
 // FloatingConfig abstracts configuration for
