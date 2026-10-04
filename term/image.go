@@ -94,6 +94,18 @@ type Image struct {
 	// applies, and the writer that owns the drawing surface still clips
 	// the placement to the surface.
 	Overflow bool
+	// VerticalRenderOffset moves the placement down with the cells that
+	// carry AttrVerticalRenderOffset, the way those cells are moved, so
+	// that it stays aligned with them whatever cells it covers. Writers
+	// that do not move those cells ignore it.
+	VerticalRenderOffset bool
+	// NegativeVerticalRenderOffset moves the placement up with the cells
+	// that carry AttrNegativeVerticalRenderOffset, the way those cells
+	// are moved, so that it stays aligned with them whatever cells it
+	// covers. It is ignored when VerticalRenderOffset is set, as the
+	// attribute is for a cell that carries both. Writers that do not
+	// move those cells ignore it.
+	NegativeVerticalRenderOffset bool
 }
 
 // Bounds returns the placement's cell rectangle, ignoring Clip.
