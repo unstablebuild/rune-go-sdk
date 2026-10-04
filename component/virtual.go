@@ -107,9 +107,11 @@ func (w *VirtualWriter) Context() context.Context {
 
 // DrawImage satisfies term.Writer.
 func (w *VirtualWriter) DrawImage(img term.Image) bool {
-	img, ok := img.Clipped(image.Rect(0, 0, w.Width, w.Height))
-	if !ok {
-		return true
+	if !img.Overflow {
+		var ok bool
+		if img, ok = img.Clipped(image.Rect(0, 0, w.Width, w.Height)); !ok {
+			return true
+		}
 	}
 	return w.Writer.DrawImage(img.Translated(w.Offset))
 }

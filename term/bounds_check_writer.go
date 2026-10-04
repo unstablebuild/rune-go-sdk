@@ -47,9 +47,11 @@ func (p boundsCheckWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 }
 
 func (p boundsCheckWriter) DrawImage(img Image) bool {
-	img, ok := img.Clipped(image.Rect(0, 0, p.width, p.height))
-	if !ok {
-		return true
+	if !img.Overflow {
+		var ok bool
+		if img, ok = img.Clipped(image.Rect(0, 0, p.width, p.height)); !ok {
+			return true
+		}
 	}
 	return p.w.DrawImage(img)
 }

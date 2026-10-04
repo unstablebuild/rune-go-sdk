@@ -152,6 +152,59 @@ func TestVirtualWriterDrawImage(t *testing.T) {
 			expectedPos: term.Coordinates{},
 			expectedVis: image.Rect(0, 0, 2, 2),
 		},
+		{
+			name:   "overflow is translated without clipping",
+			offset: term.Coordinates{X: 10, Y: 10},
+			img: term.Image{
+				Pos: term.Coordinates{X: 2, Y: 2}, Width: 8, Height: 8, Overflow: true,
+			},
+			graphic:     true,
+			expectedOK:  true,
+			expectedPos: term.Coordinates{X: 12, Y: 12},
+			expectedVis: image.Rect(12, 12, 20, 20),
+		},
+		{
+			name:   "overflow outside the viewport is forwarded",
+			offset: term.Coordinates{X: 5, Y: 5},
+			img: term.Image{
+				Pos: term.Coordinates{X: 9, Y: 9}, Width: 2, Height: 2, Overflow: true,
+			},
+			graphic:     true,
+			expectedOK:  true,
+			expectedPos: term.Coordinates{X: 14, Y: 14},
+			expectedVis: image.Rect(14, 14, 16, 16),
+		},
+		{
+			name:   "overflow above and left of the viewport is forwarded",
+			offset: term.Coordinates{X: 1, Y: 1},
+			img: term.Image{
+				Pos: term.Coordinates{X: -3, Y: -2}, Width: 2, Height: 3, Overflow: true,
+			},
+			graphic:     true,
+			expectedOK:  true,
+			expectedPos: term.Coordinates{X: -2, Y: -1},
+			expectedVis: image.Rect(-2, -1, 0, 2),
+		},
+		{
+			name:   "overflow keeps its clip",
+			offset: term.Coordinates{X: 2, Y: 2},
+			img: term.Image{
+				Width: 8, Height: 8, Clip: image.Rect(1, 1, 6, 3), Overflow: true,
+			},
+			graphic:     true,
+			expectedOK:  true,
+			expectedPos: term.Coordinates{X: 2, Y: 2},
+			expectedVis: image.Rect(3, 3, 8, 5),
+		},
+		{
+			name:        "empty overflow reaches the wrapped writer",
+			offset:      term.Coordinates{X: 1, Y: 1},
+			img:         term.Image{Overflow: true},
+			graphic:     false,
+			expectedOK:  false,
+			expectedPos: term.Coordinates{X: 1, Y: 1},
+			expectedVis: image.Rect(1, 1, 1, 1),
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -181,6 +234,33 @@ func TestVirtualWriterDrawImage(t *testing.T) {
 			if vis := got.Visible(); vis != test.expectedVis {
 				t.Fatalf("Visible() = %v; expected %v", vis, test.expectedVis)
 			}
+			if got.Overflow != test.img.Overflow {
+				t.Fatalf("Overflow = %v; expected %v", got.Overflow, test.img.Overflow)
+			}
 		})
+	}
+}
+
+func TestVirtualWriterDrawImageOverflowNested(t *testing.T) {
+	rec := &imageRecorder{graphic: true}
+	outer := &VirtualWriter{Writer: rec, Offset: term.Coordinates{X: 10, Y: 20}, Width: 4, Height: 4}
+	inner := &VirtualWriter{Writer: outer, Offset: term.Coordinates{X: 1, Y: 2}, Width: 2, Height: 2}
+
+	ok := inner.DrawImage(term.Image{
+		Pos: term.Coordinates{X: 1, Y: 1}, Width: 6, Height: 5,
+		Clip: image.Rect(1, 1, 7, 6), Overflow: true,
+	})
+	if !ok {
+		t.Fatal("DrawImage() = false; expected true")
+	}
+	if len(rec.images) != 1 {
+		t.Fatalf("forwarded %d placements; expected 1", len(rec.images))
+	}
+	got := rec.images[0]
+	if want := (term.Coordinates{X: 12, Y: 23}); got.Pos != want {
+		t.Fatalf("Pos = %v; expected %v", got.Pos, want)
+	}
+	if want := image.Rect(12, 23, 18, 28); got.Visible() != want {
+		t.Fatalf("Visible() = %v; expected %v", got.Visible(), want)
 	}
 }

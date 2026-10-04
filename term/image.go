@@ -88,6 +88,12 @@ type Image struct {
 	// Clip is an absolute, right-exclusive cell rectangle the placement
 	// is confined to. The zero value is unclipped.
 	Clip image.Rectangle
+	// Overflow lets the placement extend past the bounds of the writers
+	// it is forwarded through, such as VirtualWriter and
+	// BoundsCheckWriter, which then only translate it. Clip still
+	// applies, and the writer that owns the drawing surface still clips
+	// the placement to the surface.
+	Overflow bool
 }
 
 // Bounds returns the placement's cell rectangle, ignoring Clip.

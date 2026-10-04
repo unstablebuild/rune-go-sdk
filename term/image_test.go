@@ -287,6 +287,37 @@ func TestBoundsCheckWriterDrawImage(t *testing.T) {
 			expectedOK:  false,
 			expectedVis: image.Rect(0, 0, 2, 2),
 		},
+		{
+			name:        "overflow past bounds is forwarded unclipped",
+			img:         Image{Pos: Coordinates{X: 6, Y: 3}, Width: 8, Height: 8, Overflow: true},
+			graphic:     true,
+			expectedOK:  true,
+			expectedVis: image.Rect(6, 3, 14, 11),
+		},
+		{
+			name:        "overflow fully outside is forwarded",
+			img:         Image{Pos: Coordinates{X: -4, Y: 20}, Width: 2, Height: 2, Overflow: true},
+			graphic:     true,
+			expectedOK:  true,
+			expectedVis: image.Rect(-4, 20, -2, 22),
+		},
+		{
+			name: "overflow keeps its clip",
+			img: Image{
+				Pos: Coordinates{X: 6, Y: 3}, Width: 8, Height: 8,
+				Clip: image.Rect(7, 2, 12, 5), Overflow: true,
+			},
+			graphic:     true,
+			expectedOK:  true,
+			expectedVis: image.Rect(7, 3, 12, 5),
+		},
+		{
+			name:        "empty overflow reaches the wrapped writer",
+			img:         Image{Overflow: true},
+			graphic:     false,
+			expectedOK:  false,
+			expectedVis: image.Rectangle{},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -307,6 +338,9 @@ func TestBoundsCheckWriterDrawImage(t *testing.T) {
 			}
 			if vis := rec.images[0].Visible(); vis != test.expectedVis {
 				t.Fatalf("Visible() = %v; expected %v", vis, test.expectedVis)
+			}
+			if got := rec.images[0].Overflow; got != test.img.Overflow {
+				t.Fatalf("Overflow = %v; expected %v", got, test.img.Overflow)
 			}
 		})
 	}
