@@ -74,10 +74,18 @@ type Image struct {
 	Crop image.Rectangle
 	// Pos is the top-left cell of the placement.
 	Pos Coordinates
-	// Offset shifts the raster from Pos by whole pixels, for placements
-	// that do not start on a cell boundary. The cell rectangle is not
-	// moved, so the raster is cut at its edges.
+	// Offset moves the whole placement, its cells included, right and
+	// down, or left and up when negative, by device pixels. Only the
+	// writer that owns the surface knows how many pixels a cell spans, so
+	// only it can tell which cells an offset placement ends up on: Bounds
+	// and Visible ignore Offset, and Clipped confines an offset placement
+	// through Clip alone, which Offset does not move.
 	Offset image.Point
+	// RasterOffset moves the raster within the placement's cells by
+	// device pixels, for placements that do not start on a cell boundary,
+	// such as the kitty graphics protocol's offset within a cell. The
+	// cells do not move, so the raster is cut at their edges.
+	RasterOffset image.Point
 	// Width and Height are the placement size in cells.
 	Width, Height int
 	// Fit selects how Src is scaled into the cell rectangle.
@@ -128,9 +136,21 @@ func (img Image) Visible() image.Rectangle {
 // Clipped narrows the placement's clip rectangle to r, reporting false
 // when nothing remains visible. A placement that is no longer visible is
 // returned with an empty cell rectangle, because the zero Clip means
-// unclipped and so cannot express an empty intersection.
+// unclipped and so cannot express an empty intersection. An offset
+// placement may be visible anywhere in its Clip, so it keeps all of r
+// that Clip allows, and is reported invisible only when that is empty or
+// it has no cells.
 func (img Image) Clipped(r image.Rectangle) (Image, bool) {
 	visible := img.Visible().Intersect(r)
+	if img.Offset != (image.Point{}) {
+		visible = r
+		if !img.Clip.Empty() {
+			visible = visible.Intersect(img.Clip)
+		}
+		if img.Bounds().Empty() {
+			visible = image.Rectangle{}
+		}
+	}
 	if visible.Empty() {
 		img.Width, img.Height = 0, 0
 		img.Clip = image.Rectangle{}

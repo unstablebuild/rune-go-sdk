@@ -166,6 +166,81 @@ func TestImageClipped(t *testing.T) {
 	}
 }
 
+func TestImageClippedOffset(t *testing.T) {
+	offset := image.Pt(3, -40)
+	tests := []struct {
+		name         string
+		img          Image
+		clip         image.Rectangle
+		expectedOK   bool
+		expectedClip image.Rectangle
+	}{
+		{
+			name:         "is confined to the clip without being cut to its cells",
+			img:          Image{Width: 4, Height: 4, Offset: offset},
+			clip:         image.Rect(2, -3, 10, 10),
+			expectedOK:   true,
+			expectedClip: image.Rect(2, -3, 10, 10),
+		},
+		{
+			name:         "is kept when the clip is disjoint from its cells",
+			img:          Image{Width: 2, Height: 2, Offset: offset},
+			clip:         image.Rect(4, 4, 6, 6),
+			expectedOK:   true,
+			expectedClip: image.Rect(4, 4, 6, 6),
+		},
+		{
+			name:         "narrows an existing clip",
+			img:          Image{Width: 2, Height: 2, Offset: offset, Clip: image.Rect(0, 0, 5, 5)},
+			clip:         image.Rect(3, 1, 9, 9),
+			expectedOK:   true,
+			expectedClip: image.Rect(3, 1, 5, 5),
+		},
+		{
+			name:       "is dropped when the clips are disjoint",
+			img:        Image{Width: 8, Height: 8, Offset: offset, Clip: image.Rect(0, 0, 2, 2)},
+			clip:       image.Rect(4, 4, 6, 6),
+			expectedOK: false,
+		},
+		{
+			name:       "is dropped by an empty clip",
+			img:        Image{Width: 2, Height: 2, Offset: offset},
+			clip:       image.Rectangle{},
+			expectedOK: false,
+		},
+		{
+			name:       "is dropped when it has no cells",
+			img:        Image{Offset: offset},
+			clip:       image.Rect(0, 0, 4, 4),
+			expectedOK: false,
+		},
+		{
+			name:         "only offset along y",
+			img:          Image{Width: 2, Height: 2, Offset: image.Pt(0, 3)},
+			clip:         image.Rect(0, 5, 2, 6),
+			expectedOK:   true,
+			expectedClip: image.Rect(0, 5, 2, 6),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, ok := test.img.Clipped(test.clip)
+			if ok != test.expectedOK {
+				t.Fatalf("Clipped() ok = %v; expected %v", ok, test.expectedOK)
+			}
+			if !ok {
+				return
+			}
+			if got.Clip != test.expectedClip {
+				t.Fatalf("Clip = %v; expected %v", got.Clip, test.expectedClip)
+			}
+			if got.Offset != test.img.Offset || got.Bounds() != test.img.Bounds() {
+				t.Fatalf("Clipped() moved the placement: %+v", got)
+			}
+		})
+	}
+}
+
 func TestImageTranslated(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -257,6 +332,7 @@ func TestBoundsCheckWriterDrawImage(t *testing.T) {
 		graphic       bool
 		expectedOK    bool
 		expectedVis   image.Rectangle
+		expectedClip  image.Rectangle
 		expectDropped bool
 	}{
 		{
@@ -318,6 +394,22 @@ func TestBoundsCheckWriterDrawImage(t *testing.T) {
 			expectedOK:  false,
 			expectedVis: image.Rectangle{},
 		},
+		{
+			name:         "offset is confined to bounds through its clip",
+			img:          Image{Pos: Coordinates{X: 6, Y: 3}, Width: 8, Height: 8, Offset: image.Pt(-30, 0)},
+			graphic:      true,
+			expectedOK:   true,
+			expectedVis:  image.Rect(6, 3, 8, 4),
+			expectedClip: image.Rect(0, 0, 8, 4),
+		},
+		{
+			name:         "offset outside bounds is forwarded",
+			img:          Image{Pos: Coordinates{X: 20, Y: 20}, Width: 2, Height: 2, Offset: image.Pt(-200, -400)},
+			graphic:      true,
+			expectedOK:   true,
+			expectedVis:  image.Rectangle{},
+			expectedClip: image.Rect(0, 0, 8, 4),
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -338,6 +430,9 @@ func TestBoundsCheckWriterDrawImage(t *testing.T) {
 			}
 			if vis := rec.images[0].Visible(); vis != test.expectedVis {
 				t.Fatalf("Visible() = %v; expected %v", vis, test.expectedVis)
+			}
+			if test.expectedClip != (image.Rectangle{}) && rec.images[0].Clip != test.expectedClip {
+				t.Fatalf("Clip = %v; expected %v", rec.images[0].Clip, test.expectedClip)
 			}
 			if got := rec.images[0].Overflow; got != test.img.Overflow {
 				t.Fatalf("Overflow = %v; expected %v", got, test.img.Overflow)

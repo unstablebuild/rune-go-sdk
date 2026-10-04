@@ -264,3 +264,33 @@ func TestVirtualWriterDrawImageOverflowNested(t *testing.T) {
 		t.Fatalf("Visible() = %v; expected %v", got.Visible(), want)
 	}
 }
+
+// TestVirtualWriterDrawImageOffset asserts an offset placement, whose
+// cells are not known, is confined to every viewport it is drawn through
+// by its clip alone, however far its own cells are from them.
+func TestVirtualWriterDrawImageOffset(t *testing.T) {
+	rec := &imageRecorder{graphic: true}
+	outer := &VirtualWriter{Writer: rec, Offset: term.Coordinates{X: 10, Y: 20}, Width: 6, Height: 4}
+	inner := &VirtualWriter{Writer: outer, Offset: term.Coordinates{X: 1, Y: 2}, Width: 8, Height: 8}
+	offset := image.Pt(-13, 46)
+
+	ok := inner.DrawImage(term.Image{
+		Pos: term.Coordinates{X: 20, Y: -9}, Width: 3, Height: 2, Offset: offset,
+	})
+	if !ok {
+		t.Fatal("DrawImage() = false; expected true")
+	}
+	if len(rec.images) != 1 {
+		t.Fatalf("forwarded %d placements; expected 1", len(rec.images))
+	}
+	got := rec.images[0]
+	if want := (term.Coordinates{X: 31, Y: 13}); got.Pos != want {
+		t.Fatalf("Pos = %v; expected %v", got.Pos, want)
+	}
+	if want := image.Rect(11, 22, 16, 24); got.Clip != want {
+		t.Fatalf("Clip = %v; expected %v", got.Clip, want)
+	}
+	if got.Offset != offset {
+		t.Fatalf("Offset = %v; expected %v", got.Offset, offset)
+	}
+}
