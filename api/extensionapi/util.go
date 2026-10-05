@@ -66,6 +66,8 @@ func PermissionForResource(resource string) (Permission, bool) {
 		return PermissionDebugger, true
 	case "llm.LLM":
 		return PermissionLLM, true
+	case "pkg.Packages":
+		return PermissionPackages, true
 	default:
 		return "", false
 	}

@@ -145,6 +145,12 @@ func TestPermissionForResource(t *testing.T) {
 			wantOK:   true,
 		},
 		{
+			name:     "Packages maps to packages",
+			resource: "/pkg.Packages/LibDir",
+			wantPerm: PermissionPackages,
+			wantOK:   true,
+		},
+		{
 			name:     "unknown service returns false",
 			resource: "/unknown.Service/Method",
 			wantPerm: "",

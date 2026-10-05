@@ -32,6 +32,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/debugapi/debugrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/llmapi"
 	"github.com/unstablebuild/rune-go-sdk/api/llmapi/llmrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/pkgapi"
+	"github.com/unstablebuild/rune-go-sdk/api/pkgapi/pkgrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
@@ -184,6 +186,15 @@ func (w *Workspace) LLM(ctx context.Context) llmapi.Service {
 // with DAP-compatible debuggers.
 func (w *Workspace) Debugger(ctx context.Context) debugapi.Debugger {
 	return debugrpc.NewClient(ctx, w.conn)
+}
+
+// Packages returns the Rune packages installed on the machine the
+// workspace is on, which may not be the machine the extension runs on.
+// Unlike FindInstalledExecutable, resolving a package that is not
+// installed may ask the user to install it. Extensions must have
+// PermissionPackages to access it.
+func (w *Workspace) Packages(_ context.Context) pkgapi.Manager {
+	return pkgrpc.NewClient(w.conn)
 }
 
 // Commands returns the workspace's command registry, which can

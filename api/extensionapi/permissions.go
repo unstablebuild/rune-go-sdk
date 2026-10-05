@@ -52,6 +52,10 @@ const (
 	PermissionDebugger Permission = "permdap"
 	// PermissionLLM requests access to host LLM completion services.
 	PermissionLLM Permission = "permllm"
+	// PermissionPackages requests access to the Rune packages installed
+	// on the workspace host. Resolving a package that is not installed
+	// may ask the user to install it there.
+	PermissionPackages Permission = "permpkg"
 )
 
 // Permissions is a set of Permission.
@@ -84,5 +88,6 @@ func AllPermissions() Permissions {
 		PermissionLSP:                   nil,
 		PermissionDebugger:              nil,
 		PermissionLLM:                   nil,
+		PermissionPackages:              nil,
 	}
 }
