@@ -73,6 +73,13 @@ func (c *Client) CloseWindow(win browserapi.Window) error {
 	return err
 }
 
+// SetTabName satisfies browser.WindowManager.
+func (c *Client) SetTabName(uri workspaceapi.URI, name string) error {
+	req := SetTabNameRequest{ResourceId: uri.String(), Name: name}
+	_, err := c.wm.SetTabName(c.clientCtx, &req)
+	return err
+}
+
 // SetWindowContent satisfies browserapi.Browser.
 func (c *Client) SetWindowContent(win browserapi.Window, h browserapi.Handler) error {
 	stream, err := c.wm.SetContent(c.clientCtx)
