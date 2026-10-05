@@ -17,10 +17,38 @@ package retry
 import (
 	"context"
 	"errors"
+	"math"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestExponentialStrategy(t *testing.T) {
+	tests := []struct {
+		name     string
+		min, max time.Duration
+		count    uint
+		want     time.Duration
+	}{
+		{"first retry sleeps min", 100 * time.Millisecond, 5 * time.Second, 1, 100 * time.Millisecond},
+		{"doubles per retry", 100 * time.Millisecond, 5 * time.Second, 4, 800 * time.Millisecond},
+		{"caps at max", 100 * time.Millisecond, 5 * time.Second, 10, 5 * time.Second},
+		{"stays at max past the int64 range", 100 * time.Millisecond, 5 * time.Second, 38, 5 * time.Second},
+		{"stays at max past the float64 range", 100 * time.Millisecond, 5 * time.Second, 2000, 5 * time.Second},
+		{"stays at max at the largest count", 100 * time.Millisecond, 5 * time.Second, math.MaxUint, 5 * time.Second},
+		{"max near the duration limit", time.Second, math.MaxInt64, 100, math.MaxInt64},
+		{"min above max sleeps max", time.Minute, time.Second, 1, time.Second},
+		{"zero min never sleeps", 0, time.Second, 50, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			sleep, stop := ExponentialStrategy(tc.min, tc.max)(tc.count)
+			assert.Equal(t, tc.want, sleep)
+			assert.False(t, stop)
+		})
+	}
+}
 
 func TestRetryErrorValue(t *testing.T) {
 	t.Run("returns error as is if retry was set to false since the start", func(t *testing.T) {

@@ -17,7 +17,6 @@ package retry
 import (
 	"context"
 	"errors"
-	"math"
 	"time"
 )
 
@@ -39,10 +38,20 @@ func LimitStrategy(limit uint) Strategy {
 }
 
 // ExponentialStrategy returns a retry strategy that never stops but increments
-// the sleep time from min to max in power of 2 increments.
+// the sleep time from min to max in power of 2 increments. A min of zero or
+// less never sleeps.
 func ExponentialStrategy(min, max time.Duration) Strategy {
 	return func(count uint) (sleep time.Duration, stop bool) {
-		sleep = time.Duration(math.Pow(2, float64(count-1))) * min
+		sleep = min
+		for i := uint(1); i < count && sleep > 0 && sleep < max; i++ {
+			// Doubling past half of max would at best land on max and
+			// at worst wrap around into a negative, immediate retry.
+			if sleep > max/2 {
+				sleep = max
+				break
+			}
+			sleep *= 2
+		}
 		if sleep > max {
 			sleep = max
 		}
