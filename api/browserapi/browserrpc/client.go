@@ -271,6 +271,13 @@ func (c *Client) Open(resource workspaceapi.URI) (browserapi.Handler, error) {
 	return Token{URI: res.GetUri()}, err
 }
 
+// Show satisfies Browser.
+func (c *Client) Show(resource workspaceapi.URI) error {
+	req := ShowResourceRequest{Resource: resource.String()}
+	_, err := c.f.Show(context.Background(), &req)
+	return err
+}
+
 // PublishEventNone satisfies Browser.
 func (c *Client) PublishEventNone() error {
 	ctx := context.Background()
