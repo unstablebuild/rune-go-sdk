@@ -84,12 +84,16 @@ message FocusResponse {
 	uint64 window_id = 1;
 }
 
-message SetTabActivityRequest {
+message SetTabStatusRequest {
 	string resource_id = 1;
-	bool active = 2;
+	uint32 state = 2;
+	uint32 kind = 3;
+	// progress is a percentage from 0 to 100; -1 means indeterminate.
+	int32 progress = 4;
+	string message = 5;
 }
 
-message SetTabActivityResponse {
+message SetTabStatusResponse {
 }
 
 message PublishRequest {
@@ -121,7 +125,7 @@ service WindowManager {
 	rpc Tab(stream TabMessage) returns (stream handler.ServerMessage);
 	rpc SetContent(stream WindowSetContentMessage) returns (stream handler.ServerMessage) {};
 	rpc CloseWindow(WindowCloseRequest) returns (WindowCloseResponse);
-	rpc SetTabActivity(SetTabActivityRequest) returns (SetTabActivityResponse);
+	rpc SetTabStatus(SetTabStatusRequest) returns (SetTabStatusResponse);
 }
 
 message WindowCloseRequest {

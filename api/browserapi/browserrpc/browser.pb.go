@@ -795,28 +795,32 @@ func (x *FocusResponse) GetWindowId() uint64 {
 	return 0
 }
 
-type SetTabActivityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ResourceId    string                 `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
-	Active        bool                   `protobuf:"varint,2,opt,name=active,proto3" json:"active,omitempty"`
+type SetTabStatusRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ResourceId string                 `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	State      uint32                 `protobuf:"varint,2,opt,name=state,proto3" json:"state,omitempty"`
+	Kind       uint32                 `protobuf:"varint,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	// progress is a percentage from 0 to 100; -1 means indeterminate.
+	Progress      int32  `protobuf:"varint,4,opt,name=progress,proto3" json:"progress,omitempty"`
+	Message       string `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SetTabActivityRequest) Reset() {
-	*x = SetTabActivityRequest{}
+func (x *SetTabStatusRequest) Reset() {
+	*x = SetTabStatusRequest{}
 	mi := &file_browserrpc_browser_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SetTabActivityRequest) String() string {
+func (x *SetTabStatusRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SetTabActivityRequest) ProtoMessage() {}
+func (*SetTabStatusRequest) ProtoMessage() {}
 
-func (x *SetTabActivityRequest) ProtoReflect() protoreflect.Message {
+func (x *SetTabStatusRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_browserrpc_browser_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -828,45 +832,66 @@ func (x *SetTabActivityRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SetTabActivityRequest.ProtoReflect.Descriptor instead.
-func (*SetTabActivityRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetTabStatusRequest.ProtoReflect.Descriptor instead.
+func (*SetTabStatusRequest) Descriptor() ([]byte, []int) {
 	return file_browserrpc_browser_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *SetTabActivityRequest) GetResourceId() string {
+func (x *SetTabStatusRequest) GetResourceId() string {
 	if x != nil {
 		return x.ResourceId
 	}
 	return ""
 }
 
-func (x *SetTabActivityRequest) GetActive() bool {
+func (x *SetTabStatusRequest) GetState() uint32 {
 	if x != nil {
-		return x.Active
+		return x.State
 	}
-	return false
+	return 0
 }
 
-type SetTabActivityResponse struct {
+func (x *SetTabStatusRequest) GetKind() uint32 {
+	if x != nil {
+		return x.Kind
+	}
+	return 0
+}
+
+func (x *SetTabStatusRequest) GetProgress() int32 {
+	if x != nil {
+		return x.Progress
+	}
+	return 0
+}
+
+func (x *SetTabStatusRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type SetTabStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SetTabActivityResponse) Reset() {
-	*x = SetTabActivityResponse{}
+func (x *SetTabStatusResponse) Reset() {
+	*x = SetTabStatusResponse{}
 	mi := &file_browserrpc_browser_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SetTabActivityResponse) String() string {
+func (x *SetTabStatusResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SetTabActivityResponse) ProtoMessage() {}
+func (*SetTabStatusResponse) ProtoMessage() {}
 
-func (x *SetTabActivityResponse) ProtoReflect() protoreflect.Message {
+func (x *SetTabStatusResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_browserrpc_browser_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -878,8 +903,8 @@ func (x *SetTabActivityResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SetTabActivityResponse.ProtoReflect.Descriptor instead.
-func (*SetTabActivityResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetTabStatusResponse.ProtoReflect.Descriptor instead.
+func (*SetTabStatusResponse) Descriptor() ([]byte, []int) {
 	return file_browserrpc_browser_proto_rawDescGZIP(), []int{14}
 }
 
@@ -1733,12 +1758,15 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"\rresource_icon\x18\x03 \x01(\tR\fresourceIcon\"\x0e\n" +
 	"\fFocusRequest\",\n" +
 	"\rFocusResponse\x12\x1b\n" +
-	"\twindow_id\x18\x01 \x01(\x04R\bwindowId\"P\n" +
-	"\x15SetTabActivityRequest\x12\x1f\n" +
+	"\twindow_id\x18\x01 \x01(\x04R\bwindowId\"\x96\x01\n" +
+	"\x13SetTabStatusRequest\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +
-	"resourceId\x12\x16\n" +
-	"\x06active\x18\x02 \x01(\bR\x06active\"\x18\n" +
-	"\x16SetTabActivityResponse\"-\n" +
+	"resourceId\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\rR\x05state\x12\x12\n" +
+	"\x04kind\x18\x03 \x01(\rR\x04kind\x12\x1a\n" +
+	"\bprogress\x18\x04 \x01(\x05R\bprogress\x12\x18\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\"\x16\n" +
+	"\x14SetTabStatusResponse\"-\n" +
 	"\x0ePublishRequest\x12\x1b\n" +
 	"\x02ev\x18\x01 \x01(\v2\v.term.EventR\x02ev\"\x11\n" +
 	"\x0fPublishResponse\"1\n" +
@@ -1829,7 +1857,7 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"NotifyOnce\x12\x16.browser.NotifyRequest\x1a\x17.browser.NotifyResponse\x12u\n" +
 	"\x1aUpdateNotificationProgress\x12*.browser.UpdateNotificationProgressRequest\x1a+.browser.UpdateNotificationProgressResponse2N\n" +
 	"\x0eEventPublisher\x12<\n" +
-	"\aPublish\x12\x17.browser.PublishRequest\x1a\x18.browser.PublishResponse2\xb2\x04\n" +
+	"\aPublish\x12\x17.browser.PublishRequest\x1a\x18.browser.PublishResponse2\xac\x04\n" +
 	"\rWindowManager\x126\n" +
 	"\x05Focus\x12\x15.browser.FocusRequest\x1a\x16.browser.FocusResponse\x12B\n" +
 	"\x05Split\x12\x1b.browser.SplitWindowMessage\x1a\x16.handler.ServerMessage\"\x00(\x010\x01\x128\n" +
@@ -1838,8 +1866,8 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"\x03Tab\x12\x13.browser.TabMessage\x1a\x16.handler.ServerMessage(\x010\x01\x12L\n" +
 	"\n" +
 	"SetContent\x12 .browser.WindowSetContentMessage\x1a\x16.handler.ServerMessage\"\x00(\x010\x01\x12H\n" +
-	"\vCloseWindow\x12\x1b.browser.WindowCloseRequest\x1a\x1c.browser.WindowCloseResponse\x12Q\n" +
-	"\x0eSetTabActivity\x12\x1e.browser.SetTabActivityRequest\x1a\x1f.browser.SetTabActivityResponse2Q\n" +
+	"\vCloseWindow\x12\x1b.browser.WindowCloseRequest\x1a\x1c.browser.WindowCloseResponse\x12K\n" +
+	"\fSetTabStatus\x12\x1c.browser.SetTabStatusRequest\x1a\x1d.browser.SetTabStatusResponse2Q\n" +
 	"\bFloating\x12E\n" +
 	"\n" +
 	"Dimensions\x12\x1a.browser.DimensionsRequest\x1a\x1b.browser.DimensionsResponseB@Z>github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpcb\x06proto3"
@@ -1874,8 +1902,8 @@ var file_browserrpc_browser_proto_goTypes = []any{
 	(*TabRequest)(nil),                          // 12: browser.TabRequest
 	(*FocusRequest)(nil),                        // 13: browser.FocusRequest
 	(*FocusResponse)(nil),                       // 14: browser.FocusResponse
-	(*SetTabActivityRequest)(nil),               // 15: browser.SetTabActivityRequest
-	(*SetTabActivityResponse)(nil),              // 16: browser.SetTabActivityResponse
+	(*SetTabStatusRequest)(nil),                 // 15: browser.SetTabStatusRequest
+	(*SetTabStatusResponse)(nil),                // 16: browser.SetTabStatusResponse
 	(*PublishRequest)(nil),                      // 17: browser.PublishRequest
 	(*PublishResponse)(nil),                     // 18: browser.PublishResponse
 	(*WindowCloseRequest)(nil),                  // 19: browser.WindowCloseRequest
@@ -1959,7 +1987,7 @@ var file_browserrpc_browser_proto_depIdxs = []int32{
 	28, // 56: browser.WindowManager.Tab:input_type -> browser.TabMessage
 	27, // 57: browser.WindowManager.SetContent:input_type -> browser.WindowSetContentMessage
 	19, // 58: browser.WindowManager.CloseWindow:input_type -> browser.WindowCloseRequest
-	15, // 59: browser.WindowManager.SetTabActivity:input_type -> browser.SetTabActivityRequest
+	15, // 59: browser.WindowManager.SetTabStatus:input_type -> browser.SetTabStatusRequest
 	22, // 60: browser.Floating.Dimensions:input_type -> browser.DimensionsRequest
 	3,  // 61: browser.ResourceOpener.Open:output_type -> browser.OpenResourceResponse
 	5,  // 62: browser.Notifications.Notify:output_type -> browser.NotifyResponse
@@ -1973,7 +2001,7 @@ var file_browserrpc_browser_proto_depIdxs = []int32{
 	38, // 70: browser.WindowManager.Tab:output_type -> handler.ServerMessage
 	38, // 71: browser.WindowManager.SetContent:output_type -> handler.ServerMessage
 	20, // 72: browser.WindowManager.CloseWindow:output_type -> browser.WindowCloseResponse
-	16, // 73: browser.WindowManager.SetTabActivity:output_type -> browser.SetTabActivityResponse
+	16, // 73: browser.WindowManager.SetTabStatus:output_type -> browser.SetTabStatusResponse
 	23, // 74: browser.Floating.Dimensions:output_type -> browser.DimensionsResponse
 	61, // [61:75] is the sub-list for method output_type
 	47, // [47:61] is the sub-list for method input_type

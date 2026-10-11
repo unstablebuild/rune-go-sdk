@@ -402,14 +402,14 @@ var EventPublisher_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	WindowManager_Focus_FullMethodName          = "/browser.WindowManager/Focus"
-	WindowManager_Split_FullMethodName          = "/browser.WindowManager/Split"
-	WindowManager_Bar_FullMethodName            = "/browser.WindowManager/Bar"
-	WindowManager_Floating_FullMethodName       = "/browser.WindowManager/Floating"
-	WindowManager_Tab_FullMethodName            = "/browser.WindowManager/Tab"
-	WindowManager_SetContent_FullMethodName     = "/browser.WindowManager/SetContent"
-	WindowManager_CloseWindow_FullMethodName    = "/browser.WindowManager/CloseWindow"
-	WindowManager_SetTabActivity_FullMethodName = "/browser.WindowManager/SetTabActivity"
+	WindowManager_Focus_FullMethodName        = "/browser.WindowManager/Focus"
+	WindowManager_Split_FullMethodName        = "/browser.WindowManager/Split"
+	WindowManager_Bar_FullMethodName          = "/browser.WindowManager/Bar"
+	WindowManager_Floating_FullMethodName     = "/browser.WindowManager/Floating"
+	WindowManager_Tab_FullMethodName          = "/browser.WindowManager/Tab"
+	WindowManager_SetContent_FullMethodName   = "/browser.WindowManager/SetContent"
+	WindowManager_CloseWindow_FullMethodName  = "/browser.WindowManager/CloseWindow"
+	WindowManager_SetTabStatus_FullMethodName = "/browser.WindowManager/SetTabStatus"
 )
 
 // WindowManagerClient is the client API for WindowManager service.
@@ -423,7 +423,7 @@ type WindowManagerClient interface {
 	Tab(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TabMessage, handlerrpc.ServerMessage], error)
 	SetContent(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[WindowSetContentMessage, handlerrpc.ServerMessage], error)
 	CloseWindow(ctx context.Context, in *WindowCloseRequest, opts ...grpc.CallOption) (*WindowCloseResponse, error)
-	SetTabActivity(ctx context.Context, in *SetTabActivityRequest, opts ...grpc.CallOption) (*SetTabActivityResponse, error)
+	SetTabStatus(ctx context.Context, in *SetTabStatusRequest, opts ...grpc.CallOption) (*SetTabStatusResponse, error)
 }
 
 type windowManagerClient struct {
@@ -519,10 +519,10 @@ func (c *windowManagerClient) CloseWindow(ctx context.Context, in *WindowCloseRe
 	return out, nil
 }
 
-func (c *windowManagerClient) SetTabActivity(ctx context.Context, in *SetTabActivityRequest, opts ...grpc.CallOption) (*SetTabActivityResponse, error) {
+func (c *windowManagerClient) SetTabStatus(ctx context.Context, in *SetTabStatusRequest, opts ...grpc.CallOption) (*SetTabStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SetTabActivityResponse)
-	err := c.cc.Invoke(ctx, WindowManager_SetTabActivity_FullMethodName, in, out, cOpts...)
+	out := new(SetTabStatusResponse)
+	err := c.cc.Invoke(ctx, WindowManager_SetTabStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -540,7 +540,7 @@ type WindowManagerServer interface {
 	Tab(grpc.BidiStreamingServer[TabMessage, handlerrpc.ServerMessage]) error
 	SetContent(grpc.BidiStreamingServer[WindowSetContentMessage, handlerrpc.ServerMessage]) error
 	CloseWindow(context.Context, *WindowCloseRequest) (*WindowCloseResponse, error)
-	SetTabActivity(context.Context, *SetTabActivityRequest) (*SetTabActivityResponse, error)
+	SetTabStatus(context.Context, *SetTabStatusRequest) (*SetTabStatusResponse, error)
 	mustEmbedUnimplementedWindowManagerServer()
 }
 
@@ -572,8 +572,8 @@ func (UnimplementedWindowManagerServer) SetContent(grpc.BidiStreamingServer[Wind
 func (UnimplementedWindowManagerServer) CloseWindow(context.Context, *WindowCloseRequest) (*WindowCloseResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseWindow not implemented")
 }
-func (UnimplementedWindowManagerServer) SetTabActivity(context.Context, *SetTabActivityRequest) (*SetTabActivityResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetTabActivity not implemented")
+func (UnimplementedWindowManagerServer) SetTabStatus(context.Context, *SetTabStatusRequest) (*SetTabStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetTabStatus not implemented")
 }
 func (UnimplementedWindowManagerServer) mustEmbedUnimplementedWindowManagerServer() {}
 func (UnimplementedWindowManagerServer) testEmbeddedByValue()                       {}
@@ -667,20 +667,20 @@ func _WindowManager_CloseWindow_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WindowManager_SetTabActivity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetTabActivityRequest)
+func _WindowManager_SetTabStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetTabStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WindowManagerServer).SetTabActivity(ctx, in)
+		return srv.(WindowManagerServer).SetTabStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: WindowManager_SetTabActivity_FullMethodName,
+		FullMethod: WindowManager_SetTabStatus_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WindowManagerServer).SetTabActivity(ctx, req.(*SetTabActivityRequest))
+		return srv.(WindowManagerServer).SetTabStatus(ctx, req.(*SetTabStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -701,8 +701,8 @@ var WindowManager_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WindowManager_CloseWindow_Handler,
 		},
 		{
-			MethodName: "SetTabActivity",
-			Handler:    _WindowManager_SetTabActivity_Handler,
+			MethodName: "SetTabStatus",
+			Handler:    _WindowManager_SetTabStatus_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

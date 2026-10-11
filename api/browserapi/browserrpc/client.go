@@ -310,10 +310,16 @@ func (c *Client) Focus() (browserapi.Window, error) {
 	return win, err
 }
 
-// SetTabActivity satisfies browser.WindowManager.
-func (c *Client) SetTabActivity(uri workspaceapi.URI, active bool) error {
-	req := SetTabActivityRequest{ResourceId: uri.String(), Active: active}
-	_, err := c.wm.SetTabActivity(c.clientCtx, &req)
+// SetTabStatus satisfies browser.WindowManager.
+func (c *Client) SetTabStatus(uri workspaceapi.URI, status browserapi.TabStatus) error {
+	req := SetTabStatusRequest{
+		ResourceId: uri.String(),
+		State:      uint32(status.State),
+		Kind:       uint32(status.Kind),
+		Progress:   int32(status.Progress),
+		Message:    status.Message,
+	}
+	_, err := c.wm.SetTabStatus(c.clientCtx, &req)
 	return err
 }
 

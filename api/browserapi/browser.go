@@ -114,11 +114,55 @@ type WindowManager interface {
 	// Close closes the given window.
 	CloseWindow(Window) error
 
-	// SetTabActivity marks the tab identified by uri as having work in
-	// progress or as idle. The host decides how activity is rendered on
-	// the tab and on the workspace that owns it. The mark is dropped when
-	// the tab closes. This method is idempotent.
-	SetTabActivity(uri workspaceapi.URI, active bool) error
+	// SetTabStatus reports what the program behind the tab identified by
+	// uri is doing. The host decides how the status is rendered on the
+	// tab and on the workspace that owns it. The status is dropped when
+	// the tab closes. Reporting TabIdle clears any previous status. This
+	// method is idempotent.
+	SetTabStatus(uri workspaceapi.URI, status TabStatus) error
+}
+
+// TabState is what the program behind a tab is doing.
+type TabState uint8
+
+const (
+	// TabIdle is at rest, waiting for the user's next instruction.
+	TabIdle TabState = iota
+	// TabWorking is running. May carry progress.
+	TabWorking
+	// TabDone finished a piece of work the user has not seen yet.
+	TabDone
+	// TabBlocked cannot continue until the user does something.
+	TabBlocked
+	// TabError failed and stopped.
+	TabError
+)
+
+// TabBlockedKind says what a TabBlocked program is waiting for.
+type TabBlockedKind uint8
+
+const (
+	// TabKindNone is unspecified.
+	TabKindNone TabBlockedKind = iota
+	// TabKindPermission waits for approval to do something.
+	TabKindPermission
+	// TabKindQuestion waits for the user to type an answer.
+	TabKindQuestion
+	// TabKindAuth waits for a login, token, or credential.
+	TabKindAuth
+)
+
+// TabStatus is a program status report for a tab.
+type TabStatus struct {
+	State TabState
+	// Kind is only meaningful with TabBlocked.
+	Kind TabBlockedKind
+	// Progress is a percentage from 0 to 100, or -1 when indeterminate.
+	// Only meaningful with TabWorking and TabBlocked.
+	Progress int
+	// Message is one human-readable line: what the program is doing,
+	// waiting for, or finished.
+	Message string
 }
 
 // FloatingConfig abstracts configuration for
