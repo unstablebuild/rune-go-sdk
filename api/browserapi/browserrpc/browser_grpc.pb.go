@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ResourceOpener_Open_FullMethodName = "/browser.ResourceOpener/Open"
+	ResourceOpener_Show_FullMethodName = "/browser.ResourceOpener/Show"
 )
 
 // ResourceOpenerClient is the client API for ResourceOpener service.
@@ -28,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ResourceOpenerClient interface {
 	Open(ctx context.Context, in *OpenResourceRequest, opts ...grpc.CallOption) (*OpenResourceResponse, error)
+	Show(ctx context.Context, in *ShowResourceRequest, opts ...grpc.CallOption) (*ShowResourceResponse, error)
 }
 
 type resourceOpenerClient struct {
@@ -48,11 +50,22 @@ func (c *resourceOpenerClient) Open(ctx context.Context, in *OpenResourceRequest
 	return out, nil
 }
 
+func (c *resourceOpenerClient) Show(ctx context.Context, in *ShowResourceRequest, opts ...grpc.CallOption) (*ShowResourceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShowResourceResponse)
+	err := c.cc.Invoke(ctx, ResourceOpener_Show_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ResourceOpenerServer is the server API for ResourceOpener service.
 // All implementations must embed UnimplementedResourceOpenerServer
 // for forward compatibility.
 type ResourceOpenerServer interface {
 	Open(context.Context, *OpenResourceRequest) (*OpenResourceResponse, error)
+	Show(context.Context, *ShowResourceRequest) (*ShowResourceResponse, error)
 	mustEmbedUnimplementedResourceOpenerServer()
 }
 
@@ -65,6 +78,9 @@ type UnimplementedResourceOpenerServer struct{}
 
 func (UnimplementedResourceOpenerServer) Open(context.Context, *OpenResourceRequest) (*OpenResourceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Open not implemented")
+}
+func (UnimplementedResourceOpenerServer) Show(context.Context, *ShowResourceRequest) (*ShowResourceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Show not implemented")
 }
 func (UnimplementedResourceOpenerServer) mustEmbedUnimplementedResourceOpenerServer() {}
 func (UnimplementedResourceOpenerServer) testEmbeddedByValue()                        {}
@@ -105,6 +121,24 @@ func _ResourceOpener_Open_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ResourceOpener_Show_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShowResourceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceOpenerServer).Show(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ResourceOpener_Show_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceOpenerServer).Show(ctx, req.(*ShowResourceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ResourceOpener_ServiceDesc is the grpc.ServiceDesc for ResourceOpener service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,6 +149,10 @@ var ResourceOpener_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Open",
 			Handler:    _ResourceOpener_Open_Handler,
+		},
+		{
+			MethodName: "Show",
+			Handler:    _ResourceOpener_Show_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

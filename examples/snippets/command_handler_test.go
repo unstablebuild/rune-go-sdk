@@ -414,6 +414,8 @@ func (o *fakeOpener) Open(uri workspaceapi.URI) (browserapi.Handler, error) {
 	return o.handle, nil
 }
 
+func (o *fakeOpener) Show(workspaceapi.URI) error { return nil }
+
 // fakeWindow is a minimal browserapi.Window.
 type fakeWindow struct{ id uint64 }
 

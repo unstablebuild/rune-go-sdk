@@ -219,12 +219,16 @@ type Notifications interface {
 	UpdateNotificationProgress(id, message string, progress, total int64) error
 }
 
-// ResourceOpener is the interface that wraps the method Open.
+// ResourceOpener is the interface that wraps the methods Open and Show.
 type ResourceOpener interface {
-	// Opens the resource with a given uri as a tab, using the underlying
+	// Open opens the file with the given uri as a tab, using the underlying
 	// workspaceapi.FileSystem, but doesn't switch the focus of the current
 	// window in focus to it. That can be accomplished via WindowManager.SetWindowContent.
 	Open(resource workspaceapi.URI) (Handler, error)
+
+	// Show shows the resource as read-only to the user. The user configures how these are
+	// shown, so the content might or might not end up in a tab.
+	Show(resource workspaceapi.URI) error
 }
 
 // EventPublisher is the interface that wraps the method Interrupt.
