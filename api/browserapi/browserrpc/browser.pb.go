@@ -803,6 +803,8 @@ type SetTabStatusRequest struct {
 	// progress is a percentage from 0 to 100; -1 means indeterminate.
 	Progress      int32  `protobuf:"varint,4,opt,name=progress,proto3" json:"progress,omitempty"`
 	Message       string `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
+	Id            string `protobuf:"bytes,6,opt,name=id,proto3" json:"id,omitempty"`
+	Title         string `protobuf:"bytes,7,opt,name=title,proto3" json:"title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -868,6 +870,20 @@ func (x *SetTabStatusRequest) GetProgress() int32 {
 func (x *SetTabStatusRequest) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *SetTabStatusRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SetTabStatusRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
 	}
 	return ""
 }
@@ -1758,14 +1774,16 @@ const file_browserrpc_browser_proto_rawDesc = "" +
 	"\rresource_icon\x18\x03 \x01(\tR\fresourceIcon\"\x0e\n" +
 	"\fFocusRequest\",\n" +
 	"\rFocusResponse\x12\x1b\n" +
-	"\twindow_id\x18\x01 \x01(\x04R\bwindowId\"\x96\x01\n" +
+	"\twindow_id\x18\x01 \x01(\x04R\bwindowId\"\xbc\x01\n" +
 	"\x13SetTabStatusRequest\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +
 	"resourceId\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\rR\x05state\x12\x12\n" +
 	"\x04kind\x18\x03 \x01(\rR\x04kind\x12\x1a\n" +
 	"\bprogress\x18\x04 \x01(\x05R\bprogress\x12\x18\n" +
-	"\amessage\x18\x05 \x01(\tR\amessage\"\x16\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\x12\x0e\n" +
+	"\x02id\x18\x06 \x01(\tR\x02id\x12\x14\n" +
+	"\x05title\x18\a \x01(\tR\x05title\"\x16\n" +
 	"\x14SetTabStatusResponse\"-\n" +
 	"\x0ePublishRequest\x12\x1b\n" +
 	"\x02ev\x18\x01 \x01(\v2\v.term.EventR\x02ev\"\x11\n" +

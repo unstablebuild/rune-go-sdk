@@ -115,10 +115,10 @@ type WindowManager interface {
 	CloseWindow(Window) error
 
 	// SetTabStatus reports what the program behind the tab identified by
-	// uri is doing. The host decides how the status is rendered on the
-	// tab and on the workspace that owns it. The status is dropped when
-	// the tab closes. Reporting TabIdle clears any previous status. This
-	// method is idempotent.
+	// uri is doing. The report is attributed to the calling extension
+	// and replaces the record status.ID addresses. TabDone and TabError
+	// clear once the user sees them; every record is dropped when the
+	// tab closes. This method is idempotent.
 	SetTabStatus(uri workspaceapi.URI, status TabStatus) error
 }
 
@@ -136,6 +136,9 @@ const (
 	TabBlocked
 	// TabError failed and stopped.
 	TabError
+	// TabClear removes the record and those beneath it, or every record
+	// of the tab when TabStatus.ID is empty.
+	TabClear
 )
 
 // TabBlockedKind says what a TabBlocked program is waiting for.
@@ -154,14 +157,21 @@ const (
 
 // TabStatus is a program status report for a tab.
 type TabStatus struct {
+	// ID addresses one of the tab's records; empty is the root. Nested
+	// records are "/"-separated segments of [A-Za-z0-9_.+-], at most
+	// 32 bytes each, 8 levels and 128 bytes in all.
+	ID    string
 	State TabState
 	// Kind is only meaningful with TabBlocked.
 	Kind TabBlockedKind
 	// Progress is a percentage from 0 to 100, or -1 when indeterminate.
 	// Only meaningful with TabWorking and TabBlocked.
 	Progress int
-	// Message is one human-readable line: what the program is doing,
-	// waiting for, or finished.
+	// Title labels the record and may change with every report. At
+	// most 192 bytes.
+	Title string
+	// Message is told to the user when it changes, so report it once
+	// per event. At most 2048 bytes.
 	Message string
 }
 
