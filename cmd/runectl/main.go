@@ -37,6 +37,10 @@ var errNotInRune = errors.New( //nolint:staticcheck
 
 func main() {
 	if err := newRootCmd().Execute(); err != nil {
+		var exit exitError
+		if errors.As(err, &exit) {
+			os.Exit(exit.code)
+		}
 		fmt.Fprintf(os.Stderr, "runectl: %s\n", err)
 		os.Exit(1)
 	}
@@ -154,6 +158,7 @@ func newRootCmd() *cobra.Command {
 		newLSPCmd(a),
 		newLLMCmd(a),
 		newMCPCmd(a),
+		newStatusCmd(),
 	)
 
 	return cmd
