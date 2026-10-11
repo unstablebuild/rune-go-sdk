@@ -314,9 +314,11 @@ func (c *Client) Focus() (browserapi.Window, error) {
 func (c *Client) SetTabStatus(uri workspaceapi.URI, status browserapi.TabStatus) error {
 	req := SetTabStatusRequest{
 		ResourceId: uri.String(),
+		Id:         status.ID,
 		State:      uint32(status.State),
 		Kind:       uint32(status.Kind),
 		Progress:   int32(status.Progress),
+		Title:      status.Title,
 		Message:    status.Message,
 	}
 	_, err := c.wm.SetTabStatus(c.clientCtx, &req)

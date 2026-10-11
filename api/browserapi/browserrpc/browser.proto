@@ -91,6 +91,8 @@ message SetTabStatusRequest {
 	// progress is a percentage from 0 to 100; -1 means indeterminate.
 	int32 progress = 4;
 	string message = 5;
+	string id = 6;
+	string title = 7;
 }
 
 message SetTabStatusResponse {
