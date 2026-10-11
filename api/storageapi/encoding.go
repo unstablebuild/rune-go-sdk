@@ -70,13 +70,13 @@ func DerefUpdateValue(data reflect.Value) (any, error) {
 	for {
 		switch data.Kind() {
 		case reflect.Struct:
-			if prev.Kind() == reflect.Ptr {
+			if prev.Kind() == reflect.Pointer {
 				return prev.Interface(), nil
 			}
 			return nil, errors.New("only pointers to a struct or map values are allowed")
 		case reflect.Map:
 			return data.Interface(), nil
-		case reflect.Ptr:
+		case reflect.Pointer:
 			prev = data
 			data = data.Elem()
 		case reflect.Interface:
@@ -152,7 +152,7 @@ func SafeDecode(m docmarshal.Marshaler, rcv any, raw []byte) error {
 // decoded via Decode.
 func IsEncodeable(doc any) bool {
 	v := reflect.ValueOf(doc)
-	return (v.Kind() == reflect.Ptr || v.Kind() == reflect.Map) && !v.IsNil()
+	return (v.Kind() == reflect.Pointer || v.Kind() == reflect.Map) && !v.IsNil()
 }
 
 // ListIterator returns an iterator that iterates over docs.
@@ -277,7 +277,7 @@ func DerefCreateValue(data reflect.Value) (any, error) {
 		switch data.Kind() {
 		case reflect.Struct, reflect.Map:
 			return data.Interface(), nil
-		case reflect.Ptr:
+		case reflect.Pointer:
 			data = data.Elem()
 		case reflect.Interface:
 			if data.NumMethod() == 0 {
