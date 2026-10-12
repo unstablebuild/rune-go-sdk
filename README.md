@@ -241,6 +241,24 @@ go install github.com/unstablebuild/rune-go-sdk/cmd/runectl@latest
 runectl --help
 ```
 
+To publish a new runectl package version, choose a version independently of
+this SDK's Git tags (for example, `v1.1.3`). From the SDK root, with the local
+`deploy/bluectl/{prod,staging}/{os}-{arch}/config` matrix provisioned and
+`BLUE_PGP_KEY` and `BLUE_PGP_KEYRING` set, run:
+
+```bash
+make runectl-dist-version-test dist-tar-with-src
+RUNECTL_VERSION=v1.1.3 make runectl-staging-dist-linux-amd64
+RUNECTL_VERSION=v1.1.3 make runectl-prod-dist-all
+```
+
+`runectl-prod-dist-all` uploads Linux amd64/arm64 and Darwin amd64/arm64 in
+sequence; it must run on macOS with the configured `CODESIGN_IDENTITY` so the
+Darwin artifacts are signed. To publish only one platform, use the corresponding
+`runectl-prod-dist-{os}-{arch}` target. No notarization is required. The SDK Git
+tag and commit remain source metadata, not the runectl package version. Missing
+`RUNECTL_VERSION` aborts the upload.
+
 Command groups include:
 
 - `wm`: window management (focus, split, floating, set-content, close).

@@ -9,6 +9,7 @@
 
 bin
 target
+deploy
 
 # rune swap files
 *.swp
