@@ -15,11 +15,13 @@
 package llmrpc
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/llmapi"
+	"google.golang.org/protobuf/proto"
 )
 
 // schemaMarshaler is a test json.Marshaler used to feed a
@@ -80,6 +82,51 @@ func TestMessageReasoningBlocksProtoRoundTrip(t *testing.T) {
 			got := fromProtoMessage(ToProtoMessage(tt.msg))
 			assert.Equal(t, tt.msg.ReasoningBlocks, got.ReasoningBlocks)
 			assert.Equal(t, tt.msg, got)
+		})
+	}
+}
+
+func TestProviderItemsProtoRoundTrip(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		items []json.RawMessage
+	}{
+		{name: "absent"},
+		{
+			name: "ordered opaque items",
+			items: []json.RawMessage{
+				json.RawMessage(`{"type":"reasoning","encrypted_content":"opaque==","future_field":{"x":1}}`),
+				json.RawMessage(`{"type":"message","role":"assistant","content":[]}`),
+				json.RawMessage(`{"type":"function_call","call_id":"call_1","name":"read_file","arguments":"{}"}`),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			msg := llmapi.Message{
+				Role: llmapi.RoleAssistant, ReasoningContent: "summary", ProviderItems: tc.items,
+				ToolCalls: []llmapi.ToolCall{{ID: "call_1", Type: llmapi.ToolTypeFunction, Function: llmapi.FunctionCall{Name: "read_file", Arguments: "{}"}}},
+			}
+			t.Run("request", func(t *testing.T) {
+				wire, err := ToProtoRequest(llmapi.Request{Messages: []llmapi.Message{msg}})
+				require.NoError(t, err)
+				data, err := proto.Marshal(wire)
+				require.NoError(t, err)
+				var decoded Request
+				require.NoError(t, proto.Unmarshal(data, &decoded))
+				got, err := FromProtoRequest(&decoded)
+				require.NoError(t, err)
+				require.Equal(t, []llmapi.Message{msg}, got.Messages)
+			})
+			t.Run("response", func(t *testing.T) {
+				wire := ToProtoEvent(llmapi.Event{Type: llmapi.EventStreamDone, DoneData: &llmapi.DoneData{Message: msg}})
+				data, err := proto.Marshal(wire)
+				require.NoError(t, err)
+				var decoded Event
+				require.NoError(t, proto.Unmarshal(data, &decoded))
+				got := FromProtoEvent(&decoded)
+				require.NotNil(t, got.DoneData)
+				require.Equal(t, msg, got.DoneData.Message)
+			})
 		})
 	}
 }

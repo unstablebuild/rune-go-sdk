@@ -65,6 +65,8 @@ message Message {
 	string tool_call_id = 6;
 	string name = 7;
 	repeated ReasoningBlock reasoning_blocks = 8;
+	// Opaque JSON items required to replay stateless provider reasoning in order.
+	repeated bytes provider_items = 9;
 }
 
 message FunctionDefinition {

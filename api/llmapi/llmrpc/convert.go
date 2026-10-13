@@ -15,6 +15,7 @@
 package llmrpc
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"time"
@@ -203,6 +204,12 @@ func ToProtoMessage(m llmapi.Message) *Message {
 			}
 		}
 	}
+	if len(m.ProviderItems) > 0 {
+		out.ProviderItems = make([][]byte, len(m.ProviderItems))
+		for i, item := range m.ProviderItems {
+			out.ProviderItems[i] = bytes.Clone(item)
+		}
+	}
 	return out
 }
 
@@ -242,6 +249,12 @@ func fromProtoMessage(p *Message) llmapi.Message {
 				Signature: rb.GetSignature(),
 				Data:      rb.GetData(),
 			}
+		}
+	}
+	if items := p.GetProviderItems(); len(items) > 0 {
+		m.ProviderItems = make([]json.RawMessage, len(items))
+		for i, item := range items {
+			m.ProviderItems[i] = bytes.Clone(item)
 		}
 	}
 	return m

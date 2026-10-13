@@ -479,8 +479,10 @@ type Message struct {
 	ToolCallId       string                 `protobuf:"bytes,6,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
 	Name             string                 `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
 	ReasoningBlocks  []*ReasoningBlock      `protobuf:"bytes,8,rep,name=reasoning_blocks,json=reasoningBlocks,proto3" json:"reasoning_blocks,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Opaque JSON items required to replay stateless provider reasoning in order.
+	ProviderItems [][]byte `protobuf:"bytes,9,rep,name=provider_items,json=providerItems,proto3" json:"provider_items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Message) Reset() {
@@ -565,6 +567,13 @@ func (x *Message) GetName() string {
 func (x *Message) GetReasoningBlocks() []*ReasoningBlock {
 	if x != nil {
 		return x.ReasoningBlocks
+	}
+	return nil
+}
+
+func (x *Message) GetProviderItems() [][]byte {
+	if x != nil {
+		return x.ProviderItems
 	}
 	return nil
 }
@@ -1855,7 +1864,7 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x12\x1c\n" +
 	"\tsignature\x18\x03 \x01(\tR\tsignature\x12\x12\n" +
-	"\x04data\x18\x04 \x01(\tR\x04data\"\xca\x02\n" +
+	"\x04data\x18\x04 \x01(\tR\x04data\"\xf1\x02\n" +
 	"\aMessage\x12\x1d\n" +
 	"\x04role\x18\x01 \x01(\x0e2\t.llm.RoleR\x04role\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12+\n" +
@@ -1866,7 +1875,8 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\ftool_call_id\x18\x06 \x01(\tR\n" +
 	"toolCallId\x12\x12\n" +
 	"\x04name\x18\a \x01(\tR\x04name\x12>\n" +
-	"\x10reasoning_blocks\x18\b \x03(\v2\x13.llm.ReasoningBlockR\x0freasoningBlocks\"j\n" +
+	"\x10reasoning_blocks\x18\b \x03(\v2\x13.llm.ReasoningBlockR\x0freasoningBlocks\x12%\n" +
+	"\x0eprovider_items\x18\t \x03(\fR\rproviderItems\"j\n" +
 	"\x12FunctionDefinition\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1e\n" +
