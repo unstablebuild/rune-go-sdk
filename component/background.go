@@ -16,6 +16,7 @@ package component
 
 import (
 	"context"
+	"image"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
@@ -24,15 +25,13 @@ import (
 // Background represents a background Component. It wraps a tui.Component
 // to make sure that all cells are reset to cell, before comp is drawn.
 //
-// If cell.Ch is non-zero, then the Background overrides the underlying
-// component's attributes in calls to SetCell such that cell.Bg and
-// cell.Fg are always used.
+// If cell.Ch is non-zero, the cells comp draws keep only their character
+// and, when set, their foreground color, and take the rest from cell, so
+// comp is always drawn on cell's background.
 type Background struct {
 	root          tui.Component
 	width, height int
 	cell          term.Cell
-	buffer        [][]term.Cell
-	zero          []term.Cell
 }
 
 var _ Floating = (*Background)(nil)
@@ -64,26 +63,20 @@ func (b *Background) Resize(width, height int) {
 	b.width = width
 	b.height = height
 	b.root.Resize(width, height)
-	b.resizeCells(width, height)
 }
 
 // Draw satisfies tui.Component
 func (b *Background) Draw(w term.Writer) {
-	if b.cell.Ch == 0 {
-		for y := 0; y < b.height; y++ {
-			for x := 0; x < b.width; x++ {
-				w.SetCell(term.Coordinates{X: x, Y: y}, b.cell)
-			}
+	for y := 0; y < b.height; y++ {
+		for x := 0; x < b.width; x++ {
+			w.SetCell(term.Coordinates{X: x, Y: y}, b.cell)
 		}
+	}
+	if b.cell.Ch == 0 {
 		b.root.Draw(w)
 		return
 	}
-
-	writer := bgWriter{Background: b}
-
-	b.zeroCells()
-	b.root.Draw(&writer)
-	b.draw(w, b.buffer)
+	b.root.Draw(&bgWriter{Background: b, out: w})
 }
 
 // Content returns the inner component.
@@ -112,84 +105,55 @@ func (s *Background) Height(width int) int {
 	return s.root.(Responsive).Height(width)
 }
 
-func (b *Background) zeroCells() {
-	for i := 0; i < b.height; i++ {
-		copy(b.buffer[i], b.zero)
-	}
-}
-
-func (b *Background) resizeCells(width, height int) {
-	if cap(b.zero) >= width {
-		b.zero = b.zero[:width]
-		clear(b.zero)
-	} else {
-		b.zero = make([]term.Cell, width)
-	}
-	if cap(b.buffer) >= height {
-		b.buffer = b.buffer[:height]
-	} else {
-		b.buffer = make([][]term.Cell, height)
-	}
-	for i := range height {
-		if cap(b.buffer[i]) >= width {
-			b.buffer[i] = b.buffer[i][:width]
-		} else {
-			b.buffer[i] = make([]term.Cell, width)
-		}
-	}
-}
-
-func (b *Background) draw(w term.Writer, cells [][]term.Cell) {
-	for y := 0; y < b.height; y++ {
-		for x := 0; x < b.width; x++ {
-			cell := b.cell
-			if y < len(cells) && x < len(cells[y]) {
-				ocell := cells[y][x]
-				if ocell.Ch != 0 {
-					cell.Ch = ocell.Ch
-					cell.SetCombining(ocell.CombiningRunes())
-					cell.Width = ocell.Width
-				}
-				if ocell.Fg != 0 {
-					cell.Fg = ocell.Fg
-				}
-				// but no background
-			}
-			w.SetCell(term.Coordinates{X: x, Y: y}, cell)
-		}
-	}
-}
-
-// bgWriter satisfies term.Writer with a Buffer.
+// bgWriter draws a Background's component on out, the writer the
+// Background draws on, merging its cells with the Background's.
 type bgWriter struct {
 	*Background
-	ctx context.Context
+	out term.Writer
 }
 
 // SetCell satisfies term.Writer
 func (w *bgWriter) SetCell(pos term.Coordinates, c term.Cell) {
-	if pos.X >= w.width || pos.Y >= w.height || pos.X < 0 || pos.Y < 0 {
+	if w.outOfBounds(pos) {
 		return
 	}
-
-	w.buffer[pos.Y][pos.X] = c
+	cell := w.cell
+	if c.Ch != 0 {
+		cell.Ch = c.Ch
+		cell.SetCombining(c.CombiningRunes())
+		cell.Width = c.Width
+	}
+	if c.Fg != 0 {
+		cell.Fg = c.Fg
+	}
+	w.out.SetCell(pos, cell)
 }
 
-// UnionAttributes satisfies term.Writer
+// UnionAttributes satisfies term.Writer. Only the foreground color is
+// united, since the other attributes of the component's cells are the
+// Background's.
 func (w *bgWriter) UnionAttributes(pos term.Coordinates, attr term.Attributes) {
-	if pos.X >= w.width || pos.Y >= w.height || pos.X < 0 || pos.Y < 0 {
+	if w.outOfBounds(pos) {
 		return
 	}
-	w.buffer[pos.Y][pos.X].SetAttributes(term.AttributesUnion(
-		w.buffer[pos.Y][pos.X].Attributes(), attr))
+	w.out.UnionAttributes(pos, term.Attributes{Fg: attr.Fg})
 }
 
 func (w *bgWriter) Context() context.Context {
-	return w.ctx
+	return w.out.Context()
 }
 
-// DrawImage satisfies term.Writer. The background buffer carries cells
-// only, so callers draw a cell-based fallback instead.
-func (w *bgWriter) DrawImage(term.Image) bool {
-	return false
+// DrawImage satisfies term.Writer
+func (w *bgWriter) DrawImage(img term.Image) bool {
+	if !img.Overflow {
+		var ok bool
+		if img, ok = img.Clipped(image.Rect(0, 0, w.width, w.height)); !ok {
+			return true
+		}
+	}
+	return w.out.DrawImage(img)
+}
+
+func (w *bgWriter) outOfBounds(pos term.Coordinates) bool {
+	return pos.X >= w.width || pos.Y >= w.height || pos.X < 0 || pos.Y < 0
 }
