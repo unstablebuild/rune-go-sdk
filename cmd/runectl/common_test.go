@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -36,12 +37,14 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/term/termrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // testEnv contains all mock services and test configuration.
 type testEnv struct {
 	t        *testing.T
 	srv      *grpc.Server
+	rpcs     *rpcLog
 	socket   string
 	datadir  string
 	notif    *mockNotifications
@@ -66,7 +69,11 @@ func newTestEnv(t *testing.T) *testEnv {
 	lis, err := net.Listen("unix", sockPath)
 	require.NoError(t, err)
 
-	srv := grpc.NewServer()
+	rpcs := &rpcLog{}
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(rpcs.unary),
+		grpc.ChainStreamInterceptor(rpcs.stream),
+	)
 
 	notif := &mockNotifications{}
 	wm := &mockWindowManager{focusWindowID: 42}
@@ -98,7 +105,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Setenv("RUNE_TOKEN", "")
 
 	return &testEnv{
-		t: t, srv: srv, socket: sockPath,
+		t: t, srv: srv, rpcs: rpcs, socket: sockPath,
 		datadir: datadir, notif: notif, wm: wm,
 		opener: opener, scheme: scheme,
 		editor: ed, docStore: ds, syntax: syn,
@@ -132,6 +139,72 @@ func (e *testEnv) run(args ...string) (string, error) {
 	_ = r.Close()
 
 	return buf.String(), runErr
+}
+
+// rpcLog records the RPCs the test host serves.
+type rpcLog struct {
+	mu   sync.Mutex
+	rpcs []rpc
+}
+
+// rpc is one RPC the test host served.
+type rpc struct {
+	// method is the service and method, as in
+	// "LSP/Definition".
+	method string
+	req    proto.Message
+}
+
+func (l *rpcLog) add(fullMethod string, req any) {
+	service, method, _ := strings.Cut(strings.TrimPrefix(fullMethod, "/"), "/")
+	service = service[strings.LastIndex(service, ".")+1:]
+	m, _ := req.(proto.Message)
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.rpcs = append(l.rpcs, rpc{method: service + "/" + method, req: m})
+}
+
+// take returns the RPCs served since the last take.
+func (l *rpcLog) take() []rpc {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	out := l.rpcs
+	l.rpcs = nil
+	return out
+}
+
+func (l *rpcLog) unary(
+	ctx context.Context, req any,
+	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+) (any, error) {
+	l.add(info.FullMethod, req)
+	return handler(ctx, req)
+}
+
+func (l *rpcLog) stream(
+	srv any, ss grpc.ServerStream,
+	info *grpc.StreamServerInfo, handler grpc.StreamHandler,
+) error {
+	return handler(srv, &recordingStream{
+		ServerStream: ss, log: l, method: info.FullMethod,
+	})
+}
+
+// recordingStream records a streaming RPC with its first
+// request, which is the only one of a server stream.
+type recordingStream struct {
+	grpc.ServerStream
+	log    *rpcLog
+	method string
+	once   sync.Once
+}
+
+func (s *recordingStream) RecvMsg(m any) error {
+	err := s.ServerStream.RecvMsg(m)
+	if err == nil {
+		s.once.Do(func() { s.log.add(s.method, m) })
+	}
+	return err
 }
 
 // mockNotifications implements browserrpc.NotificationsServer.

@@ -25,6 +25,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
+	"github.com/unstablebuild/rune-go-sdk/cli/mcptools"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 )
 
@@ -60,60 +61,12 @@ func (a *app) getLSP(
 	return w.LSP(ctx), nil
 }
 
-type flatLocation struct {
-	URI       string `json:"uri"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-}
-
-func toFlatLocations(
-	locs []semanticapi.Location,
-) []flatLocation {
-	out := make([]flatLocation, len(locs))
-	for i, l := range locs {
-		out[i] = flatLocation{
-			URI:       l.URI,
-			StartLine: l.Range.Start.Line,
-			StartChar: l.Range.Start.Character,
-			EndLine:   l.Range.End.Line,
-			EndChar:   l.Range.End.Character,
-		}
-	}
-	return out
-}
-
-func toFlatLocationsFromResult(
-	result semanticapi.LocationResult,
-) []flatLocation {
-	var locs []semanticapi.Location
-	if result.Location != nil {
-		locs = []semanticapi.Location{*result.Location}
-	} else if len(result.Locations) > 0 {
-		locs = result.Locations
-	} else if len(result.LocationLinks) > 0 {
-		out := make([]flatLocation, len(result.LocationLinks))
-		for i, ll := range result.LocationLinks {
-			out[i] = flatLocation{
-				URI:       ll.TargetURI,
-				StartLine: ll.TargetRange.Start.Line,
-				StartChar: ll.TargetRange.Start.Character,
-				EndLine:   ll.TargetRange.End.Line,
-				EndChar:   ll.TargetRange.End.Character,
-			}
-		}
-		return out
-	}
-	return toFlatLocations(locs)
-}
-
 func printLocations(
 	ctx context.Context,
 	format string,
 	result semanticapi.LocationResult,
 ) error {
-	flat := toFlatLocationsFromResult(result)
+	flat := mcptools.ToFlatLocationsFromResult(result)
 	if format == "" {
 		for _, f := range flat {
 			fmt.Printf(
@@ -130,139 +83,6 @@ func printLocations(
 		"URI", "StartLine", "StartChar",
 		"EndLine", "EndChar",
 	})
-}
-
-func symbolKindString(k semanticapi.SymbolKind) string {
-	switch k {
-	case semanticapi.SymbolKindFile:
-		return "File"
-	case semanticapi.SymbolKindModule:
-		return "Module"
-	case semanticapi.SymbolKindNamespace:
-		return "Namespace"
-	case semanticapi.SymbolKindPackage:
-		return "Package"
-	case semanticapi.SymbolKindClass:
-		return "Class"
-	case semanticapi.SymbolKindMethod:
-		return "Method"
-	case semanticapi.SymbolKindProperty:
-		return "Property"
-	case semanticapi.SymbolKindField:
-		return "Field"
-	case semanticapi.SymbolKindConstructor:
-		return "Constructor"
-	case semanticapi.SymbolKindEnum:
-		return "Enum"
-	case semanticapi.SymbolKindInterface:
-		return "Interface"
-	case semanticapi.SymbolKindFunction:
-		return "Function"
-	case semanticapi.SymbolKindVariable:
-		return "Variable"
-	case semanticapi.SymbolKindConstant:
-		return "Constant"
-	case semanticapi.SymbolKindString:
-		return "String"
-	case semanticapi.SymbolKindNumber:
-		return "Number"
-	case semanticapi.SymbolKindBoolean:
-		return "Boolean"
-	case semanticapi.SymbolKindArray:
-		return "Array"
-	case semanticapi.SymbolKindObject:
-		return "Object"
-	case semanticapi.SymbolKindKey:
-		return "Key"
-	case semanticapi.SymbolKindNull:
-		return "Null"
-	case semanticapi.SymbolKindEnumMember:
-		return "EnumMember"
-	case semanticapi.SymbolKindStruct:
-		return "Struct"
-	case semanticapi.SymbolKindEvent:
-		return "Event"
-	case semanticapi.SymbolKindOperator:
-		return "Operator"
-	case semanticapi.SymbolKindTypeParameter:
-		return "TypeParameter"
-	default:
-		return fmt.Sprintf("Unknown(%d)", k)
-	}
-}
-
-func severityString(
-	s semanticapi.DiagnosticSeverity,
-) string {
-	switch s {
-	case semanticapi.DiagnosticSeverityError:
-		return "Error"
-	case semanticapi.DiagnosticSeverityWarning:
-		return "Warning"
-	case semanticapi.DiagnosticSeverityInformation:
-		return "Information"
-	case semanticapi.DiagnosticSeverityHint:
-		return "Hint"
-	default:
-		return fmt.Sprintf("Unknown(%d)", s)
-	}
-}
-
-func completionItemKindString(k semanticapi.CompletionItemKind) string {
-	switch k {
-	case semanticapi.CompletionItemKindText:
-		return "Text"
-	case semanticapi.CompletionItemKindMethod:
-		return "Method"
-	case semanticapi.CompletionItemKindFunction:
-		return "Function"
-	case semanticapi.CompletionItemKindConstructor:
-		return "Constructor"
-	case semanticapi.CompletionItemKindField:
-		return "Field"
-	case semanticapi.CompletionItemKindVariable:
-		return "Variable"
-	case semanticapi.CompletionItemKindClass:
-		return "Class"
-	case semanticapi.CompletionItemKindInterface:
-		return "Interface"
-	case semanticapi.CompletionItemKindModule:
-		return "Module"
-	case semanticapi.CompletionItemKindProperty:
-		return "Property"
-	case semanticapi.CompletionItemKindUnit:
-		return "Unit"
-	case semanticapi.CompletionItemKindValue:
-		return "Value"
-	case semanticapi.CompletionItemKindEnum:
-		return "Enum"
-	case semanticapi.CompletionItemKindKeyword:
-		return "Keyword"
-	case semanticapi.CompletionItemKindSnippet:
-		return "Snippet"
-	case semanticapi.CompletionItemKindColor:
-		return "Color"
-	case semanticapi.CompletionItemKindFile:
-		return "File"
-	case semanticapi.CompletionItemKindReference:
-		return "Reference"
-	case semanticapi.CompletionItemKindFolder:
-		return "Folder"
-	case semanticapi.CompletionItemKindEnumMember:
-		return "EnumMember"
-	case semanticapi.CompletionItemKindConstant:
-		return "Constant"
-	case semanticapi.CompletionItemKindStruct:
-		return "Struct"
-	case semanticapi.CompletionItemKindEvent:
-		return "Event"
-	case semanticapi.CompletionItemKindOperator:
-		return "Operator"
-	case semanticapi.CompletionItemKindTypeParameter:
-		return "TypeParameter"
-	default:
-		return fmt.Sprintf("Unknown(%d)", k)
-	}
 }
 
 func newLSPCmd(a *app) *cobra.Command {
@@ -341,8 +161,8 @@ func newLSPHoverCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintDefault,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
 					return err
@@ -414,8 +234,8 @@ func newLSPDefinitionCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintDefault,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
 					return err
@@ -473,8 +293,8 @@ func newLSPReferencesCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintDefault,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
 					return err
@@ -513,62 +333,6 @@ func newLSPReferencesCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatSymbol struct {
-	Name      string `json:"name"`
-	Detail    string `json:"detail"`
-	Kind      string `json:"kind"`
-	Depth     int    `json:"depth"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-}
-
-func flattenSymbols(
-	syms []semanticapi.DocumentSymbol, depth int,
-) []flatSymbol {
-	var out []flatSymbol
-	for _, s := range syms {
-		out = append(out, flatSymbol{
-			Name:      s.Name,
-			Detail:    s.Detail,
-			Kind:      symbolKindString(s.Kind),
-			Depth:     depth,
-			StartLine: s.Range.Start.Line,
-			StartChar: s.Range.Start.Character,
-			EndLine:   s.Range.End.Line,
-			EndChar:   s.Range.End.Character,
-		})
-		out = append(
-			out,
-			flattenSymbols(s.Children, depth+1)...,
-		)
-	}
-	return out
-}
-
-func flattenSymbolResult(
-	result semanticapi.DocumentSymbolResult,
-) []flatSymbol {
-	if len(result.DocumentSymbols) > 0 {
-		return flattenSymbols(result.DocumentSymbols, 0)
-	}
-	// Convert SymbolInformation to flat format
-	var out []flatSymbol
-	for _, si := range result.SymbolInformation {
-		out = append(out, flatSymbol{
-			Name:      si.Name,
-			Kind:      symbolKindString(si.Kind),
-			Depth:     0,
-			StartLine: si.Location.Range.Start.Line,
-			StartChar: si.Location.Range.Start.Character,
-			EndLine:   si.Location.Range.End.Line,
-			EndChar:   si.Location.Range.End.Character,
-		})
-	}
-	return out
-}
-
 func newLSPSymbolsCmd(a *app) *cobra.Command {
 	var format string
 
@@ -596,7 +360,7 @@ func newLSPSymbolsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := flattenSymbolResult(syms)
+			flat := mcptools.FlattenSymbolResult(syms)
 			if format == "" {
 				for _, s := range flat {
 					indent := strings.Repeat("  ", s.Depth)
@@ -626,14 +390,6 @@ func newLSPSymbolsCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatWorkspaceSymbol struct {
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	URI       string `json:"uri"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-}
-
 func newLSPWorkspaceSymbolsCmd(a *app) *cobra.Command {
 	var format string
 
@@ -655,11 +411,11 @@ func newLSPWorkspaceSymbolsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatWorkspaceSymbol, len(syms))
+			flat := make([]mcptools.FlatWorkspaceSymbol, len(syms))
 			for i, s := range syms {
-				flat[i] = flatWorkspaceSymbol{
+				flat[i] = mcptools.FlatWorkspaceSymbol{
 					Name:      s.Name,
-					Kind:      symbolKindString(s.Kind),
+					Kind:      mcptools.SymbolKindString(s.Kind),
 					URI:       s.Location.URI,
 					StartLine: s.Location.Range.Start.Line,
 					StartChar: s.Location.Range.Start.Character,
@@ -692,17 +448,6 @@ func newLSPWorkspaceSymbolsCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatDiagnostic struct {
-	Severity  string `json:"severity"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-	Message   string `json:"message"`
-	Source    string `json:"source"`
-	Code      string `json:"code"`
-}
-
 func newLSPDiagnosticsCmd(a *app) *cobra.Command {
 	var format string
 
@@ -730,10 +475,10 @@ func newLSPDiagnosticsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatDiagnostic, len(report.Items))
+			flat := make([]mcptools.FlatDiagnostic, len(report.Items))
 			for i, d := range report.Items {
-				flat[i] = flatDiagnostic{
-					Severity:  severityString(d.Severity),
+				flat[i] = mcptools.FlatDiagnostic{
+					Severity:  mcptools.SeverityString(d.Severity),
 					StartLine: d.Range.Start.Line,
 					StartChar: d.Range.Start.Character,
 					EndLine:   d.Range.End.Line,
@@ -771,18 +516,6 @@ func newLSPDiagnosticsCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatWorkspaceDiagnostic struct {
-	URI       string `json:"uri"`
-	Severity  string `json:"severity"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-	Message   string `json:"message"`
-	Source    string `json:"source"`
-	Code      string `json:"code"`
-}
-
 func newLSPWorkspaceDiagnosticsCmd(a *app) *cobra.Command {
 	var format string
 
@@ -802,12 +535,12 @@ func newLSPWorkspaceDiagnosticsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatWorkspaceDiagnostic, 0, len(report.Items))
+			flat := make([]mcptools.FlatWorkspaceDiagnostic, 0, len(report.Items))
 			for _, doc := range report.Items {
 				for _, d := range doc.Items {
-					flat = append(flat, flatWorkspaceDiagnostic{
+					flat = append(flat, mcptools.FlatWorkspaceDiagnostic{
 						URI:       doc.URI,
-						Severity:  severityString(d.Severity),
+						Severity:  mcptools.SeverityString(d.Severity),
 						StartLine: d.Range.Start.Line,
 						StartChar: d.Range.Start.Character,
 						EndLine:   d.Range.End.Line,
@@ -882,8 +615,8 @@ func newLSPRenameCmd(a *app) *cobra.Command {
 				uri = u.String()
 				newName = args[3]
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintDefault,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
 					return err
@@ -962,11 +695,6 @@ func newLSPRenameCmd(a *app) *cobra.Command {
 	)
 
 	return cmd
-}
-
-type flatCodeAction struct {
-	Title string `json:"title"`
-	Kind  string `json:"kind"`
 }
 
 type flatCodeActionEdit struct {
@@ -1157,15 +885,15 @@ func printCodeActions(
 	format string,
 	actions []semanticapi.CodeActionResult,
 ) error {
-	flat := make([]flatCodeAction, 0, len(actions))
+	flat := make([]mcptools.FlatCodeAction, 0, len(actions))
 	for _, a := range actions {
 		if a.CodeAction != nil {
-			flat = append(flat, flatCodeAction{
+			flat = append(flat, mcptools.FlatCodeAction{
 				Title: a.CodeAction.Title,
 				Kind:  string(a.CodeAction.Kind),
 			})
 		} else if a.Command != nil {
-			flat = append(flat, flatCodeAction{
+			flat = append(flat, mcptools.FlatCodeAction{
 				Title: a.Command.Title,
 				Kind:  "command",
 			})
@@ -1318,12 +1046,6 @@ func flattenCommand(
 	}
 }
 
-type flatCompletion struct {
-	Label  string `json:"label"`
-	Kind   string `json:"kind"`
-	Detail string `json:"detail"`
-}
-
 func newLSPCompletionCmd(a *app) *cobra.Command {
 	var format string
 
@@ -1356,11 +1078,11 @@ func newLSPCompletionCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatCompletion, len(result.Items))
+			flat := make([]mcptools.FlatCompletion, len(result.Items))
 			for i, item := range result.Items {
-				flat[i] = flatCompletion{
+				flat[i] = mcptools.FlatCompletion{
 					Label:  item.Label,
-					Kind:   completionItemKindString(item.Kind),
+					Kind:   mcptools.CompletionItemKindString(item.Kind),
 					Detail: item.Detail,
 				}
 			}
@@ -1387,13 +1109,6 @@ func newLSPCompletionCmd(a *app) *cobra.Command {
 	)
 
 	return cmd
-}
-
-type flatSignatureHelp struct {
-	Label           string `json:"label"`
-	ActiveSignature uint32 `json:"active_signature"`
-	ActiveParameter uint32 `json:"active_parameter"`
-	Parameters      string `json:"parameters"`
 }
 
 func newLSPSignatureHelpCmd(a *app) *cobra.Command {
@@ -1437,7 +1152,7 @@ func newLSPSignatureHelpCmd(a *app) *cobra.Command {
 					params = append(params, p.Label)
 				}
 			}
-			r := flatSignatureHelp{
+			r := mcptools.FlatSignatureHelp{
 				Label:           result.Signatures[0].Label,
 				ActiveSignature: result.ActiveSignature,
 				ActiveParameter: result.ActiveParameter,
@@ -1445,7 +1160,7 @@ func newLSPSignatureHelpCmd(a *app) *cobra.Command {
 			}
 			return printResult(
 				cmd.Context(), format, r,
-				func(v flatSignatureHelp) {
+				func(v mcptools.FlatSignatureHelp) {
 					fmt.Println(v.Label)
 					if v.Parameters != "" {
 						fmt.Printf("  Parameters: %s\n", v.Parameters)
@@ -1490,8 +1205,8 @@ func newLSPDeclarationCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintDefault,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
 					return err
@@ -1548,8 +1263,8 @@ func newLSPTypeDefinitionCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintTypeDefinition,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintTypeDefinition,
 				)
 				if err != nil {
 					return err
@@ -1606,8 +1321,8 @@ func newLSPImplementationCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintImplementation,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintImplementation,
 				)
 				if err != nil {
 					return err
@@ -1636,14 +1351,6 @@ func newLSPImplementationCmd(a *app) *cobra.Command {
 	)
 
 	return cmd
-}
-
-type flatTextEdit struct {
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-	NewText   string `json:"new_text"`
 }
 
 func newLSPFormattingCmd(a *app) *cobra.Command {
@@ -1690,9 +1397,9 @@ func newLSPFormattingCmd(a *app) *cobra.Command {
 			}
 			fe := textEditsToFileEdits(uri.String(), edits)
 			if dryRun && format != "" {
-				flat := make([]flatTextEdit, len(edits))
+				flat := make([]mcptools.FlatTextEdit, len(edits))
 				for i, e := range edits {
-					flat[i] = flatTextEdit{
+					flat[i] = mcptools.FlatTextEdit{
 						StartLine: e.Range.Start.Line,
 						StartChar: e.Range.Start.Character,
 						EndLine:   e.Range.End.Line,
@@ -1739,14 +1446,6 @@ func newLSPFormattingCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatPrepareRename struct {
-	StartLine   uint32 `json:"start_line"`
-	StartChar   uint32 `json:"start_char"`
-	EndLine     uint32 `json:"end_line"`
-	EndChar     uint32 `json:"end_char"`
-	Placeholder string `json:"placeholder"`
-}
-
 func newLSPPrepareRenameCmd(a *app) *cobra.Command {
 	var format string
 
@@ -1773,8 +1472,8 @@ func newLSPPrepareRenameCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintDefault,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
 					return err
@@ -1796,7 +1495,7 @@ func newLSPPrepareRenameCmd(a *app) *cobra.Command {
 			if result == nil {
 				return printString(format, "rename not supported", []string{"Result"})
 			}
-			r := flatPrepareRename{
+			r := mcptools.FlatPrepareRename{
 				StartLine:   result.Range.Start.Line,
 				StartChar:   result.Range.Start.Character,
 				EndLine:     result.Range.End.Line,
@@ -1805,7 +1504,7 @@ func newLSPPrepareRenameCmd(a *app) *cobra.Command {
 			}
 			return printResult(
 				cmd.Context(), format, r,
-				func(v flatPrepareRename) {
+				func(v mcptools.FlatPrepareRename) {
 					fmt.Printf(
 						"%d:%d-%d:%d",
 						v.StartLine, v.StartChar,
@@ -1829,27 +1528,6 @@ func newLSPPrepareRenameCmd(a *app) *cobra.Command {
 	)
 
 	return cmd
-}
-
-func documentHighlightKindString(k semanticapi.DocumentHighlightKind) string {
-	switch k {
-	case semanticapi.DocumentHighlightKindText:
-		return "Text"
-	case semanticapi.DocumentHighlightKindRead:
-		return "Read"
-	case semanticapi.DocumentHighlightKindWrite:
-		return "Write"
-	default:
-		return fmt.Sprintf("Unknown(%d)", k)
-	}
-}
-
-type flatDocumentHighlight struct {
-	Kind      string `json:"kind"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
 }
 
 func newLSPDocumentHighlightCmd(a *app) *cobra.Command {
@@ -1884,10 +1562,10 @@ func newLSPDocumentHighlightCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatDocumentHighlight, len(highlights))
+			flat := make([]mcptools.FlatDocumentHighlight, len(highlights))
 			for i, h := range highlights {
-				flat[i] = flatDocumentHighlight{
-					Kind:      documentHighlightKindString(h.Kind),
+				flat[i] = mcptools.FlatDocumentHighlight{
+					Kind:      mcptools.DocumentHighlightKindString(h.Kind),
 					StartLine: h.Range.Start.Line,
 					StartChar: h.Range.Start.Character,
 					EndLine:   h.Range.End.Line,
@@ -1920,15 +1598,6 @@ func newLSPDocumentHighlightCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatCodeLens struct {
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-	Title     string `json:"title"`
-	Command   string `json:"command"`
-}
-
 func newLSPCodeLensCmd(a *app) *cobra.Command {
 	var format string
 
@@ -1956,14 +1625,14 @@ func newLSPCodeLensCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatCodeLens, len(lenses))
+			flat := make([]mcptools.FlatCodeLens, len(lenses))
 			for i, l := range lenses {
 				var title, command string
 				if l.Command != nil {
 					title = l.Command.Title
 					command = l.Command.Command
 				}
-				flat[i] = flatCodeLens{
+				flat[i] = mcptools.FlatCodeLens{
 					StartLine: l.Range.Start.Line,
 					StartChar: l.Range.Start.Character,
 					EndLine:   l.Range.End.Line,
@@ -2062,9 +1731,9 @@ func newLSPRangeFormattingCmd(a *app) *cobra.Command {
 			}
 			fe := textEditsToFileEdits(uri.String(), edits)
 			if dryRun && format != "" {
-				flat := make([]flatTextEdit, len(edits))
+				flat := make([]mcptools.FlatTextEdit, len(edits))
 				for i, e := range edits {
-					flat[i] = flatTextEdit{
+					flat[i] = mcptools.FlatTextEdit{
 						StartLine: e.Range.Start.Line,
 						StartChar: e.Range.Start.Character,
 						EndLine:   e.Range.End.Line,
@@ -2111,27 +1780,6 @@ func newLSPRangeFormattingCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-func foldingRangeKindString(k semanticapi.FoldingRangeKind) string {
-	switch k {
-	case semanticapi.FoldingRangeKindComment:
-		return "comment"
-	case semanticapi.FoldingRangeKindImports:
-		return "imports"
-	case semanticapi.FoldingRangeKindRegion:
-		return "region"
-	default:
-		return string(k)
-	}
-}
-
-type flatFoldingRange struct {
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-	Kind      string `json:"kind"`
-}
-
 func newLSPFoldingRangeCmd(a *app) *cobra.Command {
 	var format string
 
@@ -2159,14 +1807,14 @@ func newLSPFoldingRangeCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatFoldingRange, len(ranges))
+			flat := make([]mcptools.FlatFoldingRange, len(ranges))
 			for i, r := range ranges {
-				flat[i] = flatFoldingRange{
+				flat[i] = mcptools.FlatFoldingRange{
 					StartLine: r.StartLine,
 					StartChar: r.StartCharacter,
 					EndLine:   r.EndLine,
 					EndChar:   r.EndCharacter,
-					Kind:      foldingRangeKindString(r.Kind),
+					Kind:      mcptools.FoldingRangeKindString(r.Kind),
 				}
 			}
 			if format == "" {
@@ -2193,32 +1841,6 @@ func newLSPFoldingRangeCmd(a *app) *cobra.Command {
 	)
 
 	return cmd
-}
-
-type flatSelectionRange struct {
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-	Depth     int    `json:"depth"`
-}
-
-func flattenSelectionRanges(ranges []semanticapi.SelectionRange) []flatSelectionRange {
-	var flat []flatSelectionRange
-	for _, r := range ranges {
-		depth := 0
-		for current := &r; current != nil; current = current.Parent {
-			flat = append(flat, flatSelectionRange{
-				StartLine: current.Range.Start.Line,
-				StartChar: current.Range.Start.Character,
-				EndLine:   current.Range.End.Line,
-				EndChar:   current.Range.End.Character,
-				Depth:     depth,
-			})
-			depth++
-		}
-	}
-	return flat
 }
 
 func newLSPSelectionRangeCmd(a *app) *cobra.Command {
@@ -2253,7 +1875,7 @@ func newLSPSelectionRangeCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := flattenSelectionRanges(ranges)
+			flat := mcptools.FlattenSelectionRanges(ranges)
 			if format == "" {
 				for _, r := range flat {
 					indent := strings.Repeat("  ", r.Depth)
@@ -2423,28 +2045,6 @@ func newLSPInlayHintCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatCallHierarchyItem struct {
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	URI       string `json:"uri"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-}
-
-func toFlatCallHierarchyItem(item semanticapi.CallHierarchyItem) flatCallHierarchyItem {
-	return flatCallHierarchyItem{
-		Name:      item.Name,
-		Kind:      symbolKindString(item.Kind),
-		URI:       item.URI,
-		StartLine: item.Range.Start.Line,
-		StartChar: item.Range.Start.Character,
-		EndLine:   item.Range.End.Line,
-		EndChar:   item.Range.End.Character,
-	}
-}
-
 func newLSPPrepareCallHierarchyCmd(a *app) *cobra.Command {
 	var format string
 
@@ -2471,8 +2071,8 @@ func newLSPPrepareCallHierarchyCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintCallHierarchy,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintCallHierarchy,
 				)
 				if err != nil {
 					return err
@@ -2491,9 +2091,9 @@ func newLSPPrepareCallHierarchyCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatCallHierarchyItem, len(items))
+			flat := make([]mcptools.FlatCallHierarchyItem, len(items))
 			for i, item := range items {
-				flat[i] = toFlatCallHierarchyItem(item)
+				flat[i] = mcptools.ToFlatCallHierarchyItem(item)
 			}
 			if format == "" {
 				for _, h := range flat {
@@ -2520,14 +2120,6 @@ func newLSPPrepareCallHierarchyCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatIncomingCall struct {
-	FromName      string `json:"from_name"`
-	FromKind      string `json:"from_kind"`
-	FromURI       string `json:"from_uri"`
-	FromStartLine uint32 `json:"from_start_line"`
-	FromStartChar uint32 `json:"from_start_char"`
-}
-
 func newLSPIncomingCallsCmd(a *app) *cobra.Command {
 	var format string
 
@@ -2541,7 +2133,7 @@ func newLSPIncomingCallsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			kind := parseSymbolKind(args[1])
+			kind := mcptools.ParseSymbolKind(args[1])
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
@@ -2560,11 +2152,11 @@ func newLSPIncomingCallsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatIncomingCall, len(calls))
+			flat := make([]mcptools.FlatIncomingCall, len(calls))
 			for i, c := range calls {
-				flat[i] = flatIncomingCall{
+				flat[i] = mcptools.FlatIncomingCall{
 					FromName:      c.From.Name,
-					FromKind:      symbolKindString(c.From.Kind),
+					FromKind:      mcptools.SymbolKindString(c.From.Kind),
 					FromURI:       c.From.URI,
 					FromStartLine: c.From.Range.Start.Line,
 					FromStartChar: c.From.Range.Start.Character,
@@ -2595,14 +2187,6 @@ func newLSPIncomingCallsCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-type flatOutgoingCall struct {
-	ToName      string `json:"to_name"`
-	ToKind      string `json:"to_kind"`
-	ToURI       string `json:"to_uri"`
-	ToStartLine uint32 `json:"to_start_line"`
-	ToStartChar uint32 `json:"to_start_char"`
-}
-
 func newLSPOutgoingCallsCmd(a *app) *cobra.Command {
 	var format string
 
@@ -2616,7 +2200,7 @@ func newLSPOutgoingCallsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			kind := parseSymbolKind(args[1])
+			kind := mcptools.ParseSymbolKind(args[1])
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
@@ -2635,11 +2219,11 @@ func newLSPOutgoingCallsCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatOutgoingCall, len(calls))
+			flat := make([]mcptools.FlatOutgoingCall, len(calls))
 			for i, c := range calls {
-				flat[i] = flatOutgoingCall{
+				flat[i] = mcptools.FlatOutgoingCall{
 					ToName:      c.To.Name,
-					ToKind:      symbolKindString(c.To.Kind),
+					ToKind:      mcptools.SymbolKindString(c.To.Kind),
 					ToURI:       c.To.URI,
 					ToStartLine: c.To.Range.Start.Line,
 					ToStartChar: c.To.Range.Start.Character,
@@ -2670,89 +2254,6 @@ func newLSPOutgoingCallsCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-func parseSymbolKind(s string) semanticapi.SymbolKind {
-	switch strings.ToLower(s) {
-	case "file":
-		return semanticapi.SymbolKindFile
-	case "module":
-		return semanticapi.SymbolKindModule
-	case "namespace":
-		return semanticapi.SymbolKindNamespace
-	case "package":
-		return semanticapi.SymbolKindPackage
-	case "class":
-		return semanticapi.SymbolKindClass
-	case "method":
-		return semanticapi.SymbolKindMethod
-	case "property":
-		return semanticapi.SymbolKindProperty
-	case "field":
-		return semanticapi.SymbolKindField
-	case "constructor":
-		return semanticapi.SymbolKindConstructor
-	case "enum":
-		return semanticapi.SymbolKindEnum
-	case "interface":
-		return semanticapi.SymbolKindInterface
-	case "function":
-		return semanticapi.SymbolKindFunction
-	case "variable":
-		return semanticapi.SymbolKindVariable
-	case "constant":
-		return semanticapi.SymbolKindConstant
-	case "string":
-		return semanticapi.SymbolKindString
-	case "number":
-		return semanticapi.SymbolKindNumber
-	case "boolean":
-		return semanticapi.SymbolKindBoolean
-	case "array":
-		return semanticapi.SymbolKindArray
-	case "object":
-		return semanticapi.SymbolKindObject
-	case "key":
-		return semanticapi.SymbolKindKey
-	case "null":
-		return semanticapi.SymbolKindNull
-	case "enummember":
-		return semanticapi.SymbolKindEnumMember
-	case "struct":
-		return semanticapi.SymbolKindStruct
-	case "event":
-		return semanticapi.SymbolKindEvent
-	case "operator":
-		return semanticapi.SymbolKindOperator
-	case "typeparameter":
-		return semanticapi.SymbolKindTypeParameter
-	default:
-		return semanticapi.SymbolKindFunction
-	}
-}
-
-type flatTypeHierarchyItem struct {
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	URI       string `json:"uri"`
-	Detail    string `json:"detail"`
-	StartLine uint32 `json:"start_line"`
-	StartChar uint32 `json:"start_char"`
-	EndLine   uint32 `json:"end_line"`
-	EndChar   uint32 `json:"end_char"`
-}
-
-func toFlatTypeHierarchyItem(item semanticapi.TypeHierarchyItem) flatTypeHierarchyItem {
-	return flatTypeHierarchyItem{
-		Name:      item.Name,
-		Kind:      symbolKindString(item.Kind),
-		URI:       item.URI,
-		Detail:    item.Detail,
-		StartLine: item.Range.Start.Line,
-		StartChar: item.Range.Start.Character,
-		EndLine:   item.Range.End.Line,
-		EndChar:   item.Range.End.Character,
-	}
-}
-
 func newLSPPrepareTypeHierarchyCmd(a *app) *cobra.Command {
 	var format string
 
@@ -2779,8 +2280,8 @@ func newLSPPrepareTypeHierarchyCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := resolveSymbolBest(
-					cmd.Context(), lsp, args[0], hintTypeHierarchy,
+				sp, err := mcptools.ResolveSymbolBest(
+					cmd.Context(), lsp, args[0], mcptools.HintTypeHierarchy,
 				)
 				if err != nil {
 					return err
@@ -2799,9 +2300,9 @@ func newLSPPrepareTypeHierarchyCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatTypeHierarchyItem, len(items))
+			flat := make([]mcptools.FlatTypeHierarchyItem, len(items))
 			for i, item := range items {
-				flat[i] = toFlatTypeHierarchyItem(item)
+				flat[i] = mcptools.ToFlatTypeHierarchyItem(item)
 			}
 			if format == "" {
 				for _, h := range flat {
@@ -2842,7 +2343,7 @@ func newLSPTypeSupertypesCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			kind := parseSymbolKind(args[1])
+			kind := mcptools.ParseSymbolKind(args[1])
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
@@ -2861,9 +2362,9 @@ func newLSPTypeSupertypesCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatTypeHierarchyItem, len(items))
+			flat := make([]mcptools.FlatTypeHierarchyItem, len(items))
 			for i, item := range items {
-				flat[i] = toFlatTypeHierarchyItem(item)
+				flat[i] = mcptools.ToFlatTypeHierarchyItem(item)
 			}
 			if format == "" {
 				for _, h := range flat {
@@ -2904,7 +2405,7 @@ func newLSPTypeSubtypesCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			kind := parseSymbolKind(args[1])
+			kind := mcptools.ParseSymbolKind(args[1])
 			lsp, err := a.getLSP(cmd.Context())
 			if err != nil {
 				return err
@@ -2923,9 +2424,9 @@ func newLSPTypeSubtypesCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			flat := make([]flatTypeHierarchyItem, len(items))
+			flat := make([]mcptools.FlatTypeHierarchyItem, len(items))
 			for i, item := range items {
-				flat[i] = toFlatTypeHierarchyItem(item)
+				flat[i] = mcptools.ToFlatTypeHierarchyItem(item)
 			}
 			if format == "" {
 				for _, h := range flat {
@@ -3372,9 +2873,9 @@ func newLSPOnTypeFormattingCmd(a *app) *cobra.Command {
 			}
 			fe := textEditsToFileEdits(uri.String(), edits)
 			if dryRun && format != "" {
-				flat := make([]flatTextEdit, len(edits))
+				flat := make([]mcptools.FlatTextEdit, len(edits))
 				for i, e := range edits {
-					flat[i] = flatTextEdit{
+					flat[i] = mcptools.FlatTextEdit{
 						StartLine: e.Range.Start.Line,
 						StartChar: e.Range.Start.Character,
 						EndLine:   e.Range.End.Line,

@@ -18,36 +18,26 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
+	"github.com/unstablebuild/rune-go-sdk/cli/mcptools"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 )
 
-type searchResult struct {
-	File        string `json:"file"`
-	Text        string `json:"text"`
-	FromX       int    `json:"from_x"`
-	FromY       int    `json:"from_y"`
-	ToX         int    `json:"to_x"`
-	ToY         int    `json:"to_y"`
-	CaptureName string `json:"capture_name"`
-}
-
 func syntaxIterToGeneric(
 	sit iterator.Iterator[syntaxapi.Result],
-) iterator.Iterator[searchResult] {
+) iterator.Iterator[mcptools.SearchResult] {
 	return iterator.FromFunc(
 		func(ctx context.Context) (
-			searchResult, bool, error,
+			mcptools.SearchResult, bool, error,
 		) {
 			r, ok := sit.Next(ctx)
 			if !ok {
-				return searchResult{}, false,
+				return mcptools.SearchResult{}, false,
 					sit.Err()
 			}
-			return searchResult{
+			return mcptools.SearchResult{
 				File:        fmt.Sprint(r.File),
 				Text:        r.Text,
 				FromX:       r.From.X,
@@ -89,43 +79,6 @@ func printSyntaxResults(
 		"FromX", "FromY", "ToX", "ToY",
 		"CaptureName",
 	})
-}
-
-func parseSingleNodeType(s string) (syntaxapi.NodeCaptureName, error) {
-	switch s {
-	case "scope":
-		return syntaxapi.NodeCaptureScope, nil
-	case "namespace":
-		return syntaxapi.NodeCaptureDefinitionNamespace, nil
-	case "reference":
-		return syntaxapi.NodeCaptureReference, nil
-	case "func":
-		return syntaxapi.NodeCaptureDefinitionFunc, nil
-	case "var":
-		return syntaxapi.NodeCaptureDefinitionVar, nil
-	case "method":
-		return syntaxapi.NodeCaptureDefinitionMethod, nil
-	case "type":
-		return syntaxapi.NodeCaptureDefinitionType, nil
-	default:
-		return 0, fmt.Errorf(
-			"invalid node type %q: use "+
-				"scope|namespace|reference|func|var|method|type",
-			s,
-		)
-	}
-}
-
-func parseNodeType(s string) (syntaxapi.NodeCaptureName, error) {
-	var result syntaxapi.NodeCaptureName
-	for _, part := range strings.Split(s, "|") {
-		nodeType, err := parseSingleNodeType(part)
-		if err != nil {
-			return 0, err
-		}
-		result |= nodeType
-	}
-	return result, nil
 }
 
 func newSyntaxCmd(a *app) *cobra.Command {
@@ -199,7 +152,7 @@ Node types: scope|namespace|reference|func|var|method|type`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			nodeType, err := parseNodeType(args[0])
+			nodeType, err := mcptools.ParseNodeType(args[0])
 			if err != nil {
 				return err
 			}
@@ -442,7 +395,7 @@ Node types: scope|namespace|reference|func|var|method|type`,
 			if err != nil {
 				return err
 			}
-			nodeType, err := parseNodeType(args[1])
+			nodeType, err := mcptools.ParseNodeType(args[1])
 			if err != nil {
 				return err
 			}

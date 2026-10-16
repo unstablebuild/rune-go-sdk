@@ -43,9 +43,7 @@ func newMCPTestEnv(t *testing.T) *mcpTestEnv {
 		"runectl-test", "0.0.1",
 		server.WithRecovery(),
 	)
-	ctx := context.Background()
-	registerSyntaxTools(s, w, ctx)
-	registerLSPTools(s, w, ctx)
+	registerMCPTools(context.Background(), s, w)
 
 	return &mcpTestEnv{testEnv: env, srv: s}
 }

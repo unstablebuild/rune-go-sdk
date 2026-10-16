@@ -15,11 +15,12 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
+	"github.com/unstablebuild/rune-go-sdk/api/extensionapi"
+	"github.com/unstablebuild/rune-go-sdk/cli/mcptools"
 )
 
 func newMCPCmd(a *app) *cobra.Command {
@@ -27,88 +28,25 @@ func newMCPCmd(a *app) *cobra.Command {
 		Use:   "mcp",
 		Short: "Start MCP server over stdio",
 		Args:  cobra.NoArgs,
-		RunE: func(
-			cmd *cobra.Command, _ []string,
-		) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			w, err := a.getWorkspace()
 			if err != nil {
 				return err
 			}
-			s := server.NewMCPServer(
-				"runectl", "0.1.0",
-				server.WithRecovery(),
-			)
-			ctx := cmd.Context()
-			registerSyntaxTools(s, w, ctx)
-			registerLSPTools(s, w, ctx)
+			s := server.NewMCPServer("runectl", "0.1.0", server.WithRecovery())
+			registerMCPTools(cmd.Context(), s, w)
 			return server.ServeStdio(s)
 		},
 	}
 	return cmd
 }
 
-// mcpJSON marshals v as JSON text and returns it as
-// an MCP tool result.
-func mcpJSON(v any) (*mcp.CallToolResult, error) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	return mcp.NewToolResultText(string(data)), nil
-}
-
-// mcpErr returns an MCP error result from an error.
-func mcpErr(err error) *mcp.CallToolResult {
-	return mcp.NewToolResultError(err.Error())
-}
-
-// mcpPos extracts uri, line, and character from an
-// MCP request.
-func mcpPos(
-	req mcp.CallToolRequest,
-) (string, uint32, uint32, error) {
-	uri, err := req.RequireString("uri")
-	if err != nil {
-		return "", 0, 0, err
-	}
-	line, err := req.RequireFloat("line")
-	if err != nil {
-		return "", 0, 0, err
-	}
-	char, err := req.RequireFloat("character")
-	if err != nil {
-		return "", 0, 0, err
-	}
-	return uri, uint32(line), uint32(char), nil
-}
-
-// mcpRange extracts range parameters from an MCP
-// request.
-func mcpRange(
-	req mcp.CallToolRequest,
-) (string, [4]uint32, error) {
-	uri, err := req.RequireString("uri")
-	if err != nil {
-		return "", [4]uint32{}, err
-	}
-	sl, err := req.RequireFloat("start_line")
-	if err != nil {
-		return "", [4]uint32{}, err
-	}
-	sc, err := req.RequireFloat("start_character")
-	if err != nil {
-		return "", [4]uint32{}, err
-	}
-	el, err := req.RequireFloat("end_line")
-	if err != nil {
-		return "", [4]uint32{}, err
-	}
-	ec, err := req.RequireFloat("end_character")
-	if err != nil {
-		return "", [4]uint32{}, err
-	}
-	return uri, [4]uint32{
-		uint32(sl), uint32(sc),
-		uint32(el), uint32(ec),
-	}, nil
+// registerMCPTools registers every syntax and LSP tool.
+func registerMCPTools(
+	ctx context.Context,
+	s *server.MCPServer,
+	w *extensionapi.Workspace,
+) {
+	mcptools.RegisterSyntaxTools(ctx, s, w.Parser(ctx), mcptools.WithAllThemes())
+	mcptools.RegisterLSPTools(ctx, s, w.LSP(ctx), mcptools.WithAllThemes())
 }
