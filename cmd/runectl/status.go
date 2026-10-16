@@ -506,8 +506,8 @@ func newStatusWrapCmd() *cobra.Command {
 		Long: "Run a command with inherited stdio, reporting working" +
 			" before it starts and done or error when it exits. SIGINT," +
 			" SIGTERM, SIGHUP and SIGQUIT are forwarded to the command." +
-			" A command killed by a signal is reported idle. Exits with the" +
-			" command's status.",
+			" A command killed by a signal is reported as an error. Exits" +
+			" with the command's status.",
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out, err := openStatusTarget(tty)
@@ -533,7 +533,7 @@ func newStatusWrapCmd() *cobra.Command {
 			}
 			switch {
 			case status.Signaled():
-				if err := emit("idle", msg); err != nil {
+				if err := emit("error", fmt.Sprintf("signal: %s", status.Signal())); err != nil {
 					return err
 				}
 				return exitError{code: 128 + int(status.Signal())}

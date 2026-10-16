@@ -398,7 +398,7 @@ func TestStatusWrap(t *testing.T) {
 			name: "signaled",
 			mode: "signal",
 			wantTTY: "\x1b]7501;state=working:msg=YnVpbGQ=\x1b\\" +
-				"\x1b]7501;state=idle:msg=YnVpbGQ=\x1b\\",
+				"\x1b]7501;state=error:msg=c2lnbmFsOiB0ZXJtaW5hdGVk\x1b\\",
 			wantCode: 128 + int(syscall.SIGTERM),
 		},
 	}
