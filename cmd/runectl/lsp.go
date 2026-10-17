@@ -61,6 +61,21 @@ func (a *app) getLSP(
 	return w.LSP(ctx), nil
 }
 
+// resolveSymbol returns the first site of the symbol name, resolved through the
+// workspace's symbol index first; see mcptools.ResolveSymbol.
+func (a *app) resolveSymbol(
+	ctx context.Context,
+	lsp semanticapi.LSP,
+	name string,
+	hint mcptools.SymbolResolveHint,
+) (mcptools.SymbolPosition, error) {
+	w, err := a.getWorkspace()
+	if err != nil {
+		return mcptools.SymbolPosition{}, err
+	}
+	return mcptools.ResolveSymbolBest(ctx, lsp, w.Parser(ctx), name, hint)
+}
+
 func printLocations(
 	ctx context.Context,
 	format string,
@@ -161,7 +176,7 @@ func newLSPHoverCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
@@ -234,7 +249,7 @@ func newLSPDefinitionCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
@@ -293,7 +308,7 @@ func newLSPReferencesCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
@@ -615,7 +630,7 @@ func newLSPRenameCmd(a *app) *cobra.Command {
 				uri = u.String()
 				newName = args[3]
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
@@ -1205,7 +1220,7 @@ func newLSPDeclarationCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
@@ -1263,7 +1278,7 @@ func newLSPTypeDefinitionCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintTypeDefinition,
 				)
 				if err != nil {
@@ -1321,7 +1336,7 @@ func newLSPImplementationCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintImplementation,
 				)
 				if err != nil {
@@ -1472,7 +1487,7 @@ func newLSPPrepareRenameCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintDefault,
 				)
 				if err != nil {
@@ -2071,7 +2086,7 @@ func newLSPPrepareCallHierarchyCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintCallHierarchy,
 				)
 				if err != nil {
@@ -2280,7 +2295,7 @@ func newLSPPrepareTypeHierarchyCmd(a *app) *cobra.Command {
 				}
 				uri = u.String()
 			} else {
-				sp, err := mcptools.ResolveSymbolBest(
+				sp, err := a.resolveSymbol(
 					cmd.Context(), lsp, args[0], mcptools.HintTypeHierarchy,
 				)
 				if err != nil {

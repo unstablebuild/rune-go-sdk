@@ -29,6 +29,7 @@ import (
 	"os/exec"
 	"reflect"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -141,12 +142,32 @@ func processCall(
 }
 
 // processText returns the text of a result's single text block.
+// processText returns the JSON text block a tool answers first.
 func processText(t *testing.T, res *mcp.CallToolResult) string {
 	t.Helper()
-	require.Len(t, res.Content, 1)
+	require.NotEmpty(t, res.Content)
 	text, ok := res.Content[0].(mcp.TextContent)
 	require.True(t, ok, "content is %T", res.Content[0])
 	return text.Text
+}
+
+// processHint returns the hint block a symbol tool answers after its JSON, or "".
+func processHint(t *testing.T, res *mcp.CallToolResult) string {
+	t.Helper()
+	require.LessOrEqual(t, len(res.Content), 2)
+	if len(res.Content) < 2 {
+		return ""
+	}
+	text, ok := res.Content[1].(mcp.TextContent)
+	require.True(t, ok, "content is %T", res.Content[1])
+	return text.Text
+}
+
+// isBareSymbolCall reports whether args name a symbol without a qualifier, which the
+// symbol tools answer with a hint to qualify it.
+func isBareSymbolCall(args map[string]any) bool {
+	sym, ok := args["symbol"].(string)
+	return ok && !strings.Contains(sym, ".")
 }
 
 // mcpTools are every tool runectl mcp serves, sorted.
@@ -246,6 +267,9 @@ func hierItem(name, kind, uri string, sl, sc, el, ec int) map[string]any {
 // ask the host for the arguments given.
 func processCases() []processCase {
 	const (
+		// The symbol cases name symbols without a dot, which the symbol index refuses, so
+		// the tools then search the workspace's symbols.
+		index   = "Syntax/ResolveSymbol"
 		resolve = "LSP/WorkspaceSymbol"
 		doc     = `{"textDocument":{"uri":"file:///src/main.go"}}`
 		at37    = `{"textDocument":{"uri":"file:///src/main.go"},` +
@@ -280,13 +304,13 @@ func processCases() []processCase {
 		},
 		{
 			tool: "lsp_declaration", args: map[string]any{"symbol": "MyFunc"},
-			rpcs: []string{resolve, "LSP/Declaration"}, req: atMyFunc,
+			rpcs: []string{index, resolve, "LSP/Declaration"}, req: atMyFunc,
 			want: `[{"uri":"file:///src/types.go","start_line":15,"start_char":5,` +
 				`"end_line":15,"end_char":15}]`,
 		},
 		{
 			tool: "lsp_definition", args: map[string]any{"symbol": "MyFunc"},
-			rpcs: []string{resolve, "LSP/Definition"}, req: atMyFunc,
+			rpcs: []string{index, resolve, "LSP/Definition"}, req: atMyFunc,
 			want: `[{"uri":"file:///src/main.go","start_line":10,"start_char":5,` +
 				`"end_line":10,"end_char":15}]`,
 		},
@@ -314,8 +338,9 @@ func processCases() []processCase {
 		},
 		{
 			tool: "lsp_documentation", args: map[string]any{"symbol": "MyFunc"},
-			rpcs: []string{resolve, "LSP/Hover"}, req: atMyFunc,
-			want: `{"contents":"func main()","kind":"plaintext"}`,
+			rpcs: []string{index, resolve, "LSP/Hover"}, req: atMyFunc,
+			want: `[{"uri":"file:///src/main.go","start_line":5,"start_char":0,` +
+				`"contents":"func main()","kind":"plaintext"}]`,
 		},
 		{
 			tool: "lsp_execute_command", args: map[string]any{"command": "test.run"},
@@ -341,7 +366,7 @@ func processCases() []processCase {
 		},
 		{
 			tool: "lsp_implementation", args: map[string]any{"symbol": "MyInterface"},
-			rpcs: []string{resolve, "LSP/Implementation"}, req: atMyInterface,
+			rpcs: []string{index, resolve, "LSP/Implementation"}, req: atMyInterface,
 			want: `[{"uri":"file:///src/impl1.go","start_line":10,"start_char":0,` +
 				`"end_line":10,"end_char":10},` +
 				`{"uri":"file:///src/impl2.go","start_line":25,"start_char":0,` +
@@ -381,20 +406,20 @@ func processCases() []processCase {
 		},
 		{
 			tool: "lsp_prepare_call_hierarchy", args: map[string]any{"symbol": "MyFunc"},
-			rpcs: []string{resolve, "LSP/PrepareCallHierarchy"}, req: atMyFunc,
+			rpcs: []string{index, resolve, "LSP/PrepareCallHierarchy"}, req: atMyFunc,
 			want: `[{"name":"main","kind":"Function","uri":"file:///src/main.go",` +
 				`"start_line":5,"start_char":0,"end_line":10,"end_char":1}]`,
 		},
 		{
 			tool: "lsp_prepare_rename", args: map[string]any{"symbol": "MyFunc"},
-			rpcs: []string{resolve, "LSP/PrepareRename"}, req: atMyFunc,
+			rpcs: []string{index, resolve, "LSP/PrepareRename"}, req: atMyFunc,
 			want: `{"start_line":5,"start_char":5,"end_line":5,"end_char":9,` +
 				`"placeholder":"main"}`,
 		},
 		{
 			tool: "lsp_prepare_type_hierarchy", args: map[string]any{
 				"symbol": "MyInterface"},
-			rpcs: []string{resolve, "LSP/PrepareTypeHierarchy"}, req: atMyInterface,
+			rpcs: []string{index, resolve, "LSP/PrepareTypeHierarchy"}, req: atMyInterface,
 			want: `[{"name":"Reader","kind":"Interface","uri":"file:///src/io.go",` +
 				`"detail":"interface",` +
 				`"start_line":15,"start_char":0,"end_line":18,"end_char":1}]`,
@@ -415,7 +440,7 @@ func processCases() []processCase {
 		{
 			tool: "lsp_references", args: map[string]any{"symbol": "MyFunc",
 				"include_declaration": true},
-			rpcs: []string{resolve, "LSP/References"},
+			rpcs: []string{index, resolve, "LSP/References"},
 			req: `{"textDocument":{"uri":"file:///src/main.go"},"position":{"line":5},` +
 				`"includeDeclaration":true}`,
 			want: `[{"uri":"file:///src/main.go","start_line":10,"start_char":5,` +
@@ -426,7 +451,7 @@ func processCases() []processCase {
 		{
 			tool: "lsp_rename", args: map[string]any{"symbol": "MyFunc",
 				"new_name": "Renamed"},
-			rpcs: []string{resolve, "LSP/Rename"},
+			rpcs: []string{index, resolve, "LSP/Rename"},
 			req: `{"textDocument":{"uri":"file:///src/main.go"},"position":{"line":5},` +
 				`"newName":"Renamed"}`,
 			want: `{"file:///src/main.go":2}`,
@@ -447,7 +472,7 @@ func processCases() []processCase {
 		},
 		{
 			tool: "lsp_type_definition", args: map[string]any{"symbol": "myVar"},
-			rpcs: []string{resolve, "LSP/TypeDefinition"},
+			rpcs: []string{index, resolve, "LSP/TypeDefinition"},
 			req: `{"textDocument":{"uri":"file:///src/main.go"},` +
 				`"position":{"line":3,"character":4}}`,
 			want: `[{"uri":"file:///src/types.go","start_line":20,"start_char":5,` +
@@ -575,6 +600,11 @@ func TestMCPProcessCallEveryTool(t *testing.T) {
 			got := processText(t, res)
 			require.False(t, res.IsError, got)
 			require.JSONEq(t, tc.want, got)
+			if isBareSymbolCall(tc.args) {
+				require.Contains(t, processHint(t, res), "has no qualifier")
+			} else {
+				require.Empty(t, processHint(t, res))
+			}
 
 			rpcs := env.rpcs.take()
 			var methods []string
@@ -587,6 +617,25 @@ func TestMCPProcessCallEveryTool(t *testing.T) {
 			require.JSONEq(t, tc.req, string(req))
 		})
 	}
+}
+
+// The symbol tools resolve a qualified name through the workspace's symbol index.
+func TestMCPProcessIndexSymbol(t *testing.T) {
+	env, c := startMCPProcess(t)
+	env.rpcs.take()
+	res, err := processCall(t, c, "lsp_definition", map[string]any{"symbol": "pkg.Symbol"})
+	require.NoError(t, err)
+	require.False(t, res.IsError, processText(t, res))
+	var methods []string
+	rpcs := env.rpcs.take()
+	for _, r := range rpcs {
+		methods = append(methods, r.method)
+	}
+	require.Equal(t, []string{"Syntax/ResolveSymbol", "LSP/Definition"}, methods)
+	req, err := protojson.Marshal(rpcs[1].req)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"textDocument":{"uri":"file:///src/main.go"},`+
+		`"position":{"line":10,"character":5}}`, string(req))
 }
 
 func TestMCPProcessErrors(t *testing.T) {
@@ -619,8 +668,9 @@ func TestMCPProcessErrors(t *testing.T) {
 	t.Run("unknown symbol", func(t *testing.T) {
 		rpcs := toolError(t, "lsp_definition", map[string]any{"symbol": "Nope"},
 			`symbol "Nope" not found`)
-		require.Len(t, rpcs, 1)
-		require.Equal(t, "LSP/WorkspaceSymbol", rpcs[0].method)
+		require.Len(t, rpcs, 2)
+		require.Equal(t, "Syntax/ResolveSymbol", rpcs[0].method)
+		require.Equal(t, "LSP/WorkspaceSymbol", rpcs[1].method)
 	})
 	t.Run("unknown tool", func(t *testing.T) {
 		_, err := processCall(t, c, "no_such_tool", map[string]any{})
@@ -663,8 +713,8 @@ func TestMCPProcessConcurrentCalls(t *testing.T) {
 					errs <- fmt.Errorf("%s: %w", tc.tool, err)
 					continue
 				}
-				if len(res.Content) != 1 {
-					errs <- fmt.Errorf("%s: %d content blocks", tc.tool, len(res.Content))
+				if len(res.Content) == 0 {
+					errs <- fmt.Errorf("%s: no content", tc.tool)
 					continue
 				}
 				text, _ := res.Content[0].(mcp.TextContent)

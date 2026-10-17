@@ -21,14 +21,24 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
+	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
 )
+
+// symbolArgDescription describes the symbol argument of the tools that take a symbol name.
+const symbolArgDescription = `Symbol to look up. Qualify the name with its container ` +
+	`path, dot-separated. Any trailing part of the path works:
+  go:      <package>.<Symbol> (e.g. "term.Writer")
+  python:  <module>.<symbol> or <package>.<module>.<symbol> (e.g. "_impl.Widget")
+  rust:    <module>.<Symbol> (e.g. "geometry.Shape")
+  methods: <Type>.<method> or <container-path>.<Type>.<method> (e.g. "orders.Order.total")
+A qualified name also finds symbols of dependencies. A bare name only finds symbols ` +
+	`defined in the workspace, by exact name.`
 
 // symToolOpts returns a single required symbol string parameter for symbol-based tools.
 func symToolOpts(desc string) []mcp.ToolOption {
 	return []mcp.ToolOption{
 		mcp.WithDescription(desc),
-		mcp.WithString("symbol", mcp.Required(),
-			mcp.Description("Symbol name to look up. Must be an exact match.")),
+		mcp.WithString("symbol", mcp.Required(), mcp.Description(symbolArgDescription)),
 	}
 }
 
@@ -49,26 +59,30 @@ func dedupFlatLocations(locs []FlatLocation) []FlatLocation {
 	})
 }
 
-// RegisterLSPTools registers the LSP tools backed by lsp on s. Calls to lsp are made with
-// ctx. Only the core tools are registered unless opts enable more themes.
+// RegisterLSPTools registers the LSP tools backed by lsp on s. Calls to lsp and parser are
+// made with ctx. Only the core tools are registered unless opts enable more themes.
+//
+// The tools that take a symbol name resolve it through parser's symbol index first, then
+// through lsp's workspace symbols; see [ResolveSymbol]. parser may be nil.
 func RegisterLSPTools( //nolint:funlen
 	ctx context.Context,
 	s *server.MCPServer,
 	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
 	opts ...Option,
 ) {
 	r := newRegistrar(s, opts)
 	bgCtx := ctx
-	registerLSPDocumentation(r, lsp, bgCtx)
-	registerLSPDefinition(r, lsp, bgCtx)
-	registerLSPDeclaration(r, lsp, bgCtx)
-	registerLSPTypeDefinition(r, lsp, bgCtx)
-	registerLSPImplementation(r, lsp, bgCtx)
-	registerLSPReferences(r, lsp, bgCtx)
+	registerLSPDocumentation(r, lsp, parser, bgCtx)
+	registerLSPDefinition(r, lsp, parser, bgCtx)
+	registerLSPDeclaration(r, lsp, parser, bgCtx)
+	registerLSPTypeDefinition(r, lsp, parser, bgCtx)
+	registerLSPImplementation(r, lsp, parser, bgCtx)
+	registerLSPReferences(r, lsp, parser, bgCtx)
 	registerLSPCompletion(r, lsp, bgCtx)
 	registerLSPSignatureHelp(r, lsp, bgCtx)
-	registerLSPRename(r, lsp, bgCtx)
-	registerLSPPrepareRename(r, lsp, bgCtx)
+	registerLSPRename(r, lsp, parser, bgCtx)
+	registerLSPPrepareRename(r, lsp, parser, bgCtx)
 	registerLSPCodeActions(r, lsp, bgCtx)
 	registerLSPFormatting(r, lsp, bgCtx)
 	registerLSPRangeFormatting(r, lsp, bgCtx)
@@ -81,10 +95,10 @@ func RegisterLSPTools( //nolint:funlen
 	registerLSPCodeLens(r, lsp, bgCtx)
 	registerLSPFoldingRange(r, lsp, bgCtx)
 	registerLSPSelectionRange(r, lsp, bgCtx)
-	registerLSPCallHierarchyPrepare(r, lsp, bgCtx)
+	registerLSPCallHierarchyPrepare(r, lsp, parser, bgCtx)
 	registerLSPCallHierarchyIncoming(r, lsp, bgCtx)
 	registerLSPCallHierarchyOutgoing(r, lsp, bgCtx)
-	registerLSPTypeHierarchyPrepare(r, lsp, bgCtx)
+	registerLSPTypeHierarchyPrepare(r, lsp, parser, bgCtx)
 	registerLSPTypeHierarchySupertypes(r, lsp, bgCtx)
 	registerLSPTypeHierarchySubtypes(r, lsp, bgCtx)
 	registerLSPExecuteCommand(r, lsp, bgCtx)
@@ -142,7 +156,12 @@ func makeRange(r [4]uint32) semanticapi.Range {
 	}
 }
 
-func registerLSPDocumentation(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+func registerLSPDocumentation(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	r.add(
 		mcp.NewTool("lsp_documentation",
 			symToolOpts(
@@ -153,35 +172,52 @@ func registerLSPDocumentation(r *registrar, lsp semanticapi.LSP, bgCtx context.C
 					"Do NOT use this tool when:\n"+
 					"- Need the source — use lsp_definition\n"+
 					"- Need all usages — use lsp_references\n\n"+
-					"Returns {contents, kind} or null.",
+					"Returns [{uri, start_line, start_char, contents, kind}], one per "+
+					"distinct symbol the name refers to, each at a place that defines or "+
+					"references it.",
 			)...),
 		func(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			sym, err := req.RequireString("symbol")
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			sp, err := ResolveSymbolBest(bgCtx, lsp, sym, HintDefault)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintDefault)
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
-			h, err := lsp.Hover(bgCtx,
-				semanticapi.HoverParams{TextDocument: td, Position: pos})
-			if err != nil {
-				return mcpErr(err), nil
+			docs := []FlatDocumentation{}
+			for _, sp := range res.Sites {
+				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
+				h, err := lsp.Hover(bgCtx,
+					semanticapi.HoverParams{TextDocument: td, Position: pos})
+				if err != nil {
+					return mcpErr(err), nil
+				}
+				if h == nil || h.Contents.Value == "" {
+					continue
+				}
+				docs = append(docs, FlatDocumentation{
+					URI:       sp.URI,
+					StartLine: sp.Position.Line,
+					StartChar: sp.Position.Character,
+					Contents:  h.Contents.Value,
+					Kind:      string(h.Contents.Kind),
+				})
 			}
-			if h == nil {
-				return mcpJSON(nil)
-			}
-			return mcpJSON(map[string]any{
-				"contents": h.Contents.Value,
-				"kind":     string(h.Contents.Kind),
-			})
+			// References to one symbol hover the same; keep the first of each.
+			return mcpJSONHint(dedup(docs, func(d FlatDocumentation) string {
+				return d.Contents
+			}), res.Hint)
 		},
 	)
 }
 
-func registerLSPDefinition(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+func registerLSPDefinition(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	r.add(
 		mcp.NewTool("lsp_definition",
 			symToolOpts(
@@ -200,12 +236,12 @@ func registerLSPDefinition(r *registrar, lsp semanticapi.LSP, bgCtx context.Cont
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			positions, err := ResolveSymbol(bgCtx, lsp, sym, HintDefault)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintDefault)
 			if err != nil {
 				return mcpErr(err), nil
 			}
 			var all []FlatLocation
-			for _, sp := range positions {
+			for _, sp := range res.Sites {
 				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
 				locs, err := lsp.Definition(bgCtx,
 					semanticapi.DefinitionParams{TextDocument: td, Position: pos})
@@ -214,12 +250,17 @@ func registerLSPDefinition(r *registrar, lsp semanticapi.LSP, bgCtx context.Cont
 				}
 				all = append(all, ToFlatLocationsFromResult(locs)...)
 			}
-			return mcpJSON(dedupFlatLocations(all))
+			return mcpJSONHint(dedupFlatLocations(all), res.Hint)
 		},
 	)
 }
 
-func registerLSPDeclaration(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+func registerLSPDeclaration(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	r.add(
 		mcp.NewTool("lsp_declaration",
 			symToolOpts(
@@ -237,12 +278,12 @@ func registerLSPDeclaration(r *registrar, lsp semanticapi.LSP, bgCtx context.Con
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			positions, err := ResolveSymbol(bgCtx, lsp, sym, HintDefault)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintDefault)
 			if err != nil {
 				return mcpErr(err), nil
 			}
 			var all []FlatLocation
-			for _, sp := range positions {
+			for _, sp := range res.Sites {
 				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
 				locs, err := lsp.Declaration(bgCtx,
 					semanticapi.DeclarationParams{TextDocument: td, Position: pos})
@@ -251,12 +292,17 @@ func registerLSPDeclaration(r *registrar, lsp semanticapi.LSP, bgCtx context.Con
 				}
 				all = append(all, ToFlatLocationsFromResult(locs)...)
 			}
-			return mcpJSON(dedupFlatLocations(all))
+			return mcpJSONHint(dedupFlatLocations(all), res.Hint)
 		},
 	)
 }
 
-func registerLSPTypeDefinition(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+func registerLSPTypeDefinition(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	r.add(
 		mcp.NewTool("lsp_type_definition",
 			symToolOpts(
@@ -274,12 +320,12 @@ func registerLSPTypeDefinition(r *registrar, lsp semanticapi.LSP, bgCtx context.
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			positions, err := ResolveSymbol(bgCtx, lsp, sym, HintTypeDefinition)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintTypeDefinition)
 			if err != nil {
 				return mcpErr(err), nil
 			}
 			var all []FlatLocation
-			for _, sp := range positions {
+			for _, sp := range res.Sites {
 				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
 				locs, err := lsp.TypeDefinition(bgCtx,
 					semanticapi.TypeDefinitionParams{TextDocument: td, Position: pos})
@@ -288,12 +334,17 @@ func registerLSPTypeDefinition(r *registrar, lsp semanticapi.LSP, bgCtx context.
 				}
 				all = append(all, ToFlatLocationsFromResult(locs)...)
 			}
-			return mcpJSON(dedupFlatLocations(all))
+			return mcpJSONHint(dedupFlatLocations(all), res.Hint)
 		},
 	)
 }
 
-func registerLSPImplementation(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+func registerLSPImplementation(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	r.add(
 		mcp.NewTool("lsp_implementation",
 			symToolOpts(
@@ -311,12 +362,12 @@ func registerLSPImplementation(r *registrar, lsp semanticapi.LSP, bgCtx context.
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			positions, err := ResolveSymbol(bgCtx, lsp, sym, HintImplementation)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintImplementation)
 			if err != nil {
 				return mcpErr(err), nil
 			}
 			var all []FlatLocation
-			for _, sp := range positions {
+			for _, sp := range res.Sites {
 				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
 				locs, err := lsp.Implementation(bgCtx,
 					semanticapi.ImplementationParams{TextDocument: td, Position: pos})
@@ -325,12 +376,17 @@ func registerLSPImplementation(r *registrar, lsp semanticapi.LSP, bgCtx context.
 				}
 				all = append(all, ToFlatLocationsFromResult(locs)...)
 			}
-			return mcpJSON(dedupFlatLocations(all))
+			return mcpJSONHint(dedupFlatLocations(all), res.Hint)
 		},
 	)
 }
 
-func registerLSPReferences(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+func registerLSPReferences(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	opts := symToolOpts(
 		"Finds all references to a symbol by name.\n\n" +
 			"Use this tool when:\n" +
@@ -350,13 +406,13 @@ func registerLSPReferences(r *registrar, lsp semanticapi.LSP, bgCtx context.Cont
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			positions, err := ResolveSymbol(bgCtx, lsp, sym, HintDefault)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintDefault)
 			if err != nil {
 				return mcpErr(err), nil
 			}
 			inclDecl := req.GetBool("include_declaration", false)
 			var all []FlatLocation
-			for _, sp := range positions {
+			for _, sp := range res.Sites {
 				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
 				locs, err := lsp.References(bgCtx,
 					semanticapi.ReferenceParams{
@@ -371,7 +427,7 @@ func registerLSPReferences(r *registrar, lsp semanticapi.LSP, bgCtx context.Cont
 				}
 				all = append(all, ToFlatLocations(locs)...)
 			}
-			return mcpJSON(dedupFlatLocations(all))
+			return mcpJSONHint(dedupFlatLocations(all), res.Hint)
 		},
 	)
 }
@@ -462,7 +518,12 @@ func registerLSPSignatureHelp(r *registrar, lsp semanticapi.LSP, bgCtx context.C
 	)
 }
 
-func registerLSPRename(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+func registerLSPRename(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	opts := symToolOpts(
 		"Dry-run rename: shows which files and how many edits a rename would produce, " +
 			"but does NOT apply any changes.\n\n" +
@@ -491,7 +552,7 @@ func registerLSPRename(r *registrar, lsp semanticapi.LSP, bgCtx context.Context)
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			sp, err := ResolveSymbolBest(bgCtx, lsp, sym, HintDefault)
+			sp, err := ResolveSymbolBest(bgCtx, lsp, parser, sym, HintDefault)
 			if err != nil {
 				return mcpErr(err), nil
 			}
@@ -506,18 +567,32 @@ func registerLSPRename(r *registrar, lsp semanticapi.LSP, bgCtx context.Context)
 				return mcpErr(err), nil
 			}
 			if edit == nil {
-				return mcpJSON(nil)
+				return mcpJSONHint(nil, renameHint(sym))
 			}
 			result := make(map[string]int)
 			for u, edits := range edit.Changes {
 				result[u] = len(edits)
 			}
-			return mcpJSON(result)
+			return mcpJSONHint(result, renameHint(sym))
 		},
 	)
 }
 
-func registerLSPPrepareRename(r *registrar, lsp semanticapi.LSP, bgCtx context.Context) {
+// renameHint is the hint of a rename tool, which acts on the first site of sym only: a
+// bare name may have picked one of several symbols.
+func renameHint(sym string) string {
+	if strings.Contains(sym, ".") {
+		return ""
+	}
+	return bareHint(sym)
+}
+
+func registerLSPPrepareRename(
+	r *registrar,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	bgCtx context.Context,
+) {
 	r.add(
 		mcp.NewTool("lsp_prepare_rename",
 			symToolOpts(
@@ -534,7 +609,7 @@ func registerLSPPrepareRename(r *registrar, lsp semanticapi.LSP, bgCtx context.C
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			sp, err := ResolveSymbolBest(bgCtx, lsp, sym, HintDefault)
+			sp, err := ResolveSymbolBest(bgCtx, lsp, parser, sym, HintDefault)
 			if err != nil {
 				return mcpErr(err), nil
 			}
@@ -545,15 +620,15 @@ func registerLSPPrepareRename(r *registrar, lsp semanticapi.LSP, bgCtx context.C
 				return mcpErr(err), nil
 			}
 			if result == nil {
-				return mcpJSON(nil)
+				return mcpJSONHint(nil, renameHint(sym))
 			}
-			return mcpJSON(FlatPrepareRename{
+			return mcpJSONHint(FlatPrepareRename{
 				StartLine:   result.Range.Start.Line,
 				StartChar:   result.Range.Start.Character,
 				EndLine:     result.Range.End.Line,
 				EndChar:     result.Range.End.Character,
 				Placeholder: result.Placeholder,
-			})
+			}, renameHint(sym))
 		},
 	)
 }
@@ -1070,6 +1145,7 @@ func registerLSPSelectionRange(r *registrar, lsp semanticapi.LSP, bgCtx context.
 func registerLSPCallHierarchyPrepare(
 	r *registrar,
 	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
 	bgCtx context.Context,
 ) {
 	r.add(
@@ -1090,12 +1166,12 @@ func registerLSPCallHierarchyPrepare(
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			positions, err := ResolveSymbol(bgCtx, lsp, sym, HintCallHierarchy)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintCallHierarchy)
 			if err != nil {
 				return mcpErr(err), nil
 			}
 			flat := []FlatCallHierarchyItem{}
-			for _, sp := range positions {
+			for _, sp := range res.Sites {
 				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
 				items, err := lsp.PrepareCallHierarchy(
 					bgCtx,
@@ -1110,7 +1186,10 @@ func registerLSPCallHierarchyPrepare(
 					flat = append(flat, ToFlatCallHierarchyItem(item))
 				}
 			}
-			return mcpJSON(flat)
+			// Sites of one symbol prepare the same item.
+			return mcpJSONHint(dedup(flat, func(i FlatCallHierarchyItem) FlatCallHierarchyItem {
+				return i
+			}), res.Hint)
 		},
 	)
 }
@@ -1224,6 +1303,7 @@ func registerLSPCallHierarchyOutgoing(
 func registerLSPTypeHierarchyPrepare(
 	r *registrar,
 	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
 	bgCtx context.Context,
 ) {
 	r.add(
@@ -1244,12 +1324,12 @@ func registerLSPTypeHierarchyPrepare(
 			if err != nil {
 				return mcpErr(err), nil
 			}
-			positions, err := ResolveSymbol(bgCtx, lsp, sym, HintTypeHierarchy)
+			res, err := ResolveSymbol(bgCtx, lsp, parser, sym, HintTypeHierarchy)
 			if err != nil {
 				return mcpErr(err), nil
 			}
 			flat := []FlatTypeHierarchyItem{}
-			for _, sp := range positions {
+			for _, sp := range res.Sites {
 				td, pos := makeTextDocPos(sp.URI, sp.Position.Line, sp.Position.Character)
 				items, err := lsp.PrepareTypeHierarchy(
 					bgCtx,
@@ -1264,7 +1344,10 @@ func registerLSPTypeHierarchyPrepare(
 					flat = append(flat, ToFlatTypeHierarchyItem(item))
 				}
 			}
-			return mcpJSON(flat)
+			// Sites of one symbol prepare the same item.
+			return mcpJSONHint(dedup(flat, func(i FlatTypeHierarchyItem) FlatTypeHierarchyItem {
+				return i
+			}), res.Hint)
 		},
 	)
 }

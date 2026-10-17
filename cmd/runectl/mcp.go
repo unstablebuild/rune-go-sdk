@@ -47,6 +47,7 @@ func registerMCPTools(
 	s *server.MCPServer,
 	w *extensionapi.Workspace,
 ) {
-	mcptools.RegisterSyntaxTools(ctx, s, w.Parser(ctx), mcptools.WithAllThemes())
-	mcptools.RegisterLSPTools(ctx, s, w.LSP(ctx), mcptools.WithAllThemes())
+	parser := w.Parser(ctx)
+	mcptools.RegisterSyntaxTools(ctx, s, parser, mcptools.WithAllThemes())
+	mcptools.RegisterLSPTools(ctx, s, w.LSP(ctx), parser, mcptools.WithAllThemes())
 }

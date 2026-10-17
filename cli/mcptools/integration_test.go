@@ -289,8 +289,9 @@ func TestIntegrationConcurrentCalls(t *testing.T) {
 	}
 }
 
+// firstText returns the JSON block of res, the first; a symbol tool may add a hint after.
 func firstText(res *mcp.CallToolResult) string {
-	if len(res.Content) != 1 {
+	if len(res.Content) == 0 || len(res.Content) > 2 {
 		return fmt.Sprintf("%d content blocks", len(res.Content))
 	}
 	if tc, ok := res.Content[0].(mcp.TextContent); ok {

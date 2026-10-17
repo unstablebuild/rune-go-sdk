@@ -172,6 +172,17 @@ func mcpJSON(v any) (*mcp.CallToolResult, error) {
 	return mcp.NewToolResultText(string(data)), nil
 }
 
+// mcpJSONHint is mcpJSON with hint, when not empty, as a second text block after the
+// JSON, so the JSON still parses.
+func mcpJSONHint(v any, hint string) (*mcp.CallToolResult, error) {
+	res, err := mcpJSON(v)
+	if err != nil || hint == "" {
+		return res, err
+	}
+	res.Content = append(res.Content, mcp.NewTextContent(hint))
+	return res, nil
+}
+
 // mcpErr returns an MCP error result from an error.
 func mcpErr(err error) *mcp.CallToolResult {
 	return mcp.NewToolResultError(err.Error())

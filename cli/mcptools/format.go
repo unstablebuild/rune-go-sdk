@@ -424,6 +424,16 @@ func FlattenSelectionRanges(ranges []semanticapi.SelectionRange) []FlatSelection
 	return flat
 }
 
+// FlatDocumentation is the JSON shape of a symbol's hover in tool output, with the place
+// it was asked at.
+type FlatDocumentation struct {
+	URI       string `json:"uri"`
+	StartLine uint32 `json:"start_line"`
+	StartChar uint32 `json:"start_char"`
+	Contents  string `json:"contents"`
+	Kind      string `json:"kind"`
+}
+
 // FlatCallHierarchyItem is the JSON shape of a call hierarchy item in tool output.
 type FlatCallHierarchyItem struct {
 	Name      string `json:"name"`

@@ -21,12 +21,27 @@ import (
 	"strings"
 
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
+	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
 )
 
-// SymbolPosition holds a resolved URI and position for a workspace symbol.
+// MaxSites caps the sites ResolveSymbol returns. A symbol tool asks the language server at
+// each, so the cap bounds the requests one call makes.
+const MaxSites = 16
+
+// SymbolPosition is a site of a symbol: a place that defines or references it, where an
+// LSP request about the symbol can run.
 type SymbolPosition struct {
 	URI      string
 	Position semanticapi.Position
+}
+
+// Resolution is what ResolveSymbol found for a name.
+type Resolution struct {
+	// Sites are where to ask the language server about the symbol, at most MaxSites.
+	Sites []SymbolPosition
+	// Hint, when not empty, tells the caller how the answer may fall short: the name was
+	// bare, so dependencies were not searched, or it had more than MaxSites sites.
+	Hint string
 }
 
 // SymbolResolveHint biases kind preference when multiple symbols share the same name.
@@ -77,9 +92,102 @@ func preferredKinds(hint SymbolResolveHint) map[semanticapi.SymbolKind]bool {
 	}
 }
 
-// ResolveSymbol queries WorkspaceSymbol, filters to exact name matches, sorts by kind
-// preference, and deduplicates by (URI, line, character).
+// ResolveSymbol returns up to MaxSites sites of symbol, deduplicated by (URI, line,
+// character).
+//
+// It asks parser's symbol index first, as Rune's go-to does. The index resolves a
+// qualified name, such as "pkg.Symbol" or "Type.Method", to places that define or
+// reference it, including symbols of dependencies that a language server's workspace
+// search does not cover. When parser is nil, or the index fails, even partway, or has no
+// match, ResolveSymbol falls back to WorkspaceSymbol: it keeps exact name matches and
+// sorts them so the kinds hint prefers come first.
+//
+// The error for a bare name that is not found, and the Resolution's Hint for one that
+// is, suggest qualifying it.
 func ResolveSymbol(
+	ctx context.Context,
+	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
+	symbol string,
+	hint SymbolResolveHint,
+) (Resolution, error) {
+	var sites []SymbolPosition
+	if parser != nil {
+		sites = indexSites(ctx, parser, symbol)
+	}
+	if len(sites) == 0 {
+		var err error
+		if sites, err = workspaceSymbolSites(ctx, lsp, symbol, hint); err != nil {
+			return Resolution{}, err
+		}
+	}
+	bare := !strings.Contains(symbol, ".")
+	if len(sites) == 0 {
+		if bare {
+			return Resolution{}, fmt.Errorf("symbol %q not found. %s", symbol, bareHint(symbol))
+		}
+		return Resolution{}, fmt.Errorf("symbol %q not found", symbol)
+	}
+	var hints []string
+	if len(sites) > MaxSites {
+		sites = sites[:MaxSites]
+		hints = append(hints, fmt.Sprintf("Only the first %d places that define or "+
+			"reference %q were looked at; there are more, so this answer may be "+
+			"incomplete. Qualify the name further, as pkg.Type.Method, to narrow it.",
+			MaxSites, symbol))
+	}
+	if bare {
+		hints = append(hints, bareHint(symbol))
+	}
+	return Resolution{Sites: sites, Hint: strings.Join(hints, " ")}, nil
+}
+
+// bareHint suggests qualifying symbol, a name without a dot.
+func bareHint(symbol string) string {
+	return fmt.Sprintf("%q has no qualifier, so only symbols defined in the workspace "+
+		"were searched. Qualify it, as \"pkg.%s\" or \"Type.%s\", to also find symbols "+
+		"of dependencies.", symbol, symbol, symbol)
+}
+
+// indexSites returns up to MaxSites+1 distinct sites of symbol from parser's symbol
+// index, one more than ResolveSymbol keeps so it can tell there are more. It returns none
+// when the index cannot resolve symbol or fails while it is read.
+func indexSites(
+	ctx context.Context,
+	parser syntaxapi.Parser,
+	symbol string,
+) []SymbolPosition {
+	it, err := parser.ResolveSymbol(ctx, symbol, nil)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = it.Close() }()
+	seen := make(map[SymbolPosition]bool)
+	var sites []SymbolPosition
+	for len(sites) <= MaxSites {
+		m, ok := it.Next(ctx)
+		if !ok {
+			if it.Err() != nil {
+				return nil
+			}
+			return sites
+		}
+		sp := SymbolPosition{URI: m.URI, Position: semanticapi.Position{
+			Line:      uint32(m.Pos.Y),
+			Character: uint32(m.Pos.X),
+		}}
+		if !seen[sp] {
+			seen[sp] = true
+			sites = append(sites, sp)
+		}
+	}
+	return sites
+}
+
+// workspaceSymbolSites queries WorkspaceSymbol, filters to exact name matches, sorts by
+// kind preference, and deduplicates by (URI, line, character). It finds no sites, without
+// an error, when no symbol matches.
+func workspaceSymbolSites(
 	ctx context.Context,
 	lsp semanticapi.LSP,
 	symbol string,
@@ -98,9 +206,6 @@ func ResolveSymbol(
 		if s.Name == symbol || strings.HasSuffix(s.Name, suffix) {
 			exact = append(exact, s)
 		}
-	}
-	if len(exact) == 0 {
-		return nil, fmt.Errorf("symbol %q not found", symbol)
 	}
 	// Stable sort: preferred kinds first.
 	pref := preferredKinds(hint)
@@ -137,18 +242,19 @@ func ResolveSymbol(
 	}), nil
 }
 
-// ResolveSymbolBest returns the single best match for a symbol name.
+// ResolveSymbolBest returns the first site ResolveSymbol finds.
 func ResolveSymbolBest(
 	ctx context.Context,
 	lsp semanticapi.LSP,
+	parser syntaxapi.Parser,
 	symbol string,
 	hint SymbolResolveHint,
 ) (SymbolPosition, error) {
-	positions, err := ResolveSymbol(ctx, lsp, symbol, hint)
+	res, err := ResolveSymbol(ctx, lsp, parser, symbol, hint)
 	if err != nil {
 		return SymbolPosition{}, err
 	}
-	return positions[0], nil
+	return res.Sites[0], nil
 }
 
 // dedup removes duplicates from items based on a key function, preserving order.

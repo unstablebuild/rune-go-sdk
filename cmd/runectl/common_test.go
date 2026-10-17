@@ -37,6 +37,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/term/termrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -672,11 +674,16 @@ func (m *mockSyntax) QueryNode(
 	})
 }
 
+// ResolveSymbol resolves pkg.Symbol to main.go 10:5. Like Rune, it refuses a name without
+// a dot, and has no match for any other.
 func (m *mockSyntax) ResolveSymbol(
 	req *syntaxrpc.ResolveSymbolRequest,
 	stream grpc.ServerStreamingServer[syntaxrpc.ResolveSymbolResponse],
 ) error {
 	m.lastResolve = req.GetName()
+	if !strings.Contains(req.GetName(), ".") {
+		return status.Error(codes.InvalidArgument, "syntaxapi.ErrNoDot")
+	}
 	if err := stream.Send(&syntaxrpc.ResolveSymbolResponse{
 		Payload: &syntaxrpc.ResolveSymbolResponse_Progress{
 			Progress: &syntaxrpc.ResolveSymbolProgress{
@@ -688,6 +695,9 @@ func (m *mockSyntax) ResolveSymbol(
 		},
 	}); err != nil {
 		return err
+	}
+	if req.GetName() != "pkg.Symbol" {
+		return nil
 	}
 	return stream.Send(&syntaxrpc.ResolveSymbolResponse{
 		Payload: &syntaxrpc.ResolveSymbolResponse_Match{

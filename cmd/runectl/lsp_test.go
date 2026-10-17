@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestLSP(t *testing.T) {
@@ -780,4 +781,25 @@ func TestLSP(t *testing.T) {
 			require.Equal(t, want, out)
 		})
 	}
+}
+
+// A qualified name resolves through the symbol index: the command asks the language server
+// at the site the index found, without searching the workspace's symbols.
+func TestLSPSymbolThroughIndex(t *testing.T) {
+	env := newTestEnv(t)
+	defer env.cleanup()
+
+	out, err := env.run("lsp", "definition", "pkg.Symbol")
+	require.NoError(t, err)
+	require.Equal(t, "file:///src/main.go 10:5-10:15\n", out)
+	var methods []string
+	rpcs := env.rpcs.take()
+	for _, r := range rpcs {
+		methods = append(methods, r.method)
+	}
+	require.Equal(t, []string{"Syntax/ResolveSymbol", "LSP/Definition"}, methods)
+	req, err := protojson.Marshal(rpcs[1].req)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"textDocument":{"uri":"file:///src/main.go"},`+
+		`"position":{"line":10,"character":5}}`, string(req))
 }

@@ -16,6 +16,7 @@ package mcptools
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -94,7 +95,7 @@ func TestRegisterSeparately(t *testing.T) {
 	})
 	t.Run("lsp", func(t *testing.T) {
 		s := server.NewMCPServer("t", "1")
-		RegisterLSPTools(context.Background(), s, newFakeLSP())
+		RegisterLSPTools(context.Background(), s, newFakeLSP(), nil)
 		require.Equal(t,
 			[]string{
 				"lsp_definition", "lsp_diagnostics", "lsp_document_symbols",
@@ -107,7 +108,8 @@ func TestRegisterSeparately(t *testing.T) {
 		s := server.NewMCPServer("t", "1")
 		RegisterSyntaxTools(context.Background(), s, &fakeParser{},
 			WithAlwaysLoad("syntax_search"))
-		RegisterLSPTools(context.Background(), s, newFakeLSP(), WithThemes(ThemeRename))
+		RegisterLSPTools(context.Background(), s, newFakeLSP(), nil,
+			WithThemes(ThemeRename))
 		tools := listTools(t, s)
 		want := slices.Concat(coreTools, themeTools[ThemeRename])
 		slices.Sort(want)
@@ -647,23 +649,32 @@ func TestSymbolToolsResolveFirst(t *testing.T) {
 			require.Equal(t, symbolArg, c.required[len(c.required)-1:])
 
 			s := newTestServer(WithAllThemes())
-			callTool(t, s.MCPServer, tool, c.args)
+			res := callTool(t, s.MCPServer, tool, c.args)
 			require.Equal(t, []string{"WorkspaceSymbol", c.method}, s.lsp.methods())
+			sym, _ := c.args["symbol"].(string)
+			require.Equal(t, bareHint(sym), resultHint(t, res), "a bare name is hinted at")
 
 			t.Run("not found", func(t *testing.T) {
 				s := newTestServer(WithAllThemes())
 				res := callTool(t, s.MCPServer, tool,
 					map[string]any{"symbol": "Nope", "new_name": "x"})
 				require.True(t, res.IsError)
-				require.Equal(t, `symbol "Nope" not found`, resultText(t, res))
+				require.Equal(t, `symbol "Nope" not found. `+bareHint("Nope"), resultText(t, res))
 				require.Equal(t, []string{"WorkspaceSymbol"}, s.lsp.methods())
+			})
+			t.Run("qualified not found", func(t *testing.T) {
+				s := newTestServer(WithAllThemes())
+				res := callTool(t, s.MCPServer, tool,
+					map[string]any{"symbol": "pkg.Nope", "new_name": "x"})
+				require.True(t, res.IsError)
+				require.Equal(t, `symbol "pkg.Nope" not found`, resultText(t, res))
 			})
 			t.Run("prefix is not a match", func(t *testing.T) {
 				s := newTestServer(WithAllThemes())
 				res := callTool(t, s.MCPServer, tool,
 					map[string]any{"symbol": "My", "new_name": "x"})
 				require.True(t, res.IsError)
-				require.Equal(t, `symbol "My" not found`, resultText(t, res))
+				require.Equal(t, `symbol "My" not found. `+bareHint("My"), resultText(t, res))
 			})
 			t.Run("lookup fails", func(t *testing.T) {
 				s := newTestServer(WithAllThemes())
@@ -675,6 +686,89 @@ func TestSymbolToolsResolveFirst(t *testing.T) {
 			})
 		})
 	}
+}
+
+// Rune's symbol index resolves a qualified name to places that define or reference it,
+// including symbols of dependencies the language server's workspace search misses. The
+// symbol tools ask the language server at those places.
+func TestSymbolToolsResolveThroughIndex(t *testing.T) {
+	methods := make(map[string]string)
+	for _, c := range toolCases() {
+		methods[c.tool] = c.method
+	}
+	indexed := func(matches ...syntaxapi.Match) *testServer {
+		s := newTestServer(WithAllThemes())
+		s.parser.index = map[string][]syntaxapi.Match{"term.Writer": matches}
+		s.lsp.defs = map[string]semanticapi.Location{
+			reviewGo: loc(structuresGo, 120, 5, 120, 11),
+		}
+		return s
+	}
+	args := map[string]any{"symbol": "term.Writer", "new_name": "W"}
+
+	t.Run("definition at a reference", func(t *testing.T) {
+		s := indexed(match(reviewGo, 41, 7))
+		res := callTool(t, s.MCPServer, "lsp_definition", args)
+		require.False(t, res.IsError, resultText(t, res))
+		require.JSONEq(t, `[{"uri":"`+structuresGo+`","start_line":120,"start_char":5,`+
+			`"end_line":120,"end_char":11}]`, resultText(t, res))
+		require.Equal(t, []string{"Definition"}, s.lsp.methods(),
+			"no workspace symbol search")
+	})
+	for _, tool := range symbolTools {
+		t.Run(tool, func(t *testing.T) {
+			s := indexed(match(reviewGo, 41, 7))
+			res := callTool(t, s.MCPServer, tool, args)
+			require.False(t, res.IsError, resultText(t, res))
+			require.Equal(t, []string{methods[tool]}, s.lsp.methods())
+			require.Equal(t, "term.Writer", s.parser.called("ResolveSymbol")[0].params)
+			var at semanticapi.TextDocumentPositionParams
+			data, err := json.Marshal(s.lsp.called(methods[tool])[0].params)
+			require.NoError(t, err)
+			require.NoError(t, json.Unmarshal(data, &at))
+			require.Equal(t, reviewGo, at.TextDocument.URI)
+			require.Equal(t, pos(41, 7), at.Position)
+		})
+	}
+	t.Run("sites of one symbol merge", func(t *testing.T) {
+		// Two references on one line: the fake prepares the same item at both.
+		for _, tool := range []string{"lsp_prepare_call_hierarchy", "lsp_prepare_type_hierarchy"} {
+			s := indexed(match(mainGo, 5, 2), match(mainGo, 5, 9))
+			res := callTool(t, s.MCPServer, tool, args)
+			require.False(t, res.IsError, resultText(t, res))
+			require.Len(t, s.lsp.called(methods[tool]), 2, tool)
+			var items []map[string]any
+			require.NoError(t, json.Unmarshal([]byte(resultText(t, res)), &items))
+			require.Len(t, items, 1, tool)
+		}
+	})
+	t.Run("documentation of each symbol the name refers to", func(t *testing.T) {
+		// Two packages named iterator, each referenced twice.
+		const blue, sdk = "file:///blue/iterator.go", "file:///sdk/iterator.go"
+		s := indexed(match(blue, 9, 5), match(sdk, 14, 5), match(blue, 30, 2),
+			match(sdk, 40, 1))
+		s.lsp.hovers = map[string]string{blue: "type Iterator (blue)", sdk: "type Iterator (sdk)"}
+		res := callTool(t, s.MCPServer, "lsp_documentation", args)
+		require.False(t, res.IsError, resultText(t, res))
+		require.Len(t, s.lsp.called("Hover"), 4)
+		require.JSONEq(t, `[`+
+			`{"uri":"`+blue+`","start_line":9,"start_char":5,`+
+			`"contents":"type Iterator (blue)","kind":"markdown"},`+
+			`{"uri":"`+sdk+`","start_line":14,"start_char":5,`+
+			`"contents":"type Iterator (sdk)","kind":"markdown"}]`, resultText(t, res))
+		require.Empty(t, resultHint(t, res))
+	})
+	t.Run("more sites than the cap are hinted at", func(t *testing.T) {
+		var matches []syntaxapi.Match
+		for line := range MaxSites + 1 {
+			matches = append(matches, match(reviewGo, line, 0))
+		}
+		s := indexed(matches...)
+		res := callTool(t, s.MCPServer, "lsp_references", args)
+		require.False(t, res.IsError, resultText(t, res))
+		require.Len(t, s.lsp.called("References"), MaxSites)
+		require.Contains(t, resultHint(t, res), "Only the first 16 places")
+	})
 }
 
 // A name several symbols share: tools that aggregate ask about each and merge the
@@ -768,7 +862,6 @@ func TestSymbolSharedByMany(t *testing.T) {
 // list, and null where the tool documents an absent answer.
 func TestEmptyResults(t *testing.T) {
 	absent := map[string]string{
-		"lsp_documentation":   `null`,
 		"lsp_signature_help":  `null`,
 		"lsp_rename":          `null`,
 		"lsp_prepare_rename":  `null`,
@@ -818,7 +911,7 @@ func TestSignatureHelpActiveSignature(t *testing.T) {
 				ActiveSignature: tt.active,
 			}}
 			s := server.NewMCPServer("t", "1")
-			RegisterLSPTools(context.Background(), s, lsp, WithAllThemes())
+			RegisterLSPTools(context.Background(), s, lsp, nil, WithAllThemes())
 			res := callTool(t, s, "lsp_signature_help", at(mainGo, 0, 0))
 			require.JSONEq(t, tt.want, resultText(t, res))
 		})
@@ -826,7 +919,7 @@ func TestSignatureHelpActiveSignature(t *testing.T) {
 	t.Run("no signatures", func(t *testing.T) {
 		s := server.NewMCPServer("t", "1")
 		RegisterLSPTools(context.Background(), s,
-			&signatureLSP{help: &semanticapi.SignatureHelp{}}, WithAllThemes())
+			&signatureLSP{help: &semanticapi.SignatureHelp{}}, nil, WithAllThemes())
 		require.Equal(t, `null`,
 			resultText(t, callTool(t, s, "lsp_signature_help", at(mainGo, 0, 0))))
 	})

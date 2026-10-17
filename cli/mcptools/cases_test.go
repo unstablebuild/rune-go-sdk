@@ -115,7 +115,8 @@ func toolCases() []toolCase {
 		{
 			tool: "lsp_documentation", args: map[string]any{"symbol": "MyFunc"},
 			required: symbolArg, method: "Hover",
-			want: `{"contents":"func MyFunc()","kind":"markdown"}`,
+			want: `[{"uri":"file:///src/main.go","start_line":5,"start_char":0,` +
+				`"contents":"func MyFunc()","kind":"markdown"}]`,
 		},
 		{
 			tool: "lsp_definition", args: map[string]any{"symbol": "MyFunc"},
@@ -413,7 +414,7 @@ func newTestServerContext(ctx context.Context, opts ...Option) *testServer {
 		parser:    &fakeParser{},
 	}
 	RegisterSyntaxTools(ctx, s.MCPServer, s.parser, opts...)
-	RegisterLSPTools(ctx, s.MCPServer, s.lsp, opts...)
+	RegisterLSPTools(ctx, s.MCPServer, s.lsp, s.parser, opts...)
 	return s
 }
 
@@ -493,16 +494,32 @@ func callTool(
 	return res
 }
 
-// resultText returns the single text block of res.
+// resultText returns the first text block of res: its JSON, or its error. A symbol tool
+// may follow it with a hint; see resultHint.
 func resultText(t *testing.T, res mcp.CallToolResult) string {
 	t.Helper()
-	require.Len(t, res.Content, 1, "%+v", res.Content)
-	switch c := res.Content[0].(type) {
+	require.NotEmpty(t, res.Content)
+	require.LessOrEqual(t, len(res.Content), 2, "%+v", res.Content)
+	return contentText(t, res.Content[0])
+}
+
+// resultHint returns the hint block that follows a symbol tool's JSON, or "".
+func resultHint(t *testing.T, res mcp.CallToolResult) string {
+	t.Helper()
+	if len(res.Content) < 2 {
+		return ""
+	}
+	return contentText(t, res.Content[1])
+}
+
+func contentText(t *testing.T, c mcp.Content) string {
+	t.Helper()
+	switch c := c.(type) {
 	case mcp.TextContent:
 		return c.Text
 	case *mcp.TextContent:
 		return c.Text
 	}
-	require.Failf(t, "not text", "got %T", res.Content[0])
+	require.Failf(t, "not text", "got %T", c)
 	return ""
 }

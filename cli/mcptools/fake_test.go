@@ -135,6 +135,11 @@ type fakeLSP struct {
 	recorder
 
 	symbols []semanticapi.SymbolInformation
+	// defs answers Definition in a document, by URI, as a language server does at a
+	// reference. Definition elsewhere echoes the requested position.
+	defs map[string]semanticapi.Location
+	// hovers answers Hover in a document, by URI. Hover elsewhere answers MyFunc's.
+	hovers map[string]string
 	// empty makes every method but WorkspaceSymbol answer its zero value, so symbol tools
 	// still resolve.
 	empty bool
@@ -151,6 +156,11 @@ func (f *fakeLSP) Hover(
 	if err := f.record(ctx, "Hover", p); err != nil || f.empty {
 		return nil, err
 	}
+	if h, ok := f.hovers[p.TextDocument.URI]; ok {
+		return &semanticapi.Hover{Contents: semanticapi.MarkupContent{
+			Kind: "markdown", Value: h,
+		}}, nil
+	}
 	return &semanticapi.Hover{Contents: semanticapi.MarkupContent{
 		Kind: "markdown", Value: "func MyFunc()",
 	}}, nil
@@ -162,6 +172,9 @@ func (f *fakeLSP) Definition(
 ) (semanticapi.LocationResult, error) {
 	if err := f.record(ctx, "Definition", p); err != nil || f.empty {
 		return semanticapi.LocationResult{}, err
+	}
+	if l, ok := f.defs[p.TextDocument.URI]; ok {
+		return semanticapi.LocationResult{Locations: []semanticapi.Location{l}}, nil
 	}
 	return semanticapi.LocationResult{Locations: []semanticapi.Location{{
 		URI: p.TextDocument.URI, Range: widen(p.Position, 6),
@@ -567,6 +580,8 @@ type fakeParser struct {
 	syntaxapi.Parser
 	recorder
 
+	// index holds the matches of ResolveSymbol, by name.
+	index map[string][]syntaxapi.Match
 	// iterErr makes each iterator fail after its first result.
 	iterErr error
 	empty   bool
@@ -622,6 +637,42 @@ func (f *fakeParser) QueryNode(
 	return f.results(uri.String(), "main", "definition.namespace"), nil
 }
 
+// ResolveSymbol answers from index. Like Rune's symbol index, it refuses a name without a
+// dot. Each read of its iterator is recorded as NextMatch.
+func (f *fakeParser) ResolveSymbol(
+	ctx context.Context, name string, _ syntaxapi.Progress,
+) (iterator.Iterator[syntaxapi.Match], error) {
+	if err := f.record(ctx, "ResolveSymbol", name); err != nil {
+		return nil, err
+	}
+	if !strings.Contains(name, ".") {
+		return nil, syntaxapi.ErrNoDot
+	}
+	matches := f.index[name]
+	i := 0
+	return iterator.FromFunc(
+		func(ctx context.Context) (syntaxapi.Match, bool, error) {
+			_ = f.record(ctx, "NextMatch", nil)
+			if f.iterErr != nil && i == 1 {
+				return syntaxapi.Match{}, false, f.iterErr
+			}
+			if i >= len(matches) {
+				return syntaxapi.Match{}, false, nil
+			}
+			i++
+			return matches[i-1], true, nil
+		},
+		f.close,
+	), nil
+}
+
+func (f *fakeParser) close() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.closed++
+	return nil
+}
+
 // results returns an iterator over two results in file: text on line 5, then a second
 // match on line 9.
 func (f *fakeParser) results(
@@ -653,11 +704,6 @@ func (f *fakeParser) results(
 			i++
 			return results[i-1], true, nil
 		},
-		func() error {
-			f.mu.Lock()
-			defer f.mu.Unlock()
-			f.closed++
-			return nil
-		},
+		f.close,
 	)
 }
