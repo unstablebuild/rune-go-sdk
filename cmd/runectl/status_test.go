@@ -15,9 +15,7 @@
 package main
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +24,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unstablebuild/rune-go-sdk/term/progstatus"
 )
 
 func newStatusTTY(t *testing.T) string {
@@ -229,129 +228,6 @@ func TestStatus(t *testing.T) {
 	}
 }
 
-func TestStatusMaxReportFitsSequenceLimit(t *testing.T) {
-	r := statusReport{
-		State:    "working",
-		ID:       strings.Repeat(strings.Repeat("x", 32)+"/", 3) + strings.Repeat("x", 29),
-		Progress: 100,
-		App:      strings.Repeat("a", 32),
-		Title:    strings.Repeat("t", 192),
-		Msg:      strings.Repeat("m", 2048),
-	}
-	require.NoError(t, r.validate())
-	require.Less(t, len(r.encode(false)), 3300)
-}
-
-func TestScanStatusQueryReply(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		wantReply bool
-		wantDA    bool
-	}{
-		{name: "empty"},
-		{name: "reply-only", input: "\x1b]7501;?\x1b\\", wantReply: true},
-		{name: "reply-bel", input: "\x1b]7501;?\x07", wantReply: true},
-		{name: "reply-with-pairs", input: "\x1b]7501;?:v=2\x1b\\", wantReply: true},
-		{name: "da-only", input: "\x1b[?6c", wantDA: true},
-		{name: "da-multi", input: "\x1b[?62;22c", wantDA: true},
-		{name: "da-partial", input: "\x1b[?6"},
-		{name: "both", input: "\x1b]7501;?\x1b\\\x1b[?6c", wantReply: true, wantDA: true},
-		{name: "reply-partial-then-da", input: "\x1b]750\x1b[?6c", wantDA: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			reply, da := scanStatusQueryReply([]byte(tt.input))
-			require.Equal(t, tt.wantReply, reply, "reply")
-			require.Equal(t, tt.wantDA, da, "da")
-		})
-	}
-}
-
-// fakeStatusTTY serves canned replies one chunk per Read and records
-// what was written to it.
-type fakeStatusTTY struct {
-	writes  bytes.Buffer
-	replies []string
-	block   chan struct{}
-}
-
-func (f *fakeStatusTTY) Write(p []byte) (int, error) {
-	return f.writes.Write(p)
-}
-
-func (f *fakeStatusTTY) Read(p []byte) (int, error) {
-	if len(f.replies) == 0 {
-		if f.block != nil {
-			<-f.block
-		}
-		return 0, io.EOF
-	}
-	n := copy(p, f.replies[0])
-	f.replies = f.replies[1:]
-	return n, nil
-}
-
-func TestQueryStatusSupport(t *testing.T) {
-	tests := []struct {
-		name    string
-		replies []string
-		block   bool
-		want    bool
-	}{
-		{
-			name:    "supported",
-			replies: []string{"\x1b]7501;?\x1b\\", "\x1b[?6c"},
-			want:    true,
-		},
-		{
-			name:    "supported-single-chunk",
-			replies: []string{"\x1b]7501;?\x1b\\\x1b[?6c"},
-			want:    true,
-		},
-		{
-			name:    "supported-split-across-reads",
-			replies: []string{"\x1b]75", "01;?\x1b\\\x1b[?", "6c"},
-			want:    true,
-		},
-		{
-			name:    "supported-no-da-eof",
-			replies: []string{"\x1b]7501;?\x1b\\"},
-			want:    true,
-		},
-		{
-			name:    "supported-no-da-timeout",
-			replies: []string{"\x1b]7501;?\x1b\\"},
-			block:   true,
-			want:    true,
-		},
-		{
-			name:    "unsupported-da",
-			replies: []string{"\x1b[?62;22c"},
-		},
-		{
-			name: "unsupported-eof",
-		},
-		{
-			name:  "unsupported-timeout",
-			block: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tty := &fakeStatusTTY{replies: tt.replies}
-			if tt.block {
-				tty.block = make(chan struct{})
-				defer close(tty.block)
-			}
-			got, err := queryStatusSupport(tty, 50*time.Millisecond)
-			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
-			require.Equal(t, "\x1b]7501;?\x1b\\\x1b[c", tty.writes.String())
-		})
-	}
-}
-
 func TestStatusWrapHelperProcess(t *testing.T) {
 	if os.Getenv("RUNECTL_STATUS_HELPER") != "1" {
 		return
@@ -452,64 +328,65 @@ func TestStatusWrapDefaultMessage(t *testing.T) {
 
 	require.NoError(t, err)
 	wantMsg := os.Args[0] + " -test.run=TestStatusWrapHelperProcess"
-	r := statusReport{State: "working", Progress: -1, Msg: wantMsg}
-	require.Equal(t, r.encode(false)+statusReport{State: "done", Progress: -1, Msg: wantMsg}.encode(false), readStatusTTY(t, tty))
+	working := progstatus.Report{State: progstatus.Working, Msg: wantMsg}
+	done := progstatus.Report{State: progstatus.Done, Msg: wantMsg}
+	require.Equal(t, working.Encode(false)+done.Encode(false), readStatusTTY(t, tty))
 }
 
 func TestStatusDemo(t *testing.T) {
 	// ramp is a working report played with its progress going from 0 to
 	// 100% in 5% steps.
-	ramp := func(r statusReport) []statusReport {
-		var out []statusReport
+	ramp := func(r progstatus.Report) []progstatus.Report {
+		var out []progstatus.Report
 		for p := 0; p <= 100; p += 5 {
-			r.Progress = p
+			r.Progress = progstatus.Percent(p)
 			out = append(out, r)
 		}
 		return out
 	}
-	concat := func(parts ...[]statusReport) []statusReport {
-		var out []statusReport
+	concat := func(parts ...[]progstatus.Report) []progstatus.Report {
+		var out []progstatus.Report
 		for _, p := range parts {
 			out = append(out, p...)
 		}
 		return out
 	}
-	one := func(r statusReport) []statusReport { return []statusReport{r} }
+	one := func(r progstatus.Report) []progstatus.Report { return []progstatus.Report{r} }
 
 	tests := []struct {
 		name     string
 		scenario string
-		want     []statusReport
+		want     []progstatus.Report
 	}{
 		{
 			name:     "brew",
 			scenario: "brew",
 			want: concat(
-				one(statusReport{State: "working", Progress: -1, App: "brew", Msg: "Installing updates"}),
-				one(statusReport{State: "blocked", Progress: -1, Kind: "auth", App: "brew", Msg: "Password required to install updates"}),
-				ramp(statusReport{State: "working", App: "brew", Msg: "Installing updates"}),
-				one(statusReport{State: "done", Progress: -1, App: "brew", Msg: "Upgraded 12 packages"}),
+				one(progstatus.Report{State: progstatus.Working, App: "brew", Msg: "Installing updates"}),
+				one(progstatus.Report{State: progstatus.Blocked, Kind: progstatus.Auth, App: "brew", Msg: "Password required to install updates"}),
+				ramp(progstatus.Report{State: progstatus.Working, App: "brew", Msg: "Installing updates"}),
+				one(progstatus.Report{State: progstatus.Done, App: "brew", Msg: "Upgraded 12 packages"}),
 			),
 		},
 		{
 			name:     "deploy",
 			scenario: "deploy",
 			want: concat(
-				one(statusReport{State: "working", Progress: -1, App: "deploy", Msg: "Deploying v2.4.1"}),
-				ramp(statusReport{State: "working", ID: "us-east", Title: "US East", Msg: "Pushing image"}),
-				one(statusReport{State: "blocked", Progress: -1, Kind: "permission", ID: "eu-west", Title: "EU West", Msg: "Approve deploy to eu-west (production)?"}),
-				one(statusReport{State: "done", Progress: -1, ID: "us-east", Title: "US East", Msg: "Healthy"}),
-				one(statusReport{State: "clear", Progress: -1, ID: "us-east"}),
-				one(statusReport{State: "clear", Progress: -1, ID: "eu-west"}),
-				one(statusReport{State: "done", Progress: -1, App: "deploy", Msg: "Deployed to 3 regions"}),
+				one(progstatus.Report{State: progstatus.Working, App: "deploy", Msg: "Deploying v2.4.1"}),
+				ramp(progstatus.Report{State: progstatus.Working, ID: "us-east", Title: "US East", Msg: "Pushing image"}),
+				one(progstatus.Report{State: progstatus.Blocked, Kind: progstatus.Permission, ID: "eu-west", Title: "EU West", Msg: "Approve deploy to eu-west (production)?"}),
+				one(progstatus.Report{State: progstatus.Done, ID: "us-east", Title: "US East", Msg: "Healthy"}),
+				one(progstatus.Report{State: progstatus.Clear, ID: "us-east"}),
+				one(progstatus.Report{State: progstatus.Clear, ID: "eu-west"}),
+				one(progstatus.Report{State: progstatus.Done, App: "deploy", Msg: "Deployed to 3 regions"}),
 			),
 		},
 		{
 			name:     "rsync",
 			scenario: "rsync",
 			want: concat(
-				ramp(statusReport{State: "working", Msg: "Syncing photos"}),
-				one(statusReport{State: "done", Progress: -1, Msg: "Photos synced"}),
+				ramp(progstatus.Report{State: progstatus.Working, Msg: "Syncing photos"}),
+				one(progstatus.Report{State: progstatus.Done, Msg: "Photos synced"}),
 			),
 		},
 	}
@@ -527,7 +404,7 @@ func TestStatusDemo(t *testing.T) {
 			for _, r := range tt.want {
 				wantOut.WriteString(r.String())
 				wantOut.WriteByte('\n')
-				wantTTY.WriteString(r.encode(false))
+				wantTTY.WriteString(r.Encode(false))
 			}
 			require.Equal(t, wantOut.String(), out)
 			require.Equal(t, wantTTY.String(), readStatusTTY(t, tty))
@@ -573,7 +450,7 @@ func TestStatusDemoMatchesSpecExamples(t *testing.T) {
 		steps := statusDemoScenarios[scenario]
 		require.Len(t, steps, len(seqs), scenario)
 		for i, r := range steps {
-			require.Equal(t, seqs[i], r.encode(false), "%s step %d", scenario, i)
+			require.Equal(t, seqs[i], r.Encode(false), "%s step %d", scenario, i)
 		}
 	}
 }

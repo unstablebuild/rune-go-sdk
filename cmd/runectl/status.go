@@ -15,242 +15,25 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"os/signal"
-	"slices"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
-	"unicode/utf8"
 
 	"github.com/spf13/cobra"
+	"github.com/unstablebuild/rune-go-sdk/term/progstatus"
 	"golang.org/x/term"
 )
 
-// Program Status Protocol (OSC 7501) wire format and limits, revision 0.3.
-const (
-	statusOSC   = "\x1b]7501;"
-	statusST    = "\x1b\\"
-	statusBEL   = "\x07"
-	statusQuery = "?"
-	// statusDA requests primary device attributes; every terminal answers
-	// it, which bounds the wait for a feature detection reply.
-	statusDA = "\x1b[c"
-
-	statusMaxSequence    = 4096
-	statusMaxMsgDecoded  = 2048
-	statusMaxTitleDecode = 192
-	statusMaxApp         = 32
-	statusMaxID          = 128
-	statusMaxIDSegment   = 32
-	statusMaxIDDepth     = 8
+var errStatusUnsupported = errors.New(
+	"terminal does not support program status reports",
 )
-
-var (
-	statusStates = []string{"idle", "working", "done", "blocked", "error", "clear"}
-	statusKinds  = []string{"permission", "question", "auth"}
-
-	errStatusUnsupported = errors.New(
-		"terminal does not support program status reports",
-	)
-)
-
-// statusReport is one Program Status Protocol report.
-type statusReport struct {
-	State string
-	ID    string
-	Kind  string
-	// Progress is a percentage from 0 to 100, or -1 when absent.
-	Progress int
-	App      string
-	Title    string
-	Msg      string
-}
-
-func (r statusReport) validate() error {
-	if !slices.Contains(statusStates, r.State) {
-		return fmt.Errorf(
-			"invalid state %q: use idle|working|done|blocked|error|clear",
-			r.State,
-		)
-	}
-	if r.ID != "" {
-		if err := validateStatusID(r.ID); err != nil {
-			return err
-		}
-	}
-	if r.Kind != "" {
-		if !slices.Contains(statusKinds, r.Kind) {
-			return fmt.Errorf(
-				"invalid kind %q: use permission|question|auth", r.Kind,
-			)
-		}
-		if r.State != "blocked" {
-			return errors.New("kind only applies to the blocked state")
-		}
-	}
-	if r.Progress != -1 {
-		if r.Progress < 0 || r.Progress > 100 {
-			return fmt.Errorf(
-				"invalid progress %d: must be between 0 and 100", r.Progress,
-			)
-		}
-		if r.State != "working" && r.State != "blocked" {
-			return errors.New(
-				"progress only applies to the working and blocked states",
-			)
-		}
-	}
-	if r.App != "" && !validStatusToken(r.App, statusMaxApp) {
-		return fmt.Errorf(
-			"invalid app %q: use up to %d characters from [A-Za-z0-9_.+-]",
-			r.App, statusMaxApp,
-		)
-	}
-	if err := validateStatusText("title", r.Title, statusMaxTitleDecode); err != nil {
-		return err
-	}
-	if err := validateStatusText("message", r.Msg, statusMaxMsgDecoded); err != nil {
-		return err
-	}
-	if n := len(r.encode(false)); n > statusMaxSequence {
-		return fmt.Errorf(
-			"report is %d bytes, over the %d byte limit", n, statusMaxSequence,
-		)
-	}
-	return nil
-}
-
-// encode returns the full escape sequence for the report, terminated by
-// ST or, when bel is set, by BEL.
-func (r statusReport) encode(bel bool) string {
-	var b strings.Builder
-	b.WriteString(statusOSC)
-	b.WriteString("state=")
-	b.WriteString(r.State)
-	if r.ID != "" {
-		b.WriteString(":id=")
-		b.WriteString(r.ID)
-	}
-	if r.Kind != "" {
-		b.WriteString(":kind=")
-		b.WriteString(r.Kind)
-	}
-	if r.Progress >= 0 {
-		b.WriteString(":progress=")
-		b.WriteString(strconv.Itoa(r.Progress))
-	}
-	if r.App != "" {
-		b.WriteString(":app=")
-		b.WriteString(r.App)
-	}
-	if r.Title != "" {
-		b.WriteString(":title=")
-		b.WriteString(base64.StdEncoding.EncodeToString([]byte(r.Title)))
-	}
-	if r.Msg != "" {
-		b.WriteString(":msg=")
-		b.WriteString(base64.StdEncoding.EncodeToString([]byte(r.Msg)))
-	}
-	if bel {
-		b.WriteString(statusBEL)
-	} else {
-		b.WriteString(statusST)
-	}
-	return b.String()
-}
-
-func (r statusReport) String() string {
-	var b strings.Builder
-	b.WriteString(r.State)
-	if r.ID != "" {
-		b.WriteString(" id=" + r.ID)
-	}
-	if r.Kind != "" {
-		b.WriteString(" kind=" + r.Kind)
-	}
-	if r.Progress >= 0 {
-		b.WriteString(" progress=" + strconv.Itoa(r.Progress))
-	}
-	if r.App != "" {
-		b.WriteString(" app=" + r.App)
-	}
-	if r.Title != "" {
-		b.WriteString(" title=" + strconv.Quote(r.Title))
-	}
-	if r.Msg != "" {
-		b.WriteString(" msg=" + strconv.Quote(r.Msg))
-	}
-	return b.String()
-}
-
-func validStatusToken(s string, maxLen int) bool {
-	if s == "" || len(s) > maxLen {
-		return false
-	}
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		switch {
-		case c >= 'A' && c <= 'Z', c >= 'a' && c <= 'z', c >= '0' && c <= '9':
-		case c == '_', c == '.', c == '+', c == '-':
-		default:
-			return false
-		}
-	}
-	return true
-}
-
-func validateStatusID(id string) error {
-	if len(id) > statusMaxID {
-		return fmt.Errorf(
-			"invalid id: %d bytes, over the %d byte limit", len(id), statusMaxID,
-		)
-	}
-	segments := strings.Split(id, "/")
-	if len(segments) > statusMaxIDDepth {
-		return fmt.Errorf(
-			"invalid id: %d levels, over the %d level limit",
-			len(segments), statusMaxIDDepth,
-		)
-	}
-	for _, seg := range segments {
-		if !validStatusToken(seg, statusMaxIDSegment) {
-			return fmt.Errorf(
-				"invalid id %q: segments use up to %d characters from"+
-					" [A-Za-z0-9_.+-] separated by /",
-				id, statusMaxIDSegment,
-			)
-		}
-	}
-	return nil
-}
-
-func validateStatusText(name, s string, maxLen int) error {
-	if len(s) > maxLen {
-		return fmt.Errorf(
-			"%s is %d bytes, over the %d byte limit", name, len(s), maxLen,
-		)
-	}
-	if !utf8.ValidString(s) {
-		return fmt.Errorf("%s is not valid UTF-8", name)
-	}
-	for _, r := range s {
-		if r < 0x20 || r == 0x7f || (r >= 0x80 && r <= 0x9f) {
-			return fmt.Errorf(
-				"%s contains control character %U", name, r,
-			)
-		}
-	}
-	return nil
-}
 
 type nopWriteCloser struct{ io.Writer }
 
@@ -268,20 +51,21 @@ func openStatusTarget(path string) (io.WriteCloser, error) {
 	return os.OpenFile("/dev/tty", os.O_WRONLY, 0)
 }
 
-func emitStatus(w io.Writer, r statusReport, bel bool) error {
-	if err := r.validate(); err != nil {
+func emitStatus(w io.Writer, r progstatus.Report, bel bool) error {
+	if err := r.Validate(); err != nil {
 		return err
 	}
-	_, err := io.WriteString(w, r.encode(bel))
+	_, err := io.WriteString(w, r.Encode(bel))
 	return err
 }
 
 func newStatusCmd() *cobra.Command {
 	var (
-		report statusReport
-		bel    bool
-		tty    string
-		format string
+		id, kind, app, title string
+		progress             int
+		bel                  bool
+		tty                  string
+		format               string
 	)
 
 	cmd := &cobra.Command{
@@ -294,7 +78,16 @@ func newStatusCmd() *cobra.Command {
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
-			report.State = args[0]
+			report := progstatus.Report{
+				State: progstatus.State(args[0]),
+				ID:    id,
+				Kind:  progstatus.Kind(kind),
+				App:   app,
+				Title: title,
+			}
+			if progress != -1 {
+				report.Progress = progstatus.Percent(progress)
+			}
 			if len(args) == 2 {
 				report.Msg = args[1]
 			}
@@ -314,23 +107,23 @@ func newStatusCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(
-		&report.ID, "id", "",
+		&id, "id", "",
 		"Record id (path such as build/test); absent means the root record",
 	)
 	cmd.Flags().StringVar(
-		&report.App, "app", "",
+		&app, "app", "",
 		"Stable machine-readable program name, such as cargo or terraform",
 	)
 	cmd.Flags().StringVar(
-		&report.Title, "title", "",
+		&title, "title", "",
 		"Short human-readable label for the record",
 	)
 	cmd.Flags().StringVar(
-		&report.Kind, "kind", "",
+		&kind, "kind", "",
 		"What a blocked program waits for: permission|question|auth",
 	)
 	cmd.Flags().IntVar(
-		&report.Progress, "progress", -1,
+		&progress, "progress", -1,
 		"Progress percentage 0-100 for working or blocked",
 	)
 	addStatusTargetFlags(cmd, &bel, &tty)
@@ -357,74 +150,6 @@ func addStatusTargetFlags(cmd *cobra.Command, bel *bool, tty *string) {
 		tty, "tty", "",
 		"Terminal to write to (default: stdout if a terminal, else /dev/tty)",
 	)
-}
-
-// scanStatusQueryReply inspects terminal input received after the
-// feature detection query and the primary device attributes request
-// were sent, and reports which of the two replies have arrived.
-func scanStatusQueryReply(buf []byte) (reply, da bool) {
-	reply = bytes.Contains(buf, []byte(statusOSC+statusQuery))
-	if j := bytes.Index(buf, []byte("\x1b[?")); j >= 0 {
-		da = bytes.IndexByte(buf[j:], 'c') >= 0
-	}
-	return reply, da
-}
-
-// queryStatusSupport sends the feature detection query followed by a
-// primary device attributes request and waits for the replies. It keeps
-// reading until the device attributes reply arrives so that it does not
-// leak into the next reader of the terminal, or until timeout elapses.
-func queryStatusSupport(rw io.ReadWriter, timeout time.Duration) (bool, error) {
-	_, err := io.WriteString(rw, statusOSC+statusQuery+statusST+statusDA)
-	if err != nil {
-		return false, fmt.Errorf("write query: %w", err)
-	}
-
-	type chunk struct {
-		data []byte
-		err  error
-	}
-	ch := make(chan chunk)
-	done := make(chan struct{})
-	defer close(done)
-	go func() {
-		for {
-			buf := make([]byte, 256)
-			n, err := rw.Read(buf)
-			select {
-			case ch <- chunk{data: buf[:n], err: err}:
-			case <-done:
-				return
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
-
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
-	var buf []byte
-	var supported bool
-	for {
-		select {
-		case c := <-ch:
-			buf = append(buf, c.data...)
-			reply, da := scanStatusQueryReply(buf)
-			supported = supported || reply
-			if da {
-				return supported, nil
-			}
-			if c.err != nil {
-				if errors.Is(c.err, io.EOF) {
-					return supported, nil
-				}
-				return supported, fmt.Errorf("read reply: %w", c.err)
-			}
-		case <-deadline.C:
-			return supported, nil
-		}
-	}
 }
 
 func newStatusQueryCmd() *cobra.Command {
@@ -457,7 +182,7 @@ func newStatusQueryCmd() *cobra.Command {
 				}
 				defer func() { _ = term.Restore(fd, old) }()
 			}
-			supported, err := queryStatusSupport(f, timeout)
+			supported, err := progstatus.Query(f, timeout)
 			if err != nil {
 				return err
 			}
@@ -518,30 +243,30 @@ func newStatusWrapCmd() *cobra.Command {
 			if msg == "" {
 				msg = strings.Join(args, " ")
 			}
-			emit := func(state, text string) error {
-				return emitStatus(out, statusReport{
-					State: state, Progress: -1, App: app, Msg: text,
+			emit := func(state progstatus.State, text string) error {
+				return emitStatus(out, progstatus.Report{
+					State: state, App: app, Msg: text,
 				}, bel)
 			}
-			if err := emit("working", msg); err != nil {
+			if err := emit(progstatus.Working, msg); err != nil {
 				return err
 			}
 			status, err := runStatusWrapped(args)
 			if err != nil {
-				_ = emit("error", err.Error())
+				_ = emit(progstatus.Error, err.Error())
 				return err
 			}
 			switch {
 			case status.Signaled():
-				if err := emit("error", fmt.Sprintf("signal: %s", status.Signal())); err != nil {
+				if err := emit(progstatus.Error, fmt.Sprintf("signal: %s", status.Signal())); err != nil {
 					return err
 				}
 				return exitError{code: 128 + int(status.Signal())}
 			case status.ExitStatus() == 0:
-				return emit("done", msg)
+				return emit(progstatus.Done, msg)
 			default:
 				code := status.ExitStatus()
-				if err := emit("error", fmt.Sprintf("exit status %d", code)); err != nil {
+				if err := emit(progstatus.Error, fmt.Sprintf("exit status %d", code)); err != nil {
 					return err
 				}
 				return exitError{code: code}
@@ -600,7 +325,7 @@ func runStatusWrapped(argv []string) (syscall.WaitStatus, error) {
 // working report played as a series of reports whose progress goes
 // from 0 to 100%, ignoring the progress the step itself carries.
 type statusDemoStep struct {
-	statusReport
+	progstatus.Report
 	ramp bool
 }
 
@@ -609,14 +334,14 @@ type statusDemoStep struct {
 const statusDemoRampStep = 5
 
 // reports returns the reports that play the step.
-func (s statusDemoStep) reports() []statusReport {
+func (s statusDemoStep) reports() []progstatus.Report {
 	if !s.ramp {
-		return []statusReport{s.statusReport}
+		return []progstatus.Report{s.Report}
 	}
-	var ret []statusReport
+	var ret []progstatus.Report
 	for p := 0; p <= 100; p += statusDemoRampStep {
-		r := s.statusReport
-		r.Progress = p
+		r := s.Report
+		r.Progress = progstatus.Percent(p)
 		ret = append(ret, r)
 	}
 	return ret
@@ -626,23 +351,23 @@ func (s statusDemoStep) reports() []statusReport {
 // with progress ramped through their main working phase.
 var statusDemoScenarios = map[string][]statusDemoStep{
 	"brew": {
-		{statusReport: statusReport{State: "working", Progress: -1, App: "brew", Msg: "Installing updates"}},
-		{statusReport: statusReport{State: "blocked", Progress: -1, Kind: "auth", App: "brew", Msg: "Password required to install updates"}},
-		{statusReport: statusReport{State: "working", Progress: -1, App: "brew", Msg: "Installing updates"}, ramp: true},
-		{statusReport: statusReport{State: "done", Progress: -1, App: "brew", Msg: "Upgraded 12 packages"}},
+		{Report: progstatus.Report{State: progstatus.Working, App: "brew", Msg: "Installing updates"}},
+		{Report: progstatus.Report{State: progstatus.Blocked, Kind: progstatus.Auth, App: "brew", Msg: "Password required to install updates"}},
+		{Report: progstatus.Report{State: progstatus.Working, App: "brew", Msg: "Installing updates"}, ramp: true},
+		{Report: progstatus.Report{State: progstatus.Done, App: "brew", Msg: "Upgraded 12 packages"}},
 	},
 	"deploy": {
-		{statusReport: statusReport{State: "working", Progress: -1, App: "deploy", Msg: "Deploying v2.4.1"}},
-		{statusReport: statusReport{State: "working", Progress: 40, ID: "us-east", Title: "US East", Msg: "Pushing image"}, ramp: true},
-		{statusReport: statusReport{State: "blocked", Progress: -1, Kind: "permission", ID: "eu-west", Title: "EU West", Msg: "Approve deploy to eu-west (production)?"}},
-		{statusReport: statusReport{State: "done", Progress: -1, ID: "us-east", Title: "US East", Msg: "Healthy"}},
-		{statusReport: statusReport{State: "clear", Progress: -1, ID: "us-east"}},
-		{statusReport: statusReport{State: "clear", Progress: -1, ID: "eu-west"}},
-		{statusReport: statusReport{State: "done", Progress: -1, App: "deploy", Msg: "Deployed to 3 regions"}},
+		{Report: progstatus.Report{State: progstatus.Working, App: "deploy", Msg: "Deploying v2.4.1"}},
+		{Report: progstatus.Report{State: progstatus.Working, Progress: progstatus.Percent(40), ID: "us-east", Title: "US East", Msg: "Pushing image"}, ramp: true},
+		{Report: progstatus.Report{State: progstatus.Blocked, Kind: progstatus.Permission, ID: "eu-west", Title: "EU West", Msg: "Approve deploy to eu-west (production)?"}},
+		{Report: progstatus.Report{State: progstatus.Done, ID: "us-east", Title: "US East", Msg: "Healthy"}},
+		{Report: progstatus.Report{State: progstatus.Clear, ID: "us-east"}},
+		{Report: progstatus.Report{State: progstatus.Clear, ID: "eu-west"}},
+		{Report: progstatus.Report{State: progstatus.Done, App: "deploy", Msg: "Deployed to 3 regions"}},
 	},
 	"rsync": {
-		{statusReport: statusReport{State: "working", Progress: -1, Msg: "Syncing photos"}, ramp: true},
-		{statusReport: statusReport{State: "done", Progress: -1, Msg: "Photos synced"}},
+		{Report: progstatus.Report{State: progstatus.Working, Msg: "Syncing photos"}, ramp: true},
+		{Report: progstatus.Report{State: progstatus.Done, Msg: "Photos synced"}},
 	},
 }
 
