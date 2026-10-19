@@ -145,3 +145,13 @@ message Coordinates {
 	int32 X = 1;
 	int32 Y = 2;
 }
+
+message Point {
+	int32 X = 1;
+	int32 Y = 2;
+}
+
+message Rect {
+	Point min = 1;
+	Point max = 2;
+}

@@ -16,6 +16,7 @@ package termrpc
 
 import (
 	"fmt"
+	"image"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
@@ -178,6 +179,26 @@ func (c *Coordinates) ToModel() term.Coordinates {
 func (c *Coordinates) FromModel(pos term.Coordinates) {
 	c.X = int32(pos.X)
 	c.Y = int32(pos.Y)
+}
+
+// ToModel returns the point; nil is the origin.
+func (p *Point) ToModel() image.Point {
+	return image.Pt(int(p.GetX()), int(p.GetY()))
+}
+
+// NewPoint returns pt as a Point.
+func NewPoint(pt image.Point) *Point {
+	return &Point{X: int32(pt.X), Y: int32(pt.Y)}
+}
+
+// ToModel returns the rectangle; nil is the zero rectangle.
+func (r *Rect) ToModel() image.Rectangle {
+	return image.Rectangle{Min: r.GetMin().ToModel(), Max: r.GetMax().ToModel()}
+}
+
+// NewRect returns rect as a Rect.
+func NewRect(rect image.Rectangle) *Rect {
+	return &Rect{Min: NewPoint(rect.Min), Max: NewPoint(rect.Max)}
 }
 
 // FromModel takes ev and maps it into this Event.

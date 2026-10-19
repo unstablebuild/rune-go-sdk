@@ -874,6 +874,110 @@ func (x *Coordinates) GetY() int32 {
 	return 0
 }
 
+type Point struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	X             int32                  `protobuf:"varint,1,opt,name=X,proto3" json:"X,omitempty"`
+	Y             int32                  `protobuf:"varint,2,opt,name=Y,proto3" json:"Y,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Point) Reset() {
+	*x = Point{}
+	mi := &file_termrpc_term_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Point) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Point) ProtoMessage() {}
+
+func (x *Point) ProtoReflect() protoreflect.Message {
+	mi := &file_termrpc_term_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Point.ProtoReflect.Descriptor instead.
+func (*Point) Descriptor() ([]byte, []int) {
+	return file_termrpc_term_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Point) GetX() int32 {
+	if x != nil {
+		return x.X
+	}
+	return 0
+}
+
+func (x *Point) GetY() int32 {
+	if x != nil {
+		return x.Y
+	}
+	return 0
+}
+
+type Rect struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Min           *Point                 `protobuf:"bytes,1,opt,name=min,proto3" json:"min,omitempty"`
+	Max           *Point                 `protobuf:"bytes,2,opt,name=max,proto3" json:"max,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Rect) Reset() {
+	*x = Rect{}
+	mi := &file_termrpc_term_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Rect) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Rect) ProtoMessage() {}
+
+func (x *Rect) ProtoReflect() protoreflect.Message {
+	mi := &file_termrpc_term_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Rect.ProtoReflect.Descriptor instead.
+func (*Rect) Descriptor() ([]byte, []int) {
+	return file_termrpc_term_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Rect) GetMin() *Point {
+	if x != nil {
+		return x.Min
+	}
+	return nil
+}
+
+func (x *Rect) GetMax() *Point {
+	if x != nil {
+		return x.Max
+	}
+	return nil
+}
+
 type PackedCells_Combining struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
@@ -884,7 +988,7 @@ type PackedCells_Combining struct {
 
 func (x *PackedCells_Combining) Reset() {
 	*x = PackedCells_Combining{}
-	mi := &file_termrpc_term_proto_msgTypes[7]
+	mi := &file_termrpc_term_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +1000,7 @@ func (x *PackedCells_Combining) String() string {
 func (*PackedCells_Combining) ProtoMessage() {}
 
 func (x *PackedCells_Combining) ProtoReflect() protoreflect.Message {
-	mi := &file_termrpc_term_proto_msgTypes[7]
+	mi := &file_termrpc_term_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -936,7 +1040,7 @@ type PackedCells_Underline struct {
 
 func (x *PackedCells_Underline) Reset() {
 	*x = PackedCells_Underline{}
-	mi := &file_termrpc_term_proto_msgTypes[8]
+	mi := &file_termrpc_term_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -948,7 +1052,7 @@ func (x *PackedCells_Underline) String() string {
 func (*PackedCells_Underline) ProtoMessage() {}
 
 func (x *PackedCells_Underline) ProtoReflect() protoreflect.Message {
-	mi := &file_termrpc_term_proto_msgTypes[8]
+	mi := &file_termrpc_term_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1113,7 +1217,13 @@ const file_termrpc_term_proto_rawDesc = "" +
 	"\x03key\x18\x05 \x01(\x0e2\x0f.term.Event.KeyR\x03key\")\n" +
 	"\vCoordinates\x12\f\n" +
 	"\x01X\x18\x01 \x01(\x05R\x01X\x12\f\n" +
-	"\x01Y\x18\x02 \x01(\x05R\x01YB3Z1github.com/unstablebuild/rune-go-sdk/term/termrpcb\x06proto3"
+	"\x01Y\x18\x02 \x01(\x05R\x01Y\"#\n" +
+	"\x05Point\x12\f\n" +
+	"\x01X\x18\x01 \x01(\x05R\x01X\x12\f\n" +
+	"\x01Y\x18\x02 \x01(\x05R\x01Y\"D\n" +
+	"\x04Rect\x12\x1d\n" +
+	"\x03min\x18\x01 \x01(\v2\v.term.PointR\x03min\x12\x1d\n" +
+	"\x03max\x18\x02 \x01(\v2\v.term.PointR\x03maxB3Z1github.com/unstablebuild/rune-go-sdk/term/termrpcb\x06proto3"
 
 var (
 	file_termrpc_term_proto_rawDescOnce sync.Once
@@ -1128,7 +1238,7 @@ func file_termrpc_term_proto_rawDescGZIP() []byte {
 }
 
 var file_termrpc_term_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_termrpc_term_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_termrpc_term_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_termrpc_term_proto_goTypes = []any{
 	(Event_Type)(0),               // 0: term.Event.Type
 	(Event_Mod)(0),                // 1: term.Event.Mod
@@ -1140,23 +1250,27 @@ var file_termrpc_term_proto_goTypes = []any{
 	(*Event)(nil),                 // 7: term.Event
 	(*Key)(nil),                   // 8: term.Key
 	(*Coordinates)(nil),           // 9: term.Coordinates
-	(*PackedCells_Combining)(nil), // 10: term.PackedCells.Combining
-	(*PackedCells_Underline)(nil), // 11: term.PackedCells.Underline
+	(*Point)(nil),                 // 10: term.Point
+	(*Rect)(nil),                  // 11: term.Rect
+	(*PackedCells_Combining)(nil), // 12: term.PackedCells.Combining
+	(*PackedCells_Underline)(nil), // 13: term.PackedCells.Underline
 }
 var file_termrpc_term_proto_depIdxs = []int32{
 	4,  // 0: term.CellRow.cells:type_name -> term.Cell
-	10, // 1: term.PackedCells.combining:type_name -> term.PackedCells.Combining
-	11, // 2: term.PackedCells.underline:type_name -> term.PackedCells.Underline
+	12, // 1: term.PackedCells.combining:type_name -> term.PackedCells.Combining
+	13, // 2: term.PackedCells.underline:type_name -> term.PackedCells.Underline
 	0,  // 3: term.Event.type:type_name -> term.Event.Type
 	1,  // 4: term.Event.mod:type_name -> term.Event.Mod
 	2,  // 5: term.Event.key:type_name -> term.Event.Key
 	1,  // 6: term.Key.mod:type_name -> term.Event.Mod
 	2,  // 7: term.Key.key:type_name -> term.Event.Key
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	10, // 8: term.Rect.min:type_name -> term.Point
+	10, // 9: term.Rect.max:type_name -> term.Point
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_termrpc_term_proto_init() }
@@ -1170,7 +1284,7 @@ func file_termrpc_term_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_termrpc_term_proto_rawDesc), len(file_termrpc_term_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

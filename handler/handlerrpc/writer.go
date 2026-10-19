@@ -16,6 +16,7 @@ package handlerrpc
 
 import (
 	"context"
+	"slices"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
 	termrpc "github.com/unstablebuild/rune-go-sdk/term/termrpc"
@@ -60,6 +61,7 @@ type drawResponseWriter struct {
 	// flat planes, so a frame costs a fixed number of allocations on
 	// both the encode and the decode side.
 	packed *packedWriter
+	images *imageUploader
 }
 
 // packedWriter holds the mutable state of a columnar frame. It is
@@ -221,10 +223,12 @@ func (r drawResponseWriter) Clear(term.Attributes) error {
 func (r drawResponseWriter) SetCursor(term.Coordinates) {
 }
 
-// DrawImage satisfies term.Writer. The draw-response wire format carries
-// cells only, so callers draw a cell-based fallback instead.
-func (r drawResponseWriter) DrawImage(term.Image) bool {
-	return false
+// DrawImage satisfies term.Writer.
+func (r drawResponseWriter) DrawImage(img term.Image) bool {
+	if r.images == nil {
+		return false
+	}
+	return r.images.place(img, r.width, r.height)
 }
 
 func (r drawResponseWriter) Context() context.Context {
@@ -239,6 +243,26 @@ func (r drawResponseWriter) fill(resp *DrawStreamResponse) {
 		return
 	}
 	resp.Rows = r.rows
+}
+
+func packedEqual(a, b *termrpc.PackedCells) bool {
+	if a.GetWidth() != b.GetWidth() || a.GetHeight() != b.GetHeight() ||
+		!slices.Equal(a.GetChars(), b.GetChars()) ||
+		!slices.Equal(a.GetFg(), b.GetFg()) ||
+		!slices.Equal(a.GetBg(), b.GetBg()) ||
+		!slices.Equal(a.GetAttrs(), b.GetAttrs()) ||
+		!slices.Equal(a.GetWidths(), b.GetWidths()) ||
+		!slices.Equal(a.GetBytes(), b.GetBytes()) {
+		return false
+	}
+	combiningEqual := func(x, y *termrpc.PackedCells_Combining) bool {
+		return x.GetIndex() == y.GetIndex() && slices.Equal(x.GetRunes(), y.GetRunes())
+	}
+	underlineEqual := func(x, y *termrpc.PackedCells_Underline) bool {
+		return x.GetIndex() == y.GetIndex() && x.GetColor() == y.GetColor()
+	}
+	return slices.EqualFunc(a.GetCombining(), b.GetCombining(), combiningEqual) &&
+		slices.EqualFunc(a.GetUnderline(), b.GetUnderline(), underlineEqual)
 }
 
 func newDrawResponseWriter(

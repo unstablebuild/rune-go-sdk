@@ -41,6 +41,10 @@ message DrawStreamRequest {
 	int32 height = 2;
 	// packed_ok signals that the caller can decode a PackedCells frame.
 	bool packed_ok = 3;
+	// image_ack is the highest ImageUpload.seq read; every upload file up
+	// to it may be rewritten or deleted.
+	uint64 image_ack = 4;
+	bool cells_unchanged_ok = 5;
 }
 
 message DrawStreamResponse {
@@ -60,6 +64,77 @@ message DrawStreamResponse {
 	Selection selection = 3;
 	// packed is set instead of rows when the request set packed_ok.
 	term.PackedCells packed = 4;
+	// uploads are applied before images and released.
+	repeated ImageUpload uploads = 5;
+	// images are drawn in order, after the cells.
+	repeated ImagePlacement images = 6;
+	repeated uint64 released = 7;
+	// redraw asks for another draw: images places a version older than
+	// the extension's.
+	bool redraw = 8;
+	// cells_unchanged replaces rows and packed with those of the previous
+	// response; only sent if the request set cells_unchanged_ok.
+	bool cells_unchanged = 9;
+	// more marks a response carrying only uploads, applied with the next
+	// response without it.
+	bool more = 10;
+}
+
+// Graphics is sent by hosts that display images. Pixels are written to
+// files in arena_dir, or streamed in ImageUpload.data when it is empty.
+message Graphics {
+	double cell_width = 1;
+	double cell_height = 2;
+	string arena_dir = 3;
+	// max_bytes bounds 4*width*height of the last two uploads of every
+	// image. Zero means 64 MiB.
+	uint64 max_bytes = 4;
+}
+
+// ImageUpload holds width*height premultiplied RGBA pixels, with a stride
+// of 4*width, in file or in the data of consecutive records with the same
+// seq.
+message ImageUpload {
+	uint64 id = 1;
+	uint64 version = 2;
+	// seq increases with every upload on the stream.
+	uint64 seq = 3;
+	// file is "<n>-0" or "<n>-1" in Graphics.arena_dir.
+	string file = 4;
+	int32 width = 5;
+	int32 height = 6;
+	bytes data = 7;
+	uint64 offset = 8;
+}
+
+enum ImageFit {
+	ImageFitFill = 0;
+	ImageFitContain = 1;
+}
+
+enum ImageLayer {
+	ImageLayerAboveText = 0;
+	ImageLayerBelowText = 1;
+	ImageLayerBelowBackground = 2;
+}
+
+// ImagePlacement is a term.Image whose pixels are the last upload of id,
+// shown only if it is version. crop is relative to the upload.
+message ImagePlacement {
+	uint64 id = 1;
+	uint64 version = 2;
+	term.Rect crop = 3;
+	term.Coordinates pos = 4;
+	term.Point offset = 5;
+	term.Point raster_offset = 6;
+	int32 width = 7;
+	int32 height = 8;
+	ImageFit fit = 9;
+	ImageLayer layer = 10;
+	term.Rect clip = 11;
+	bool overflow = 12;
+	bool vertical_render_offset = 13;
+	bool negative_vertical_render_offset = 14;
 }
 
 message HandleStreamRequest {
@@ -97,6 +172,7 @@ message DimensionsStreamResponse {
 message ResizeStreamRequest {
 	int32 width = 1;
 	int32 height = 2;
+	Graphics graphics = 3;
 }
 
 message CloseStreamRequest {

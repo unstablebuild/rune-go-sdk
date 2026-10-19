@@ -22,10 +22,17 @@ import (
 // This prevents collisions with keys defined in other packages.
 type ctxKey int
 
-// pKey is the key for sync.Payload values in Contexts. It is
-// unexported; clients use workspace.ContextWithPayload and
-// PayloadFromContext instead of using this key directly.
-var pKey ctxKey
+const (
+	// pKey is the key for sync.Payload values in Contexts. It is
+	// unexported; clients use workspace.ContextWithPayload and
+	// PayloadFromContext instead of using this key directly.
+	pKey ctxKey = iota
+	cellPixelSizeKey
+)
+
+type cellPixelSize struct {
+	width, height float64
+}
 
 // ContextWithPayload returns a new Context that holds locker.
 func ContextWithPayload(ctx context.Context, payload []byte) context.Context {
@@ -36,4 +43,27 @@ func ContextWithPayload(ctx context.Context, payload []byte) context.Context {
 func PayloadFromContext(ctx context.Context) ([]byte, bool) {
 	locker, ok := ctx.Value(pKey).([]byte)
 	return locker, ok
+}
+
+// ContextWithCellPixelSize returns ctx carrying the cell size, in device
+// pixels, of the frame drawn with it.
+func ContextWithCellPixelSize(ctx context.Context, width, height float64) context.Context {
+	return context.WithValue(ctx, cellPixelSizeKey, cellPixelSize{width: width, height: height})
+}
+
+// CellPixelSizeFromContext returns the cell size, in device pixels, of the
+// frame being drawn, which need not be whole. It is valid during Draw and
+// may change on the next one; a handler that needs it outside Draw keeps
+// the last one it saw. ok is false if ctx carries no size with positive
+// sides. A missing size does not tell whether the writer shows images:
+// only Writer.DrawImage does.
+func CellPixelSizeFromContext(ctx context.Context) (width, height float64, ok bool) {
+	if ctx == nil {
+		return 0, 0, false
+	}
+	size, ok := ctx.Value(cellPixelSizeKey).(cellPixelSize)
+	if !ok || !(size.width > 0 && size.height > 0) {
+		return 0, 0, false
+	}
+	return size.width, size.height, true
 }

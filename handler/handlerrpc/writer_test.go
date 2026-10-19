@@ -284,3 +284,56 @@ func TestNewDrawResponseFormat(t *testing.T) {
 		t.Errorf("packed chars[0] = %d, want %d", got, 'a')
 	}
 }
+
+func TestNewDrawResponseCannotDrawImages(t *testing.T) {
+	var shown []bool
+	comp := drawFunc(func(w term.Writer) {
+		shown = append(shown, w.DrawImage(term.Image{
+			ID: 1, Version: 1, Src: gradient(2, 2, 1), Width: 2, Height: 1,
+		}))
+	})
+	resp := NewDrawResponse(context.Background(), comp, 4, 2, true)
+	if !reflect.DeepEqual(shown, []bool{false}) {
+		t.Errorf("DrawImage = %v, want [false] so the caller draws a fallback", shown)
+	}
+	if len(resp.GetImages()) != 0 || len(resp.GetUploads()) != 0 {
+		t.Errorf("got images=%d uploads=%d, want none",
+			len(resp.GetImages()), len(resp.GetUploads()))
+	}
+}
+
+func TestPackedEqual(t *testing.T) {
+	draw := func(ch rune, combining []rune, underline term.Color) func(term.Writer) {
+		return func(w term.Writer) {
+			c := term.Cell{Ch: ch, Width: 1, Bytes: 1}
+			if combining != nil {
+				c.SetCombining(combining)
+			}
+			c.SetUnderlineColor(underline)
+			w.SetCell(term.Coordinates{X: 1, Y: 0}, c)
+		}
+	}
+	frame := func(width int, draw func(term.Writer)) *DrawStreamResponse {
+		return NewDrawResponse(context.Background(), drawFunc(draw), width, 2, true)
+	}
+	base := draw('a', nil, term.ColorDefault)
+	tests := []struct {
+		name string
+		a, b *DrawStreamResponse
+		want bool
+	}{
+		{"same cells", frame(4, base), frame(4, base), true},
+		{"different char", frame(4, base), frame(4, draw('b', nil, term.ColorDefault)), false},
+		{"different size", frame(4, base), frame(5, base), false},
+		{"different combining", frame(4, base),
+			frame(4, draw('a', []rune{0x301}, term.ColorDefault)), false},
+		{"different underline", frame(4, base), frame(4, draw('a', nil, term.ColorRed)), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := packedEqual(tt.a.GetPacked(), tt.b.GetPacked()); got != tt.want {
+				t.Errorf("packedEqual = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

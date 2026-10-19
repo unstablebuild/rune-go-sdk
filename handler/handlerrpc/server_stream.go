@@ -83,6 +83,11 @@ type ServerStream[T StreamMessage] struct {
 	newT    func() T
 	height  atomic.Int32
 	width   atomic.Int32
+
+	// The fields below are only used from ReceiveMessages.
+	cellWidth, cellHeight float64
+	images                imageUploader
+	lastPacked            *termrpc.PackedCells
 }
 
 // NewServerStream allocates storage for a new Handler server
@@ -93,18 +98,22 @@ func NewServerStream[T StreamMessage](
 	newT func() T,
 ) *ServerStream[T] {
 	logger := slog.Default().With("struct", "handlerrpc.ServerStream")
-	return &ServerStream[T]{
+	s := &ServerStream[T]{
 		log:     logger,
 		stream:  stream,
 		handler: handler,
 		newT:    newT,
+		images:  imageUploader{log: logger},
 	}
+	s.images.send = s.sendDraw
+	return s
 }
 
 // ReceiveMessages receives messages over the grpc stream
 // and responds accordingly.
 func (c *ServerStream[T]) ReceiveMessages() {
 	defer func() {
+		c.images.close()
 		// ensure that client doesn't block in case of panic
 		err := c.stream.CloseSend()
 		c.log.Debug("done streaming, closed connection send", "error", err)
@@ -128,14 +137,21 @@ func (c *ServerStream[T]) ReceiveMessages() {
 		sendMsg := c.newT()
 		switch recvMsg.GetType() {
 		case MessageType_Draw:
+			draw := recvMsg.GetDraw()
+			c.images.ackUploads(draw.GetImageAck())
 			ctx := context.Background()
+			if c.cellWidth > 0 {
+				ctx = term.ContextWithCellPixelSize(ctx, c.cellWidth, c.cellHeight)
+			}
 			var resp DrawStreamResponse
 			width := int(c.width.Load())
 			height := int(c.height.Load())
-			w := newDrawResponseWriter(ctx, width, height,
-				recvMsg.GetDraw().GetPackedOk())
+			w := newDrawResponseWriter(ctx, width, height, draw.GetPackedOk())
+			w.images = &c.images
 			c.handler.Draw(w)
 			w.fill(&resp)
+			c.images.finish(&resp)
+			c.elideUnchangedCells(&resp, draw.GetCellsUnchangedOk())
 			// Piggyback the cursor on the frame so the host does not have
 			// to ask for it separately before the draw, which would report
 			// a position computed against the previous frame.
@@ -157,6 +173,7 @@ func (c *ServerStream[T]) ReceiveMessages() {
 			height := int(resize.GetHeight())
 			c.width.Store(int32(width))
 			c.height.Store(int32(height))
+			c.setGraphics(resize.GetGraphics())
 			c.handler.Resize(width, height)
 
 		case MessageType_Handle:
@@ -241,4 +258,31 @@ func (c *ServerStream[T]) ReceiveMessages() {
 			return
 		}
 	}
+}
+
+func (c *ServerStream[T]) setGraphics(g *Graphics) {
+	width, height := g.GetCellWidth(), g.GetCellHeight()
+	if !(width > 0 && height > 0) {
+		c.cellWidth, c.cellHeight = 0, 0
+		c.images.configure(false, "", 0)
+		return
+	}
+	c.cellWidth, c.cellHeight = width, height
+	c.images.configure(true, g.GetArenaDir(), g.GetMaxBytes())
+}
+
+func (c *ServerStream[T]) sendDraw(resp *DrawStreamResponse) error {
+	msg := c.newT()
+	msg.SetDraw(resp)
+	return c.stream.SendMsg(msg)
+}
+
+func (c *ServerStream[T]) elideUnchangedCells(resp *DrawStreamResponse, ok bool) {
+	if ok && resp.Packed != nil && c.lastPacked != nil &&
+		packedEqual(c.lastPacked, resp.Packed) {
+		resp.Packed = nil
+		resp.CellsUnchanged = true
+		return
+	}
+	c.lastPacked = resp.Packed
 }

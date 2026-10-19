@@ -89,6 +89,101 @@ func (MessageType) EnumDescriptor() ([]byte, []int) {
 	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{0}
 }
 
+type ImageFit int32
+
+const (
+	ImageFit_ImageFitFill    ImageFit = 0
+	ImageFit_ImageFitContain ImageFit = 1
+)
+
+// Enum value maps for ImageFit.
+var (
+	ImageFit_name = map[int32]string{
+		0: "ImageFitFill",
+		1: "ImageFitContain",
+	}
+	ImageFit_value = map[string]int32{
+		"ImageFitFill":    0,
+		"ImageFitContain": 1,
+	}
+)
+
+func (x ImageFit) Enum() *ImageFit {
+	p := new(ImageFit)
+	*p = x
+	return p
+}
+
+func (x ImageFit) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ImageFit) Descriptor() protoreflect.EnumDescriptor {
+	return file_handlerrpc_handler_proto_enumTypes[1].Descriptor()
+}
+
+func (ImageFit) Type() protoreflect.EnumType {
+	return &file_handlerrpc_handler_proto_enumTypes[1]
+}
+
+func (x ImageFit) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ImageFit.Descriptor instead.
+func (ImageFit) EnumDescriptor() ([]byte, []int) {
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{1}
+}
+
+type ImageLayer int32
+
+const (
+	ImageLayer_ImageLayerAboveText       ImageLayer = 0
+	ImageLayer_ImageLayerBelowText       ImageLayer = 1
+	ImageLayer_ImageLayerBelowBackground ImageLayer = 2
+)
+
+// Enum value maps for ImageLayer.
+var (
+	ImageLayer_name = map[int32]string{
+		0: "ImageLayerAboveText",
+		1: "ImageLayerBelowText",
+		2: "ImageLayerBelowBackground",
+	}
+	ImageLayer_value = map[string]int32{
+		"ImageLayerAboveText":       0,
+		"ImageLayerBelowText":       1,
+		"ImageLayerBelowBackground": 2,
+	}
+)
+
+func (x ImageLayer) Enum() *ImageLayer {
+	p := new(ImageLayer)
+	*p = x
+	return p
+}
+
+func (x ImageLayer) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ImageLayer) Descriptor() protoreflect.EnumDescriptor {
+	return file_handlerrpc_handler_proto_enumTypes[2].Descriptor()
+}
+
+func (ImageLayer) Type() protoreflect.EnumType {
+	return &file_handlerrpc_handler_proto_enumTypes[2]
+}
+
+func (x ImageLayer) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ImageLayer.Descriptor instead.
+func (ImageLayer) EnumDescriptor() ([]byte, []int) {
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{2}
+}
+
 type InstallResourceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WindowId      uint64                 `protobuf:"varint,1,opt,name=window_id,json=windowId,proto3" json:"window_id,omitempty"`
@@ -246,9 +341,13 @@ type DrawStreamRequest struct {
 	Width  int32                  `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
 	Height int32                  `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
 	// packed_ok signals that the caller can decode a PackedCells frame.
-	PackedOk      bool `protobuf:"varint,3,opt,name=packed_ok,json=packedOk,proto3" json:"packed_ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	PackedOk bool `protobuf:"varint,3,opt,name=packed_ok,json=packedOk,proto3" json:"packed_ok,omitempty"`
+	// image_ack is the highest ImageUpload.seq read; every upload file up
+	// to it may be rewritten or deleted.
+	ImageAck         uint64 `protobuf:"varint,4,opt,name=image_ack,json=imageAck,proto3" json:"image_ack,omitempty"`
+	CellsUnchangedOk bool   `protobuf:"varint,5,opt,name=cells_unchanged_ok,json=cellsUnchangedOk,proto3" json:"cells_unchanged_ok,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *DrawStreamRequest) Reset() {
@@ -302,13 +401,41 @@ func (x *DrawStreamRequest) GetPackedOk() bool {
 	return false
 }
 
+func (x *DrawStreamRequest) GetImageAck() uint64 {
+	if x != nil {
+		return x.ImageAck
+	}
+	return 0
+}
+
+func (x *DrawStreamRequest) GetCellsUnchangedOk() bool {
+	if x != nil {
+		return x.CellsUnchangedOk
+	}
+	return false
+}
+
 type DrawStreamResponse struct {
 	state     protoimpl.MessageState        `protogen:"open.v1"`
 	Rows      []*termrpc.CellRow            `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
 	Cursor    *DrawStreamResponse_Cursor    `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
 	Selection *DrawStreamResponse_Selection `protobuf:"bytes,3,opt,name=selection,proto3" json:"selection,omitempty"`
 	// packed is set instead of rows when the request set packed_ok.
-	Packed        *termrpc.PackedCells `protobuf:"bytes,4,opt,name=packed,proto3" json:"packed,omitempty"`
+	Packed *termrpc.PackedCells `protobuf:"bytes,4,opt,name=packed,proto3" json:"packed,omitempty"`
+	// uploads are applied before images and released.
+	Uploads []*ImageUpload `protobuf:"bytes,5,rep,name=uploads,proto3" json:"uploads,omitempty"`
+	// images are drawn in order, after the cells.
+	Images   []*ImagePlacement `protobuf:"bytes,6,rep,name=images,proto3" json:"images,omitempty"`
+	Released []uint64          `protobuf:"varint,7,rep,packed,name=released,proto3" json:"released,omitempty"`
+	// redraw asks for another draw: images places a version older than
+	// the extension's.
+	Redraw bool `protobuf:"varint,8,opt,name=redraw,proto3" json:"redraw,omitempty"`
+	// cells_unchanged replaces rows and packed with those of the previous
+	// response; only sent if the request set cells_unchanged_ok.
+	CellsUnchanged bool `protobuf:"varint,9,opt,name=cells_unchanged,json=cellsUnchanged,proto3" json:"cells_unchanged,omitempty"`
+	// more marks a response carrying only uploads, applied with the next
+	// response without it.
+	More          bool `protobuf:"varint,10,opt,name=more,proto3" json:"more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -371,6 +498,375 @@ func (x *DrawStreamResponse) GetPacked() *termrpc.PackedCells {
 	return nil
 }
 
+func (x *DrawStreamResponse) GetUploads() []*ImageUpload {
+	if x != nil {
+		return x.Uploads
+	}
+	return nil
+}
+
+func (x *DrawStreamResponse) GetImages() []*ImagePlacement {
+	if x != nil {
+		return x.Images
+	}
+	return nil
+}
+
+func (x *DrawStreamResponse) GetReleased() []uint64 {
+	if x != nil {
+		return x.Released
+	}
+	return nil
+}
+
+func (x *DrawStreamResponse) GetRedraw() bool {
+	if x != nil {
+		return x.Redraw
+	}
+	return false
+}
+
+func (x *DrawStreamResponse) GetCellsUnchanged() bool {
+	if x != nil {
+		return x.CellsUnchanged
+	}
+	return false
+}
+
+func (x *DrawStreamResponse) GetMore() bool {
+	if x != nil {
+		return x.More
+	}
+	return false
+}
+
+// Graphics is sent by hosts that display images. Pixels are written to
+// files in arena_dir, or streamed in ImageUpload.data when it is empty.
+type Graphics struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	CellWidth  float64                `protobuf:"fixed64,1,opt,name=cell_width,json=cellWidth,proto3" json:"cell_width,omitempty"`
+	CellHeight float64                `protobuf:"fixed64,2,opt,name=cell_height,json=cellHeight,proto3" json:"cell_height,omitempty"`
+	ArenaDir   string                 `protobuf:"bytes,3,opt,name=arena_dir,json=arenaDir,proto3" json:"arena_dir,omitempty"`
+	// max_bytes bounds 4*width*height of the last two uploads of every
+	// image. Zero means 64 MiB.
+	MaxBytes      uint64 `protobuf:"varint,4,opt,name=max_bytes,json=maxBytes,proto3" json:"max_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Graphics) Reset() {
+	*x = Graphics{}
+	mi := &file_handlerrpc_handler_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Graphics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Graphics) ProtoMessage() {}
+
+func (x *Graphics) ProtoReflect() protoreflect.Message {
+	mi := &file_handlerrpc_handler_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Graphics.ProtoReflect.Descriptor instead.
+func (*Graphics) Descriptor() ([]byte, []int) {
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Graphics) GetCellWidth() float64 {
+	if x != nil {
+		return x.CellWidth
+	}
+	return 0
+}
+
+func (x *Graphics) GetCellHeight() float64 {
+	if x != nil {
+		return x.CellHeight
+	}
+	return 0
+}
+
+func (x *Graphics) GetArenaDir() string {
+	if x != nil {
+		return x.ArenaDir
+	}
+	return ""
+}
+
+func (x *Graphics) GetMaxBytes() uint64 {
+	if x != nil {
+		return x.MaxBytes
+	}
+	return 0
+}
+
+// ImageUpload holds width*height premultiplied RGBA pixels, with a stride
+// of 4*width, in file or in the data of consecutive records with the same
+// seq.
+type ImageUpload struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Id      uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Version uint64                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	// seq increases with every upload on the stream.
+	Seq uint64 `protobuf:"varint,3,opt,name=seq,proto3" json:"seq,omitempty"`
+	// file is "<n>-0" or "<n>-1" in Graphics.arena_dir.
+	File          string `protobuf:"bytes,4,opt,name=file,proto3" json:"file,omitempty"`
+	Width         int32  `protobuf:"varint,5,opt,name=width,proto3" json:"width,omitempty"`
+	Height        int32  `protobuf:"varint,6,opt,name=height,proto3" json:"height,omitempty"`
+	Data          []byte `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`
+	Offset        uint64 `protobuf:"varint,8,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImageUpload) Reset() {
+	*x = ImageUpload{}
+	mi := &file_handlerrpc_handler_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageUpload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageUpload) ProtoMessage() {}
+
+func (x *ImageUpload) ProtoReflect() protoreflect.Message {
+	mi := &file_handlerrpc_handler_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageUpload.ProtoReflect.Descriptor instead.
+func (*ImageUpload) Descriptor() ([]byte, []int) {
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ImageUpload) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ImageUpload) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *ImageUpload) GetSeq() uint64 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *ImageUpload) GetFile() string {
+	if x != nil {
+		return x.File
+	}
+	return ""
+}
+
+func (x *ImageUpload) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *ImageUpload) GetHeight() int32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *ImageUpload) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *ImageUpload) GetOffset() uint64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+// ImagePlacement is a term.Image whose pixels are the last upload of id,
+// shown only if it is version. crop is relative to the upload.
+type ImagePlacement struct {
+	state                        protoimpl.MessageState `protogen:"open.v1"`
+	Id                           uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Version                      uint64                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	Crop                         *termrpc.Rect          `protobuf:"bytes,3,opt,name=crop,proto3" json:"crop,omitempty"`
+	Pos                          *termrpc.Coordinates   `protobuf:"bytes,4,opt,name=pos,proto3" json:"pos,omitempty"`
+	Offset                       *termrpc.Point         `protobuf:"bytes,5,opt,name=offset,proto3" json:"offset,omitempty"`
+	RasterOffset                 *termrpc.Point         `protobuf:"bytes,6,opt,name=raster_offset,json=rasterOffset,proto3" json:"raster_offset,omitempty"`
+	Width                        int32                  `protobuf:"varint,7,opt,name=width,proto3" json:"width,omitempty"`
+	Height                       int32                  `protobuf:"varint,8,opt,name=height,proto3" json:"height,omitempty"`
+	Fit                          ImageFit               `protobuf:"varint,9,opt,name=fit,proto3,enum=handler.ImageFit" json:"fit,omitempty"`
+	Layer                        ImageLayer             `protobuf:"varint,10,opt,name=layer,proto3,enum=handler.ImageLayer" json:"layer,omitempty"`
+	Clip                         *termrpc.Rect          `protobuf:"bytes,11,opt,name=clip,proto3" json:"clip,omitempty"`
+	Overflow                     bool                   `protobuf:"varint,12,opt,name=overflow,proto3" json:"overflow,omitempty"`
+	VerticalRenderOffset         bool                   `protobuf:"varint,13,opt,name=vertical_render_offset,json=verticalRenderOffset,proto3" json:"vertical_render_offset,omitempty"`
+	NegativeVerticalRenderOffset bool                   `protobuf:"varint,14,opt,name=negative_vertical_render_offset,json=negativeVerticalRenderOffset,proto3" json:"negative_vertical_render_offset,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
+}
+
+func (x *ImagePlacement) Reset() {
+	*x = ImagePlacement{}
+	mi := &file_handlerrpc_handler_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImagePlacement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImagePlacement) ProtoMessage() {}
+
+func (x *ImagePlacement) ProtoReflect() protoreflect.Message {
+	mi := &file_handlerrpc_handler_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImagePlacement.ProtoReflect.Descriptor instead.
+func (*ImagePlacement) Descriptor() ([]byte, []int) {
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ImagePlacement) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ImagePlacement) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *ImagePlacement) GetCrop() *termrpc.Rect {
+	if x != nil {
+		return x.Crop
+	}
+	return nil
+}
+
+func (x *ImagePlacement) GetPos() *termrpc.Coordinates {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *ImagePlacement) GetOffset() *termrpc.Point {
+	if x != nil {
+		return x.Offset
+	}
+	return nil
+}
+
+func (x *ImagePlacement) GetRasterOffset() *termrpc.Point {
+	if x != nil {
+		return x.RasterOffset
+	}
+	return nil
+}
+
+func (x *ImagePlacement) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *ImagePlacement) GetHeight() int32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *ImagePlacement) GetFit() ImageFit {
+	if x != nil {
+		return x.Fit
+	}
+	return ImageFit_ImageFitFill
+}
+
+func (x *ImagePlacement) GetLayer() ImageLayer {
+	if x != nil {
+		return x.Layer
+	}
+	return ImageLayer_ImageLayerAboveText
+}
+
+func (x *ImagePlacement) GetClip() *termrpc.Rect {
+	if x != nil {
+		return x.Clip
+	}
+	return nil
+}
+
+func (x *ImagePlacement) GetOverflow() bool {
+	if x != nil {
+		return x.Overflow
+	}
+	return false
+}
+
+func (x *ImagePlacement) GetVerticalRenderOffset() bool {
+	if x != nil {
+		return x.VerticalRenderOffset
+	}
+	return false
+}
+
+func (x *ImagePlacement) GetNegativeVerticalRenderOffset() bool {
+	if x != nil {
+		return x.NegativeVerticalRenderOffset
+	}
+	return false
+}
+
 type HandleStreamRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Event         *termrpc.Event         `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
@@ -380,7 +876,7 @@ type HandleStreamRequest struct {
 
 func (x *HandleStreamRequest) Reset() {
 	*x = HandleStreamRequest{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[4]
+	mi := &file_handlerrpc_handler_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -392,7 +888,7 @@ func (x *HandleStreamRequest) String() string {
 func (*HandleStreamRequest) ProtoMessage() {}
 
 func (x *HandleStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[4]
+	mi := &file_handlerrpc_handler_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -405,7 +901,7 @@ func (x *HandleStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HandleStreamRequest.ProtoReflect.Descriptor instead.
 func (*HandleStreamRequest) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{4}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *HandleStreamRequest) GetEvent() *termrpc.Event {
@@ -426,7 +922,7 @@ type HandleStreamResponse struct {
 
 func (x *HandleStreamResponse) Reset() {
 	*x = HandleStreamResponse{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[5]
+	mi := &file_handlerrpc_handler_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -438,7 +934,7 @@ func (x *HandleStreamResponse) String() string {
 func (*HandleStreamResponse) ProtoMessage() {}
 
 func (x *HandleStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[5]
+	mi := &file_handlerrpc_handler_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -451,7 +947,7 @@ func (x *HandleStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HandleStreamResponse.ProtoReflect.Descriptor instead.
 func (*HandleStreamResponse) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{5}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *HandleStreamResponse) GetHandled() bool {
@@ -483,7 +979,7 @@ type CursorStreamRequest struct {
 
 func (x *CursorStreamRequest) Reset() {
 	*x = CursorStreamRequest{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[6]
+	mi := &file_handlerrpc_handler_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -495,7 +991,7 @@ func (x *CursorStreamRequest) String() string {
 func (*CursorStreamRequest) ProtoMessage() {}
 
 func (x *CursorStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[6]
+	mi := &file_handlerrpc_handler_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -508,7 +1004,7 @@ func (x *CursorStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CursorStreamRequest.ProtoReflect.Descriptor instead.
 func (*CursorStreamRequest) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{6}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{9}
 }
 
 type CursorStreamResponse struct {
@@ -522,7 +1018,7 @@ type CursorStreamResponse struct {
 
 func (x *CursorStreamResponse) Reset() {
 	*x = CursorStreamResponse{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[7]
+	mi := &file_handlerrpc_handler_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -534,7 +1030,7 @@ func (x *CursorStreamResponse) String() string {
 func (*CursorStreamResponse) ProtoMessage() {}
 
 func (x *CursorStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[7]
+	mi := &file_handlerrpc_handler_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -547,7 +1043,7 @@ func (x *CursorStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CursorStreamResponse.ProtoReflect.Descriptor instead.
 func (*CursorStreamResponse) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{7}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CursorStreamResponse) GetPosition() *termrpc.Coordinates {
@@ -579,7 +1075,7 @@ type SelectionStreamRequest struct {
 
 func (x *SelectionStreamRequest) Reset() {
 	*x = SelectionStreamRequest{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[8]
+	mi := &file_handlerrpc_handler_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +1087,7 @@ func (x *SelectionStreamRequest) String() string {
 func (*SelectionStreamRequest) ProtoMessage() {}
 
 func (x *SelectionStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[8]
+	mi := &file_handlerrpc_handler_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +1100,7 @@ func (x *SelectionStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SelectionStreamRequest.ProtoReflect.Descriptor instead.
 func (*SelectionStreamRequest) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{8}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{11}
 }
 
 type SelectionStreamResponse struct {
@@ -617,7 +1113,7 @@ type SelectionStreamResponse struct {
 
 func (x *SelectionStreamResponse) Reset() {
 	*x = SelectionStreamResponse{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[9]
+	mi := &file_handlerrpc_handler_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -629,7 +1125,7 @@ func (x *SelectionStreamResponse) String() string {
 func (*SelectionStreamResponse) ProtoMessage() {}
 
 func (x *SelectionStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[9]
+	mi := &file_handlerrpc_handler_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -642,7 +1138,7 @@ func (x *SelectionStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SelectionStreamResponse.ProtoReflect.Descriptor instead.
 func (*SelectionStreamResponse) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{9}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SelectionStreamResponse) GetText() string {
@@ -667,7 +1163,7 @@ type DimensionsStreamRequest struct {
 
 func (x *DimensionsStreamRequest) Reset() {
 	*x = DimensionsStreamRequest{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[10]
+	mi := &file_handlerrpc_handler_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -679,7 +1175,7 @@ func (x *DimensionsStreamRequest) String() string {
 func (*DimensionsStreamRequest) ProtoMessage() {}
 
 func (x *DimensionsStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[10]
+	mi := &file_handlerrpc_handler_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -692,7 +1188,7 @@ func (x *DimensionsStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DimensionsStreamRequest.ProtoReflect.Descriptor instead.
 func (*DimensionsStreamRequest) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{10}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{13}
 }
 
 type DimensionsStreamResponse struct {
@@ -705,7 +1201,7 @@ type DimensionsStreamResponse struct {
 
 func (x *DimensionsStreamResponse) Reset() {
 	*x = DimensionsStreamResponse{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[11]
+	mi := &file_handlerrpc_handler_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -717,7 +1213,7 @@ func (x *DimensionsStreamResponse) String() string {
 func (*DimensionsStreamResponse) ProtoMessage() {}
 
 func (x *DimensionsStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[11]
+	mi := &file_handlerrpc_handler_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -730,7 +1226,7 @@ func (x *DimensionsStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DimensionsStreamResponse.ProtoReflect.Descriptor instead.
 func (*DimensionsStreamResponse) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{11}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DimensionsStreamResponse) GetWidth() int32 {
@@ -751,13 +1247,14 @@ type ResizeStreamRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Width         int32                  `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
 	Height        int32                  `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	Graphics      *Graphics              `protobuf:"bytes,3,opt,name=graphics,proto3" json:"graphics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResizeStreamRequest) Reset() {
 	*x = ResizeStreamRequest{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[12]
+	mi := &file_handlerrpc_handler_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -769,7 +1266,7 @@ func (x *ResizeStreamRequest) String() string {
 func (*ResizeStreamRequest) ProtoMessage() {}
 
 func (x *ResizeStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[12]
+	mi := &file_handlerrpc_handler_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -782,7 +1279,7 @@ func (x *ResizeStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResizeStreamRequest.ProtoReflect.Descriptor instead.
 func (*ResizeStreamRequest) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{12}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ResizeStreamRequest) GetWidth() int32 {
@@ -799,6 +1296,13 @@ func (x *ResizeStreamRequest) GetHeight() int32 {
 	return 0
 }
 
+func (x *ResizeStreamRequest) GetGraphics() *Graphics {
+	if x != nil {
+		return x.Graphics
+	}
+	return nil
+}
+
 type CloseStreamRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -807,7 +1311,7 @@ type CloseStreamRequest struct {
 
 func (x *CloseStreamRequest) Reset() {
 	*x = CloseStreamRequest{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[13]
+	mi := &file_handlerrpc_handler_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -819,7 +1323,7 @@ func (x *CloseStreamRequest) String() string {
 func (*CloseStreamRequest) ProtoMessage() {}
 
 func (x *CloseStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[13]
+	mi := &file_handlerrpc_handler_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -832,7 +1336,7 @@ func (x *CloseStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseStreamRequest.ProtoReflect.Descriptor instead.
 func (*CloseStreamRequest) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{13}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{16}
 }
 
 type CloseStreamResponse struct {
@@ -843,7 +1347,7 @@ type CloseStreamResponse struct {
 
 func (x *CloseStreamResponse) Reset() {
 	*x = CloseStreamResponse{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[14]
+	mi := &file_handlerrpc_handler_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -855,7 +1359,7 @@ func (x *CloseStreamResponse) String() string {
 func (*CloseStreamResponse) ProtoMessage() {}
 
 func (x *CloseStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[14]
+	mi := &file_handlerrpc_handler_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -868,7 +1372,7 @@ func (x *CloseStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseStreamResponse.ProtoReflect.Descriptor instead.
 func (*CloseStreamResponse) Descriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{14}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{17}
 }
 
 type DrawStreamResponse_Cursor struct {
@@ -882,7 +1386,7 @@ type DrawStreamResponse_Cursor struct {
 
 func (x *DrawStreamResponse_Cursor) Reset() {
 	*x = DrawStreamResponse_Cursor{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[15]
+	mi := &file_handlerrpc_handler_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +1398,7 @@ func (x *DrawStreamResponse_Cursor) String() string {
 func (*DrawStreamResponse_Cursor) ProtoMessage() {}
 
 func (x *DrawStreamResponse_Cursor) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[15]
+	mi := &file_handlerrpc_handler_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -941,7 +1445,7 @@ type DrawStreamResponse_Selection struct {
 
 func (x *DrawStreamResponse_Selection) Reset() {
 	*x = DrawStreamResponse_Selection{}
-	mi := &file_handlerrpc_handler_proto_msgTypes[16]
+	mi := &file_handlerrpc_handler_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -953,7 +1457,7 @@ func (x *DrawStreamResponse_Selection) String() string {
 func (*DrawStreamResponse_Selection) ProtoMessage() {}
 
 func (x *DrawStreamResponse_Selection) ProtoReflect() protoreflect.Message {
-	mi := &file_handlerrpc_handler_proto_msgTypes[16]
+	mi := &file_handlerrpc_handler_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1001,23 +1505,66 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"dimensions\x18\a \x01(\v2 .handler.DimensionsStreamRequestR\n" +
 	"dimensions\x124\n" +
 	"\x06resize\x18\b \x01(\v2\x1c.handler.ResizeStreamRequestR\x06resize\x12<\n" +
-	"\bresponse\x18\t \x01(\v2 .handler.InstallResourceResponseR\bresponse\"^\n" +
+	"\bresponse\x18\t \x01(\v2 .handler.InstallResourceResponseR\bresponse\"\xa9\x01\n" +
 	"\x11DrawStreamRequest\x12\x14\n" +
 	"\x05width\x18\x01 \x01(\x05R\x05width\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x05R\x06height\x12\x1b\n" +
-	"\tpacked_ok\x18\x03 \x01(\bR\bpackedOk\"\xf7\x02\n" +
+	"\tpacked_ok\x18\x03 \x01(\bR\bpackedOk\x12\x1b\n" +
+	"\timage_ack\x18\x04 \x01(\x04R\bimageAck\x12,\n" +
+	"\x12cells_unchanged_ok\x18\x05 \x01(\bR\x10cellsUnchangedOk\"\xc9\x04\n" +
 	"\x12DrawStreamResponse\x12!\n" +
 	"\x04rows\x18\x01 \x03(\v2\r.term.CellRowR\x04rows\x12:\n" +
 	"\x06cursor\x18\x02 \x01(\v2\".handler.DrawStreamResponse.CursorR\x06cursor\x12C\n" +
 	"\tselection\x18\x03 \x01(\v2%.handler.DrawStreamResponse.SelectionR\tselection\x12)\n" +
-	"\x06packed\x18\x04 \x01(\v2\x11.term.PackedCellsR\x06packed\x1aa\n" +
+	"\x06packed\x18\x04 \x01(\v2\x11.term.PackedCellsR\x06packed\x12.\n" +
+	"\auploads\x18\x05 \x03(\v2\x14.handler.ImageUploadR\auploads\x12/\n" +
+	"\x06images\x18\x06 \x03(\v2\x17.handler.ImagePlacementR\x06images\x12\x1a\n" +
+	"\breleased\x18\a \x03(\x04R\breleased\x12\x16\n" +
+	"\x06redraw\x18\b \x01(\bR\x06redraw\x12'\n" +
+	"\x0fcells_unchanged\x18\t \x01(\bR\x0ecellsUnchanged\x12\x12\n" +
+	"\x04more\x18\n" +
+	" \x01(\bR\x04more\x1aa\n" +
 	"\x06Cursor\x12-\n" +
 	"\bposition\x18\x01 \x01(\v2\x11.term.CoordinatesR\bposition\x12\x12\n" +
 	"\x04show\x18\x02 \x01(\bR\x04show\x12\x14\n" +
 	"\x05style\x18\x03 \x01(\x05R\x05style\x1a/\n" +
 	"\tSelection\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x0e\n" +
-	"\x02ok\x18\x02 \x01(\bR\x02ok\"8\n" +
+	"\x02ok\x18\x02 \x01(\bR\x02ok\"\x84\x01\n" +
+	"\bGraphics\x12\x1d\n" +
+	"\n" +
+	"cell_width\x18\x01 \x01(\x01R\tcellWidth\x12\x1f\n" +
+	"\vcell_height\x18\x02 \x01(\x01R\n" +
+	"cellHeight\x12\x1b\n" +
+	"\tarena_dir\x18\x03 \x01(\tR\barenaDir\x12\x1b\n" +
+	"\tmax_bytes\x18\x04 \x01(\x04R\bmaxBytes\"\xb7\x01\n" +
+	"\vImageUpload\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x04R\aversion\x12\x10\n" +
+	"\x03seq\x18\x03 \x01(\x04R\x03seq\x12\x12\n" +
+	"\x04file\x18\x04 \x01(\tR\x04file\x12\x14\n" +
+	"\x05width\x18\x05 \x01(\x05R\x05width\x12\x16\n" +
+	"\x06height\x18\x06 \x01(\x05R\x06height\x12\x12\n" +
+	"\x04data\x18\a \x01(\fR\x04data\x12\x16\n" +
+	"\x06offset\x18\b \x01(\x04R\x06offset\"\x8d\x04\n" +
+	"\x0eImagePlacement\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x04R\aversion\x12\x1e\n" +
+	"\x04crop\x18\x03 \x01(\v2\n" +
+	".term.RectR\x04crop\x12#\n" +
+	"\x03pos\x18\x04 \x01(\v2\x11.term.CoordinatesR\x03pos\x12#\n" +
+	"\x06offset\x18\x05 \x01(\v2\v.term.PointR\x06offset\x120\n" +
+	"\rraster_offset\x18\x06 \x01(\v2\v.term.PointR\frasterOffset\x12\x14\n" +
+	"\x05width\x18\a \x01(\x05R\x05width\x12\x16\n" +
+	"\x06height\x18\b \x01(\x05R\x06height\x12#\n" +
+	"\x03fit\x18\t \x01(\x0e2\x11.handler.ImageFitR\x03fit\x12)\n" +
+	"\x05layer\x18\n" +
+	" \x01(\x0e2\x13.handler.ImageLayerR\x05layer\x12\x1e\n" +
+	"\x04clip\x18\v \x01(\v2\n" +
+	".term.RectR\x04clip\x12\x1a\n" +
+	"\boverflow\x18\f \x01(\bR\boverflow\x124\n" +
+	"\x16vertical_render_offset\x18\r \x01(\bR\x14verticalRenderOffset\x12E\n" +
+	"\x1fnegative_vertical_render_offset\x18\x0e \x01(\bR\x1cnegativeVerticalRenderOffset\"8\n" +
 	"\x13HandleStreamRequest\x12!\n" +
 	"\x05event\x18\x01 \x01(\v2\v.term.EventR\x05event\"k\n" +
 	"\x14HandleStreamResponse\x12\x18\n" +
@@ -1036,10 +1583,11 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"\x17DimensionsStreamRequest\"H\n" +
 	"\x18DimensionsStreamResponse\x12\x14\n" +
 	"\x05width\x18\x01 \x01(\x05R\x05width\x12\x16\n" +
-	"\x06height\x18\x02 \x01(\x05R\x06height\"C\n" +
+	"\x06height\x18\x02 \x01(\x05R\x06height\"r\n" +
 	"\x13ResizeStreamRequest\x12\x14\n" +
 	"\x05width\x18\x01 \x01(\x05R\x05width\x12\x16\n" +
-	"\x06height\x18\x02 \x01(\x05R\x06height\"\x14\n" +
+	"\x06height\x18\x02 \x01(\x05R\x06height\x12-\n" +
+	"\bgraphics\x18\x03 \x01(\v2\x11.handler.GraphicsR\bgraphics\"\x14\n" +
 	"\x12CloseStreamRequest\"\x15\n" +
 	"\x13CloseStreamResponse*\x80\x01\n" +
 	"\vMessageType\x12\b\n" +
@@ -1055,7 +1603,15 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"\n" +
 	"\x06Resize\x10\x06\x12\v\n" +
 	"\aRequest\x10\a\x12\f\n" +
-	"\bResponse\x10\tB9Z7github.com/unstablebuild/rune-go-sdk/handler/handlerrpcb\x06proto3"
+	"\bResponse\x10\t*1\n" +
+	"\bImageFit\x12\x10\n" +
+	"\fImageFitFill\x10\x00\x12\x13\n" +
+	"\x0fImageFitContain\x10\x01*]\n" +
+	"\n" +
+	"ImageLayer\x12\x17\n" +
+	"\x13ImageLayerAboveText\x10\x00\x12\x17\n" +
+	"\x13ImageLayerBelowText\x10\x01\x12\x1d\n" +
+	"\x19ImageLayerBelowBackground\x10\x02B9Z7github.com/unstablebuild/rune-go-sdk/handler/handlerrpcb\x06proto3"
 
 var (
 	file_handlerrpc_handler_proto_rawDescOnce sync.Once
@@ -1069,55 +1625,72 @@ func file_handlerrpc_handler_proto_rawDescGZIP() []byte {
 	return file_handlerrpc_handler_proto_rawDescData
 }
 
-var file_handlerrpc_handler_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_handlerrpc_handler_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_handlerrpc_handler_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_handlerrpc_handler_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_handlerrpc_handler_proto_goTypes = []any{
 	(MessageType)(0),                     // 0: handler.MessageType
-	(*InstallResourceResponse)(nil),      // 1: handler.InstallResourceResponse
-	(*ServerMessage)(nil),                // 2: handler.ServerMessage
-	(*DrawStreamRequest)(nil),            // 3: handler.DrawStreamRequest
-	(*DrawStreamResponse)(nil),           // 4: handler.DrawStreamResponse
-	(*HandleStreamRequest)(nil),          // 5: handler.HandleStreamRequest
-	(*HandleStreamResponse)(nil),         // 6: handler.HandleStreamResponse
-	(*CursorStreamRequest)(nil),          // 7: handler.CursorStreamRequest
-	(*CursorStreamResponse)(nil),         // 8: handler.CursorStreamResponse
-	(*SelectionStreamRequest)(nil),       // 9: handler.SelectionStreamRequest
-	(*SelectionStreamResponse)(nil),      // 10: handler.SelectionStreamResponse
-	(*DimensionsStreamRequest)(nil),      // 11: handler.DimensionsStreamRequest
-	(*DimensionsStreamResponse)(nil),     // 12: handler.DimensionsStreamResponse
-	(*ResizeStreamRequest)(nil),          // 13: handler.ResizeStreamRequest
-	(*CloseStreamRequest)(nil),           // 14: handler.CloseStreamRequest
-	(*CloseStreamResponse)(nil),          // 15: handler.CloseStreamResponse
-	(*DrawStreamResponse_Cursor)(nil),    // 16: handler.DrawStreamResponse.Cursor
-	(*DrawStreamResponse_Selection)(nil), // 17: handler.DrawStreamResponse.Selection
-	(*termrpc.CellRow)(nil),              // 18: term.CellRow
-	(*termrpc.PackedCells)(nil),          // 19: term.PackedCells
-	(*termrpc.Event)(nil),                // 20: term.Event
-	(*termrpc.Coordinates)(nil),          // 21: term.Coordinates
+	(ImageFit)(0),                        // 1: handler.ImageFit
+	(ImageLayer)(0),                      // 2: handler.ImageLayer
+	(*InstallResourceResponse)(nil),      // 3: handler.InstallResourceResponse
+	(*ServerMessage)(nil),                // 4: handler.ServerMessage
+	(*DrawStreamRequest)(nil),            // 5: handler.DrawStreamRequest
+	(*DrawStreamResponse)(nil),           // 6: handler.DrawStreamResponse
+	(*Graphics)(nil),                     // 7: handler.Graphics
+	(*ImageUpload)(nil),                  // 8: handler.ImageUpload
+	(*ImagePlacement)(nil),               // 9: handler.ImagePlacement
+	(*HandleStreamRequest)(nil),          // 10: handler.HandleStreamRequest
+	(*HandleStreamResponse)(nil),         // 11: handler.HandleStreamResponse
+	(*CursorStreamRequest)(nil),          // 12: handler.CursorStreamRequest
+	(*CursorStreamResponse)(nil),         // 13: handler.CursorStreamResponse
+	(*SelectionStreamRequest)(nil),       // 14: handler.SelectionStreamRequest
+	(*SelectionStreamResponse)(nil),      // 15: handler.SelectionStreamResponse
+	(*DimensionsStreamRequest)(nil),      // 16: handler.DimensionsStreamRequest
+	(*DimensionsStreamResponse)(nil),     // 17: handler.DimensionsStreamResponse
+	(*ResizeStreamRequest)(nil),          // 18: handler.ResizeStreamRequest
+	(*CloseStreamRequest)(nil),           // 19: handler.CloseStreamRequest
+	(*CloseStreamResponse)(nil),          // 20: handler.CloseStreamResponse
+	(*DrawStreamResponse_Cursor)(nil),    // 21: handler.DrawStreamResponse.Cursor
+	(*DrawStreamResponse_Selection)(nil), // 22: handler.DrawStreamResponse.Selection
+	(*termrpc.CellRow)(nil),              // 23: term.CellRow
+	(*termrpc.PackedCells)(nil),          // 24: term.PackedCells
+	(*termrpc.Rect)(nil),                 // 25: term.Rect
+	(*termrpc.Coordinates)(nil),          // 26: term.Coordinates
+	(*termrpc.Point)(nil),                // 27: term.Point
+	(*termrpc.Event)(nil),                // 28: term.Event
 }
 var file_handlerrpc_handler_proto_depIdxs = []int32{
 	0,  // 0: handler.ServerMessage.type:type_name -> handler.MessageType
-	3,  // 1: handler.ServerMessage.draw:type_name -> handler.DrawStreamRequest
-	5,  // 2: handler.ServerMessage.handle:type_name -> handler.HandleStreamRequest
-	14, // 3: handler.ServerMessage.close:type_name -> handler.CloseStreamRequest
-	7,  // 4: handler.ServerMessage.cursor:type_name -> handler.CursorStreamRequest
-	9,  // 5: handler.ServerMessage.selection:type_name -> handler.SelectionStreamRequest
-	11, // 6: handler.ServerMessage.dimensions:type_name -> handler.DimensionsStreamRequest
-	13, // 7: handler.ServerMessage.resize:type_name -> handler.ResizeStreamRequest
-	1,  // 8: handler.ServerMessage.response:type_name -> handler.InstallResourceResponse
-	18, // 9: handler.DrawStreamResponse.rows:type_name -> term.CellRow
-	16, // 10: handler.DrawStreamResponse.cursor:type_name -> handler.DrawStreamResponse.Cursor
-	17, // 11: handler.DrawStreamResponse.selection:type_name -> handler.DrawStreamResponse.Selection
-	19, // 12: handler.DrawStreamResponse.packed:type_name -> term.PackedCells
-	20, // 13: handler.HandleStreamRequest.event:type_name -> term.Event
-	20, // 14: handler.HandleStreamResponse.request:type_name -> term.Event
-	21, // 15: handler.CursorStreamResponse.position:type_name -> term.Coordinates
-	21, // 16: handler.DrawStreamResponse.Cursor.position:type_name -> term.Coordinates
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	5,  // 1: handler.ServerMessage.draw:type_name -> handler.DrawStreamRequest
+	10, // 2: handler.ServerMessage.handle:type_name -> handler.HandleStreamRequest
+	19, // 3: handler.ServerMessage.close:type_name -> handler.CloseStreamRequest
+	12, // 4: handler.ServerMessage.cursor:type_name -> handler.CursorStreamRequest
+	14, // 5: handler.ServerMessage.selection:type_name -> handler.SelectionStreamRequest
+	16, // 6: handler.ServerMessage.dimensions:type_name -> handler.DimensionsStreamRequest
+	18, // 7: handler.ServerMessage.resize:type_name -> handler.ResizeStreamRequest
+	3,  // 8: handler.ServerMessage.response:type_name -> handler.InstallResourceResponse
+	23, // 9: handler.DrawStreamResponse.rows:type_name -> term.CellRow
+	21, // 10: handler.DrawStreamResponse.cursor:type_name -> handler.DrawStreamResponse.Cursor
+	22, // 11: handler.DrawStreamResponse.selection:type_name -> handler.DrawStreamResponse.Selection
+	24, // 12: handler.DrawStreamResponse.packed:type_name -> term.PackedCells
+	8,  // 13: handler.DrawStreamResponse.uploads:type_name -> handler.ImageUpload
+	9,  // 14: handler.DrawStreamResponse.images:type_name -> handler.ImagePlacement
+	25, // 15: handler.ImagePlacement.crop:type_name -> term.Rect
+	26, // 16: handler.ImagePlacement.pos:type_name -> term.Coordinates
+	27, // 17: handler.ImagePlacement.offset:type_name -> term.Point
+	27, // 18: handler.ImagePlacement.raster_offset:type_name -> term.Point
+	1,  // 19: handler.ImagePlacement.fit:type_name -> handler.ImageFit
+	2,  // 20: handler.ImagePlacement.layer:type_name -> handler.ImageLayer
+	25, // 21: handler.ImagePlacement.clip:type_name -> term.Rect
+	28, // 22: handler.HandleStreamRequest.event:type_name -> term.Event
+	28, // 23: handler.HandleStreamResponse.request:type_name -> term.Event
+	26, // 24: handler.CursorStreamResponse.position:type_name -> term.Coordinates
+	7,  // 25: handler.ResizeStreamRequest.graphics:type_name -> handler.Graphics
+	26, // 26: handler.DrawStreamResponse.Cursor.position:type_name -> term.Coordinates
+	27, // [27:27] is the sub-list for method output_type
+	27, // [27:27] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_handlerrpc_handler_proto_init() }
@@ -1130,8 +1703,8 @@ func file_handlerrpc_handler_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_handlerrpc_handler_proto_rawDesc), len(file_handlerrpc_handler_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   17,
+			NumEnums:      3,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
