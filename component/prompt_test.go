@@ -15,9 +15,14 @@
 package component
 
 import (
+	"context"
+	"fmt"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/component/comptest"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
@@ -188,6 +193,677 @@ func TestDrawPromptWide(t *testing.T) {
 				"                  └────────┘                 └────────┘                 └────────┘                  ",
 		)
 	})
+}
+
+func TestDrawPromptWraps(t *testing.T) {
+	providers := []string{"OpenAI", "Anthropic", "Gemini", "Codex", "Claude"}
+	tests := []struct {
+		name     string
+		cfg      PromptConfig
+		width    int
+		height   int
+		expected string
+	}{
+		{
+			name:  "spreads the options evenly over rows a blank row apart",
+			cfg:   PromptConfig{Message: "Pick?", Options: providers},
+			width: 40, height: 8,
+			expected: "                                        \n" +
+				"                                        \n" +
+				"                 Pick?                  \n" +
+				"                                        \n" +
+				"                                        \n" +
+				"    OpenAI      Anthropic    Gemini     \n" +
+				"                                        \n" +
+				"           Codex       Claude           ",
+		},
+		{
+			name:  "packs the rows rather than scroll the message",
+			cfg:   PromptConfig{Message: "Pick?", Options: providers},
+			width: 40, height: 7,
+			expected: "                                        \n" +
+				"                                        \n" +
+				"                 Pick?                  \n" +
+				"                                        \n" +
+				"                                        \n" +
+				"    OpenAI      Anthropic    Gemini     \n" +
+				"           Codex       Claude           ",
+		},
+		{
+			name:  "scrolls the message once the rows are packed",
+			cfg:   PromptConfig{Message: "Pick?", Options: providers},
+			width: 40, height: 6,
+			expected: "                                        \n" +
+				"                                        \n" +
+				"                 Pick?                  \n" +
+				"                                        \n" +
+				"    OpenAI      Anthropic    Gemini     \n" +
+				"           Codex       Claude           ",
+		},
+		{
+			name:  "takes as many rows as the width needs",
+			cfg:   PromptConfig{Message: "Pick?", Options: providers},
+			width: 24, height: 6,
+			expected: "                        \n" +
+				"                        \n" +
+				"         Pick?          \n" +
+				"   OpenAI    Anthropic  \n" +
+				"   Gemini      Codex    \n" +
+				"        Claude          ",
+		},
+		{
+			name: "wraps framed options a blank row apart",
+			cfg: PromptConfig{
+				Message: "Pick?",
+				Options: []string{"Yay", "Nay", "Say"},
+				Frame:   FrameCharSetDefault(),
+			},
+			width: 20, height: 12,
+			expected: "                    \n" +
+				"                    \n" +
+				"       Pick?        \n" +
+				"                    \n" +
+				"                    \n" +
+				"  ┌─────┐  ┌─────┐  \n" +
+				"  │ Yay │  │ Nay │  \n" +
+				"  └─────┘  └─────┘  \n" +
+				"                    \n" +
+				"      ┌─────┐       \n" +
+				"      │ Say │       \n" +
+				"      └─────┘       ",
+		},
+		{
+			name: "packs framed options when short of room",
+			cfg: PromptConfig{
+				Message: "Pick?",
+				Options: []string{"Yay", "Nay", "Say"},
+				Frame:   FrameCharSetDefault(),
+			},
+			width: 20, height: 10,
+			expected: "                    \n" +
+				"                    \n" +
+				"       Pick?        \n" +
+				"                    \n" +
+				"  ┌─────┐  ┌─────┐  \n" +
+				"  │ Yay │  │ Nay │  \n" +
+				"  └─────┘  └─────┘  \n" +
+				"      ┌─────┐       \n" +
+				"      │ Say │       \n" +
+				"      └─────┘       ",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testDrawPrompt(t, tt.cfg, tt.width, tt.height, tt.expected)
+		})
+	}
+}
+
+func TestPromptHeight(t *testing.T) {
+	yesNo := func(cfg func(...string) PromptConfig) PromptConfig { return cfg("Yes", "No") }
+	fixed3 := func(options ...string) PromptConfig { return fixedPrompt(3, options...) }
+	tests := []struct {
+		name  string
+		cfg   PromptConfig
+		width int
+		want  int
+	}{
+		{"one row of options under the message", yesNo(fixed3), 12, 3 + 1},
+		{"one row at the narrowest width leaving a cell around each option", yesNo(fixed3), 9, 3 + 1},
+		{"a row per option a blank row apart a cell narrower", yesNo(fixed3), 8, 3 + 2 + 1},
+		{"a row per option when no two fit side by side", yesNo(fixed3), 2, 3 + 2 + 1},
+		{"a row per option at zero width", yesNo(fixed3), 0, 3 + 2 + 1},
+		{"a row per option at a negative width", yesNo(fixed3), -7, 3 + 2 + 1},
+		{"a single option takes no blank row", fixed3("Ok"), 1, 3 + 1},
+		{"a single option at zero width", fixed3("Ok"), 0, 3 + 1},
+		{"every option on one row", fixed3(providerOptions...), 51, 3 + 1},
+		{"four to a row over two rows a cell narrower", fixed3(providerOptions...), 50, 3 + 2 + 1},
+		{"three to a row over two rows", fixed3(providerOptions...), 40, 3 + 2 + 1},
+		{"two to a row over three rows", fixed3(providerOptions...), 30, 3 + 3 + 2},
+		{"one to a row over five rows", fixed3(providerOptions...), 20, 3 + 5 + 4},
+		{"framed options on one row", framed(fixed3("Yay", "Nay", "Say")), 25, 3 + 3},
+		{"framed options over two rows", framed(fixed3("Yay", "Nay", "Say")), 24, 3 + 2*3 + 1},
+		{"framed options a row each", framed(fixed3("Yay", "Nay", "Say")), 16, 3 + 3*3 + 2},
+		{"the message's height at the width", linesPrompt([]string{"abcdef"}, "Yes", "No"), 12, 1 + 1},
+		{"the message reflowed taller by a narrower width", linesPrompt([]string{"abcdef"}, "Yes", "No"), 3, 2 + 2 + 1},
+		{"a message that is only Floating takes its ideal height", yesNo(idealPrompt), 12, 2 + 1},
+		{"a message that is only Floating at any width", yesNo(idealPrompt), 2, 2 + 2 + 1},
+		{"a message with no height", yesNo(nopPrompt), 12, 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, NewPrompt(tt.cfg).Height(tt.width))
+		})
+	}
+
+	t.Run("asks the message for its height at the width", func(t *testing.T) {
+		for _, width := range []int{-3, 0, 1, 7, 40} {
+			msg := &TestResponsive{WantHeight: 3}
+			p := NewPrompt(PromptConfig{
+				Message:    "?",
+				Options:    []string{"Yes", "No"},
+				NewMessage: func(string) Floating { return msg },
+			})
+			p.Height(width)
+			assert.Equal(t, width, msg.PassedWidth, "width=%d", width)
+		}
+	})
+
+	t.Run("is the same whatever the last Resize", func(t *testing.T) {
+		widths := []int{-1, 0, 5, 9, 24, 40, 51, 100}
+		fresh := make(map[int]int, len(widths))
+		for _, width := range widths {
+			fresh[width] = NewPrompt(PromptConfig{Message: "Pick?", Options: providerOptions}).Height(width)
+		}
+		for _, size := range [][2]int{{0, 0}, {-1, -1}, {5, 1}, {24, 6}, {40, 8}, {100, 50}} {
+			p := NewPrompt(PromptConfig{Message: "Pick?", Options: providerOptions})
+			p.Resize(size[0], size[1])
+			for p.SeekDown() {
+			}
+			for _, width := range widths {
+				assert.Equal(t, fresh[width], p.Height(width),
+					"width=%d after Resize(%d, %d)", width, size[0], size[1])
+			}
+		}
+	})
+
+	t.Run("leaves the last layout alone", func(t *testing.T) {
+		p := NewPrompt(fixedPrompt(3, providerOptions...))
+		p.Resize(40, 4)
+		p.SeekDown()
+		before := optionCells(p, 40,  4)
+		offset, maxOffset := p.SeekOffset(), p.MaxSeekOffset()
+		require.Positive(t, offset)
+		for _, width := range []int{-1, 0, 5, 24, 51, 100} {
+			p.Height(width)
+		}
+		assert.Equal(t, before, optionCells(p, 40, 4))
+		assert.Equal(t, offset, p.SeekOffset())
+		assert.Equal(t, maxOffset, p.MaxSeekOffset())
+	})
+}
+
+func TestPromptSeek(t *testing.T) {
+	const (
+		opDown = iota
+		opUp
+		opResize
+		opFit
+		opInit
+	)
+	type step struct {
+		op            int
+		width, height int
+		want          bool
+		offset, max   int
+	}
+	down := func(want bool, offset, max int) step {
+		return step{op: opDown, want: want, offset: offset, max: max}
+	}
+	up := func(want bool, offset, max int) step {
+		return step{op: opUp, want: want, offset: offset, max: max}
+	}
+	resize := func(width, height, offset, max int) step {
+		return step{op: opResize, width: width, height: height, offset: offset, max: max}
+	}
+	// fit resizes to the height the prompt asks for at width, plus extra.
+	fit := func(width, extra, offset, max int) step {
+		return step{op: opFit, width: width, height: extra, offset: offset, max: max}
+	}
+	reinit := func(offset, max int) step {
+		return step{op: opInit, offset: offset, max: max}
+	}
+	// The four lines take four rows at a width of five or more and six
+	// at three. "Yes" and "No" share a row from a width of nine and
+	// take a row each below that.
+	four := linesPrompt(fourLines, "Yes", "No")
+
+	tests := []struct {
+		name  string
+		cfg   PromptConfig
+		steps []step
+	}{
+		{
+			name:  "nothing to scroll before the first Resize",
+			cfg:   four,
+			steps: []step{down(false, 0, 0), up(false, 0, 0)},
+		},
+		{
+			name:  "nothing to scroll with room to spare",
+			cfg:   four,
+			steps: []step{resize(12, 10, 0, 0), down(false, 0, 0), up(false, 0, 0)},
+		},
+		{
+			name:  "nothing to scroll with exactly the room it asks for",
+			cfg:   four,
+			steps: []step{resize(12, 5, 0, 0), down(false, 0, 0), up(false, 0, 0)},
+		},
+		{
+			name: "a row short scrolls by a row",
+			cfg:  four,
+			steps: []step{
+				resize(12, 4, 0, 1),
+				down(true, 1, 1), down(false, 1, 1),
+				up(true, 0, 1), up(false, 0, 1),
+			},
+		},
+		{
+			name: "a row at a time to the last row and back",
+			cfg:  four,
+			steps: []step{
+				resize(12, 3, 0, 2),
+				down(true, 1, 2), down(true, 2, 2), down(false, 2, 2),
+				up(true, 1, 2), up(true, 0, 2), up(false, 0, 2),
+			},
+		},
+		{
+			name:  "up at the top stays at the top",
+			cfg:   four,
+			steps: []step{resize(12, 3, 0, 2), up(false, 0, 2), up(false, 0, 2)},
+		},
+		{
+			name:  "wrapped options give up their blank row before the message scrolls",
+			cfg:   four,
+			steps: []step{resize(8, 6, 0, 0), down(false, 0, 0)},
+		},
+		{
+			name:  "the message scrolls once wrapped options are packed",
+			cfg:   four,
+			steps: []step{resize(8, 5, 0, 1), down(true, 1, 1), down(false, 1, 1)},
+		},
+		{
+			name: "the whole message scrolls when the options leave it no row",
+			cfg:  four,
+			steps: []step{
+				resize(12, 1, 0, 4),
+				down(true, 1, 4), down(true, 2, 4), down(true, 3, 4), down(true, 4, 4),
+				down(false, 4, 4),
+			},
+		},
+		{
+			name:  "options taller than the prompt leave the message no row",
+			cfg:   four,
+			steps: []step{resize(8, 1, 0, 4), down(true, 1, 4)},
+		},
+		{
+			name:  "zero height",
+			cfg:   four,
+			steps: []step{resize(12, 0, 0, 4), down(true, 1, 4)},
+		},
+		{
+			name:  "negative height",
+			cfg:   four,
+			steps: []step{resize(12, -3, 0, 4), down(true, 1, 4)},
+		},
+		{
+			name:  "zero width",
+			cfg:   four,
+			steps: []step{resize(0, 3, 0, 3), down(true, 1, 3)},
+		},
+		{
+			name:  "negative width",
+			cfg:   four,
+			steps: []step{resize(-4, 3, 0, 3), down(true, 1, 3)},
+		},
+		{
+			name: "growing pulls the offset back to the rows still hidden",
+			cfg:  four,
+			steps: []step{
+				resize(12, 3, 0, 2), down(true, 1, 2), down(true, 2, 2),
+				resize(12, 4, 1, 1),
+				resize(12, 10, 0, 0), down(false, 0, 0), up(false, 0, 0),
+			},
+		},
+		{
+			name: "shrinking keeps the offset",
+			cfg:  four,
+			steps: []step{
+				resize(12, 4, 0, 1), down(true, 1, 1),
+				resize(12, 3, 1, 2), down(true, 2, 2),
+			},
+		},
+		{
+			name: "narrowing reflows the message taller and keeps the offset",
+			cfg:  four,
+			steps: []step{
+				resize(12, 3, 0, 2), down(true, 1, 2),
+				resize(3, 3, 1, 5), down(true, 2, 5),
+			},
+		},
+		{
+			name: "widening unwraps the options and gives the message their rows",
+			cfg:  four,
+			steps: []step{
+				resize(8, 5, 0, 1), down(true, 1, 1),
+				resize(12, 5, 0, 0), up(false, 0, 0),
+			},
+		},
+		{
+			name: "Init forgets the scroll until the next Resize",
+			cfg:  four,
+			steps: []step{
+				resize(12, 3, 0, 2), down(true, 1, 2), down(true, 2, 2),
+				reinit(0, 0), down(false, 0, 0), up(false, 0, 0),
+				resize(12, 3, 0, 2), down(true, 1, 2),
+			},
+		},
+		{
+			name: "framed options take three rows each",
+			cfg:  framed(four),
+			steps: []step{
+				resize(20, 7, 0, 0),
+				resize(20, 4, 0, 3), down(true, 1, 3),
+				resize(12, 10, 0, 0),
+				resize(12, 9, 0, 1),
+			},
+		},
+		{
+			name: "the default message at the height it asks for",
+			cfg:  PromptConfig{Message: "Are you sure?", Options: []string{"Yes", "No"}},
+			steps: []step{
+				fit(20, 0, 0, 0), down(false, 0, 0),
+				fit(20, 5, 0, 0),
+				fit(20, -1, 0, 1), down(true, 1, 1), down(false, 1, 1),
+			},
+		},
+		{
+			name: "the default message over options wrapped onto three rows",
+			cfg:  PromptConfig{Message: "Pick a provider", Options: providerOptions},
+			steps: []step{
+				fit(24, 0, 0, 0),
+				fit(24, -2, 0, 0),
+				fit(24, -3, 0, 1), down(true, 1, 1),
+			},
+		},
+		{
+			name:  "a message that is only Floating scrolls its ideal height",
+			cfg:   idealPrompt("Yes", "No"),
+			steps: []step{resize(12, 2, 0, 1), down(true, 1, 1), down(false, 1, 1)},
+		},
+		{
+			name:  "a message with no height never scrolls",
+			cfg:   nopPrompt("Yes", "No"),
+			steps: []step{resize(12, 0, 0, 0), down(false, 0, 0), up(false, 0, 0)},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(tt.cfg)
+			for i, s := range tt.steps {
+				switch s.op {
+				case opDown:
+					assert.Equal(t, s.want, p.SeekDown(), "step %d: SeekDown", i)
+				case opUp:
+					assert.Equal(t, s.want, p.SeekUp(), "step %d: SeekUp", i)
+				case opResize:
+					p.Resize(s.width, s.height)
+				case opFit:
+					p.Resize(s.width, p.Height(s.width)+s.height)
+				case opInit:
+					p.Init(tt.cfg)
+				}
+				assert.Equal(t, s.offset, p.SeekOffset(), "step %d: SeekOffset", i)
+				assert.Equal(t, s.max, p.MaxSeekOffset(), "step %d: MaxSeekOffset", i)
+			}
+		})
+	}
+}
+
+func TestDrawPromptScrolled(t *testing.T) {
+	four := linesPrompt(fourLines, "Yes", "No")
+	tests := []struct {
+		name          string
+		cfg           PromptConfig
+		width, height int
+		down          int
+		expected      string
+	}{
+		{
+			name:  "the first rows of the message over the options",
+			cfg:   four,
+			width: 12, height: 3,
+			expected: "one         \n" +
+				"two         \n" +
+				"  Yes  No   ",
+		},
+		{
+			name:  "a row down",
+			cfg:   four,
+			width: 12, height: 3, down: 1,
+			expected: "two         \n" +
+				"three       \n" +
+				"  Yes  No   ",
+		},
+		{
+			name:  "the last rows",
+			cfg:   four,
+			width: 12, height: 3, down: 2,
+			expected: "three       \n" +
+				"four        \n" +
+				"  Yes  No   ",
+		},
+		{
+			name:  "never past the last row",
+			cfg:   four,
+			width: 12, height: 3, down: 9,
+			expected: "three       \n" +
+				"four        \n" +
+				"  Yes  No   ",
+		},
+		{
+			name:     "the options alone when they leave the message no row",
+			cfg:      four,
+			width:    12,
+			height:   1,
+			expected: "  Yes  No   ",
+		},
+		{
+			name:     "the options alone however far the message is scrolled",
+			cfg:      four,
+			width:    12,
+			height:   1,
+			down:     2,
+			expected: "  Yes  No   ",
+		},
+		{
+			name:  "packed wrapped options under a scrolled message",
+			cfg:   four,
+			width: 8, height: 4, down: 1,
+			expected: "two     \n" +
+				"three   \n" +
+				"  Yes   \n" +
+				"  No    ",
+		},
+		{
+			name:  "a reflowed message scrolled over wrapped options",
+			cfg:   four,
+			width: 3, height: 3, down: 2,
+			expected: "thr\n" +
+				"Yes\n" +
+				"No ",
+		},
+		{
+			name:  "framed options under a scrolled message",
+			cfg:   framed(four),
+			width: 20, height: 4, down: 1,
+			expected: "two                 \n" +
+				"  ┌─────┐  ┌─────┐  \n" +
+				"  │ Yes │  │ No  │  \n" +
+				"  └─────┘  └─────┘  ",
+		},
+		{
+			name:  "framed options cut to a prompt shorter than them",
+			cfg:   framed(four),
+			width: 20, height: 2,
+			expected: "  ┌─────┐  ┌─────┐  \n" +
+				"  │ Yes │  │ No  │  ",
+		},
+		{
+			name:     "the rows of options a short prompt has room for",
+			cfg:      four,
+			width:    8,
+			height:   1,
+			expected: "  Yes   ",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(tt.cfg)
+			p.Resize(tt.width, tt.height)
+			for range tt.down {
+				p.SeekDown()
+			}
+			comptest.TestComponent(t, p, term.NewStringWriter(tt.width, tt.height),
+				[]comptest.TestCase{{Expected: tt.expected}})
+		})
+	}
+}
+
+func TestPromptDrawsWithinItsBounds(t *testing.T) {
+	configs := []struct {
+		name string
+		cfg  PromptConfig
+	}{
+		{"default message", PromptConfig{Message: "Are you sure?", Options: []string{"Yes", "No"}}},
+		{"default message, framed", framed(PromptConfig{Message: "Are you sure?", Options: []string{"Yes", "No"}})},
+		{"default message, wrapping options", PromptConfig{Message: "Pick?", Options: providerOptions}},
+		{"lines, framed options", framed(linesPrompt(fourLines, "Yay", "Nay", "Say"))},
+		{"lines", linesPrompt(fourLines, "Yes", "No")},
+		{"only Floating message", idealPrompt("Yes", "No")},
+		{"message with no height", nopPrompt("Yes", "No")},
+	}
+	sizes := [][2]int{
+		{-1, -1}, {0, 0}, {0, 5}, {5, 0}, {1, 1}, {2, 3}, {8, 1},
+		{12, 0}, {12, 1}, {20, 2}, {20, 4}, {24, 6}, {40, 8}, {80, 20},
+	}
+	for _, c := range configs {
+		t.Run(c.name+", before any Resize", func(t *testing.T) {
+			w := &outOfBoundsWriter{}
+			assert.NotPanics(t, func() { NewPrompt(c.cfg).Draw(w) })
+			assert.Empty(t, w.outside)
+		})
+		for _, size := range sizes {
+			for _, scrolled := range []bool{false, true} {
+				name := fmt.Sprintf("%s, %dx%d, scrolled=%t", c.name, size[0], size[1], scrolled)
+				t.Run(name, func(t *testing.T) {
+					p := NewPrompt(c.cfg)
+					p.Resize(size[0], size[1])
+					for scrolled && p.SeekDown() {
+					}
+					w := &outOfBoundsWriter{width: size[0], height: size[1]}
+					p.Draw(w)
+					assert.Empty(t, w.outside)
+				})
+			}
+		}
+	}
+}
+
+func TestPromptOptionAt(t *testing.T) {
+	four := linesPrompt(fourLines, "Yes", "No")
+	at := func(width, height int) func(*Prompt) {
+		return func(p *Prompt) { p.Resize(width, height) }
+	}
+	tests := []struct {
+		name    string
+		cfg     PromptConfig
+		prepare func(*Prompt)
+		x, y    int
+		want    int
+	}{
+		// "Yes" at x=2..4 and "No" at x=7..9 on the bottom row.
+		{"the first cell of an option", four, at(12, 5), 2, 4, 0},
+		{"the last cell of an option", four, at(12, 5), 4, 4, 0},
+		{"the gap after an option", four, at(12, 5), 5, 4, -1},
+		{"the first cell of the next option", four, at(12, 5), 7, 4, 1},
+		{"the cell a short label leaves blank", four, at(12, 5), 9, 4, 1},
+		{"the margin right of the options", four, at(12, 5), 10, 4, -1},
+		{"the margin left of the options", four, at(12, 5), 1, 4, -1},
+		{"the message above an option", four, at(12, 5), 2, 3, -1},
+		{"below the prompt", four, at(12, 5), 2, 5, -1},
+		{"right of the prompt", four, at(12, 5), 12, 4, -1},
+		{"a negative column", four, at(12, 5), -1, 4, -1},
+		{"a negative row", four, at(12, 5), 2, -1, -1},
+		// A row each, a blank row apart: "Yes" on row 4, "No" on 6.
+		{"the first of rows a blank row apart", four, at(8, 7), 2, 4, 0},
+		{"the blank row between rows", four, at(8, 7), 2, 5, -1},
+		{"the second of rows a blank row apart", four, at(8, 7), 2, 6, 1},
+		{"the cell right of a wrapped option", four, at(8, 7), 5, 6, -1},
+		// Packed: "Yes" on row 4, "No" on 5.
+		{"the first of packed rows", four, at(8, 6), 2, 4, 0},
+		{"the second of packed rows", four, at(8, 6), 2, 5, 1},
+		{"the row of options a short prompt shows", four, at(8, 1), 2, 0, 0},
+		{"a row of options the prompt is too short for", four, at(8, 1), 2, 1, -1},
+		{"a zero height prompt", four, at(12, 0), 2, 0, -1},
+		// Framed options three rows tall, cut to the prompt's two.
+		{"the top row of framed options", framed(four), at(20, 2), 3, 0, 0},
+		{"the second row of framed options", framed(four), at(20, 2), 3, 1, 0},
+		{"the row of framed options past the prompt", framed(four), at(20, 2), 3, 2, -1},
+		// Nine-cell options cut to a five-cell prompt, a row each.
+		{"the last cell of an option cut to the width", nopPrompt(providerOptions...), at(5, 9), 4, 0, 0},
+		{"past the width an option is cut to", nopPrompt(providerOptions...), at(5, 9), 5, 0, -1},
+		{"the last of five rows", nopPrompt(providerOptions...), at(5, 9), 0, 8, 4},
+		{"the blank row above the last", nopPrompt(providerOptions...), at(5, 9), 0, 7, -1},
+		// Three to a row and two centered under them.
+		{"first row, first option", nopPrompt(providerOptions...), at(40, 2), 3, 0, 0},
+		{"first row, last cell of an option", nopPrompt(providerOptions...), at(40, 2), 24, 0, 1},
+		{"first row, last option", nopPrompt(providerOptions...), at(40, 2), 28, 0, 2},
+		{"first row, gap between options", nopPrompt(providerOptions...), at(40, 2), 13, 0, -1},
+		{"second row, first option", nopPrompt(providerOptions...), at(40, 2), 9, 1, 3},
+		{"second row, last option", nopPrompt(providerOptions...), at(40, 2), 30, 1, 4},
+		{"second row, margin of a centered row", nopPrompt(providerOptions...), at(40, 2), 3, 1, -1},
+		{"before any Resize", four, func(*Prompt) {}, 0, 0, -1},
+		{"where an option was before Init", four, func(p *Prompt) {
+			p.Resize(12, 5)
+			p.Init(four)
+		}, 2, 4, -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(tt.cfg)
+			tt.prepare(p)
+			assert.Equal(t, tt.want, p.OptionAt(tt.x, tt.y))
+		})
+	}
+}
+
+func TestPromptInitForgetsTheLastLayout(t *testing.T) {
+	four := linesPrompt(fourLines, "Yes", "No")
+	tests := []struct {
+		name    string
+		prepare func(*Prompt)
+		reinit  PromptConfig
+		// options are those OptionAt finds once resized again.
+		options []int
+	}{
+		{"laid out", func(p *Prompt) { p.Resize(12, 5) }, four, []int{0, 1}},
+		{"scrolled", func(p *Prompt) { p.Resize(12, 3); p.SeekDown() }, four, []int{0, 1}},
+		{"wrapped", func(p *Prompt) { p.Resize(8, 7) }, four, []int{0, 1}},
+		{"with more options", func(p *Prompt) { p.Resize(12, 5) },
+			linesPrompt(fourLines, "A", "B", "C"), []int{0, 1, 2}},
+		{"with fewer options", func(p *Prompt) { p.Resize(12, 5) },
+			linesPrompt(fourLines, "Ok"), []int{0}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(four)
+			tt.prepare(p)
+			p.Init(tt.reinit)
+
+			assert.Zero(t, p.SeekOffset())
+			assert.Zero(t, p.MaxSeekOffset())
+			assert.Empty(t, optionCells(p, 12, 7), "no option is hit before the next Resize")
+			w := term.NewStringWriter(12, 7)
+			assert.NotPanics(t, func() { p.Draw(w) })
+			require.NoError(t, w.Flush())
+			assert.Equal(t,
+				strings.TrimSuffix(strings.Repeat(strings.Repeat(" ", 12)+"\n", 7), "\n"),
+				w.String(), "nothing of the old layout is drawn")
+
+			p.Resize(12, 5)
+			assert.Equal(t, tt.options, optionsHit(p, 12, 5))
+		})
+	}
 }
 
 func TestPromptSetOptionAttr(t *testing.T) {
@@ -503,4 +1179,151 @@ func TestPromptDimensions(t *testing.T) {
 		// innerGap=(26-18)/4=2, group=18+4=22, margin=(26-22)/2=2.
 		// left == right == 2. ✓
 	})
+}
+
+var (
+	fourLines       = []string{"one", "two", "three", "four"}
+	providerOptions = []string{"OpenAI", "Anthropic", "Gemini", "Codex", "Claude"}
+)
+
+// fixedPrompt asks options under a message height rows tall at any
+// width.
+func fixedPrompt(height int, options ...string) PromptConfig {
+	return PromptConfig{
+		Message: "?",
+		Options: options,
+		NewMessage: func(string) Floating {
+			return &TestResponsive{WantHeight: height}
+		},
+	}
+}
+
+// linesPrompt asks options under a linesMessage of lines.
+func linesPrompt(lines []string, options ...string) PromptConfig {
+	return PromptConfig{
+		Message: "?",
+		Options: options,
+		NewMessage: func(string) Floating {
+			return &linesMessage{lines: lines}
+		},
+	}
+}
+
+// idealPrompt asks options under a message two rows tall that is
+// Floating but not Responsive.
+func idealPrompt(options ...string) PromptConfig {
+	return PromptConfig{
+		Message:    "?",
+		Options:    options,
+		NewMessage: func(string) Floating { return idealMessage{} },
+	}
+}
+
+// nopPrompt asks options under a message that takes no rows.
+func nopPrompt(options ...string) PromptConfig {
+	return PromptConfig{
+		Message:    "?",
+		Options:    options,
+		NewMessage: func(string) Floating { return NopFloating() },
+	}
+}
+
+func framed(cfg PromptConfig) PromptConfig {
+	cfg.Frame = FrameCharSetDefault()
+	return cfg
+}
+
+// linesMessage is a prompt message drawing a line per row, so a test
+// can tell which of its rows are on show. Lines longer than the width
+// wrap onto the next row.
+type linesMessage struct {
+	lines []string
+	width int
+}
+
+func (m *linesMessage) rows(width int) []string {
+	if width <= 0 {
+		return m.lines
+	}
+	var rows []string
+	for _, line := range m.lines {
+		for len(line) > width {
+			rows = append(rows, line[:width])
+			line = line[width:]
+		}
+		rows = append(rows, line)
+	}
+	return rows
+}
+
+func (m *linesMessage) Resize(width, _ int) { m.width = width }
+
+func (m *linesMessage) Draw(w term.Writer) {
+	for y, line := range m.rows(m.width) {
+		for x, ch := range line {
+			w.SetCell(term.Coordinates{X: x, Y: y}, term.NewCell(ch, 1, term.Attributes{}))
+		}
+	}
+}
+
+func (m *linesMessage) Height(width int) int { return len(m.rows(width)) }
+
+func (m *linesMessage) Dimensions() (int, int) { return 10, len(m.lines) }
+
+type idealMessage struct{}
+
+func (idealMessage) Resize(int, int) {}
+
+func (idealMessage) Draw(term.Writer) {}
+
+func (idealMessage) Dimensions() (int, int) { return 10, 2 }
+
+// optionCells is the option OptionAt finds at every cell of a width
+// by height prompt that has one.
+func optionCells(p *Prompt, width, height int) map[term.Coordinates]int {
+	cells := make(map[term.Coordinates]int)
+	for y := range height {
+		for x := range width {
+			if i := p.OptionAt(x, y); i >= 0 {
+				cells[term.Coordinates{X: x, Y: y}] = i
+			}
+		}
+	}
+	return cells
+}
+
+// optionsHit is the options OptionAt finds anywhere in a width by
+// height prompt, in order.
+func optionsHit(p *Prompt, width, height int) []int {
+	var hit []int
+	for _, i := range optionCells(p, width, height) {
+		if !slices.Contains(hit, i) {
+			hit = append(hit, i)
+		}
+	}
+	slices.Sort(hit)
+	return hit
+}
+
+// outOfBoundsWriter records the cells written outside of width by
+// height.
+type outOfBoundsWriter struct {
+	width, height int
+	outside       []term.Coordinates
+}
+
+func (w *outOfBoundsWriter) Context() context.Context { return context.Background() }
+
+func (w *outOfBoundsWriter) SetCell(pos term.Coordinates, _ term.Cell) { w.check(pos) }
+
+func (w *outOfBoundsWriter) UnionAttributes(pos term.Coordinates, _ term.Attributes) {
+	w.check(pos)
+}
+
+func (w *outOfBoundsWriter) DrawImage(term.Image) bool { return false }
+
+func (w *outOfBoundsWriter) check(pos term.Coordinates) {
+	if pos.X < 0 || pos.Y < 0 || pos.X >= w.width || pos.Y >= w.height {
+		w.outside = append(w.outside, pos)
+	}
 }

@@ -425,6 +425,100 @@ func TestPromptMouseClick(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("click on a wrapped row selects its option", func(t *testing.T) {
+		ph := new(testPromptHandler)
+		p := NewPrompt(PromptConfig{
+			PromptConfig: component.PromptConfig{
+				Message: "Ok?",
+				Options: []string{"Yay", "Nay", "Say"},
+				Frame:   component.FrameCharSetDefault(),
+			},
+			PromptHandler: ph,
+		})
+		// Too narrow for three framed buttons: "Say" wraps
+		// onto rows 7..9, centered at x=6..12.
+		p.Resize(width, height)
+		for _, key := range []term.Key{term.MouseLeft, term.MouseRelease} {
+			p.Handle(term.Event{
+				Type: term.EventMouse, Key: key, MouseX: 9, MouseY: 8,
+			})
+		}
+		assert.True(t, ph.onSelectCalled)
+		assert.Equal(t, 2, ph.selectedIdx)
+		assert.Equal(t, "Say", ph.selectedOption)
+	})
+}
+
+func TestPromptMouseWheelScrollsTheMessage(t *testing.T) {
+	down, up := term.MouseWheelDown, term.MouseWheelUp
+	// A message four rows tall over "Yes" and "No", which share a
+	// row from a width of nine, with "Yes" at x=5..7 at a width of
+	// 20. Three rows leave the message two, so it scrolls two rows.
+	tests := []struct {
+		name          string
+		width, height int
+		unsized       bool
+		x, y          int
+		keys          []term.Key
+		wantOffset    int
+		wantHandled   bool
+	}{
+		{name: "down a row", width: 20, height: 3, keys: []term.Key{down},
+			wantOffset: 1, wantHandled: true},
+		{name: "down to the last row", width: 20, height: 3, keys: []term.Key{down, down},
+			wantOffset: 2, wantHandled: true},
+		{name: "no further than the last row", width: 20, height: 3,
+			keys: []term.Key{down, down, down}, wantOffset: 2},
+		{name: "back up a row", width: 20, height: 3, keys: []term.Key{down, up},
+			wantHandled: true},
+		{name: "no further than the top", width: 20, height: 3, keys: []term.Key{up}},
+		{name: "up and back down", width: 20, height: 3, keys: []term.Key{down, down, up, down},
+			wantOffset: 2, wantHandled: true},
+		{name: "over an option", width: 20, height: 3, x: 5, y: 2, keys: []term.Key{down},
+			wantOffset: 1, wantHandled: true},
+		{name: "beyond the prompt", width: 20, height: 3, x: 40, y: 9, keys: []term.Key{down},
+			wantOffset: 1, wantHandled: true},
+		{name: "a message with room to spare", width: 20, height: 20, keys: []term.Key{down}},
+		{name: "a message with exactly the room it asks for", width: 20, height: 5,
+			keys: []term.Key{down}},
+		{name: "a message the options leave no row", width: 20, height: 1,
+			keys: []term.Key{down, down, down, down, down}, wantOffset: 4},
+		{name: "a prompt with no rows", width: 20, height: 0, keys: []term.Key{down},
+			wantOffset: 1, wantHandled: true},
+		{name: "a message over packed wrapped options", width: 8, height: 4,
+			keys: []term.Key{down, down, down}, wantOffset: 2},
+		{name: "before any Resize", unsized: true, keys: []term.Key{down}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ph := new(testPromptHandler)
+			p := NewPrompt(PromptConfig{
+				PromptConfig: component.PromptConfig{
+					Message: "Ok?",
+					Options: []string{"Yes", "No"},
+					NewMessage: func(string) component.Floating {
+						return &component.TestResponsive{WantHeight: 4}
+					},
+				},
+				PromptHandler: ph,
+			})
+			if !tt.unsized {
+				p.Resize(tt.width, tt.height)
+			}
+			var handled bool
+			for i, key := range tt.keys {
+				var exit bool
+				exit, handled = p.Handle(term.Event{
+					Type: term.EventMouse, Key: key, MouseX: tt.x, MouseY: tt.y,
+				})
+				assert.False(t, exit, "event %d", i)
+			}
+			assert.Equal(t, tt.wantHandled, handled)
+			assert.Equal(t, tt.wantOffset, p.SeekOffset())
+			assert.False(t, ph.onSelectCalled)
+		})
+	}
 }
 
 type testPromptHandler struct {

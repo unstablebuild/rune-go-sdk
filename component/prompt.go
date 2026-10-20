@@ -19,17 +19,34 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/tui"
 )
 
-// Prompt implements a prompt / question with options component.
+// Prompt implements a prompt / question with options component. Its
+// options share a row while a cell of air still fits between and
+// around them, and wrap onto more rows when it does not, a blank row
+// apart. They stay pinned to the bottom edge, so a prompt given less
+// room than it needs keeps every option in view: it first packs the
+// rows of options together, then scrolls its message, see Scrollable.
 type Prompt struct {
 	optComp      []WithAttributes
 	optVirtuals  []Virtual[tui.Component]
 	optMaxWidth  int
 	optMaxHeight int
-	message      tui.Component
-	cfg          PromptConfig
-	width        int
-	height       int
+	// opts stacks the rows of options under the message. Resize
+	// rebuilds it, as how many options share a row depends on the
+	// width.
+	opts    Virtual[*Container]
+	optRows []promptRowEntry
+	message tui.Component
+	// messageContent is message without its background, which
+	// knows how tall the message is.
+	messageContent tui.Component
+	cfg            PromptConfig
+	width          int
+	height         int
+	// msgHeight is the rows shown of the message, which is msgFull
+	// rows tall and scrolled msgOffset rows down.
 	msgHeight    int
+	msgFull      int
+	msgOffset    int
 	makeOptionFn func(msg string, cfg PromptConfig) floatingOption
 }
 
@@ -89,7 +106,11 @@ type PromptConfig struct {
 	MinWidth             int
 }
 
-var _ Floating = (*Prompt)(nil)
+var (
+	_ Floating   = (*Prompt)(nil)
+	_ Responsive = (*Prompt)(nil)
+	_ Scrollable = (*Prompt)(nil)
+)
 
 // Init initializes this prompt with cfg. Note that PromptConfig.Options
 // must always contain at least one option and PromptConfig.Message must
@@ -142,60 +163,132 @@ func (p *Prompt) SetOptionAttr(i int, attr term.Attributes) {
 // Resize satisfies tui.Component
 func (p *Prompt) Resize(width, height int) {
 	p.width, p.height = width, height
-
-	_, optHeight := p.optsDimensions()
+	spaced := p.Height(width) <= height
+	p.layoutOptions(width, spaced)
+	optHeight := p.optionsHeight(width, spaced)
 	p.msgHeight = max(0, height-optHeight)
-	p.message.Resize(width, p.msgHeight)
+	p.msgFull = max(p.msgHeight, p.messageHeight(width))
+	p.msgOffset = min(p.msgOffset, p.MaxSeekOffset())
+	p.message.Resize(width, p.msgFull)
+	p.opts.Move(term.Coordinates{Y: p.msgHeight})
+	p.opts.Resize(width, optHeight)
+}
 
+// layoutOptions stacks the options in as few rows as width fits,
+// spread evenly over them so the last row is not left with a
+// straggler. Every row spaces its buttons as a full one would, so
+// the rows line up. spaced puts a blank row between rows.
+func (p *Prompt) layoutOptions(width int, spaced bool) {
 	n := len(p.optVirtuals)
-	if n == 0 {
-		return
-	}
-
-	innerGap := (width - n*p.optMaxWidth) / (n + 1)
-	if innerGap < 0 {
-		innerGap = 0
-	}
-	groupWidth := n*p.optMaxWidth + (n-1)*innerGap
-
-	// Ensure symmetric margins: when (width − groupWidth) is
-	// odd, widen one inner gap by 1 so margins split evenly.
-	extraGap := 0
-	if n > 1 && (width-groupWidth)%2 != 0 {
-		extraGap = 1
-		groupWidth++
-	}
-	startX := (width - groupWidth) / 2
-
-	x := startX
-	for i := range p.optVirtuals {
-		p.optVirtuals[i].Move(
-			term.Coordinates{X: x, Y: p.msgHeight})
-		p.optVirtuals[i].Resize(p.optMaxWidth, optHeight)
-		if i < n-1 {
-			gap := innerGap
-			if i == 0 && extraGap > 0 {
-				gap++
-			}
-			x += p.optMaxWidth + gap
+	rows := p.optionRows(width)
+	perRow := (n + rows - 1) / rows
+	gap := max(0, (width-perRow*p.optMaxWidth)/(perRow+1))
+	p.opts.C = NewContainer()
+	p.optRows = p.optRows[:0]
+	for first := 0; first < n; first += perRow {
+		if spaced && first > 0 {
+			p.opts.C.AddRow().AddComponent(promptGap{}, MaxCols)
 		}
+		opts := &promptRow{
+			opts:   p.optVirtuals[first:min(first+perRow, n)],
+			width:  p.optMaxWidth,
+			height: p.optMaxHeight,
+			gap:    gap,
+		}
+		row := p.opts.C.AddRow()
+		row.AddComponent(opts, MaxCols)
+		p.optRows = append(p.optRows,
+			promptRowEntry{row: row, opts: opts, first: first})
 	}
+}
+
+// optionRows is how many rows the options take at width: as few as
+// leave a cell between every pair of buttons and at both edges.
+func (p *Prompt) optionRows(width int) int {
+	n := len(p.optVirtuals)
+	perRow := min(max((width-1)/(p.optMaxWidth+1), 1), n)
+	return (n + perRow - 1) / perRow
+}
+
+func (p *Prompt) optionsHeight(width int, spaced bool) int {
+	rows := p.optionRows(width)
+	height := rows * p.optMaxHeight
+	if spaced {
+		height += rows - 1
+	}
+	return height
+}
+
+// Height satisfies Responsive: the message's height at width, or its
+// ideal height when it is not Responsive, over the rows the options
+// wrap onto at width and the blank rows between them.
+func (p *Prompt) Height(width int) int {
+	return p.messageHeight(width) + p.optionsHeight(width, true)
+}
+
+func (p *Prompt) messageHeight(width int) int {
+	switch m := p.messageContent.(type) {
+	case Responsive:
+		return m.Height(width)
+	case Floating:
+		_, height := m.Dimensions()
+		return height
+	}
+	return 0
+}
+
+// SeekUp satisfies Scrollable by scrolling the message up a row.
+func (p *Prompt) SeekUp() bool {
+	if p.msgOffset == 0 {
+		return false
+	}
+	p.msgOffset--
+	return true
+}
+
+// SeekDown satisfies Scrollable by scrolling the message down a row.
+func (p *Prompt) SeekDown() bool {
+	if p.msgOffset >= p.MaxSeekOffset() {
+		return false
+	}
+	p.msgOffset++
+	return true
+}
+
+// SeekOffset satisfies Scrollable.
+func (p *Prompt) SeekOffset() int {
+	return p.msgOffset
+}
+
+// MaxSeekOffset satisfies Scrollable. It is zero unless the last
+// Resize left the message less room than it needs.
+func (p *Prompt) MaxSeekOffset() int {
+	return p.msgFull - p.msgHeight
 }
 
 // Draw satisfies tui.Component
 func (p *Prompt) Draw(w term.Writer) {
+	// Options taller or wider than the prompt are cut to it.
+	bounds := VirtualWriter{Writer: w, Height: p.height, Width: p.width}
+
 	// Fill background.
 	bgCell := term.NewCell(0, 1, p.cfg.BackgroundAttributes)
 	for y := 0; y < p.height; y++ {
 		for x := 0; x < p.width; x++ {
-			w.SetCell(term.Coordinates{X: x, Y: y}, bgCell)
+			bounds.SetCell(term.Coordinates{X: x, Y: y}, bgCell)
 		}
 	}
 
-	p.message.Draw(w)
-	for i := range p.optVirtuals {
-		p.optVirtuals[i].Draw(w)
+	// The message is drawn scrolled into the rows above the options.
+	shown := VirtualWriter{Writer: &bounds, Height: p.msgHeight, Width: p.width}
+	scrolled := VirtualWriter{
+		Writer: &shown,
+		Offset: term.Coordinates{Y: -p.msgOffset},
+		Height: p.msgFull,
+		Width:  p.width,
 	}
+	p.message.Draw(&scrolled)
+	p.opts.Draw(&bounds)
 }
 
 // Dimensions satisfies Floating.
@@ -223,15 +316,24 @@ func (p *Prompt) optsDimensions() (int, int) {
 }
 
 // OptionAt returns the index of the option at the given coordinates,
-// or -1 if no option is at that position.
+// or -1 if no option is at that position. Coordinates are those of
+// the last Resize, and an option cut off by it is not at the cells
+// it was cut off from.
 func (p *Prompt) OptionAt(x, y int) int {
-	for i := range p.optVirtuals {
-		pos := p.optVirtuals[i].Position()
-		h := p.optVirtuals[i].Height()
-		if x >= pos.X && x < pos.X+p.optMaxWidth &&
-			y >= pos.Y && y < pos.Y+h {
-			return i
+	if x < 0 || y < 0 || x >= p.width || y >= p.height {
+		return -1
+	}
+	origin := p.opts.Position()
+	x, y = x-origin.X, y-origin.Y
+	for _, r := range p.optRows {
+		top := r.row.Position().Y
+		if y < top || y >= top+r.row.height {
+			continue
 		}
+		if i := r.opts.optionAt(x, y-top); i >= 0 {
+			return r.first + i
+		}
+		return -1
 	}
 	return -1
 }
@@ -307,6 +409,88 @@ func (p *Prompt) init(
 	}
 
 	p.message = NewBackground(messageComp, term.NewCell(0, 0, p.cfg.BackgroundAttributes))
+	p.messageContent = messageComp
 
 	p.initOptions(cfg)
+
+	// The last layout was of the old message and options, so none
+	// of it holds until the next Resize.
+	p.width, p.height = 0, 0
+	p.msgHeight, p.msgFull, p.msgOffset = 0, 0, 0
+	p.opts = Virtual[*Container]{C: NewContainer()}
+	p.optRows = nil
+}
+
+// promptGap is the blank row between two rows of options.
+type promptGap struct{}
+
+func (promptGap) Resize(int, int) {}
+
+func (promptGap) Draw(term.Writer) {}
+
+// Height satisfies Responsive.
+func (promptGap) Height(int) int { return 1 }
+
+// promptRowEntry is a row of options as the Container holds it and
+// as the prompt hit-tests it.
+type promptRowEntry struct {
+	row   *Row
+	opts  *promptRow
+	first int
+}
+
+// promptRow lays out a row of a prompt's options: buttons all as wide
+// as the widest option, gap cells apart, centered as a group.
+type promptRow struct {
+	// opts shares its backing array with Prompt.optVirtuals, so
+	// laying them out here moves the prompt's options.
+	opts          []Virtual[tui.Component]
+	width, height int
+	gap           int
+}
+
+// Height satisfies Responsive.
+func (r *promptRow) Height(int) int {
+	return r.height
+}
+
+// Resize satisfies tui.Component.
+func (r *promptRow) Resize(width, height int) {
+	n := len(r.opts)
+	group := n*r.width + (n-1)*r.gap
+	// Widen the first gap rather than leave the margins lopsided.
+	extraGap := 0
+	if n > 1 && (width-group)%2 != 0 {
+		extraGap = 1
+		group++
+	}
+	x := max(0, (width-group)/2)
+	for i := range r.opts {
+		r.opts[i].Move(term.Coordinates{X: x})
+		r.opts[i].Resize(max(0, min(r.width, width-x)), height)
+		x += r.width + r.gap
+		if i == 0 {
+			x += extraGap
+		}
+	}
+}
+
+// Draw satisfies tui.Component.
+func (r *promptRow) Draw(w term.Writer) {
+	for i := range r.opts {
+		r.opts[i].Draw(w)
+	}
+}
+
+// optionAt returns the index within the row of the option at x, y
+// in row coordinates, or -1.
+func (r *promptRow) optionAt(x, y int) int {
+	for i := range r.opts {
+		pos := r.opts[i].Position()
+		if x >= pos.X && x < pos.X+r.opts[i].Width() &&
+			y >= 0 && y < r.opts[i].Height() {
+			return i
+		}
+	}
+	return -1
 }

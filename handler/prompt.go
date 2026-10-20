@@ -26,7 +26,6 @@ package handler
 import (
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/term"
-	"github.com/unstablebuild/rune-go-sdk/tui"
 )
 
 // PromptHandler provides hooks to be called upon Prompt actions.
@@ -61,9 +60,10 @@ type PromptConfig struct {
 	OptionAttr     term.Attributes
 }
 
-var _ tui.Handler = (*Prompt)(nil)
+var _ Scrollable = (*Prompt)(nil)
 
-// Prompt wraps a component.Prompt to satisfy tui.Handler.
+// Prompt wraps a component.Prompt to satisfy tui.Handler. The mouse
+// wheel scrolls a message the prompt was given too little room for.
 type Prompt struct {
 	component.Prompt
 
@@ -180,6 +180,10 @@ func (f *Prompt) handleMouse(
 	}
 	term.SetPointerShape(ev, shape)
 	switch ev.Key {
+	case term.MouseWheelUp:
+		handled = f.SeekUp()
+	case term.MouseWheelDown:
+		handled = f.SeekDown()
 	case term.MouseLeft:
 		i := f.OptionAt(ev.MouseX, ev.MouseY)
 		if i < 0 {
