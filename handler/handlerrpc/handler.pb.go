@@ -912,10 +912,13 @@ func (x *HandleStreamRequest) GetEvent() *termrpc.Event {
 }
 
 type HandleStreamResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Handled       bool                   `protobuf:"varint,1,opt,name=handled,proto3" json:"handled,omitempty"`
-	Quit          bool                   `protobuf:"varint,2,opt,name=quit,proto3" json:"quit,omitempty"`
-	Request       *termrpc.Event         `protobuf:"bytes,3,opt,name=request,proto3" json:"request,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Handled bool                   `protobuf:"varint,1,opt,name=handled,proto3" json:"handled,omitempty"`
+	Quit    bool                   `protobuf:"varint,2,opt,name=quit,proto3" json:"quit,omitempty"`
+	Request *termrpc.Event         `protobuf:"bytes,3,opt,name=request,proto3" json:"request,omitempty"`
+	// pointer_shape is the term.PointerShape the handler set while
+	// handling the mouse event in request; unset if it set none.
+	PointerShape  *int32 `protobuf:"varint,4,opt,name=pointer_shape,json=pointerShape,proto3,oneof" json:"pointer_shape,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -969,6 +972,13 @@ func (x *HandleStreamResponse) GetRequest() *termrpc.Event {
 		return x.Request
 	}
 	return nil
+}
+
+func (x *HandleStreamResponse) GetPointerShape() int32 {
+	if x != nil && x.PointerShape != nil {
+		return *x.PointerShape
+	}
+	return 0
 }
 
 type CursorStreamRequest struct {
@@ -1566,11 +1576,13 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"\x16vertical_render_offset\x18\r \x01(\bR\x14verticalRenderOffset\x12E\n" +
 	"\x1fnegative_vertical_render_offset\x18\x0e \x01(\bR\x1cnegativeVerticalRenderOffset\"8\n" +
 	"\x13HandleStreamRequest\x12!\n" +
-	"\x05event\x18\x01 \x01(\v2\v.term.EventR\x05event\"k\n" +
+	"\x05event\x18\x01 \x01(\v2\v.term.EventR\x05event\"\xa7\x01\n" +
 	"\x14HandleStreamResponse\x12\x18\n" +
 	"\ahandled\x18\x01 \x01(\bR\ahandled\x12\x12\n" +
 	"\x04quit\x18\x02 \x01(\bR\x04quit\x12%\n" +
-	"\arequest\x18\x03 \x01(\v2\v.term.EventR\arequest\"\x15\n" +
+	"\arequest\x18\x03 \x01(\v2\v.term.EventR\arequest\x12(\n" +
+	"\rpointer_shape\x18\x04 \x01(\x05H\x00R\fpointerShape\x88\x01\x01B\x10\n" +
+	"\x0e_pointer_shape\"\x15\n" +
 	"\x13CursorStreamRequest\"o\n" +
 	"\x14CursorStreamResponse\x12-\n" +
 	"\bposition\x18\x01 \x01(\v2\x11.term.CoordinatesR\bposition\x12\x12\n" +
@@ -1698,6 +1710,7 @@ func file_handlerrpc_handler_proto_init() {
 	if File_handlerrpc_handler_proto != nil {
 		return
 	}
+	file_handlerrpc_handler_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

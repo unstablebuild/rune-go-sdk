@@ -29,16 +29,18 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
 	"github.com/unstablebuild/rune-go-sdk/handler/handlerrpc"
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"github.com/unstablebuild/rune-go-sdk/term/termrpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
 
 type scriptedStream struct {
-	t      *testing.T
-	dir    string
-	script []*handlerrpc.ServerMessage
-	draws  []*handlerrpc.DrawStreamResponse
-	files  []map[string][]byte
+	t       *testing.T
+	dir     string
+	script  []*handlerrpc.ServerMessage
+	draws   []*handlerrpc.DrawStreamResponse
+	handles []*handlerrpc.HandleStreamResponse
+	files   []map[string][]byte
 }
 
 func (s *scriptedStream) Header() (metadata.MD, error) { return nil, nil }
@@ -47,6 +49,9 @@ func (s *scriptedStream) CloseSend() error             { return nil }
 func (s *scriptedStream) Context() context.Context     { return context.Background() }
 
 func (s *scriptedStream) SendMsg(m any) error {
+	if handle := m.(*browserrpc.SplitWindowMessage).GetHandle(); handle != nil {
+		s.handles = append(s.handles, proto.Clone(handle).(*handlerrpc.HandleStreamResponse))
+	}
 	draw := m.(*browserrpc.SplitWindowMessage).GetDraw()
 	if draw == nil {
 		return nil
@@ -130,6 +135,42 @@ func (h *rasterHandler) Cursor() (term.Coordinates, term.CursorStyle, bool) {
 }
 func (h *rasterHandler) Selection() (string, bool) { return "", false }
 func (h *rasterHandler) Close() error              { return nil }
+
+type pointerHandler struct {
+	rasterHandler
+}
+
+func (h *pointerHandler) Handle(ev term.Event) (bool, bool) {
+	if ev.MouseX == 1 {
+		term.SetPointerShape(ev, term.PointerColResize)
+	}
+	return false, true
+}
+
+func TestServerStreamHandleReportsThePointerShape(t *testing.T) {
+	handle := func(ev term.Event) *handlerrpc.ServerMessage {
+		var rpcEv termrpc.Event
+		require.NoError(t, rpcEv.FromModel(ev))
+		return &handlerrpc.ServerMessage{
+			Type:   handlerrpc.MessageType_Handle,
+			Handle: &handlerrpc.HandleStreamRequest{Event: &rpcEv},
+		}
+	}
+	stream := &scriptedStream{t: t, script: []*handlerrpc.ServerMessage{
+		handle(term.Event{Type: term.EventMouse, MouseX: 1}),
+		handle(term.Event{Type: term.EventMouse, MouseX: 2}),
+		handle(term.Event{Type: term.EventKey, Ch: 'a', MouseX: 1}),
+	}}
+	handlerrpc.NewServerStream(stream, &pointerHandler{}, func() *browserrpc.SplitWindowMessage {
+		return new(browserrpc.SplitWindowMessage)
+	}).ReceiveMessages()
+
+	require.Len(t, stream.handles, 3)
+	require.NotNil(t, stream.handles[0].PointerShape)
+	assert.Equal(t, int32(term.PointerColResize), stream.handles[0].GetPointerShape())
+	assert.Nil(t, stream.handles[1].PointerShape, "a handler that sets no shape reports none")
+	assert.Nil(t, stream.handles[2].PointerShape, "key events carry no Pointer")
+}
 
 func TestServerStreamImages(t *testing.T) {
 	dir := t.TempDir()

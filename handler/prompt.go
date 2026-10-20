@@ -174,6 +174,11 @@ func (f *Prompt) Handle(ev term.Event) (exit, handled bool) {
 func (f *Prompt) handleMouse(
 	ev term.Event,
 ) (exit, handled bool) {
+	shape := term.PointerDefault
+	if f.OptionAt(ev.MouseX, ev.MouseY) >= 0 {
+		shape = term.PointerLink
+	}
+	term.SetPointerShape(ev, shape)
 	switch ev.Key {
 	case term.MouseLeft:
 		i := f.OptionAt(ev.MouseX, ev.MouseY)

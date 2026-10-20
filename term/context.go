@@ -28,6 +28,7 @@ const (
 	// PayloadFromContext instead of using this key directly.
 	pKey ctxKey = iota
 	cellPixelSizeKey
+	pointerKey
 )
 
 type cellPixelSize struct {

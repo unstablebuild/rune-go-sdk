@@ -181,11 +181,22 @@ func (c *ServerStream[T]) ReceiveMessages() {
 			var ev term.Event
 			ev, err = rpcEv.ToModel()
 			if err == nil {
+				var pointer *term.Pointer
+				if ev.Type == term.EventMouse {
+					pointer = new(term.Pointer)
+					ev.Context = term.ContextWithPointer(context.Background(), pointer)
+				}
 				exit, handled := c.handler.Handle(ev)
 				var resp HandleStreamResponse
 				resp.Handled = handled
 				resp.Quit = exit
 				resp.Request = rpcEv
+				if pointer != nil {
+					if shape, set := pointer.Shape(); set {
+						s := int32(shape)
+						resp.PointerShape = &s
+					}
+				}
 				sendMsg.SetHandle(&resp)
 				err = c.stream.SendMsg(sendMsg)
 			}

@@ -145,6 +145,9 @@ message HandleStreamResponse {
 	bool handled = 1;
 	bool quit = 2;
     term.Event request = 3;
+	// pointer_shape is the term.PointerShape the handler set while
+	// handling the mouse event in request; unset if it set none.
+	optional int32 pointer_shape = 4;
 }
 
 message CursorStreamRequest {}

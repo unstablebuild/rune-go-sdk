@@ -24,6 +24,7 @@
 package handler
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -396,6 +397,33 @@ func TestPromptMouseClick(t *testing.T) {
 		})
 		assert.False(t, exit)
 		assert.False(t, handled)
+	})
+
+	t.Run("the pointer is a finger over the buttons", func(t *testing.T) {
+		for _, tc := range []struct {
+			name string
+			key  term.Key
+			x, y int
+			want term.PointerShape
+		}{
+			{"hover over a button", 0, noX, btnY, term.PointerLink},
+			{"press on a button", term.MouseLeft, yesX, btnY, term.PointerLink},
+			{"hover between the buttons", 0, 9, btnY, term.PointerDefault},
+			{"hover over the message", 0, 4, 2, term.PointerDefault},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				p, _ := newPrompt(t)
+				ptr := new(term.Pointer)
+				// A fallback a parent offers must not show through.
+				ptr.SetShape(term.PointerText)
+				p.Handle(term.Event{
+					Type: term.EventMouse, Key: tc.key, MouseX: tc.x, MouseY: tc.y,
+					Context: term.ContextWithPointer(context.Background(), ptr),
+				})
+				shape, _ := ptr.Shape()
+				assert.Equal(t, tc.want.String(), shape.String())
+			})
+		}
 	})
 }
 
