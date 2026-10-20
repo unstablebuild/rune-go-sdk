@@ -2934,8 +2934,10 @@ func (x *HelpCommandDone) GetId() int64 {
 }
 
 type SubscribeResourceOpenerRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Scheme        string                 `protobuf:"bytes,1,opt,name=scheme,proto3" json:"scheme,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Scheme string                 `protobuf:"bytes,1,opt,name=scheme,proto3" json:"scheme,omitempty"`
+	// complete reports that the opener answers CompleteResourceRequest.
+	Complete      bool `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2977,6 +2979,13 @@ func (x *SubscribeResourceOpenerRequest) GetScheme() string {
 	return ""
 }
 
+func (x *SubscribeResourceOpenerRequest) GetComplete() bool {
+	if x != nil {
+		return x.Complete
+	}
+	return false
+}
+
 type SubscribeResourceOpenerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3016,8 +3025,9 @@ func (*SubscribeResourceOpenerResponse) Descriptor() ([]byte, []int) {
 // CompleteResourceRequest asks the opener for the URIs that complete prefix,
 // a full, unquoted URI prefix, preserved verbatim even when incomplete. The
 // opener answers with a CompleteCommandValue per URI, then a
-// CompleteCommandDone, all carrying id. Extensions built with SDKs that
-// predate it terminate the stream on receiving it.
+// CompleteCommandDone, all carrying id. It must only be sent to an opener
+// that subscribed with complete set: extensions built with SDKs that predate
+// it end the stream on receiving it.
 type CompleteResourceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -3786,9 +3796,10 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\"7\n" +
 	"\x0fHelpCommandDone\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\tR\x05error\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\x03R\x02id\"8\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\"T\n" +
 	"\x1eSubscribeResourceOpenerRequest\x12\x16\n" +
-	"\x06scheme\x18\x01 \x01(\tR\x06scheme\"!\n" +
+	"\x06scheme\x18\x01 \x01(\tR\x06scheme\x12\x1a\n" +
+	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"!\n" +
 	"\x1fSubscribeResourceOpenerResponse\"A\n" +
 	"\x17CompleteResourceRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +

@@ -2463,6 +2463,7 @@ func TestRegisterResourceOpener(t *testing.T) {
 
 			req := waitChan(t, impl.resourceOpenerRequests, testTimeout)
 			assert.Equal(t, tt.scheme, req.GetScheme())
+			assert.True(t, req.GetComplete(), "the opener must advertise completion")
 
 			assert.Equal(t, openURI, waitChan(t, calls, testTimeout))
 

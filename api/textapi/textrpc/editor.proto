@@ -356,6 +356,8 @@ message HelpCommandDone {
 
 message SubscribeResourceOpenerRequest {
 	string scheme = 1;
+	// complete reports that the opener answers CompleteResourceRequest.
+	bool complete = 2;
 }
 
 message SubscribeResourceOpenerResponse {}
@@ -363,8 +365,9 @@ message SubscribeResourceOpenerResponse {}
 // CompleteResourceRequest asks the opener for the URIs that complete prefix,
 // a full, unquoted URI prefix, preserved verbatim even when incomplete. The
 // opener answers with a CompleteCommandValue per URI, then a
-// CompleteCommandDone, all carrying id. Extensions built with SDKs that
-// predate it terminate the stream on receiving it.
+// CompleteCommandDone, all carrying id. It must only be sent to an opener
+// that subscribed with complete set: extensions built with SDKs that predate
+// it end the stream on receiving it.
 message CompleteResourceRequest {
 	int64 id = 1;
 	string prefix = 2;

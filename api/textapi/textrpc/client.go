@@ -345,7 +345,7 @@ func (c *Client) RegisterResourceOpener(
 	}
 	sendMsg := ClientResourceOpenerMessage{
 		Type:    ClientResourceOpenerMessage_Request,
-		Request: &SubscribeResourceOpenerRequest{Scheme: scheme},
+		Request: &SubscribeResourceOpenerRequest{Scheme: scheme, Complete: true},
 	}
 	if err := stream.Send(&sendMsg); err != nil {
 		return fmt.Errorf(
