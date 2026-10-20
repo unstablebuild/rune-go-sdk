@@ -360,6 +360,16 @@ message SubscribeResourceOpenerRequest {
 
 message SubscribeResourceOpenerResponse {}
 
+// CompleteResourceRequest asks the opener for the URIs that complete prefix,
+// a full, unquoted URI prefix, preserved verbatim even when incomplete. The
+// opener answers with a CompleteCommandValue per URI, then a
+// CompleteCommandDone, all carrying id. Extensions built with SDKs that
+// predate it terminate the stream on receiving it.
+message CompleteResourceRequest {
+	int64 id = 1;
+	string prefix = 2;
+}
+
 message OpenResourceRequest {
 	reserved 3;
 	int64 id = 1;
@@ -393,10 +403,14 @@ message ClientResourceOpenerMessage {
 	enum MessageType {
 		Request = 0;
 		Open = 1;
+		CompleteValue = 2;
+		CompleteDone = 3;
 	}
 	MessageType type = 1;
 	SubscribeResourceOpenerRequest request = 2;
 	OpenResourceResponse open = 3;
+	CompleteCommandValue complete_value = 4;
+	CompleteCommandDone complete_done = 5;
 }
 
 message ServerResourceOpenerMessage {
@@ -404,9 +418,14 @@ message ServerResourceOpenerMessage {
 		Response = 0;
 		Open = 1;
 		OpenCancel = 2;
+		Complete = 3;
+		CompleteCancel = 4;
 	}
 	MessageType type = 1;
 	SubscribeResourceOpenerResponse response = 2;
 	OpenResourceRequest open = 3;
 	RequestCancel open_cancel = 4;
+	CompleteResourceRequest complete = 5;
+	// The opener still reports a canceled completion done.
+	RequestCancel complete_cancel = 6;
 }

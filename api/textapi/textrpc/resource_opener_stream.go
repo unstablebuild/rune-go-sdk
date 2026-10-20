@@ -55,6 +55,8 @@ type resourceOpenerServerStream struct {
 
 	// open request id -> cancel func of its handler's context
 	opens sync.Map
+	// completion id -> cancel func of its streaming context
+	completions sync.Map
 }
 
 func newResourceOpenerServerStream(
@@ -116,12 +118,68 @@ func (s *resourceOpenerServerStream) receiveMessages() {
 			s.open(msg.GetOpen())
 		case ServerResourceOpenerMessage_OpenCancel:
 			cancelRequest(&s.opens, msg.GetOpenCancel().GetId())
+		case ServerResourceOpenerMessage_Complete:
+			s.complete(msg.GetComplete())
+		case ServerResourceOpenerMessage_CompleteCancel:
+			cancelRequest(&s.completions, msg.GetCompleteCancel().GetId())
 		default:
 			slog.Error(
 				"extraneous server resource opener message",
 				"type", tpe,
 			)
 			return
+		}
+	}
+}
+
+// complete streams the opener's completion off the receive loop, which must
+// stay free to take the editor's cancel for it. The completion is reported
+// done even when canceled, which is what lets the editor forget its id.
+func (s *resourceOpenerServerStream) complete(req *CompleteResourceRequest) {
+	id := req.GetId()
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.completions.Store(id, context.CancelFunc(cancel))
+	go debug.CapturePanicReport(func() {
+		defer func() {
+			s.completions.Delete(id)
+			cancel()
+		}()
+		done := CompleteCommandDone{Id: id}
+		if err := s.streamCompletion(ctx, id, req.GetPrefix()); err != nil && ctx.Err() == nil {
+			done.Error = err.Error()
+		}
+		msg := &ClientResourceOpenerMessage{
+			Type:         ClientResourceOpenerMessage_CompleteDone,
+			CompleteDone: &done,
+		}
+		select {
+		case s.sendChan <- msg:
+		case <-s.ctx.Done():
+		}
+	})
+}
+
+func (s *resourceOpenerServerStream) streamCompletion(
+	ctx context.Context, id int64, prefix string,
+) error {
+	it, err := s.h.CompleteResource(ctx, prefix)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = it.Close() }()
+	for {
+		value, ok := it.Next(ctx)
+		if !ok {
+			return it.Err()
+		}
+		msg := &ClientResourceOpenerMessage{
+			Type:          ClientResourceOpenerMessage_CompleteValue,
+			CompleteValue: &CompleteCommandValue{Id: id, Value: value},
+		}
+		select {
+		case s.sendChan <- msg:
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }

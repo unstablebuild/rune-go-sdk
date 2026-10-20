@@ -343,8 +343,10 @@ func (ServerREPLCommandMessage_MessageType) EnumDescriptor() ([]byte, []int) {
 type ClientResourceOpenerMessage_MessageType int32
 
 const (
-	ClientResourceOpenerMessage_Request ClientResourceOpenerMessage_MessageType = 0
-	ClientResourceOpenerMessage_Open    ClientResourceOpenerMessage_MessageType = 1
+	ClientResourceOpenerMessage_Request       ClientResourceOpenerMessage_MessageType = 0
+	ClientResourceOpenerMessage_Open          ClientResourceOpenerMessage_MessageType = 1
+	ClientResourceOpenerMessage_CompleteValue ClientResourceOpenerMessage_MessageType = 2
+	ClientResourceOpenerMessage_CompleteDone  ClientResourceOpenerMessage_MessageType = 3
 )
 
 // Enum value maps for ClientResourceOpenerMessage_MessageType.
@@ -352,10 +354,14 @@ var (
 	ClientResourceOpenerMessage_MessageType_name = map[int32]string{
 		0: "Request",
 		1: "Open",
+		2: "CompleteValue",
+		3: "CompleteDone",
 	}
 	ClientResourceOpenerMessage_MessageType_value = map[string]int32{
-		"Request": 0,
-		"Open":    1,
+		"Request":       0,
+		"Open":          1,
+		"CompleteValue": 2,
+		"CompleteDone":  3,
 	}
 )
 
@@ -383,15 +389,17 @@ func (x ClientResourceOpenerMessage_MessageType) Number() protoreflect.EnumNumbe
 
 // Deprecated: Use ClientResourceOpenerMessage_MessageType.Descriptor instead.
 func (ClientResourceOpenerMessage_MessageType) EnumDescriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{50, 0}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{51, 0}
 }
 
 type ServerResourceOpenerMessage_MessageType int32
 
 const (
-	ServerResourceOpenerMessage_Response   ServerResourceOpenerMessage_MessageType = 0
-	ServerResourceOpenerMessage_Open       ServerResourceOpenerMessage_MessageType = 1
-	ServerResourceOpenerMessage_OpenCancel ServerResourceOpenerMessage_MessageType = 2
+	ServerResourceOpenerMessage_Response       ServerResourceOpenerMessage_MessageType = 0
+	ServerResourceOpenerMessage_Open           ServerResourceOpenerMessage_MessageType = 1
+	ServerResourceOpenerMessage_OpenCancel     ServerResourceOpenerMessage_MessageType = 2
+	ServerResourceOpenerMessage_Complete       ServerResourceOpenerMessage_MessageType = 3
+	ServerResourceOpenerMessage_CompleteCancel ServerResourceOpenerMessage_MessageType = 4
 )
 
 // Enum value maps for ServerResourceOpenerMessage_MessageType.
@@ -400,11 +408,15 @@ var (
 		0: "Response",
 		1: "Open",
 		2: "OpenCancel",
+		3: "Complete",
+		4: "CompleteCancel",
 	}
 	ServerResourceOpenerMessage_MessageType_value = map[string]int32{
-		"Response":   0,
-		"Open":       1,
-		"OpenCancel": 2,
+		"Response":       0,
+		"Open":           1,
+		"OpenCancel":     2,
+		"Complete":       3,
+		"CompleteCancel": 4,
 	}
 )
 
@@ -432,7 +444,7 @@ func (x ServerResourceOpenerMessage_MessageType) Number() protoreflect.EnumNumbe
 
 // Deprecated: Use ServerResourceOpenerMessage_MessageType.Descriptor instead.
 func (ServerResourceOpenerMessage_MessageType) EnumDescriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{51, 0}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{52, 0}
 }
 
 type URI struct {
@@ -3001,6 +3013,63 @@ func (*SubscribeResourceOpenerResponse) Descriptor() ([]byte, []int) {
 	return file_textrpc_editor_proto_rawDescGZIP(), []int{45}
 }
 
+// CompleteResourceRequest asks the opener for the URIs that complete prefix,
+// a full, unquoted URI prefix, preserved verbatim even when incomplete. The
+// opener answers with a CompleteCommandValue per URI, then a
+// CompleteCommandDone, all carrying id. Extensions built with SDKs that
+// predate it terminate the stream on receiving it.
+type CompleteResourceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Prefix        string                 `protobuf:"bytes,2,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteResourceRequest) Reset() {
+	*x = CompleteResourceRequest{}
+	mi := &file_textrpc_editor_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteResourceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteResourceRequest) ProtoMessage() {}
+
+func (x *CompleteResourceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_textrpc_editor_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteResourceRequest.ProtoReflect.Descriptor instead.
+func (*CompleteResourceRequest) Descriptor() ([]byte, []int) {
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *CompleteResourceRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *CompleteResourceRequest) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
 type OpenResourceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -3011,7 +3080,7 @@ type OpenResourceRequest struct {
 
 func (x *OpenResourceRequest) Reset() {
 	*x = OpenResourceRequest{}
-	mi := &file_textrpc_editor_proto_msgTypes[46]
+	mi := &file_textrpc_editor_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3023,7 +3092,7 @@ func (x *OpenResourceRequest) String() string {
 func (*OpenResourceRequest) ProtoMessage() {}
 
 func (x *OpenResourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[46]
+	mi := &file_textrpc_editor_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3036,7 +3105,7 @@ func (x *OpenResourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenResourceRequest.ProtoReflect.Descriptor instead.
 func (*OpenResourceRequest) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{46}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *OpenResourceRequest) GetId() int64 {
@@ -3066,7 +3135,7 @@ type OpenResourceResponse struct {
 
 func (x *OpenResourceResponse) Reset() {
 	*x = OpenResourceResponse{}
-	mi := &file_textrpc_editor_proto_msgTypes[47]
+	mi := &file_textrpc_editor_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3078,7 +3147,7 @@ func (x *OpenResourceResponse) String() string {
 func (*OpenResourceResponse) ProtoMessage() {}
 
 func (x *OpenResourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[47]
+	mi := &file_textrpc_editor_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3091,7 +3160,7 @@ func (x *OpenResourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenResourceResponse.ProtoReflect.Descriptor instead.
 func (*OpenResourceResponse) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{47}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *OpenResourceResponse) GetId() int64 {
@@ -3118,7 +3187,7 @@ type OpenResourceStreamRequest struct {
 
 func (x *OpenResourceStreamRequest) Reset() {
 	*x = OpenResourceStreamRequest{}
-	mi := &file_textrpc_editor_proto_msgTypes[48]
+	mi := &file_textrpc_editor_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3130,7 +3199,7 @@ func (x *OpenResourceStreamRequest) String() string {
 func (*OpenResourceStreamRequest) ProtoMessage() {}
 
 func (x *OpenResourceStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[48]
+	mi := &file_textrpc_editor_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3143,7 +3212,7 @@ func (x *OpenResourceStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenResourceStreamRequest.ProtoReflect.Descriptor instead.
 func (*OpenResourceStreamRequest) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{48}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *OpenResourceStreamRequest) GetId() int64 {
@@ -3169,7 +3238,7 @@ type OpenResourceMessage struct {
 
 func (x *OpenResourceMessage) Reset() {
 	*x = OpenResourceMessage{}
-	mi := &file_textrpc_editor_proto_msgTypes[49]
+	mi := &file_textrpc_editor_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3181,7 +3250,7 @@ func (x *OpenResourceMessage) String() string {
 func (*OpenResourceMessage) ProtoMessage() {}
 
 func (x *OpenResourceMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[49]
+	mi := &file_textrpc_editor_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3194,7 +3263,7 @@ func (x *OpenResourceMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenResourceMessage.ProtoReflect.Descriptor instead.
 func (*OpenResourceMessage) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{49}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *OpenResourceMessage) GetType() handlerrpc.MessageType {
@@ -3258,13 +3327,15 @@ type ClientResourceOpenerMessage struct {
 	Type          ClientResourceOpenerMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ClientResourceOpenerMessage_MessageType" json:"type,omitempty"`
 	Request       *SubscribeResourceOpenerRequest         `protobuf:"bytes,2,opt,name=request,proto3" json:"request,omitempty"`
 	Open          *OpenResourceResponse                   `protobuf:"bytes,3,opt,name=open,proto3" json:"open,omitempty"`
+	CompleteValue *CompleteCommandValue                   `protobuf:"bytes,4,opt,name=complete_value,json=completeValue,proto3" json:"complete_value,omitempty"`
+	CompleteDone  *CompleteCommandDone                    `protobuf:"bytes,5,opt,name=complete_done,json=completeDone,proto3" json:"complete_done,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientResourceOpenerMessage) Reset() {
 	*x = ClientResourceOpenerMessage{}
-	mi := &file_textrpc_editor_proto_msgTypes[50]
+	mi := &file_textrpc_editor_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3276,7 +3347,7 @@ func (x *ClientResourceOpenerMessage) String() string {
 func (*ClientResourceOpenerMessage) ProtoMessage() {}
 
 func (x *ClientResourceOpenerMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[50]
+	mi := &file_textrpc_editor_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3289,7 +3360,7 @@ func (x *ClientResourceOpenerMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClientResourceOpenerMessage.ProtoReflect.Descriptor instead.
 func (*ClientResourceOpenerMessage) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{50}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ClientResourceOpenerMessage) GetType() ClientResourceOpenerMessage_MessageType {
@@ -3313,19 +3384,36 @@ func (x *ClientResourceOpenerMessage) GetOpen() *OpenResourceResponse {
 	return nil
 }
 
+func (x *ClientResourceOpenerMessage) GetCompleteValue() *CompleteCommandValue {
+	if x != nil {
+		return x.CompleteValue
+	}
+	return nil
+}
+
+func (x *ClientResourceOpenerMessage) GetCompleteDone() *CompleteCommandDone {
+	if x != nil {
+		return x.CompleteDone
+	}
+	return nil
+}
+
 type ServerResourceOpenerMessage struct {
-	state         protoimpl.MessageState                  `protogen:"open.v1"`
-	Type          ServerResourceOpenerMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerResourceOpenerMessage_MessageType" json:"type,omitempty"`
-	Response      *SubscribeResourceOpenerResponse        `protobuf:"bytes,2,opt,name=response,proto3" json:"response,omitempty"`
-	Open          *OpenResourceRequest                    `protobuf:"bytes,3,opt,name=open,proto3" json:"open,omitempty"`
-	OpenCancel    *RequestCancel                          `protobuf:"bytes,4,opt,name=open_cancel,json=openCancel,proto3" json:"open_cancel,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState                  `protogen:"open.v1"`
+	Type       ServerResourceOpenerMessage_MessageType `protobuf:"varint,1,opt,name=type,proto3,enum=text.ServerResourceOpenerMessage_MessageType" json:"type,omitempty"`
+	Response   *SubscribeResourceOpenerResponse        `protobuf:"bytes,2,opt,name=response,proto3" json:"response,omitempty"`
+	Open       *OpenResourceRequest                    `protobuf:"bytes,3,opt,name=open,proto3" json:"open,omitempty"`
+	OpenCancel *RequestCancel                          `protobuf:"bytes,4,opt,name=open_cancel,json=openCancel,proto3" json:"open_cancel,omitempty"`
+	Complete   *CompleteResourceRequest                `protobuf:"bytes,5,opt,name=complete,proto3" json:"complete,omitempty"`
+	// The opener still reports a canceled completion done.
+	CompleteCancel *RequestCancel `protobuf:"bytes,6,opt,name=complete_cancel,json=completeCancel,proto3" json:"complete_cancel,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ServerResourceOpenerMessage) Reset() {
 	*x = ServerResourceOpenerMessage{}
-	mi := &file_textrpc_editor_proto_msgTypes[51]
+	mi := &file_textrpc_editor_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3337,7 +3425,7 @@ func (x *ServerResourceOpenerMessage) String() string {
 func (*ServerResourceOpenerMessage) ProtoMessage() {}
 
 func (x *ServerResourceOpenerMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[51]
+	mi := &file_textrpc_editor_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3350,7 +3438,7 @@ func (x *ServerResourceOpenerMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerResourceOpenerMessage.ProtoReflect.Descriptor instead.
 func (*ServerResourceOpenerMessage) Descriptor() ([]byte, []int) {
-	return file_textrpc_editor_proto_rawDescGZIP(), []int{51}
+	return file_textrpc_editor_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ServerResourceOpenerMessage) GetType() ServerResourceOpenerMessage_MessageType {
@@ -3381,6 +3469,20 @@ func (x *ServerResourceOpenerMessage) GetOpenCancel() *RequestCancel {
 	return nil
 }
 
+func (x *ServerResourceOpenerMessage) GetComplete() *CompleteResourceRequest {
+	if x != nil {
+		return x.Complete
+	}
+	return nil
+}
+
+func (x *ServerResourceOpenerMessage) GetCompleteCancel() *RequestCancel {
+	if x != nil {
+		return x.CompleteCancel
+	}
+	return nil
+}
+
 type SetLocationListRequest_Location struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	From          *termrpc.Coordinates   `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
@@ -3394,7 +3496,7 @@ type SetLocationListRequest_Location struct {
 
 func (x *SetLocationListRequest_Location) Reset() {
 	*x = SetLocationListRequest_Location{}
-	mi := &file_textrpc_editor_proto_msgTypes[52]
+	mi := &file_textrpc_editor_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3406,7 +3508,7 @@ func (x *SetLocationListRequest_Location) String() string {
 func (*SetLocationListRequest_Location) ProtoMessage() {}
 
 func (x *SetLocationListRequest_Location) ProtoReflect() protoreflect.Message {
-	mi := &file_textrpc_editor_proto_msgTypes[52]
+	mi := &file_textrpc_editor_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3687,7 +3789,10 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\"8\n" +
 	"\x1eSubscribeResourceOpenerRequest\x12\x16\n" +
 	"\x06scheme\x18\x01 \x01(\tR\x06scheme\"!\n" +
-	"\x1fSubscribeResourceOpenerResponse\"H\n" +
+	"\x1fSubscribeResourceOpenerResponse\"A\n" +
+	"\x17CompleteResourceRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06prefix\x18\x02 \x01(\tR\x06prefix\"H\n" +
 	"\x13OpenResourceRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
 	"\x03uri\x18\x02 \x01(\v2\t.text.URIR\x03uriJ\x04\b\x03\x10\x04\"<\n" +
@@ -3707,25 +3812,33 @@ const file_textrpc_editor_proto_rawDesc = "" +
 	"dimensions\x18\b \x01(\v2!.handler.DimensionsStreamResponseR\n" +
 	"dimensions\x129\n" +
 	"\arequest\x18\n" +
-	" \x01(\v2\x1f.text.OpenResourceStreamRequestR\arequest\"\xf6\x01\n" +
+	" \x01(\v2\x1f.text.OpenResourceStreamRequestR\arequest\"\x9e\x03\n" +
 	"\x1bClientResourceOpenerMessage\x12A\n" +
 	"\x04type\x18\x01 \x01(\x0e2-.text.ClientResourceOpenerMessage.MessageTypeR\x04type\x12>\n" +
 	"\arequest\x18\x02 \x01(\v2$.text.SubscribeResourceOpenerRequestR\arequest\x12.\n" +
-	"\x04open\x18\x03 \x01(\v2\x1a.text.OpenResourceResponseR\x04open\"$\n" +
+	"\x04open\x18\x03 \x01(\v2\x1a.text.OpenResourceResponseR\x04open\x12A\n" +
+	"\x0ecomplete_value\x18\x04 \x01(\v2\x1a.text.CompleteCommandValueR\rcompleteValue\x12>\n" +
+	"\rcomplete_done\x18\x05 \x01(\v2\x19.text.CompleteCommandDoneR\fcompleteDone\"I\n" +
 	"\vMessageType\x12\v\n" +
 	"\aRequest\x10\x00\x12\b\n" +
-	"\x04Open\x10\x01\"\xbf\x02\n" +
+	"\x04Open\x10\x01\x12\x11\n" +
+	"\rCompleteValue\x10\x02\x12\x10\n" +
+	"\fCompleteDone\x10\x03\"\xda\x03\n" +
 	"\x1bServerResourceOpenerMessage\x12A\n" +
 	"\x04type\x18\x01 \x01(\x0e2-.text.ServerResourceOpenerMessage.MessageTypeR\x04type\x12A\n" +
 	"\bresponse\x18\x02 \x01(\v2%.text.SubscribeResourceOpenerResponseR\bresponse\x12-\n" +
 	"\x04open\x18\x03 \x01(\v2\x19.text.OpenResourceRequestR\x04open\x124\n" +
 	"\vopen_cancel\x18\x04 \x01(\v2\x13.text.RequestCancelR\n" +
-	"openCancel\"5\n" +
+	"openCancel\x129\n" +
+	"\bcomplete\x18\x05 \x01(\v2\x1d.text.CompleteResourceRequestR\bcomplete\x12<\n" +
+	"\x0fcomplete_cancel\x18\x06 \x01(\v2\x13.text.RequestCancelR\x0ecompleteCancel\"W\n" +
 	"\vMessageType\x12\f\n" +
 	"\bResponse\x10\x00\x12\b\n" +
 	"\x04Open\x10\x01\x12\x0e\n" +
 	"\n" +
-	"OpenCancel\x10\x022\xc4\b\n" +
+	"OpenCancel\x10\x02\x12\f\n" +
+	"\bComplete\x10\x03\x12\x12\n" +
+	"\x0eCompleteCancel\x10\x042\xc4\b\n" +
 	"\x06Editor\x12-\n" +
 	"\x04Edit\x12\x11.text.EditRequest\x1a\x12.text.EditResponse\x12<\n" +
 	"\tSetCursor\x12\x16.text.SetCursorRequest\x1a\x17.text.SetCursorResponse\x123\n" +
@@ -3756,7 +3869,7 @@ func file_textrpc_editor_proto_rawDescGZIP() []byte {
 }
 
 var file_textrpc_editor_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 53)
+var file_textrpc_editor_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_textrpc_editor_proto_goTypes = []any{
 	(EditorEvent_Type)(0),                        // 0: text.EditorEvent.Type
 	(ClientCommandMessage_MessageType)(0),        // 1: text.ClientCommandMessage.MessageType
@@ -3811,142 +3924,147 @@ var file_textrpc_editor_proto_goTypes = []any{
 	(*HelpCommandDone)(nil),                     // 50: text.HelpCommandDone
 	(*SubscribeResourceOpenerRequest)(nil),      // 51: text.SubscribeResourceOpenerRequest
 	(*SubscribeResourceOpenerResponse)(nil),     // 52: text.SubscribeResourceOpenerResponse
-	(*OpenResourceRequest)(nil),                 // 53: text.OpenResourceRequest
-	(*OpenResourceResponse)(nil),                // 54: text.OpenResourceResponse
-	(*OpenResourceStreamRequest)(nil),           // 55: text.OpenResourceStreamRequest
-	(*OpenResourceMessage)(nil),                 // 56: text.OpenResourceMessage
-	(*ClientResourceOpenerMessage)(nil),         // 57: text.ClientResourceOpenerMessage
-	(*ServerResourceOpenerMessage)(nil),         // 58: text.ServerResourceOpenerMessage
-	(*SetLocationListRequest_Location)(nil),     // 59: text.SetLocationListRequest.Location
-	(*termrpc.CellRow)(nil),                     // 60: term.CellRow
-	(*termrpc.Coordinates)(nil),                 // 61: term.Coordinates
-	(*termrpc.Attributes)(nil),                  // 62: term.Attributes
-	(handlerrpc.MessageType)(0),                 // 63: handler.MessageType
-	(*handlerrpc.DrawStreamResponse)(nil),       // 64: handler.DrawStreamResponse
-	(*handlerrpc.HandleStreamResponse)(nil),     // 65: handler.HandleStreamResponse
-	(*handlerrpc.CloseStreamResponse)(nil),      // 66: handler.CloseStreamResponse
-	(*handlerrpc.CursorStreamResponse)(nil),     // 67: handler.CursorStreamResponse
-	(*handlerrpc.SelectionStreamResponse)(nil),  // 68: handler.SelectionStreamResponse
-	(*handlerrpc.DimensionsStreamResponse)(nil), // 69: handler.DimensionsStreamResponse
-	(*handlerrpc.ServerMessage)(nil),            // 70: handler.ServerMessage
+	(*CompleteResourceRequest)(nil),             // 53: text.CompleteResourceRequest
+	(*OpenResourceRequest)(nil),                 // 54: text.OpenResourceRequest
+	(*OpenResourceResponse)(nil),                // 55: text.OpenResourceResponse
+	(*OpenResourceStreamRequest)(nil),           // 56: text.OpenResourceStreamRequest
+	(*OpenResourceMessage)(nil),                 // 57: text.OpenResourceMessage
+	(*ClientResourceOpenerMessage)(nil),         // 58: text.ClientResourceOpenerMessage
+	(*ServerResourceOpenerMessage)(nil),         // 59: text.ServerResourceOpenerMessage
+	(*SetLocationListRequest_Location)(nil),     // 60: text.SetLocationListRequest.Location
+	(*termrpc.CellRow)(nil),                     // 61: term.CellRow
+	(*termrpc.Coordinates)(nil),                 // 62: term.Coordinates
+	(*termrpc.Attributes)(nil),                  // 63: term.Attributes
+	(handlerrpc.MessageType)(0),                 // 64: handler.MessageType
+	(*handlerrpc.DrawStreamResponse)(nil),       // 65: handler.DrawStreamResponse
+	(*handlerrpc.HandleStreamResponse)(nil),     // 66: handler.HandleStreamResponse
+	(*handlerrpc.CloseStreamResponse)(nil),      // 67: handler.CloseStreamResponse
+	(*handlerrpc.CursorStreamResponse)(nil),     // 68: handler.CursorStreamResponse
+	(*handlerrpc.SelectionStreamResponse)(nil),  // 69: handler.SelectionStreamResponse
+	(*handlerrpc.DimensionsStreamResponse)(nil), // 70: handler.DimensionsStreamResponse
+	(*handlerrpc.ServerMessage)(nil),            // 71: handler.ServerMessage
 }
 var file_textrpc_editor_proto_depIdxs = []int32{
-	7,  // 0: text.EditRequest.resource_name:type_name -> text.URI
-	60, // 1: text.EditRequest.buffer:type_name -> term.CellRow
-	0,  // 2: text.EditorEvent.type:type_name -> text.EditorEvent.Type
-	7,  // 3: text.EditorEvent.resource_name:type_name -> text.URI
-	61, // 4: text.EditorEvent.start:type_name -> term.Coordinates
-	61, // 5: text.EditorEvent.end:type_name -> term.Coordinates
-	61, // 6: text.EditorEvent.from:type_name -> term.Coordinates
-	61, // 7: text.EditorEvent.to:type_name -> term.Coordinates
-	0,  // 8: text.SubscribeEventRequest.type:type_name -> text.EditorEvent.Type
-	7,  // 9: text.SetLocationListRequest.resource_name:type_name -> text.URI
-	59, // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
-	7,  // 11: text.EditCellRequest.resource_name:type_name -> text.URI
-	61, // 12: text.EditCellRequest.start:type_name -> term.Coordinates
-	61, // 13: text.EditCellRequest.end:type_name -> term.Coordinates
-	61, // 14: text.EditCellResponse.from:type_name -> term.Coordinates
-	61, // 15: text.EditCellResponse.to:type_name -> term.Coordinates
-	7,  // 16: text.RawCellsRequest.resource_name:type_name -> text.URI
-	60, // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
-	7,  // 18: text.MoveToLocationRequest.resource_name:type_name -> text.URI
-	61, // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
-	7,  // 20: text.SetCursorRequest.resource_name:type_name -> text.URI
-	7,  // 21: text.CursorRequest.resource_name:type_name -> text.URI
-	61, // 22: text.CursorResponse.pos:type_name -> term.Coordinates
-	7,  // 23: text.EditorRequest.resource_name:type_name -> text.URI
-	7,  // 24: text.SetDefaultAttributesRequest.resource_name:type_name -> text.URI
-	62, // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
-	29, // 26: text.SubscribeCommandRequest.command:type_name -> text.CommandManual
-	29, // 27: text.CommandManual.commands:type_name -> text.CommandManual
-	1,  // 28: text.ClientCommandMessage.type:type_name -> text.ClientCommandMessage.MessageType
-	34, // 29: text.ClientCommandMessage.handle:type_name -> text.HandleCommandResponse
-	36, // 30: text.ClientCommandMessage.complete_value:type_name -> text.CompleteCommandValue
-	37, // 31: text.ClientCommandMessage.complete_done:type_name -> text.CompleteCommandDone
-	28, // 32: text.ClientCommandMessage.request:type_name -> text.SubscribeCommandRequest
-	2,  // 33: text.ServerCommandMessage.type:type_name -> text.ServerCommandMessage.MessageType
-	33, // 34: text.ServerCommandMessage.handle:type_name -> text.HandleCommandRequest
-	35, // 35: text.ServerCommandMessage.complete:type_name -> text.CompleteCommandRequest
-	30, // 36: text.ServerCommandMessage.response:type_name -> text.SubscribeCommandResponse
-	38, // 37: text.ServerCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
-	39, // 38: text.ServerCommandMessage.handle_cancel:type_name -> text.RequestCancel
-	7,  // 39: text.HandleCommandRequest.resource_name:type_name -> text.URI
-	61, // 40: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
-	61, // 41: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
-	29, // 42: text.SubscribeREPLCommandRequest.command:type_name -> text.CommandManual
-	3,  // 43: text.ClientREPLCommandMessage.type:type_name -> text.ClientREPLCommandMessage.MessageType
-	45, // 44: text.ClientREPLCommandMessage.handle_value:type_name -> text.HandleREPLCommandValue
-	46, // 45: text.ClientREPLCommandMessage.handle_done:type_name -> text.HandleREPLCommandDone
-	36, // 46: text.ClientREPLCommandMessage.complete_value:type_name -> text.CompleteCommandValue
-	37, // 47: text.ClientREPLCommandMessage.complete_done:type_name -> text.CompleteCommandDone
-	49, // 48: text.ClientREPLCommandMessage.help_value:type_name -> text.HelpCommandValue
-	50, // 49: text.ClientREPLCommandMessage.help_done:type_name -> text.HelpCommandDone
-	40, // 50: text.ClientREPLCommandMessage.request:type_name -> text.SubscribeREPLCommandRequest
-	47, // 51: text.ClientREPLCommandMessage.handle_progress:type_name -> text.HandleREPLCommandProgress
-	4,  // 52: text.ServerREPLCommandMessage.type:type_name -> text.ServerREPLCommandMessage.MessageType
-	44, // 53: text.ServerREPLCommandMessage.handle:type_name -> text.HandleREPLCommandRequest
-	35, // 54: text.ServerREPLCommandMessage.complete:type_name -> text.CompleteCommandRequest
-	48, // 55: text.ServerREPLCommandMessage.help:type_name -> text.HelpCommandRequest
-	41, // 56: text.ServerREPLCommandMessage.response:type_name -> text.SubscribeREPLCommandResponse
-	38, // 57: text.ServerREPLCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
-	39, // 58: text.ServerREPLCommandMessage.handle_cancel:type_name -> text.RequestCancel
-	39, // 59: text.ServerREPLCommandMessage.help_cancel:type_name -> text.RequestCancel
-	60, // 60: text.HandleREPLCommandValue.rows:type_name -> term.CellRow
-	60, // 61: text.HelpCommandValue.rows:type_name -> term.CellRow
-	7,  // 62: text.OpenResourceRequest.uri:type_name -> text.URI
-	63, // 63: text.OpenResourceMessage.type:type_name -> handler.MessageType
-	64, // 64: text.OpenResourceMessage.draw:type_name -> handler.DrawStreamResponse
-	65, // 65: text.OpenResourceMessage.handle:type_name -> handler.HandleStreamResponse
-	66, // 66: text.OpenResourceMessage.close:type_name -> handler.CloseStreamResponse
-	67, // 67: text.OpenResourceMessage.cursor:type_name -> handler.CursorStreamResponse
-	68, // 68: text.OpenResourceMessage.selection:type_name -> handler.SelectionStreamResponse
-	69, // 69: text.OpenResourceMessage.dimensions:type_name -> handler.DimensionsStreamResponse
-	55, // 70: text.OpenResourceMessage.request:type_name -> text.OpenResourceStreamRequest
-	5,  // 71: text.ClientResourceOpenerMessage.type:type_name -> text.ClientResourceOpenerMessage.MessageType
-	51, // 72: text.ClientResourceOpenerMessage.request:type_name -> text.SubscribeResourceOpenerRequest
-	54, // 73: text.ClientResourceOpenerMessage.open:type_name -> text.OpenResourceResponse
-	6,  // 74: text.ServerResourceOpenerMessage.type:type_name -> text.ServerResourceOpenerMessage.MessageType
-	52, // 75: text.ServerResourceOpenerMessage.response:type_name -> text.SubscribeResourceOpenerResponse
-	53, // 76: text.ServerResourceOpenerMessage.open:type_name -> text.OpenResourceRequest
-	39, // 77: text.ServerResourceOpenerMessage.open_cancel:type_name -> text.RequestCancel
-	61, // 78: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
-	61, // 79: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
-	62, // 80: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
-	8,  // 81: text.Editor.Edit:input_type -> text.EditRequest
-	20, // 82: text.Editor.SetCursor:input_type -> text.SetCursorRequest
-	22, // 83: text.Editor.Cursor:input_type -> text.CursorRequest
-	24, // 84: text.Editor.Editor:input_type -> text.EditorRequest
-	12, // 85: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
-	18, // 86: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
-	18, // 87: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
-	14, // 88: text.Editor.EditCell:input_type -> text.EditCellRequest
-	16, // 89: text.Editor.RawCells:input_type -> text.RawCellsRequest
-	26, // 90: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
-	11, // 91: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
-	31, // 92: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
-	42, // 93: text.Editor.SubscribeREPLCommand:input_type -> text.ClientREPLCommandMessage
-	57, // 94: text.Editor.SubscribeResourceOpener:input_type -> text.ClientResourceOpenerMessage
-	56, // 95: text.Editor.OpenResource:input_type -> text.OpenResourceMessage
-	9,  // 96: text.Editor.Edit:output_type -> text.EditResponse
-	21, // 97: text.Editor.SetCursor:output_type -> text.SetCursorResponse
-	23, // 98: text.Editor.Cursor:output_type -> text.CursorResponse
-	25, // 99: text.Editor.Editor:output_type -> text.EditorResponse
-	13, // 100: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
-	19, // 101: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
-	19, // 102: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
-	15, // 103: text.Editor.EditCell:output_type -> text.EditCellResponse
-	17, // 104: text.Editor.RawCells:output_type -> text.RawCellsResponse
-	27, // 105: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
-	10, // 106: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
-	32, // 107: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
-	43, // 108: text.Editor.SubscribeREPLCommand:output_type -> text.ServerREPLCommandMessage
-	58, // 109: text.Editor.SubscribeResourceOpener:output_type -> text.ServerResourceOpenerMessage
-	70, // 110: text.Editor.OpenResource:output_type -> handler.ServerMessage
-	96, // [96:111] is the sub-list for method output_type
-	81, // [81:96] is the sub-list for method input_type
-	81, // [81:81] is the sub-list for extension type_name
-	81, // [81:81] is the sub-list for extension extendee
-	0,  // [0:81] is the sub-list for field type_name
+	7,   // 0: text.EditRequest.resource_name:type_name -> text.URI
+	61,  // 1: text.EditRequest.buffer:type_name -> term.CellRow
+	0,   // 2: text.EditorEvent.type:type_name -> text.EditorEvent.Type
+	7,   // 3: text.EditorEvent.resource_name:type_name -> text.URI
+	62,  // 4: text.EditorEvent.start:type_name -> term.Coordinates
+	62,  // 5: text.EditorEvent.end:type_name -> term.Coordinates
+	62,  // 6: text.EditorEvent.from:type_name -> term.Coordinates
+	62,  // 7: text.EditorEvent.to:type_name -> term.Coordinates
+	0,   // 8: text.SubscribeEventRequest.type:type_name -> text.EditorEvent.Type
+	7,   // 9: text.SetLocationListRequest.resource_name:type_name -> text.URI
+	60,  // 10: text.SetLocationListRequest.locations:type_name -> text.SetLocationListRequest.Location
+	7,   // 11: text.EditCellRequest.resource_name:type_name -> text.URI
+	62,  // 12: text.EditCellRequest.start:type_name -> term.Coordinates
+	62,  // 13: text.EditCellRequest.end:type_name -> term.Coordinates
+	62,  // 14: text.EditCellResponse.from:type_name -> term.Coordinates
+	62,  // 15: text.EditCellResponse.to:type_name -> term.Coordinates
+	7,   // 16: text.RawCellsRequest.resource_name:type_name -> text.URI
+	61,  // 17: text.RawCellsResponse.rows:type_name -> term.CellRow
+	7,   // 18: text.MoveToLocationRequest.resource_name:type_name -> text.URI
+	62,  // 19: text.SetCursorRequest.pos:type_name -> term.Coordinates
+	7,   // 20: text.SetCursorRequest.resource_name:type_name -> text.URI
+	7,   // 21: text.CursorRequest.resource_name:type_name -> text.URI
+	62,  // 22: text.CursorResponse.pos:type_name -> term.Coordinates
+	7,   // 23: text.EditorRequest.resource_name:type_name -> text.URI
+	7,   // 24: text.SetDefaultAttributesRequest.resource_name:type_name -> text.URI
+	63,  // 25: text.SetDefaultAttributesRequest.attributes:type_name -> term.Attributes
+	29,  // 26: text.SubscribeCommandRequest.command:type_name -> text.CommandManual
+	29,  // 27: text.CommandManual.commands:type_name -> text.CommandManual
+	1,   // 28: text.ClientCommandMessage.type:type_name -> text.ClientCommandMessage.MessageType
+	34,  // 29: text.ClientCommandMessage.handle:type_name -> text.HandleCommandResponse
+	36,  // 30: text.ClientCommandMessage.complete_value:type_name -> text.CompleteCommandValue
+	37,  // 31: text.ClientCommandMessage.complete_done:type_name -> text.CompleteCommandDone
+	28,  // 32: text.ClientCommandMessage.request:type_name -> text.SubscribeCommandRequest
+	2,   // 33: text.ServerCommandMessage.type:type_name -> text.ServerCommandMessage.MessageType
+	33,  // 34: text.ServerCommandMessage.handle:type_name -> text.HandleCommandRequest
+	35,  // 35: text.ServerCommandMessage.complete:type_name -> text.CompleteCommandRequest
+	30,  // 36: text.ServerCommandMessage.response:type_name -> text.SubscribeCommandResponse
+	38,  // 37: text.ServerCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
+	39,  // 38: text.ServerCommandMessage.handle_cancel:type_name -> text.RequestCancel
+	7,   // 39: text.HandleCommandRequest.resource_name:type_name -> text.URI
+	62,  // 40: text.HandleCommandRequest.cursor_content:type_name -> term.Coordinates
+	62,  // 41: text.HandleCommandRequest.cursor_window:type_name -> term.Coordinates
+	29,  // 42: text.SubscribeREPLCommandRequest.command:type_name -> text.CommandManual
+	3,   // 43: text.ClientREPLCommandMessage.type:type_name -> text.ClientREPLCommandMessage.MessageType
+	45,  // 44: text.ClientREPLCommandMessage.handle_value:type_name -> text.HandleREPLCommandValue
+	46,  // 45: text.ClientREPLCommandMessage.handle_done:type_name -> text.HandleREPLCommandDone
+	36,  // 46: text.ClientREPLCommandMessage.complete_value:type_name -> text.CompleteCommandValue
+	37,  // 47: text.ClientREPLCommandMessage.complete_done:type_name -> text.CompleteCommandDone
+	49,  // 48: text.ClientREPLCommandMessage.help_value:type_name -> text.HelpCommandValue
+	50,  // 49: text.ClientREPLCommandMessage.help_done:type_name -> text.HelpCommandDone
+	40,  // 50: text.ClientREPLCommandMessage.request:type_name -> text.SubscribeREPLCommandRequest
+	47,  // 51: text.ClientREPLCommandMessage.handle_progress:type_name -> text.HandleREPLCommandProgress
+	4,   // 52: text.ServerREPLCommandMessage.type:type_name -> text.ServerREPLCommandMessage.MessageType
+	44,  // 53: text.ServerREPLCommandMessage.handle:type_name -> text.HandleREPLCommandRequest
+	35,  // 54: text.ServerREPLCommandMessage.complete:type_name -> text.CompleteCommandRequest
+	48,  // 55: text.ServerREPLCommandMessage.help:type_name -> text.HelpCommandRequest
+	41,  // 56: text.ServerREPLCommandMessage.response:type_name -> text.SubscribeREPLCommandResponse
+	38,  // 57: text.ServerREPLCommandMessage.complete_cancel:type_name -> text.CompleteCommandCancel
+	39,  // 58: text.ServerREPLCommandMessage.handle_cancel:type_name -> text.RequestCancel
+	39,  // 59: text.ServerREPLCommandMessage.help_cancel:type_name -> text.RequestCancel
+	61,  // 60: text.HandleREPLCommandValue.rows:type_name -> term.CellRow
+	61,  // 61: text.HelpCommandValue.rows:type_name -> term.CellRow
+	7,   // 62: text.OpenResourceRequest.uri:type_name -> text.URI
+	64,  // 63: text.OpenResourceMessage.type:type_name -> handler.MessageType
+	65,  // 64: text.OpenResourceMessage.draw:type_name -> handler.DrawStreamResponse
+	66,  // 65: text.OpenResourceMessage.handle:type_name -> handler.HandleStreamResponse
+	67,  // 66: text.OpenResourceMessage.close:type_name -> handler.CloseStreamResponse
+	68,  // 67: text.OpenResourceMessage.cursor:type_name -> handler.CursorStreamResponse
+	69,  // 68: text.OpenResourceMessage.selection:type_name -> handler.SelectionStreamResponse
+	70,  // 69: text.OpenResourceMessage.dimensions:type_name -> handler.DimensionsStreamResponse
+	56,  // 70: text.OpenResourceMessage.request:type_name -> text.OpenResourceStreamRequest
+	5,   // 71: text.ClientResourceOpenerMessage.type:type_name -> text.ClientResourceOpenerMessage.MessageType
+	51,  // 72: text.ClientResourceOpenerMessage.request:type_name -> text.SubscribeResourceOpenerRequest
+	55,  // 73: text.ClientResourceOpenerMessage.open:type_name -> text.OpenResourceResponse
+	36,  // 74: text.ClientResourceOpenerMessage.complete_value:type_name -> text.CompleteCommandValue
+	37,  // 75: text.ClientResourceOpenerMessage.complete_done:type_name -> text.CompleteCommandDone
+	6,   // 76: text.ServerResourceOpenerMessage.type:type_name -> text.ServerResourceOpenerMessage.MessageType
+	52,  // 77: text.ServerResourceOpenerMessage.response:type_name -> text.SubscribeResourceOpenerResponse
+	54,  // 78: text.ServerResourceOpenerMessage.open:type_name -> text.OpenResourceRequest
+	39,  // 79: text.ServerResourceOpenerMessage.open_cancel:type_name -> text.RequestCancel
+	53,  // 80: text.ServerResourceOpenerMessage.complete:type_name -> text.CompleteResourceRequest
+	39,  // 81: text.ServerResourceOpenerMessage.complete_cancel:type_name -> text.RequestCancel
+	62,  // 82: text.SetLocationListRequest.Location.from:type_name -> term.Coordinates
+	62,  // 83: text.SetLocationListRequest.Location.to:type_name -> term.Coordinates
+	63,  // 84: text.SetLocationListRequest.Location.attr:type_name -> term.Attributes
+	8,   // 85: text.Editor.Edit:input_type -> text.EditRequest
+	20,  // 86: text.Editor.SetCursor:input_type -> text.SetCursorRequest
+	22,  // 87: text.Editor.Cursor:input_type -> text.CursorRequest
+	24,  // 88: text.Editor.Editor:input_type -> text.EditorRequest
+	12,  // 89: text.Editor.SetLocationList:input_type -> text.SetLocationListRequest
+	18,  // 90: text.Editor.MoveToNextLocation:input_type -> text.MoveToLocationRequest
+	18,  // 91: text.Editor.MoveToPrevLocation:input_type -> text.MoveToLocationRequest
+	14,  // 92: text.Editor.EditCell:input_type -> text.EditCellRequest
+	16,  // 93: text.Editor.RawCells:input_type -> text.RawCellsRequest
+	26,  // 94: text.Editor.SetDefaultAttributes:input_type -> text.SetDefaultAttributesRequest
+	11,  // 95: text.Editor.SubscribeEvent:input_type -> text.SubscribeEventRequest
+	31,  // 96: text.Editor.SubscribeCommand:input_type -> text.ClientCommandMessage
+	42,  // 97: text.Editor.SubscribeREPLCommand:input_type -> text.ClientREPLCommandMessage
+	58,  // 98: text.Editor.SubscribeResourceOpener:input_type -> text.ClientResourceOpenerMessage
+	57,  // 99: text.Editor.OpenResource:input_type -> text.OpenResourceMessage
+	9,   // 100: text.Editor.Edit:output_type -> text.EditResponse
+	21,  // 101: text.Editor.SetCursor:output_type -> text.SetCursorResponse
+	23,  // 102: text.Editor.Cursor:output_type -> text.CursorResponse
+	25,  // 103: text.Editor.Editor:output_type -> text.EditorResponse
+	13,  // 104: text.Editor.SetLocationList:output_type -> text.SetLocationListResponse
+	19,  // 105: text.Editor.MoveToNextLocation:output_type -> text.MoveToLocationResponse
+	19,  // 106: text.Editor.MoveToPrevLocation:output_type -> text.MoveToLocationResponse
+	15,  // 107: text.Editor.EditCell:output_type -> text.EditCellResponse
+	17,  // 108: text.Editor.RawCells:output_type -> text.RawCellsResponse
+	27,  // 109: text.Editor.SetDefaultAttributes:output_type -> text.SetDefaultAttributesResponse
+	10,  // 110: text.Editor.SubscribeEvent:output_type -> text.EditorEvent
+	32,  // 111: text.Editor.SubscribeCommand:output_type -> text.ServerCommandMessage
+	43,  // 112: text.Editor.SubscribeREPLCommand:output_type -> text.ServerREPLCommandMessage
+	59,  // 113: text.Editor.SubscribeResourceOpener:output_type -> text.ServerResourceOpenerMessage
+	71,  // 114: text.Editor.OpenResource:output_type -> handler.ServerMessage
+	100, // [100:115] is the sub-list for method output_type
+	85,  // [85:100] is the sub-list for method input_type
+	85,  // [85:85] is the sub-list for extension type_name
+	85,  // [85:85] is the sub-list for extension extendee
+	0,   // [0:85] is the sub-list for field type_name
 }
 
 func init() { file_textrpc_editor_proto_init() }
@@ -3960,7 +4078,7 @@ func file_textrpc_editor_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_textrpc_editor_proto_rawDesc), len(file_textrpc_editor_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   53,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

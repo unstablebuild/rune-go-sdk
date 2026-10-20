@@ -19,6 +19,7 @@ import (
 
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
+	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
 
@@ -128,7 +129,12 @@ type Editor interface {
 	SetDefaultAttributes(Handler, term.Attributes) error
 }
 
-// ResourceOpenHandler opens the resources of a URI scheme an extension owns.
+// ResourceOpenHandler opens and completes resources of a URI scheme an extension owns.
 type ResourceOpenHandler interface {
 	OpenResource(ctx context.Context, uri workspaceapi.URI) (browserapi.Handler, error)
+	// CompleteResource returns the URIs that complete prefix, a full,
+	// unquoted URI prefix that may be incomplete or invalid as a URI. Each
+	// value is a full, unquoted URI that replaces prefix, not a suffix, in
+	// the order it should be offered.
+	CompleteResource(ctx context.Context, prefix string) (iterator.Iterator[string], error)
 }

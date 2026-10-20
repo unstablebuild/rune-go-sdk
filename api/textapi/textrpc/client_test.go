@@ -2316,6 +2316,10 @@ func (f openerFunc) OpenResource(
 	return f(ctx, uri)
 }
 
+func (f openerFunc) CompleteResource(context.Context, string) (iterator.Iterator[string], error) {
+	return iterator.Empty[string](), nil
+}
+
 func TestRegisterResourceOpener(t *testing.T) {
 	const (
 		openID  = int64(3)
