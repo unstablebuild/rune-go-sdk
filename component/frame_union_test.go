@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/component/comptest"
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"github.com/unstablebuild/rune-go-sdk/tui"
 )
 
 func TestDrawFrameUnionNoFrame(t *testing.T) {
@@ -819,4 +820,31 @@ func TestComponentAtOutOfBounds(t *testing.T) {
 	require.False(t, ok)
 	_, ok = f.ComponentAt(term.Coordinates{Y: 10})
 	require.False(t, ok)
+}
+
+func TestFrameUnionMember(t *testing.T) {
+	main, top, left := &TestComponent{Ch: 'M'}, &TestComponent{Ch: 'T'}, &TestComponent{Ch: 'L'}
+	f := NewFrameUnion(main)
+	f.Frame = false
+	f.UnionTop(top, 2)
+	f.UnionLeft(left, 3)
+	f.Resize(10, 8)
+
+	for _, c := range []tui.Component{main, top, left} {
+		v, ok := f.Member(c)
+		require.True(t, ok)
+		at, ok := f.ComponentAt(v.Position())
+		require.True(t, ok)
+		assert.Equal(t, c, v.C)
+		assert.Equal(t, c, at.C, "the member is laid out where Member says")
+	}
+
+	before, _ := f.Member(main)
+	f.Resize(10, 12)
+	after, _ := f.Member(main)
+	assert.Equal(t, before.Position(), after.Position())
+	assert.Equal(t, 10, after.Height(), "Member reports the layout of the last Resize")
+
+	_, ok := f.Member(&TestComponent{})
+	assert.False(t, ok)
 }

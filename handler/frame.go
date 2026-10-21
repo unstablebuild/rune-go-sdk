@@ -41,17 +41,20 @@ func (f *Frame) Init(handler tui.Handler) {
 	f.Frame.Init(handler)
 }
 
-// Handle delegates the event to the underlying handler.
+// Handle delegates the event to the underlying handler. A mouse event on
+// the border reaches it clamped onto the content's edge, but a motion
+// beyond the frame's top or left edge reaches it unclamped: that is how
+// a parent says the pointer left, and clamping it would make it a hover
+// on the content's edge.
 func (f *Frame) Handle(ev term.Event) (bool, bool) {
 	if ev.Type == term.EventMouse {
+		beyond := ev.Key == 0 && (ev.MouseX < 0 || ev.MouseY < 0)
 		content := f.ContentPosition()
 		ev.MouseX -= content.X
 		ev.MouseY -= content.Y
-		if ev.MouseX < 0 {
-			ev.MouseX = 0
-		}
-		if ev.MouseY < 0 {
-			ev.MouseY = 0
+		if !beyond {
+			ev.MouseX = max(ev.MouseX, 0)
+			ev.MouseY = max(ev.MouseY, 0)
 		}
 	}
 	return f.handler.Handle(ev)

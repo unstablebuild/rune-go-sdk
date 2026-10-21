@@ -102,6 +102,7 @@ func TestSpanHandle(t *testing.T) {
 	tests := []struct {
 		name   string
 		cfg    component.SpanConfig
+		key    term.Key
 		mouseX int
 		mouseY int
 		spanW  int
@@ -167,6 +168,49 @@ func TestSpanHandle(t *testing.T) {
 			wantY:  1,
 		},
 		{
+			name: "motion left of the span is left outside the content",
+			cfg: component.SpanConfig{
+				PadHorizontal:    4,
+				PadVertical:      2,
+				ContentAlignment: component.AlignmentCentered,
+			},
+			mouseX: -1,
+			mouseY: 3,
+			spanW:  20,
+			spanH:  10,
+			wantX:  -3,
+			wantY:  2,
+		},
+		{
+			name: "motion above the span is left outside the content",
+			cfg: component.SpanConfig{
+				PadHorizontal:    4,
+				PadVertical:      2,
+				ContentAlignment: component.AlignmentCentered,
+			},
+			mouseX: 5,
+			mouseY: -1,
+			spanW:  20,
+			spanH:  10,
+			wantX:  3,
+			wantY:  -2,
+		},
+		{
+			name: "a drag left of the span clamps to zero",
+			cfg: component.SpanConfig{
+				PadHorizontal:    4,
+				PadVertical:      2,
+				ContentAlignment: component.AlignmentCentered,
+			},
+			key:    term.MouseLeft,
+			mouseX: -1,
+			mouseY: 3,
+			spanW:  20,
+			spanH:  10,
+			wantX:  0,
+			wantY:  2,
+		},
+		{
 			name: "non-mouse event passes through unchanged",
 		},
 	}
@@ -201,6 +245,7 @@ func TestSpanHandle(t *testing.T) {
 
 			ev := term.Event{
 				Type:   term.EventMouse,
+				Key:    tc.key,
 				MouseX: tc.mouseX,
 				MouseY: tc.mouseY,
 			}

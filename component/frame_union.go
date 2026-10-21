@@ -192,6 +192,22 @@ func (u *FrameUnion) ComponentAt(pos term.Coordinates) (Virtual[tui.Component], 
 	return u.componentAt(u.right, pos)
 }
 
+// Member returns c as laid out by the last Resize, or false if c is not
+// part of this union.
+func (u *FrameUnion) Member(c tui.Component) (Virtual[tui.Component], bool) {
+	if u.main.C == c {
+		return u.main, true
+	}
+	for _, members := range [][]*frameVirtual{u.top, u.bottom, u.left, u.right} {
+		for _, m := range members {
+			if m.C == c {
+				return m.Virtual, true
+			}
+		}
+	}
+	return Virtual[tui.Component]{}, false
+}
+
 // MainPosition returns the main component's offset from the top-left corner.
 func (u *FrameUnion) MainPosition() (offset term.Coordinates) {
 	return u.main.Position()

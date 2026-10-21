@@ -39,3 +39,33 @@ func TestFrameProxyCursor(t *testing.T) {
 	assert.Equal(t, offsetCursor, newCursor)
 	assert.Equal(t, term.CursorStyleBlinkingBar, style)
 }
+
+func TestFrameHandleMouse(t *testing.T) {
+	tests := []struct {
+		name         string
+		key          term.Key
+		x, y         int
+		wantX, wantY int
+	}{
+		{name: "motion over the content", x: 2, y: 2, wantX: 1, wantY: 1},
+		{name: "motion on the border clamps onto the content", x: 0, y: 2, wantX: 0, wantY: 1},
+		{name: "motion left of the frame is left outside the content", x: -1, y: 2, wantX: -2, wantY: 1},
+		{name: "motion above the frame is left outside the content", x: 2, y: -1, wantX: 1, wantY: -2},
+		{name: "motion below the frame is left outside the content", x: 2, y: 5, wantX: 1, wantY: 4},
+		{name: "a drag left of the frame clamps onto the content", key: term.MouseLeft, x: -1, y: 2, wantX: 0, wantY: 1},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var got term.Event
+			h := &TestHandler{HandleOverride: func(ev term.Event) (bool, bool) {
+				got = ev
+				return false, true
+			}}
+			f := NewFrame(h)
+			f.Resize(6, 5)
+			f.Handle(term.Event{Type: term.EventMouse, Key: tc.key, MouseX: tc.x, MouseY: tc.y})
+			assert.Equal(t, tc.wantX, got.MouseX, "x")
+			assert.Equal(t, tc.wantY, got.MouseY, "y")
+		})
+	}
+}

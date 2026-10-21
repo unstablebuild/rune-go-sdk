@@ -57,12 +57,20 @@ func (s *Span) Resize(width, height int) {
 
 // Handle satisfies tui.Handler by delegating events to the underlying
 // handler. Mouse events have their coordinates adjusted to account for
-// the span's content offset.
+// the span's content offset, and those on the padding are clamped onto
+// the content's edge. A motion beyond the span's top or left edge is not
+// clamped: that is how a parent says the pointer left, and clamping it
+// would make it a hover on the content's edge.
 func (s *Span) Handle(ev term.Event) (bool, bool) {
 	if ev.Type == term.EventMouse {
+		beyond := ev.Key == 0 && (ev.MouseX < 0 || ev.MouseY < 0)
 		offset := s.ContentOffset()
-		ev.MouseX = max(0, ev.MouseX-offset.X)
-		ev.MouseY = max(0, ev.MouseY-offset.Y)
+		ev.MouseX -= offset.X
+		ev.MouseY -= offset.Y
+		if !beyond {
+			ev.MouseX = max(ev.MouseX, 0)
+			ev.MouseY = max(ev.MouseY, 0)
+		}
 	}
 	exit, handled := s.handler.Handle(ev)
 	if handled && s.cfg.PadAutoFloating {
