@@ -58,6 +58,8 @@ type PromptConfig struct {
 	OptionBindings []term.KeyComb
 	HighlightAttr  term.Attributes
 	OptionAttr     term.Attributes
+	HoverAttr      term.Attributes
+	ClickedAttr    term.Attributes
 }
 
 var _ Scrollable = (*Prompt)(nil)
@@ -69,6 +71,7 @@ type Prompt struct {
 
 	hi       int
 	pressed  int
+	hover    int
 	cfg      PromptConfig
 	bindings map[term.KeyComb]int
 }
@@ -88,6 +91,7 @@ func (f *Prompt) Init(cfg PromptConfig) {
 	f.Prompt.Init(cfg.PromptConfig)
 	f.hi = 0       // allow for Init to be used as reset
 	f.pressed = -1 // no button pressed
+	f.hover = -1
 
 	if len(cfg.OptionBindings) != 0 &&
 		len(cfg.OptionBindings) != len(cfg.Options) {
@@ -100,6 +104,10 @@ func (f *Prompt) Init(cfg PromptConfig) {
 			Fg:    cfg.OptionAttr.Fg,
 			Attrs: cfg.OptionAttr.Attrs | term.AttrReverse,
 		}
+	}
+
+	if cfg.ClickedAttr == (term.Attributes{}) {
+		cfg.ClickedAttr = cfg.HighlightAttr
 	}
 
 	if cfg.PromptHandler == nil {
@@ -118,9 +126,30 @@ func (f *Prompt) Init(cfg PromptConfig) {
 
 func (f *Prompt) highlightOption() {
 	for j := range f.cfg.Options {
-		f.SetOptionAttr(j, f.cfg.OptionAttr)
+		f.SetOptionAttr(j, f.optionAttr(j))
 	}
-	f.SetOptionAttr(f.hi, f.cfg.HighlightAttr)
+}
+
+// optionAttr is how option i looks: a pressed option over a hovered
+// one over the one the keyboard is on.
+func (f *Prompt) optionAttr(i int) term.Attributes {
+	switch {
+	case i == f.pressed:
+		return f.cfg.ClickedAttr
+	case i == f.hover && f.cfg.HoverAttr != (term.Attributes{}):
+		return f.cfg.HoverAttr
+	case i == f.hi:
+		return f.cfg.HighlightAttr
+	}
+	return f.cfg.OptionAttr
+}
+
+// Hovered returns the index of the option under the mouse pointer, or
+// -1 when there is none. A prompt only learns where the pointer is from
+// the mouse events it is sent, so a parent that routes them by position
+// tells it the pointer left with a motion outside it.
+func (f *Prompt) Hovered() int {
+	return f.hover
 }
 
 // Handle satisfies tui.Handler.
@@ -174,36 +203,40 @@ func (f *Prompt) Handle(ev term.Event) (exit, handled bool) {
 func (f *Prompt) handleMouse(
 	ev term.Event,
 ) (exit, handled bool) {
+	at := f.OptionAt(ev.MouseX, ev.MouseY)
 	shape := term.PointerDefault
-	if f.OptionAt(ev.MouseX, ev.MouseY) >= 0 {
+	if at >= 0 {
 		shape = term.PointerLink
 	}
 	term.SetPointerShape(ev, shape)
+	f.hover = at
+	if at >= 0 && f.cfg.HoverAttr == (term.Attributes{}) {
+		f.hi = at
+	}
+	selected := -1
 	switch ev.Key {
+	case 0:
+		handled = at >= 0
 	case term.MouseWheelUp:
 		handled = f.SeekUp()
 	case term.MouseWheelDown:
 		handled = f.SeekDown()
 	case term.MouseLeft:
-		i := f.OptionAt(ev.MouseX, ev.MouseY)
-		if i < 0 {
-			return
+		if at >= 0 {
+			f.pressed = at
+			handled = true
 		}
-		f.pressed = i
-		f.SetOptionAttr(i, f.cfg.HighlightAttr)
-		handled = true
 	case term.MouseRelease:
-		if f.pressed < 0 {
-			return
+		handled = f.pressed >= 0
+		if handled && at == f.pressed {
+			selected = at
 		}
-		pressed := f.pressed
 		f.pressed = -1
-		f.highlightOption()
-		handled = true
-		if f.OptionAt(ev.MouseX, ev.MouseY) == pressed {
-			f.cfg.OnSelect(pressed, f.cfg.Options[pressed])
-			exit = true
-		}
+	}
+	f.highlightOption()
+	if selected >= 0 {
+		f.cfg.OnSelect(selected, f.cfg.Options[selected])
+		exit = true
 	}
 	return
 }
