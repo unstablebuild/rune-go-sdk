@@ -175,6 +175,15 @@ type Executor interface {
 	// Signal sends a signal to the running process.
 	Signal(workspaceapi.Pid, syscall.Signal) error
 
+	// LookPath returns the path of the file StartCommand runs for a
+	// workspaceapi.Cmd whose Path is name and whose Dir is dir, the way
+	// exec.LookPath does for exec.Command. An empty dir is the directory
+	// StartCommand runs a command without one in. The answer follows the
+	// environment the Executor has when it is called. It returns an error
+	// wrapping fs.ErrNotExist when no file runs, and one wrapping
+	// errors.ErrUnsupported when the Executor cannot tell.
+	LookPath(ctx context.Context, name, dir string) (string, error)
+
 	io.Closer
 }
 

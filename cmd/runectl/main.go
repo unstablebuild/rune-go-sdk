@@ -154,6 +154,7 @@ func newRootCmd() *cobra.Command {
 		newEditorCmd(a),
 		newSyntaxCmd(a),
 		newExecCmd(a),
+		newResolveCmd(a),
 		newSignalCmd(a),
 		newLSPCmd(a),
 		newLLMCmd(a),

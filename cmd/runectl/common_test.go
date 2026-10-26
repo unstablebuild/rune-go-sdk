@@ -539,6 +539,8 @@ type mockExecutor struct {
 	stdoutData   string
 	stderrData   string
 	exitError    string
+	paths        map[string]string
+	lastLookPath *workspacerpc.LookPathRequest
 }
 
 func (m *mockExecutor) StartCommand(
@@ -603,6 +605,15 @@ func (m *mockExecutor) Signal(_ context.Context, req *workspacerpc.SignalRequest
 	m.lastPid = req.GetPid()
 	m.lastSignal = req.GetSig()
 	return &workspacerpc.SignalResponse{}, nil
+}
+
+func (m *mockExecutor) LookPath(_ context.Context, req *workspacerpc.LookPathRequest) (*workspacerpc.LookPathResponse, error) {
+	m.lastLookPath = req
+	path, ok := m.paths[req.GetName()]
+	if !ok {
+		return &workspacerpc.LookPathResponse{IsNotExistErr: true}, nil
+	}
+	return &workspacerpc.LookPathResponse{Path: path}, nil
 }
 
 // mockSyntax implements syntaxrpc.SyntaxServer.

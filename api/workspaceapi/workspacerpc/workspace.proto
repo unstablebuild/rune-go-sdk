@@ -169,6 +169,20 @@ message SignalRequest {
 message SignalResponse {
 }
 
+// LookPathRequest asks which file StartCommand runs for a command whose
+// name and dir are those of a StartCommandRequest.
+message LookPathRequest {
+	string name = 1;
+	// dir is empty for the directory StartCommand runs a command without
+	// one in.
+	string dir = 2;
+}
+
+message LookPathResponse {
+	string path = 1;
+	bool is_not_exist_err = 2;
+}
+
 message URIRequest {
 	string path = 1;
 	string root = 2;
@@ -380,6 +394,7 @@ service Scheme {
 service Executor {
 	rpc StartCommand(stream CommandPayload) returns (stream CommandPayload) {};
 	rpc Signal(SignalRequest) returns (SignalResponse);
+	rpc LookPath(LookPathRequest) returns (LookPathResponse);
 }
 
 service Files {

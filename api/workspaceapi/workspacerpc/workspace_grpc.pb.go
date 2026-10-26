@@ -761,6 +761,7 @@ var Scheme_ServiceDesc = grpc.ServiceDesc{
 const (
 	Executor_StartCommand_FullMethodName = "/workspace.Executor/StartCommand"
 	Executor_Signal_FullMethodName       = "/workspace.Executor/Signal"
+	Executor_LookPath_FullMethodName     = "/workspace.Executor/LookPath"
 )
 
 // ExecutorClient is the client API for Executor service.
@@ -769,6 +770,7 @@ const (
 type ExecutorClient interface {
 	StartCommand(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[CommandPayload, CommandPayload], error)
 	Signal(ctx context.Context, in *SignalRequest, opts ...grpc.CallOption) (*SignalResponse, error)
+	LookPath(ctx context.Context, in *LookPathRequest, opts ...grpc.CallOption) (*LookPathResponse, error)
 }
 
 type executorClient struct {
@@ -802,12 +804,23 @@ func (c *executorClient) Signal(ctx context.Context, in *SignalRequest, opts ...
 	return out, nil
 }
 
+func (c *executorClient) LookPath(ctx context.Context, in *LookPathRequest, opts ...grpc.CallOption) (*LookPathResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LookPathResponse)
+	err := c.cc.Invoke(ctx, Executor_LookPath_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExecutorServer is the server API for Executor service.
 // All implementations must embed UnimplementedExecutorServer
 // for forward compatibility.
 type ExecutorServer interface {
 	StartCommand(grpc.BidiStreamingServer[CommandPayload, CommandPayload]) error
 	Signal(context.Context, *SignalRequest) (*SignalResponse, error)
+	LookPath(context.Context, *LookPathRequest) (*LookPathResponse, error)
 	mustEmbedUnimplementedExecutorServer()
 }
 
@@ -823,6 +836,9 @@ func (UnimplementedExecutorServer) StartCommand(grpc.BidiStreamingServer[Command
 }
 func (UnimplementedExecutorServer) Signal(context.Context, *SignalRequest) (*SignalResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Signal not implemented")
+}
+func (UnimplementedExecutorServer) LookPath(context.Context, *LookPathRequest) (*LookPathResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LookPath not implemented")
 }
 func (UnimplementedExecutorServer) mustEmbedUnimplementedExecutorServer() {}
 func (UnimplementedExecutorServer) testEmbeddedByValue()                  {}
@@ -870,6 +886,24 @@ func _Executor_Signal_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Executor_LookPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LookPathRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExecutorServer).LookPath(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Executor_LookPath_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExecutorServer).LookPath(ctx, req.(*LookPathRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Executor_ServiceDesc is the grpc.ServiceDesc for Executor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -880,6 +914,10 @@ var Executor_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Signal",
 			Handler:    _Executor_Signal_Handler,
+		},
+		{
+			MethodName: "LookPath",
+			Handler:    _Executor_LookPath_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

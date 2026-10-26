@@ -29,6 +29,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/debug"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // for extension-side
@@ -367,6 +369,24 @@ func (c *Client) Signal(p workspaceapi.Pid, s syscall.Signal) error {
 		return err
 	}
 	return nil
+}
+
+// LookPath satisfies schemeapi.Executor. It returns an error wrapping
+// errors.ErrUnsupported when the server does not serve it.
+func (c *Client) LookPath(ctx context.Context, name, dir string) (string, error) {
+	ctx, cancel := mergeContexts(ctx, c.ctx)
+	defer cancel()
+	resp, err := c.exec.LookPath(ctx, &LookPathRequest{Name: name, Dir: dir})
+	if status.Code(err) == codes.Unimplemented {
+		return "", fmt.Errorf("look up %s: %w", name, errors.ErrUnsupported)
+	}
+	if err != nil {
+		return "", err
+	}
+	if resp.GetIsNotExistErr() {
+		return "", fmt.Errorf("look up %s: %w", name, os.ErrNotExist)
+	}
+	return resp.GetPath(), nil
 }
 
 // StartPty satisfies schemeapi.Scheme
