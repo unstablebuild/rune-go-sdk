@@ -59,9 +59,11 @@ type Cmd struct {
 	Stdout  io.Writer
 	Stderr  io.Writer
 	Watcher ProcessWatcher
-
 	// SysProcAttr is ignored if passed from a extension.
 	SysProcAttr *syscall.SysProcAttr
+	// Description is an optional description of the intent
+	// behind this command. It's used for display purposes only.
+	Description string
 }
 
 // ProcessWatcher adds the ability for wait a processes started by Cmd

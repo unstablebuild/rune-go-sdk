@@ -1585,6 +1585,7 @@ type StartCommandRequest struct {
 	StderrName    string                 `protobuf:"bytes,12,opt,name=stderr_name,json=stderrName,proto3" json:"stderr_name,omitempty"`
 	Setsid        bool                   `protobuf:"varint,13,opt,name=setsid,proto3" json:"setsid,omitempty"`
 	Setctty       bool                   `protobuf:"varint,14,opt,name=setctty,proto3" json:"setctty,omitempty"`
+	Description   string                 `protobuf:"bytes,16,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1722,6 +1723,13 @@ func (x *StartCommandRequest) GetSetctty() bool {
 		return x.Setctty
 	}
 	return false
+}
+
+func (x *StartCommandRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
 }
 
 type SignalRequest struct {
@@ -3753,7 +3761,7 @@ const file_workspacerpc_workspace_proto_rawDesc = "" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x12\n" +
 	"\x04root\x18\x02 \x01(\tR\x04root\".\n" +
 	"\x10ReadLinkResponse\x12\x1a\n" +
-	"\bfilename\x18\x01 \x01(\tR\bfilename\"\x8f\x03\n" +
+	"\bfilename\x18\x01 \x01(\tR\bfilename\"\xb1\x03\n" +
 	"\x13StartCommandRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03dir\x18\x0f \x01(\tR\x03dir\x12\x12\n" +
@@ -3773,7 +3781,8 @@ const file_workspacerpc_workspace_proto_rawDesc = "" +
 	"\vstderr_name\x18\f \x01(\tR\n" +
 	"stderrName\x12\x16\n" +
 	"\x06setsid\x18\r \x01(\bR\x06setsid\x12\x18\n" +
-	"\asetctty\x18\x0e \x01(\bR\asetctty\"3\n" +
+	"\asetctty\x18\x0e \x01(\bR\asetctty\x12 \n" +
+	"\vdescription\x18\x10 \x01(\tR\vdescription\"3\n" +
 	"\rSignalRequest\x12\x10\n" +
 	"\x03pid\x18\x01 \x01(\x03R\x03pid\x12\x10\n" +
 	"\x03sig\x18\x02 \x01(\x05R\x03sig\"\x10\n" +

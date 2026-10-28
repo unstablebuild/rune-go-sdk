@@ -296,15 +296,16 @@ func (c *Client) StartCommand(
 	req := CommandPayload{
 		Type: CommandPayload_TypeStart,
 		Start: &StartCommandRequest{
-			Name:    cmd.Path,
-			Dir:     cmd.Dir,
-			Args:    cmd.Args,
-			Env:     cmd.Env,
-			Stdin:   cmd.Stdin != nil,
-			Stdout:  cmd.Stdout != nil,
-			Stderr:  cmd.Stderr != nil,
-			Setsid:  setsid,
-			Setctty: setctty,
+			Name:        cmd.Path,
+			Dir:         cmd.Dir,
+			Args:        cmd.Args,
+			Env:         cmd.Env,
+			Stdin:       cmd.Stdin != nil,
+			Stdout:      cmd.Stdout != nil,
+			Stderr:      cmd.Stderr != nil,
+			Setsid:      setsid,
+			Setctty:     setctty,
+			Description: cmd.Description,
 		},
 	}
 	req.Start.StdinFd, req.Start.StdinName = tryUnwrapFile(cmd.Stdin)

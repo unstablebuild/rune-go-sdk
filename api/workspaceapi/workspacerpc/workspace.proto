@@ -159,6 +159,7 @@ message StartCommandRequest {
 	string stderr_name = 12;
 	bool setsid = 13;
 	bool setctty = 14;
+	string description = 16;
 }
 
 message SignalRequest {
