@@ -68,6 +68,8 @@ func PermissionForResource(resource string) (Permission, bool) {
 		return PermissionLLM, true
 	case "pkg.Packages":
 		return PermissionPackages, true
+	case "search.Searcher":
+		return PermissionSearch, true
 	default:
 		return "", false
 	}

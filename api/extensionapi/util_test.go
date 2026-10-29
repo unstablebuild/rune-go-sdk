@@ -151,6 +151,12 @@ func TestPermissionForResource(t *testing.T) {
 			wantOK:   true,
 		},
 		{
+			name:     "Searcher maps to search",
+			resource: "/search.Searcher/RegexpSearch",
+			wantPerm: PermissionSearch,
+			wantOK:   true,
+		},
+		{
 			name:     "unknown service returns false",
 			resource: "/unknown.Service/Method",
 			wantPerm: "",

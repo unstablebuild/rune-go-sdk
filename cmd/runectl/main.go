@@ -158,6 +158,7 @@ func newRootCmd() *cobra.Command {
 		newSignalCmd(a),
 		newLSPCmd(a),
 		newLLMCmd(a),
+		newSearchCmd(a),
 		newMCPCmd(a),
 		newStatusCmd(),
 	)

@@ -56,6 +56,9 @@ const (
 	// on the workspace host. Resolving a package that is not installed
 	// may ask the user to install it there.
 	PermissionPackages Permission = "permpkg"
+	// PermissionSearch requests access to search the workspace's files
+	// through the indexes the host keeps of them.
+	PermissionSearch Permission = "permsearch"
 )
 
 // Permissions is a set of Permission.
@@ -89,5 +92,6 @@ func AllPermissions() Permissions {
 		PermissionDebugger:              nil,
 		PermissionLLM:                   nil,
 		PermissionPackages:              nil,
+		PermissionSearch:                nil,
 	}
 }

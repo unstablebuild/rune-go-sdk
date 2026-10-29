@@ -34,6 +34,8 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/llmapi/llmrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/pkgapi"
 	"github.com/unstablebuild/rune-go-sdk/api/pkgapi/pkgrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/searchapi"
+	"github.com/unstablebuild/rune-go-sdk/api/searchapi/searchrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi"
@@ -195,6 +197,15 @@ func (w *Workspace) Debugger(ctx context.Context) debugapi.Debugger {
 // PermissionPackages to access it.
 func (w *Workspace) Packages(_ context.Context) pkgapi.Manager {
 	return pkgrpc.NewClient(w.conn)
+}
+
+// Search returns the workspace's searcher, which answers from the
+// indexes the host keeps of the workspace's files. Extensions must have
+// PermissionSearch to access it. A host without an index for the
+// workspace, or one that predates search, answers every search with
+// searchapi.ErrUnsupported.
+func (w *Workspace) Search(_ context.Context) searchapi.Searcher {
+	return searchrpc.NewClient(w.conn)
 }
 
 // Commands returns the workspace's command registry, which can

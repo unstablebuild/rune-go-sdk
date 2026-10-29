@@ -28,6 +28,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
+	"github.com/unstablebuild/rune-go-sdk/api/searchapi"
+	"github.com/unstablebuild/rune-go-sdk/api/searchapi/searchrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi/semanticrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagerpc/docpb"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi/syntaxrpc"
@@ -59,6 +61,7 @@ type testEnv struct {
 	executor *mockExecutor
 	terminal *mockTerminal
 	lsp      *mockLSP
+	search   *mockSearch
 	cleanup  func()
 }
 
@@ -87,6 +90,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	exec := &mockExecutor{startPid: 12345}
 	term := newMockTerminal()
 	lspMock := &mockLSP{}
+	searchMock := &mockSearch{regexp: cannedRegexpResults, semantic: cannedSemanticResults}
 
 	browserrpc.RegisterNotificationsServer(srv, notif)
 	browserrpc.RegisterWindowManagerServer(srv, wm)
@@ -98,6 +102,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	workspacerpc.RegisterExecutorServer(srv, exec)
 	workspacerpc.RegisterTerminalServer(srv, term)
 	semanticrpc.RegisterLSPServer(srv, lspMock)
+	searchrpc.RegisterSearcherServer(srv, searchMock)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -116,7 +121,8 @@ func newTestEnv(t *testing.T) *testEnv {
 			srv.Stop()
 			term.cleanup()
 		},
-		lsp: lspMock,
+		lsp:    lspMock,
+		search: searchMock,
 	}
 }
 
@@ -222,6 +228,97 @@ func (m *mockNotifications) Notify(_ context.Context, req *browserrpc.NotifyRequ
 	return &browserrpc.NotifyResponse{
 		Id: "notif-1",
 	}, nil
+}
+
+// cannedRegexpResults covers a line with several matches and one with
+// none recorded.
+var cannedRegexpResults = []searchapi.RegexpResult{
+	{Path: "billing/invoice.go", Line: 42, Text: "\treturn invoice(invoice)", Spans: [][2]int{{8, 15}, {16, 23}}},
+	{Path: ".github/ci.yml", Line: 3, Text: "runs-on: invoice"},
+}
+
+// cannedSemanticResults covers every segment kind SemanticSearch answers
+// with.
+var cannedSemanticResults = []searchapi.SemanticResult{
+	{
+		Path: "billing/invoice.go", Kind: "code", Score: 3.14159, Z: 2.5,
+		Cosine: 0.61, KeywordRank: 1, Segment: "lines", Loc: 40, LocEnd: 58,
+		Focus: 42, Excerpt: "rounds the «invoice» total", Modified: 1700000000,
+		Size: 2048, Text: "\treturn roundInvoiceTotal(lines)",
+	},
+	{
+		Path: "geo/route.go", Kind: "code", Score: 0.75, Segment: "lines",
+		Loc: 7, LocEnd: 19, KeywordRank: 2, Excerpt: "shortest route",
+		Text: "func shortestRoute(a, b Place) []Place {",
+	},
+	{
+		Path: "notebooks/fit.ipynb", Kind: "notebook", Score: 1.5, Z: 1.25,
+		Cosine: 0.4, Segment: "cells", Loc: 3, LocEnd: 3, Excerpt: "fit the model",
+	},
+	{Path: "docs/invoice.md", Kind: "doc", Score: 0.5, Segment: "name"},
+}
+
+// mockSearch implements searchrpc.SearcherServer. Each search streams
+// its canned results, then ends the stream with err.
+type mockSearch struct {
+	searchrpc.UnimplementedSearcherServer
+	regexp   []searchapi.RegexpResult
+	semantic []searchapi.SemanticResult
+	err      error
+
+	mu           sync.Mutex
+	lastRegexp   *searchapi.RegexpRequest
+	lastSemantic *searchapi.SemanticRequest
+}
+
+func (m *mockSearch) RegexpSearch(
+	req *searchrpc.RegexpRequest, stream grpc.ServerStreamingServer[searchrpc.RegexpResponse],
+) error {
+	got := searchrpc.FromProtoRegexpRequest(req)
+	m.mu.Lock()
+	m.lastRegexp = &got
+	m.mu.Unlock()
+	resp := &searchrpc.RegexpResponse{}
+	for _, r := range m.regexp {
+		resp.Results = append(resp.Results, searchrpc.ToProtoRegexpResult(r))
+	}
+	if err := stream.Send(resp); err != nil {
+		return err
+	}
+	return m.err
+}
+
+func (m *mockSearch) SemanticSearch(
+	req *searchrpc.SemanticRequest, stream grpc.ServerStreamingServer[searchrpc.SemanticResponse],
+) error {
+	got := searchrpc.FromProtoSemanticRequest(req)
+	m.mu.Lock()
+	m.lastSemantic = &got
+	m.mu.Unlock()
+	for _, r := range m.semantic {
+		if err := stream.Send(&searchrpc.SemanticResponse{Result: searchrpc.ToProtoSemanticResult(r)}); err != nil {
+			return err
+		}
+	}
+	return m.err
+}
+
+// regexpSearched returns the request of the last RegexpSearch.
+func (m *mockSearch) regexpSearched(t *testing.T) searchapi.RegexpRequest {
+	t.Helper()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	require.NotNil(t, m.lastRegexp, "RegexpSearch was not called")
+	return *m.lastRegexp
+}
+
+// semanticSearched returns the request of the last SemanticSearch.
+func (m *mockSearch) semanticSearched(t *testing.T) searchapi.SemanticRequest {
+	t.Helper()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	require.NotNil(t, m.lastSemantic, "SemanticSearch was not called")
+	return *m.lastSemantic
 }
 
 // mockWindowManager implements browserrpc.WindowManagerServer.
