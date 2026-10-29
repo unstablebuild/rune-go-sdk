@@ -46,6 +46,83 @@ type FrameCharSet struct {
 	BottomLeft, BottomRight         rune
 	HorizontalTop, VerticalLeft     rune
 	HorizontalBottom, VerticalRight rune
+
+	// Graphics names an image for each slot. Frame and DrawFrame never
+	// draw these images: whatever draws the frame may draw them over the
+	// border cells. The runes stay what writers that cannot draw images
+	// show.
+	Graphics FrameCharSetGraphics
+}
+
+// FrameCharSetGraphics names an image for each slot of a FrameCharSet.
+// An empty URI leaves the slot to its rune.
+type FrameCharSetGraphics struct {
+	TopLeft, TopRight               string
+	BottomLeft, BottomRight         string
+	HorizontalTop, VerticalLeft     string
+	HorizontalBottom, VerticalRight string
+
+	// Overlay draws each image over its slot's rune, which shows through
+	// the image's transparent pixels and keeps whatever color it is
+	// drawn or shaded in. Otherwise each image replaces its rune.
+	Overlay bool
+}
+
+// Empty reports whether g names no image, whatever its Overlay.
+func (g FrameCharSetGraphics) Empty() bool {
+	g.Overlay = false
+	return g == FrameCharSetGraphics{}
+}
+
+// ScrollBarCharSet is the set of characters used to draw a frame's
+// scroll bar: Top for its first cell and Bottom for its last when it
+// spans two cells or more, and Middle for every other cell. A Top or
+// Bottom left 0 is Middle, and a Middle left 0 is the frame's
+// VerticalRight.
+type ScrollBarCharSet struct {
+	Top, Middle, Bottom rune
+
+	// Graphics names an image for each slot. Frame never draws these
+	// images: whatever draws the frame may draw them over the scroll
+	// bar's cells. The runes stay what writers that cannot draw images
+	// show.
+	Graphics ScrollBarCharSetGraphics
+}
+
+// ScrollBarCharSetGraphics names an image for each slot of a
+// ScrollBarCharSet. A Top or Bottom left empty is Middle, and an empty
+// Middle leaves its cells to their runes.
+type ScrollBarCharSetGraphics struct {
+	Top, Middle, Bottom string
+
+	// Overlay draws each image over its slot's rune, which shows through
+	// the image's transparent pixels. Otherwise each image replaces its
+	// rune.
+	Overlay bool
+}
+
+// At returns the rune and the image URI of the cell i cells down from
+// the top of a scroll bar height cells high, either of which may be
+// empty.
+func (cs ScrollBarCharSet) At(i, height int) (ch rune, uri string) {
+	ch, uri = cs.Middle, cs.Graphics.Middle
+	var end rune
+	var endURI string
+	switch {
+	case height < 2:
+		return
+	case i == 0:
+		end, endURI = cs.Top, cs.Graphics.Top
+	case i == height-1:
+		end, endURI = cs.Bottom, cs.Graphics.Bottom
+	}
+	if end != 0 {
+		ch = end
+	}
+	if endURI != "" {
+		uri = endURI
+	}
+	return
 }
 
 // FrameCharSetDefault returns the default FrameCharSet
@@ -202,7 +279,7 @@ type Frame struct {
 	FrameCharSet
 	term.Attributes
 	ScrollBarAttributes term.Attributes
-	ScrollBarChar       rune
+	ScrollBarCharSet    ScrollBarCharSet
 
 	content         Virtual[tui.Component]
 	bwidth, bheight int
@@ -314,13 +391,12 @@ func (f *Frame) Draw(w term.Writer) {
 		return
 	}
 
-	ch := f.ScrollBarChar
-	if ch == 0 {
-		ch = f.VerticalRight
-	}
-
-	for i := offset.Y; i < offset.Y+height; i++ {
-		w.SetCell(term.Coordinates{X: limitX, Y: i},
+	for i := range height {
+		ch, _ := f.ScrollBarCharSet.At(i, height)
+		if ch == 0 {
+			ch = f.VerticalRight
+		}
+		w.SetCell(term.Coordinates{X: limitX, Y: offset.Y + i},
 			term.NewCell(ch, 1, f.ScrollBarAttributes))
 	}
 }

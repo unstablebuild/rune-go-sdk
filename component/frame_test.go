@@ -110,6 +110,130 @@ func TestComponentDimensions(t *testing.T) {
 	assert.Equal(t, 4, actualHeight)
 }
 
+func TestFrameCharSetGraphicsEmpty(t *testing.T) {
+	tests := []struct {
+		name string
+		g    FrameCharSetGraphics
+		want bool
+	}{
+		{"zero", FrameCharSetGraphics{}, true},
+		{"overlay alone", FrameCharSetGraphics{Overlay: true}, true},
+		{"one image", FrameCharSetGraphics{VerticalRight: "file:///r.png"}, false},
+		{"overlay image", FrameCharSetGraphics{TopLeft: "file:///tl.png", Overlay: true}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.g.Empty())
+		})
+	}
+}
+
+func TestScrollBarCharSetAt(t *testing.T) {
+	full := ScrollBarCharSet{
+		Top: 't', Middle: 'm', Bottom: 'b',
+		Graphics: ScrollBarCharSetGraphics{Top: "T", Middle: "M", Bottom: "B"},
+	}
+	middle := ScrollBarCharSet{Middle: 'm', Graphics: ScrollBarCharSetGraphics{Middle: "M"}}
+	tests := []struct {
+		name      string
+		cs        ScrollBarCharSet
+		height    int
+		want      string
+		wantImage string
+	}{
+		{"every slot", full, 4, "tmmb", "TMMB"},
+		{"two cells are both ends", full, 2, "tb", "TB"},
+		{"one cell is the middle", full, 1, "m", "M"},
+		{"ends default to the middle", middle, 3, "mmm", "MMM"},
+		{
+			"runes and images default apart",
+			ScrollBarCharSet{
+				Top: 't', Middle: 'm',
+				Graphics: ScrollBarCharSetGraphics{Middle: "M", Bottom: "B"},
+			},
+			3, "tmm", "MMB",
+		},
+		{"nothing set", ScrollBarCharSet{}, 2, "\x00\x00", "__"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var runes, images []rune
+			for i := range tt.height {
+				ch, uri := tt.cs.At(i, tt.height)
+				runes = append(runes, ch)
+				if uri == "" {
+					uri = "_"
+				}
+				images = append(images, []rune(uri)...)
+			}
+			assert.Equal(t, tt.want, string(runes))
+			assert.Equal(t, tt.wantImage, string(images))
+		})
+	}
+}
+
+func TestFrameDrawScrollBarCharSet(t *testing.T) {
+	tests := []struct {
+		name     string
+		cs       ScrollBarCharSet
+		expected string
+	}{
+		{
+			name: "no runes draw the right edge",
+			expected: `
+┌──┐
+│XX│
+│XX│
+│XX│
+│XX│
+└──┘`,
+		},
+		{
+			name: "every slot",
+			cs:   ScrollBarCharSet{Top: '▗', Middle: '▐', Bottom: '▝'},
+			expected: `
+┌──┐
+│XX▗
+│XX▐
+│XX▝
+│XX│
+└──┘`,
+		},
+		{
+			name: "the ends default to the middle",
+			cs:   ScrollBarCharSet{Middle: '▐'},
+			expected: `
+┌──┐
+│XX▐
+│XX▐
+│XX▐
+│XX│
+└──┘`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := NewFrame(scrollingComponent{TestComponent: &TestComponent{Ch: 'X'}})
+			f.ScrollBarCharSet = tt.cs
+			comptest.TestComponent(t, f, term.NewStringWriter(4, 6), []comptest.TestCase{
+				{Action: func() { f.Resize(4, 6) }, Expected: tt.expected},
+			})
+		})
+	}
+}
+
+// scrollingComponent has half as many rows past its bottom as a frame
+// six rows high shows, so that the frame draws a scroll bar over the
+// top three quarters of its right edge.
+type scrollingComponent struct {
+	*TestComponent
+}
+
+func (scrollingComponent) SeekUp() bool       { return false }
+func (scrollingComponent) SeekDown() bool     { return false }
+func (scrollingComponent) SeekOffset() int    { return 0 }
+func (scrollingComponent) MaxSeekOffset() int { return 2 }
+
 func TestFrameResponsive(t *testing.T) {
 	t.Run("adds frame height to content's Height", func(t *testing.T) {
 		f := NewFrame(testResponsive('a', 10))
