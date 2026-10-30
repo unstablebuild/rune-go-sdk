@@ -15,6 +15,8 @@
 package component
 
 import (
+	"image"
+
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
 )
@@ -26,7 +28,7 @@ import (
 // room than it needs keeps every option in view: it first packs the
 // rows of options together, then scrolls its message, see Scrollable.
 type Prompt struct {
-	optComp      []WithAttributes
+	optComp      []*promptOption
 	optVirtuals  []Virtual[tui.Component]
 	optMaxWidth  int
 	optMaxHeight int
@@ -57,11 +59,15 @@ type floatingOption interface {
 }
 
 // promptOption wraps a floatingOption to fill its background
-// via UnionAttributes before drawing content.
+// via UnionAttributes before drawing content. Over images, it is drawn
+// on the prompt's background instead, for the images to show behind.
 type promptOption struct {
 	floatingOption
 	width, height int
-	bg            term.Attributes
+	attr          term.Attributes
+	state         ButtonState
+	onImages      bool
+	promptBg      term.Color
 }
 
 func (o *promptOption) Resize(width, height int) {
@@ -70,23 +76,49 @@ func (o *promptOption) Resize(width, height int) {
 }
 
 func (o *promptOption) Draw(w term.Writer) {
+	if o.onImages {
+		o.floatingOption.Draw(w)
+		return
+	}
+	o.drawSolid(w)
+}
+
+// drawSolid draws the option as it looks without images.
+func (o *promptOption) drawSolid(w term.Writer) {
+	if o.onImages {
+		o.SetAttr(o.attr)
+		defer o.SetAttr(o.labelAttr())
+	}
+	bg := term.Attributes{Bg: o.attr.Bg}
+	if o.attr.Attrs&term.AttrReverse != 0 {
+		bg.Bg = o.attr.Fg
+	}
 	for y := range o.height {
 		for x := range o.width {
-			w.UnionAttributes(term.Coordinates{X: x, Y: y}, o.bg)
+			w.UnionAttributes(term.Coordinates{X: x, Y: y}, bg)
 		}
 	}
 	o.floatingOption.Draw(w)
 }
 
-func (o *promptOption) SetAttr(
-	attr term.Attributes,
-) term.Attributes {
-	bg := attr.Bg
-	if attr.Attrs&term.AttrReverse != 0 {
-		bg = attr.Fg
+func (o *promptOption) setState(st ButtonState, attr term.Attributes) {
+	o.state, o.attr = st, attr
+	if o.onImages {
+		o.SetAttr(o.labelAttr())
+		return
 	}
-	o.bg = term.Attributes{Bg: bg}
-	return o.floatingOption.SetAttr(attr)
+	o.SetAttr(attr)
+}
+
+// labelAttr is how the option is drawn over its images: in the
+// foreground and attributes of its state, but on the prompt's
+// background and never reversed, which would paint the images over.
+func (o *promptOption) labelAttr() term.Attributes {
+	return term.Attributes{
+		Fg:    o.attr.Fg,
+		Bg:    o.promptBg,
+		Attrs: o.attr.Attrs &^ term.AttrReverse,
+	}
 }
 
 // PromptConfig holds configuration for initializing a Prompt.
@@ -104,6 +136,7 @@ type PromptConfig struct {
 	NewMessage           func(msg string) Floating
 	BackgroundAttributes term.Attributes
 	MinWidth             int
+	ButtonImages         *ButtonImages
 }
 
 var (
@@ -155,9 +188,16 @@ func NewPrompt(cfg PromptConfig) *Prompt {
 	return p
 }
 
-// SetOptionAttr sets the attributes of option at index i.
+// SetOptionAttr sets the attributes of option at index i, which it
+// draws in ButtonIdle.
 func (p *Prompt) SetOptionAttr(i int, attr term.Attributes) {
-	p.optComp[i].SetAttr(attr)
+	p.SetOptionState(i, ButtonIdle, attr)
+}
+
+// SetOptionState sets the state option at index i is drawn in, which
+// picks its ButtonImages, and its attributes.
+func (p *Prompt) SetOptionState(i int, st ButtonState, attr term.Attributes) {
+	p.optComp[i].setState(st, attr)
 }
 
 // Resize satisfies tui.Component
@@ -177,17 +217,23 @@ func (p *Prompt) Resize(width, height int) {
 // layoutOptions stacks the options in as few rows as width fits,
 // spread evenly over them so the last row is not left with a
 // straggler. Every row spaces its buttons as a full one would, so
-// the rows line up. spaced puts a blank row between rows.
+// the rows line up. spaced puts blank rows between rows, as many as
+// the outsets of their images take, or one.
 func (p *Prompt) layoutOptions(width int, spaced bool) {
 	n := len(p.optVirtuals)
 	rows := p.optionRows(width)
 	perRow := (n + rows - 1) / rows
-	gap := max(0, (width-perRow*p.optMaxWidth)/(perRow+1))
+	_, between := p.optionAir()
+	gap := max(between, (width-perRow*p.optMaxWidth)/(perRow+1))
+	o := p.outset()
 	p.opts.C = NewContainer()
 	p.optRows = p.optRows[:0]
+	if o.Top > 0 {
+		p.opts.C.AddRow().AddComponent(promptGap{rows: o.Top}, MaxCols)
+	}
 	for first := 0; first < n; first += perRow {
 		if spaced && first > 0 {
-			p.opts.C.AddRow().AddComponent(promptGap{}, MaxCols)
+			p.opts.C.AddRow().AddComponent(promptGap{rows: p.rowGap()}, MaxCols)
 		}
 		opts := &promptRow{
 			opts:   p.optVirtuals[first:min(first+perRow, n)],
@@ -200,28 +246,57 @@ func (p *Prompt) layoutOptions(width int, spaced bool) {
 		p.optRows = append(p.optRows,
 			promptRowEntry{row: row, opts: opts, first: first})
 	}
+	if o.Bottom > 0 {
+		p.opts.C.AddRow().AddComponent(promptGap{rows: o.Bottom}, MaxCols)
+	}
 }
 
 // optionRows is how many rows the options take at width: as few as
-// leave a cell between every pair of buttons and at both edges.
+// leave the air of optionAir between every pair of buttons and at both
+// edges.
 func (p *Prompt) optionRows(width int) int {
 	n := len(p.optVirtuals)
-	perRow := min(max((width-1)/(p.optMaxWidth+1), 1), n)
+	edge, between := p.optionAir()
+	perRow := min(max((width-2*edge+between)/(p.optMaxWidth+between), 1), n)
 	return (n + perRow - 1) / perRow
+}
+
+// optionAir returns the fewest cells an option leaves to the prompt's
+// edges and to the next option: one, or as many as keep the outsets of
+// their images apart.
+func (p *Prompt) optionAir() (edge, between int) {
+	s := p.outset().Sides
+	return max(1, s), max(1, 2*s)
+}
+
+// outset is how far the images of the options reach past them.
+func (p *Prompt) outset() ButtonOutset {
+	if p.cfg.ButtonImages == nil {
+		return ButtonOutset{}
+	}
+	return p.cfg.ButtonImages.Outset.clamped()
+}
+
+// rowGap is the blank rows between two spaced rows of options.
+func (p *Prompt) rowGap() int {
+	o := p.outset()
+	return max(1, o.Top+o.Bottom)
 }
 
 func (p *Prompt) optionsHeight(width int, spaced bool) int {
 	rows := p.optionRows(width)
-	height := rows * p.optMaxHeight
+	o := p.outset()
+	height := o.Top + rows*p.optMaxHeight + o.Bottom
 	if spaced {
-		height += rows - 1
+		height += (rows - 1) * p.rowGap()
 	}
 	return height
 }
 
 // Height satisfies Responsive: the message's height at width, or its
 // ideal height when it is not Responsive, over the rows the options
-// wrap onto at width and the blank rows between them.
+// wrap onto at width, the blank rows between them and the rows their
+// images reach above and below them.
 func (p *Prompt) Height(width int) int {
 	return p.messageHeight(width) + p.optionsHeight(width, true)
 }
@@ -289,6 +364,32 @@ func (p *Prompt) Draw(w term.Writer) {
 	}
 	p.message.Draw(&scrolled)
 	p.opts.Draw(&bounds)
+	p.drawButtonImages(&bounds)
+}
+
+// drawButtonImages draws the images of every option under it, and
+// draws again as it looks without images every option whose images w
+// did not draw.
+func (p *Prompt) drawButtonImages(w term.Writer) {
+	if p.cfg.ButtonImages == nil {
+		return
+	}
+	origin := p.opts.Position()
+	for _, r := range p.optRows {
+		top := origin.Y + r.row.Position().Y
+		for i := range r.opts.opts {
+			v := &r.opts.opts[i]
+			pos := term.Coordinates{X: origin.X + v.Position().X, Y: top + v.Position().Y}
+			label := image.Rect(pos.X, pos.Y, pos.X+v.Width(), pos.Y+v.Height())
+			opt := p.optComp[r.first+i]
+			if p.cfg.ButtonImages.Draw(w, label, opt.state) {
+				continue
+			}
+			opt.drawSolid(&VirtualWriter{
+				Writer: w, Offset: pos, Width: label.Dx(), Height: label.Dy(),
+			})
+		}
+	}
 }
 
 // Dimensions satisfies Floating.
@@ -310,9 +411,12 @@ func (p *Prompt) Dimensions() (int, int) {
 
 func (p *Prompt) optsDimensions() (int, int) {
 	n := len(p.optComp)
-	// Minimum width: buttons + 2-cell gap on each edge
-	// and between each pair of buttons.
-	return n*p.optMaxWidth + 2*(n+1), p.optMaxHeight
+	// Ideal width: buttons + a 2-cell gap on each edge and between each
+	// pair of buttons, or as many as keep their images' outsets apart.
+	o := p.outset()
+	edge, between := max(2, o.Sides), max(2, 2*o.Sides)
+	return n*p.optMaxWidth + 2*edge + (n-1)*between,
+		o.Top + p.optMaxHeight + o.Bottom
 }
 
 // OptionAt returns the index of the option at the given coordinates,
@@ -344,15 +448,16 @@ func (p *Prompt) initOptions(cfg PromptConfig) {
 	}
 
 	n := len(cfg.Options)
-	p.optComp = make([]WithAttributes, 0, n)
+	p.optComp = make([]*promptOption, 0, n)
 	p.optVirtuals = make([]Virtual[tui.Component], n)
 
-	bg := term.Attributes{Bg: cfg.BackgroundAttributes.Bg}
 	for i, opt := range cfg.Options {
 		compi := p.makeOptionFn(opt, cfg)
 		btn := &promptOption{
 			floatingOption: compi,
-			bg:             bg,
+			attr:           term.Attributes{Bg: cfg.BackgroundAttributes.Bg},
+			onImages:       cfg.ButtonImages != nil,
+			promptBg:       cfg.BackgroundAttributes.Bg,
 		}
 		p.optComp = append(p.optComp, btn)
 		p.optVirtuals[i].C = btn
@@ -362,7 +467,7 @@ func (p *Prompt) initOptions(cfg PromptConfig) {
 	p.optMaxWidth = 0
 	p.optMaxHeight = 0
 	for _, opt := range p.optComp {
-		w, h := opt.(Floating).Dimensions()
+		w, h := opt.Dimensions()
 		if w > p.optMaxWidth {
 			p.optMaxWidth = w
 		}
@@ -421,15 +526,16 @@ func (p *Prompt) init(
 	p.optRows = nil
 }
 
-// promptGap is the blank row between two rows of options.
-type promptGap struct{}
+// promptGap is blank rows between two rows of options, or between them
+// and the edges of the rows of options.
+type promptGap struct{ rows int }
 
 func (promptGap) Resize(int, int) {}
 
 func (promptGap) Draw(term.Writer) {}
 
 // Height satisfies Responsive.
-func (promptGap) Height(int) int { return 1 }
+func (g promptGap) Height(int) int { return g.rows }
 
 // promptRowEntry is a row of options as the Container holds it and
 // as the prompt hit-tests it.

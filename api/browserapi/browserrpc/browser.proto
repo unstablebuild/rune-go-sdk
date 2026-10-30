@@ -112,6 +112,34 @@ message PublishRequest {
 message PublishResponse {
 }
 
+message PromptRequest {
+	string message = 1;
+	repeated string options = 2;
+	// bindings are key events, as many as options or none.
+	repeated term.Event bindings = 3;
+	uint32 max_width = 4;
+}
+
+// PromptEvent is what happens to a prompt: it opens, then the user picks
+// an option, and then it closes. A stream that ends after opened is of a
+// prompt that was already open for another caller.
+message PromptEvent {
+	message Opened {
+		uint64 window_id = 1;
+	}
+	message Selected {
+		uint32 index = 1;
+		string option = 2;
+	}
+	message Closed {
+	}
+	oneof event {
+		Opened opened = 1;
+		Selected selected = 2;
+		Closed closed = 3;
+	}
+}
+
 service ResourceOpener {
 	rpc Open(OpenResourceRequest) returns (OpenResourceResponse);
 	rpc Show(ShowResourceRequest) returns (ShowResourceResponse);
@@ -136,6 +164,7 @@ service WindowManager {
 	rpc SetContent(stream WindowSetContentMessage) returns (stream handler.ServerMessage) {};
 	rpc CloseWindow(WindowCloseRequest) returns (WindowCloseResponse);
 	rpc SetTabStatus(SetTabStatusRequest) returns (SetTabStatusResponse);
+	rpc Prompt(PromptRequest) returns (stream PromptEvent);
 }
 
 message WindowCloseRequest {

@@ -959,6 +959,118 @@ type testPromptHandler struct {
 	selectedOption string
 }
 
+func TestPromptButtonImagesState(t *testing.T) {
+	tests := []struct {
+		name        string
+		noHoverAttr bool
+		events      []term.Event
+		wantYes     string
+		wantNo      string
+		// wantAttrs is how Yes and No look where their images are not
+		// drawn.
+		wantAttrs [2]term.Attributes
+	}{
+		{
+			name:    "the keyboard's choice",
+			wantYes: "selected", wantNo: "idle",
+			wantAttrs: [2]term.Attributes{hoverTestHighlightAttr, hoverTestOptionAttr},
+		},
+		{
+			name:    "hovering an option",
+			events:  []term.Event{hoverTestMove(hoverTestNoX)},
+			wantYes: "selected", wantNo: "hover",
+			wantAttrs: [2]term.Attributes{hoverTestHighlightAttr, hoverTestHoverAttr},
+		},
+		{
+			name:    "hovering the keyboard's choice",
+			events:  []term.Event{hoverTestMove(hoverTestYesX)},
+			wantYes: "hover", wantNo: "idle",
+			wantAttrs: [2]term.Attributes{hoverTestHoverAttr, hoverTestOptionAttr},
+		},
+		{
+			name: "pressing an option",
+			events: []term.Event{
+				hoverTestMouse(term.MouseLeft, hoverTestNoX, hoverTestBtnY),
+			},
+			wantYes: "selected", wantNo: "pressed",
+			wantAttrs: [2]term.Attributes{hoverTestHighlightAttr, hoverTestClickedAttr},
+		},
+		{
+			name:        "hovering without a HoverAttr",
+			noHoverAttr: true,
+			events:      []term.Event{hoverTestMove(hoverTestNoX)},
+			wantYes:     "idle", wantNo: "hover",
+			wantAttrs: [2]term.Attributes{hoverTestOptionAttr, hoverTestHighlightAttr},
+		},
+		{
+			name:        "leaving without a HoverAttr keeps the keyboard's choice",
+			noHoverAttr: true,
+			events:      []term.Event{hoverTestMove(hoverTestNoX), hoverTestMove(9)},
+			wantYes:     "idle", wantNo: "selected",
+			wantAttrs: [2]term.Attributes{hoverTestOptionAttr, hoverTestHighlightAttr},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, _ := newHoverTestConfig(tt.noHoverAttr)
+			cfg.ClickedAttr = hoverTestClickedAttr
+			states := map[term.ImageID]string{}
+			image := func(name string) component.ButtonImage {
+				img := &stateImage{id: term.NewImageID()}
+				states[img.id] = name
+				return component.ButtonImage{Left: img}
+			}
+			cfg.ButtonImages = &component.ButtonImages{
+				Idle:     image("idle"),
+				Selected: image("selected"),
+				Hover:    image("hover"),
+				Pressed:  image("pressed"),
+			}
+			p := NewPrompt(cfg)
+			p.Resize(hoverTestWidth, hoverTestHeight)
+			for _, ev := range tt.events {
+				p.Handle(ev)
+			}
+
+			rec := &stateRecorder{}
+			p.Draw(rec)
+			got := map[int]string{}
+			for _, img := range rec.images {
+				got[img.Pos.X] = states[img.ID]
+			}
+			assert.Equal(t, map[int]string{
+				hoverTestYesX: tt.wantYes, hoverTestNoX: tt.wantNo,
+			}, got)
+
+			yes, no := hoverTestOptionAttrs(t, p)
+			assert.Equal(t, tt.wantAttrs, [2]term.Attributes{yes, no})
+		})
+	}
+}
+
+// stateImage places an image over its cells.
+type stateImage struct {
+	id            term.ImageID
+	width, height int
+}
+
+func (c *stateImage) Resize(width, height int) { c.width, c.height = width, height }
+
+func (c *stateImage) Draw(w term.Writer) {
+	w.DrawImage(term.Image{ID: c.id, Width: c.width, Height: c.height})
+}
+
+// stateRecorder draws every image, and records them.
+type stateRecorder struct {
+	term.NoopWriter
+	images []term.Image
+}
+
+func (w *stateRecorder) DrawImage(img term.Image) bool {
+	w.images = append(w.images, img)
+	return true
+}
+
 func (h *testPromptHandler) OnClose() error {
 	h.onCloseCalled = true
 	return nil

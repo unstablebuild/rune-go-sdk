@@ -371,7 +371,7 @@ func TestPromptHeight(t *testing.T) {
 		p := NewPrompt(fixedPrompt(3, providerOptions...))
 		p.Resize(40, 4)
 		p.SeekDown()
-		before := optionCells(p, 40,  4)
+		before := optionCells(p, 40, 4)
 		offset, maxOffset := p.SeekOffset(), p.MaxSeekOffset()
 		require.Positive(t, offset)
 		for _, width := range []int{-1, 0, 5, 24, 51, 100} {
@@ -1186,6 +1186,199 @@ var (
 	providerOptions = []string{"OpenAI", "Anthropic", "Gemini", "Codex", "Claude"}
 )
 
+func TestPromptButtonImagesLayout(t *testing.T) {
+	images := &ButtonImages{
+		Idle:   testButtonImage("idle"),
+		Outset: ButtonOutset{Top: 1, Bottom: 1, Sides: 2},
+	}
+	tests := []struct {
+		name       string
+		images     *ButtonImages
+		width      int
+		wantHeight int
+	}{
+		// Message 2, one row of options 1.
+		{name: "without images", width: 20, wantHeight: 3},
+		// Message 2, top 1, one row of options 1, bottom 1.
+		{name: "outset rows around the options", images: images, width: 20, wantHeight: 5},
+		// Two 4-wide options need 2+4+4+4+2 cells to share a row.
+		{name: "sides fit one row", images: images, width: 16, wantHeight: 5},
+		// Message 2, top 1, two rows of 1 with 2 between them, bottom 1.
+		{name: "sides wrap the options", images: images, width: 15, wantHeight: 8},
+		// Without images a cell of air at each edge and between fits.
+		{name: "without images at the same width", width: 15, wantHeight: 3},
+		// Message 2, top 1, two rows of 1 with 1 between them.
+		{
+			name: "at least a row between rows",
+			images: &ButtonImages{
+				Idle: testButtonImage("idle"), Outset: ButtonOutset{Top: 1},
+			},
+			width: 9, wantHeight: 6,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := fixedPrompt(2, "Go", "Skip")
+			cfg.ButtonImages = tt.images
+			p := NewPrompt(cfg)
+			assert.Equal(t, tt.wantHeight, p.Height(tt.width))
+		})
+	}
+
+	t.Run("Dimensions", func(t *testing.T) {
+		cfg := fixedPrompt(2, "Go", "Skip")
+		cfg.ButtonImages = images
+		width, height := NewPrompt(cfg).Dimensions()
+		// 2 options of 4 cells, 2 to each edge and 4 between them.
+		assert.Equal(t, 16, width)
+		assert.Equal(t, 5, height)
+	})
+
+	t.Run("Dimensions leave two cells of air", func(t *testing.T) {
+		cfg := fixedPrompt(2, "Go", "Skip")
+		cfg.ButtonImages = &ButtonImages{Idle: testButtonImage("idle")}
+		width, height := NewPrompt(cfg).Dimensions()
+		assert.Equal(t, 14, width)
+		assert.Equal(t, 3, height)
+	})
+
+	t.Run("OptionAt hits only the labels", func(t *testing.T) {
+		cfg := fixedPrompt(2, "Go", "Skip")
+		cfg.ButtonImages = images
+		p := NewPrompt(cfg)
+		p.Resize(16, 5)
+		want := make(map[term.Coordinates]int)
+		for x := range 4 {
+			want[term.Coordinates{X: 2 + x, Y: 3}] = 0
+			want[term.Coordinates{X: 10 + x, Y: 3}] = 1
+		}
+		assert.Equal(t, want, optionCells(p, 16, 5))
+	})
+}
+
+func TestPromptButtonImagesDraw(t *testing.T) {
+	images := &ButtonImages{
+		Idle:     testButtonImage("idle"),
+		Selected: testButtonImage("selected"),
+		Pressed:  testButtonImage("pressed"),
+		Outset:   ButtonOutset{Top: 1, Bottom: 1, Sides: 2},
+	}
+	// At 16x5 the message takes rows 0-1, the top outset row 2, the
+	// options row 3 at x 2-5 and 10-13, and the bottom outset row 4.
+	tests := []struct {
+		name   string
+		states [2]ButtonState
+		want   []string
+	}{
+		{
+			name:   "idle",
+			states: [2]ButtonState{ButtonIdle, ButtonIdle},
+			want: []string{
+				"idle.middle 3,2 1x3", "idle.middle 4,2 1x3",
+				"idle.left 0,2 3x3", "idle.right 5,2 3x3",
+				"idle.middle 11,2 1x3", "idle.middle 12,2 1x3",
+				"idle.left 8,2 3x3", "idle.right 13,2 3x3",
+			},
+		},
+		{
+			name:   "per state",
+			states: [2]ButtonState{ButtonSelected, ButtonPressed},
+			want: []string{
+				"selected.middle 3,2 1x3", "selected.middle 4,2 1x3",
+				"selected.left 0,2 3x3", "selected.right 5,2 3x3",
+				"pressed.middle 11,2 1x3", "pressed.middle 12,2 1x3",
+				"pressed.left 8,2 3x3", "pressed.right 13,2 3x3",
+			},
+		},
+		{
+			name:   "hover falls back to idle",
+			states: [2]ButtonState{ButtonHover, ButtonIdle},
+			want: []string{
+				"idle.middle 3,2 1x3", "idle.middle 4,2 1x3",
+				"idle.left 0,2 3x3", "idle.right 5,2 3x3",
+				"idle.middle 11,2 1x3", "idle.middle 12,2 1x3",
+				"idle.left 8,2 3x3", "idle.right 13,2 3x3",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := fixedPrompt(2, "Go", "Skip")
+			cfg.ButtonImages = images
+			p := NewPrompt(cfg)
+			p.Resize(16, 5)
+			for i, st := range tt.states {
+				p.SetOptionState(i, st, term.Attributes{})
+			}
+			rec := &imageRecorder{graphic: true}
+			p.Draw(rec)
+			assert.Equal(t, tt.want, describeImages(rec.images))
+		})
+	}
+}
+
+func TestPromptButtonImagesLabel(t *testing.T) {
+	images := &ButtonImages{
+		Idle:   testButtonImage("idle"),
+		Outset: ButtonOutset{Top: 1, Bottom: 1, Sides: 2},
+	}
+	selected := term.Attributes{
+		Fg: term.ColorRed, Bg: term.ColorBlue, Attrs: term.AttrBold | term.AttrReverse,
+	}
+	promptBg := term.Attributes{Bg: term.ColorGreen}
+	empty := strings.Repeat(" ", 16)
+
+	tests := []struct {
+		name    string
+		graphic bool
+		want    string
+		// wantLabel is the attributes of the G of Go.
+		wantLabel term.Attributes
+	}{
+		{
+			name:    "over images the label drops its background",
+			graphic: true,
+			want: empty + "\n" + empty + "\n" + empty + "\n" +
+				"   Go     Skip  \n" + empty,
+			wantLabel: term.Attributes{
+				Fg: term.ColorRed, Bg: term.ColorGreen, Attrs: term.AttrBold,
+			},
+		},
+		{
+			name:    "without images the label is drawn solid",
+			graphic: false,
+			want: empty + "\n" + empty + "\n" + empty + "\n" +
+				"  ████    Skip  \n" + empty,
+			wantLabel: selected,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := fixedPrompt(2, "Go", "Skip")
+			cfg.ButtonImages = images
+			p := NewPrompt(cfg)
+			p.Resize(16, 5)
+			p.SetOptionState(0, ButtonSelected, selected)
+			p.SetOptionState(1, ButtonIdle, term.Attributes{})
+
+			sw := term.NewStringWriter(16, 5)
+			sw.BackgroundCh = '█'
+			w := &graphicStringWriter{StringWriter: sw, graphic: tt.graphic}
+			p.Draw(w)
+			require.NoError(t, sw.Flush())
+			assert.Equal(t, tt.want, sw.String())
+
+			cfg.BackgroundAttributes = promptBg
+			p = NewPrompt(cfg)
+			p.Resize(16, 5)
+			p.SetOptionState(0, ButtonSelected, selected)
+			sw = term.NewStringWriter(16, 5)
+			p.Draw(&graphicStringWriter{StringWriter: sw, graphic: tt.graphic})
+			assert.Equal(t, tt.wantLabel, sw.Cells()[3*16+3].Attributes())
+		})
+	}
+}
+
 // fixedPrompt asks options under a message height rows tall at any
 // width.
 func fixedPrompt(height int, options ...string) PromptConfig {
@@ -1327,3 +1520,12 @@ func (w *outOfBoundsWriter) check(pos term.Coordinates) {
 		w.outside = append(w.outside, pos)
 	}
 }
+
+// graphicStringWriter is a StringWriter that draws images when graphic
+// is set.
+type graphicStringWriter struct {
+	*term.StringWriter
+	graphic bool
+}
+
+func (w *graphicStringWriter) DrawImage(term.Image) bool { return w.graphic }

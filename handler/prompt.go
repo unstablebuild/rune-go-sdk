@@ -58,14 +58,21 @@ type PromptConfig struct {
 	OptionBindings []term.KeyComb
 	HighlightAttr  term.Attributes
 	OptionAttr     term.Attributes
-	HoverAttr      term.Attributes
-	ClickedAttr    term.Attributes
+	// HoverAttr is how the option under the mouse pointer looks. Left
+	// zero, the keyboard selection follows the pointer instead, and with
+	// ButtonImages the option under it is drawn with its ButtonHover
+	// images in HighlightAttr.
+	HoverAttr   term.Attributes
+	ClickedAttr term.Attributes
 }
 
 var _ Scrollable = (*Prompt)(nil)
 
 // Prompt wraps a component.Prompt to satisfy tui.Handler. The mouse
 // wheel scrolls a message the prompt was given too little room for.
+// It keeps the colors and images it is built with; an extension asking
+// the user a question opens it with browserapi.Prompter instead, for the
+// host to draw it in its theme.
 type Prompt struct {
 	component.Prompt
 
@@ -126,22 +133,25 @@ func (f *Prompt) Init(cfg PromptConfig) {
 
 func (f *Prompt) highlightOption() {
 	for j := range f.cfg.Options {
-		f.SetOptionAttr(j, f.optionAttr(j))
+		st, attr := f.optionState(j)
+		f.SetOptionState(j, st, attr)
 	}
 }
 
-// optionAttr is how option i looks: a pressed option over a hovered
+// optionState is how option i looks: a pressed option over a hovered
 // one over the one the keyboard is on.
-func (f *Prompt) optionAttr(i int) term.Attributes {
+func (f *Prompt) optionState(i int) (component.ButtonState, term.Attributes) {
 	switch {
 	case i == f.pressed:
-		return f.cfg.ClickedAttr
+		return component.ButtonPressed, f.cfg.ClickedAttr
 	case i == f.hover && f.cfg.HoverAttr != (term.Attributes{}):
-		return f.cfg.HoverAttr
+		return component.ButtonHover, f.cfg.HoverAttr
+	case i == f.hover && f.cfg.ButtonImages != nil:
+		return component.ButtonHover, f.cfg.HighlightAttr
 	case i == f.hi:
-		return f.cfg.HighlightAttr
+		return component.ButtonSelected, f.cfg.HighlightAttr
 	}
-	return f.cfg.OptionAttr
+	return component.ButtonIdle, f.cfg.OptionAttr
 }
 
 // Hovered returns the index of the option under the mouse pointer, or

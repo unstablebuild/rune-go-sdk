@@ -25,6 +25,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
 	"github.com/unstablebuild/rune-go-sdk/debug"
+	"github.com/unstablebuild/rune-go-sdk/handler"
 	"github.com/unstablebuild/rune-go-sdk/handler/handlerrpc"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/term/termrpc"
@@ -32,7 +33,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-var _ browserapi.Browser = (*Client)(nil)
+var (
+	_ browserapi.Browser  = (*Client)(nil)
+	_ browserapi.Prompter = (*Client)(nil)
+)
 
 // Client satisfies Browser by talking to a browser server over RPC.
 type Client struct {
@@ -422,6 +426,81 @@ func (c *Client) Tab(
 	go debug.CapturePanicReport(server.ReceiveMessages)
 
 	return Token{URI: uriStr}, err
+}
+
+// Prompt satisfies browserapi.Prompter. It returns once the host opened
+// the prompt, and calls h from a goroutine of its own. If the connection
+// to the host breaks before the prompt closes, h.OnClose is called as if
+// the user dismissed it.
+func (c *Client) Prompt(
+	cfg browserapi.PromptConfig, h handler.PromptHandler,
+) (browserapi.Window, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	if h == nil {
+		h = handler.NopPromptHandler()
+	}
+	req := PromptRequest{
+		Message:  cfg.Message,
+		Options:  cfg.Options,
+		MaxWidth: uint32(cfg.MaxWidth),
+	}
+	for _, k := range cfg.Bindings {
+		ev := new(termrpc.Event)
+		if err := ev.FromModel(term.Event{
+			Type: term.EventKey, Mod: k.Mod, Key: k.Key, Ch: k.Ch,
+		}); err != nil {
+			return nil, fmt.Errorf("prompt binding %s: %w", k, err)
+		}
+		req.Bindings = append(req.Bindings, ev)
+	}
+
+	stream, err := c.wm.Prompt(c.clientCtx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("new prompt stream: %w", err)
+	}
+	ev, err := stream.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("recv prompt opened: %w", err)
+	}
+	opened := ev.GetOpened()
+	if opened == nil {
+		return nil, fmt.Errorf("recv prompt opened: unexpected %v", ev)
+	}
+	go debug.CapturePanicReport(func() { c.promptEvents(stream, h) })
+	return newWindowClient(opened.GetWindowId()), nil
+}
+
+// promptEvents calls h as the events of an open prompt arrive. A stream
+// that ends without one is of a prompt another caller opened.
+func (c *Client) promptEvents(
+	stream grpc.ServerStreamingClient[PromptEvent], h handler.PromptHandler,
+) {
+	for {
+		ev, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return
+		}
+		if err != nil {
+			c.log.Warn("prompt events", "error", err)
+			c.closePrompt(h)
+			return
+		}
+		if sel := ev.GetSelected(); sel != nil {
+			h.OnSelect(int(sel.GetIndex()), sel.GetOption())
+		}
+		if ev.GetClosed() != nil {
+			c.closePrompt(h)
+			return
+		}
+	}
+}
+
+func (c *Client) closePrompt(h handler.PromptHandler) {
+	if err := h.OnClose(); err != nil {
+		c.log.Warn("prompt close", "error", err)
+	}
 }
 
 // Close closes all resources associated with this Client.

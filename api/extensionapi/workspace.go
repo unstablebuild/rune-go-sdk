@@ -131,6 +131,13 @@ func (w *Workspace) WindowManager(ctx context.Context) browserapi.WindowManager 
 	return browserrpc.NewClient(ctx, w.conn)
 }
 
+// Prompter returns the workspace's prompter, which asks the user questions
+// in prompts that look like the host's own. Extensions must have
+// PermissionBrowserWindowManager to access it.
+func (w *Workspace) Prompter(ctx context.Context) browserapi.Prompter {
+	return browserrpc.NewClient(ctx, w.conn)
+}
+
 // ResourceOpener returns the workspace's resource opener which allows
 // clients to access resources in the workspace. Extensions that need more control
 // over the underlying files can use FileSystem instead.

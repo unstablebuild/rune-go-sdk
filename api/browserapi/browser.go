@@ -16,6 +16,7 @@ package browserapi
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
@@ -188,6 +189,46 @@ type FloatingConfig struct {
 	NoWindowBar bool
 	// Title is rendered on the window bar.
 	Title string
+}
+
+// PromptConfig is a prompt that a Prompter opens.
+type PromptConfig struct {
+	// Message is the question, in markdown. It must not be empty.
+	Message string
+	// Options are the answers the user picks from. There must be at
+	// least one.
+	Options []string
+	// Bindings are the keys that pick each option: as many as Options,
+	// or none.
+	Bindings []term.KeyComb
+	// MaxWidth, when not zero, sizes the message to its widest line, but
+	// no wider than MaxWidth cells, where it wraps; it suits messages
+	// whose lines read badly wrapped, such as code. Zero leaves the size
+	// to the host, which wraps the message to its own proportions.
+	MaxWidth int
+}
+
+// Validate returns the error a Prompter fails with for cfg.
+func (cfg PromptConfig) Validate() error {
+	switch {
+	case cfg.Message == "":
+		return errors.New("prompt has no message")
+	case len(cfg.Options) == 0:
+		return errors.New("prompt has no options")
+	case len(cfg.Bindings) != 0 && len(cfg.Bindings) != len(cfg.Options):
+		return errors.New("prompt has a different number of bindings and options")
+	case cfg.MaxWidth < 0:
+		return errors.New("prompt has a negative max width")
+	}
+	return nil
+}
+
+// Prompter opens a floating window and presents a question to the user with some
+// pre-defined answers. It's a shorthand for creating a floating window via Floating
+// and installing a handler.Prompt, with the browser's default configuration
+// for prompts.
+type Prompter interface {
+	Prompt(cfg PromptConfig, h handler.PromptHandler) (Window, error)
 }
 
 // NotificationLevel determines the severity of the notification.
