@@ -55,6 +55,29 @@ type Service interface {
 	// entry carries the full provider metadata. GetModel returns
 	// ErrModelNotFound if the model is not known to the service.
 	GetModel(ctx context.Context, model ModelEntry) (ModelEntry, error)
+
+	// CanGenerateImages reports whether the selected model supports image
+	// generation. Unsupported models and older hosts return false without an error.
+	CanGenerateImages(context.Context, ModelEntry) (bool, error)
+
+	// GenerateImage returns PNG-encoded output. Providers that do not support
+	// image generation return ErrImageGenerationUnsupported.
+	GenerateImage(context.Context, ModelEntry, ImageRequest) (Image, error)
+}
+
+// ImageRequest describes an image to generate, optionally using encoded reference
+// images. An empty Images slice requests generation without reference images.
+type ImageRequest struct {
+	Prompt                string
+	TransparentBackground bool
+	Images                [][]byte
+}
+
+// Image contains PNG-encoded output and optional provider identifiers.
+type Image struct {
+	PNG          []byte
+	GenerationID string
+	RequestID    string
 }
 
 // ModelEntry describes a model available through a Service.

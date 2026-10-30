@@ -24,6 +24,32 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func TestImageProtoRoundTrip(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		request llmapi.ImageRequest
+		image   llmapi.Image
+	}{
+		{name: "zero"},
+		{name: "all fields", request: llmapi.ImageRequest{Prompt: "a tree", TransparentBackground: true, Images: [][]byte{{0, 1, 255}, {2, 3}}}, image: llmapi.Image{PNG: []byte{0, 255, 1}, GenerationID: "generation", RequestID: "request"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data, err := proto.Marshal(ToProtoImageRequest(tc.request))
+			require.NoError(t, err)
+			var req ImageRequest
+			require.NoError(t, proto.Unmarshal(data, &req))
+			assert.Equal(t, tc.request, FromProtoImageRequest(&req))
+			data, err = proto.Marshal(ToProtoImage(tc.image))
+			require.NoError(t, err)
+			var img Image
+			require.NoError(t, proto.Unmarshal(data, &img))
+			assert.Equal(t, tc.image, FromProtoImage(&img))
+		})
+	}
+	assert.Equal(t, llmapi.ImageRequest{}, FromProtoImageRequest(nil))
+	assert.Equal(t, llmapi.Image{}, FromProtoImage(nil))
+}
+
 // schemaMarshaler is a test json.Marshaler used to feed a
 // ResponseFormatJSONSchema through the wire.
 type schemaMarshaler struct{ payload string }

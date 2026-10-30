@@ -206,9 +206,40 @@ message ContextWindowExceededDetail {
 	int32 max = 2;
 }
 
+message ImageRequest {
+	string prompt = 1;
+	bool transparent_background = 2;
+	repeated bytes images = 3;
+}
+
+message Image {
+	bytes png = 1;
+	string generation_id = 2;
+	string request_id = 3;
+}
+
+message CanGenerateImagesRequest {
+	ModelEntry model = 1;
+}
+
+message CanGenerateImagesResponse {
+	bool available = 1;
+}
+
+message GenerateImageRequest {
+	ModelEntry model = 1;
+	ImageRequest request = 2;
+}
+
+message GenerateImageResponse {
+	Image image = 1;
+}
+
 service LLM {
 	rpc CreateCompletion(stream CreateCompletionRequestChunk) returns (stream CreateCompletionResponseChunk);
 	rpc CountTokens(CountTokensRequest) returns (CountTokensResponse);
 	rpc Models(ModelsRequest) returns (stream ModelsResponse);
 	rpc GetModel(GetModelRequest) returns (GetModelResponse);
+	rpc CanGenerateImages(CanGenerateImagesRequest) returns (CanGenerateImagesResponse);
+	rpc GenerateImage(GenerateImageRequest) returns (GenerateImageResponse);
 }

@@ -25,6 +25,28 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// ToProtoImageRequest returns the wire form, sharing the reference image bytes.
+func ToProtoImageRequest(req llmapi.ImageRequest) *ImageRequest {
+	return &ImageRequest{Prompt: req.Prompt, TransparentBackground: req.TransparentBackground, Images: req.Images}
+}
+
+// FromProtoImageRequest returns the SDK form, sharing the reference image bytes.
+// A nil message produces a zero request.
+func FromProtoImageRequest(p *ImageRequest) llmapi.ImageRequest {
+	return llmapi.ImageRequest{Prompt: p.GetPrompt(), TransparentBackground: p.GetTransparentBackground(), Images: p.GetImages()}
+}
+
+// ToProtoImage returns the wire form, sharing the PNG bytes.
+func ToProtoImage(img llmapi.Image) *Image {
+	return &Image{Png: img.PNG, GenerationId: img.GenerationID, RequestId: img.RequestID}
+}
+
+// FromProtoImage returns the SDK form, sharing the PNG bytes.
+// A nil message produces a zero image.
+func FromProtoImage(p *Image) llmapi.Image {
+	return llmapi.Image{PNG: p.GetPng(), GenerationID: p.GetGenerationId(), RequestID: p.GetRequestId()}
+}
+
 // ToProtoModelEntry converts an llmapi.ModelEntry to its wire form.
 func ToProtoModelEntry(m llmapi.ModelEntry) *ModelEntry {
 	return &ModelEntry{

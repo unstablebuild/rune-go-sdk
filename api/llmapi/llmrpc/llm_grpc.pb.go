@@ -19,10 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	LLM_CreateCompletion_FullMethodName = "/llm.LLM/CreateCompletion"
-	LLM_CountTokens_FullMethodName      = "/llm.LLM/CountTokens"
-	LLM_Models_FullMethodName           = "/llm.LLM/Models"
-	LLM_GetModel_FullMethodName         = "/llm.LLM/GetModel"
+	LLM_CreateCompletion_FullMethodName  = "/llm.LLM/CreateCompletion"
+	LLM_CountTokens_FullMethodName       = "/llm.LLM/CountTokens"
+	LLM_Models_FullMethodName            = "/llm.LLM/Models"
+	LLM_GetModel_FullMethodName          = "/llm.LLM/GetModel"
+	LLM_CanGenerateImages_FullMethodName = "/llm.LLM/CanGenerateImages"
+	LLM_GenerateImage_FullMethodName     = "/llm.LLM/GenerateImage"
 )
 
 // LLMClient is the client API for LLM service.
@@ -33,6 +35,8 @@ type LLMClient interface {
 	CountTokens(ctx context.Context, in *CountTokensRequest, opts ...grpc.CallOption) (*CountTokensResponse, error)
 	Models(ctx context.Context, in *ModelsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ModelsResponse], error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error)
+	CanGenerateImages(ctx context.Context, in *CanGenerateImagesRequest, opts ...grpc.CallOption) (*CanGenerateImagesResponse, error)
+	GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (*GenerateImageResponse, error)
 }
 
 type lLMClient struct {
@@ -95,6 +99,26 @@ func (c *lLMClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...g
 	return out, nil
 }
 
+func (c *lLMClient) CanGenerateImages(ctx context.Context, in *CanGenerateImagesRequest, opts ...grpc.CallOption) (*CanGenerateImagesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CanGenerateImagesResponse)
+	err := c.cc.Invoke(ctx, LLM_CanGenerateImages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lLMClient) GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (*GenerateImageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateImageResponse)
+	err := c.cc.Invoke(ctx, LLM_GenerateImage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LLMServer is the server API for LLM service.
 // All implementations must embed UnimplementedLLMServer
 // for forward compatibility.
@@ -103,6 +127,8 @@ type LLMServer interface {
 	CountTokens(context.Context, *CountTokensRequest) (*CountTokensResponse, error)
 	Models(*ModelsRequest, grpc.ServerStreamingServer[ModelsResponse]) error
 	GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error)
+	CanGenerateImages(context.Context, *CanGenerateImagesRequest) (*CanGenerateImagesResponse, error)
+	GenerateImage(context.Context, *GenerateImageRequest) (*GenerateImageResponse, error)
 	mustEmbedUnimplementedLLMServer()
 }
 
@@ -124,6 +150,12 @@ func (UnimplementedLLMServer) Models(*ModelsRequest, grpc.ServerStreamingServer[
 }
 func (UnimplementedLLMServer) GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetModel not implemented")
+}
+func (UnimplementedLLMServer) CanGenerateImages(context.Context, *CanGenerateImagesRequest) (*CanGenerateImagesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CanGenerateImages not implemented")
+}
+func (UnimplementedLLMServer) GenerateImage(context.Context, *GenerateImageRequest) (*GenerateImageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GenerateImage not implemented")
 }
 func (UnimplementedLLMServer) mustEmbedUnimplementedLLMServer() {}
 func (UnimplementedLLMServer) testEmbeddedByValue()             {}
@@ -200,6 +232,42 @@ func _LLM_GetModel_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LLM_CanGenerateImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CanGenerateImagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LLMServer).CanGenerateImages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LLM_CanGenerateImages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LLMServer).CanGenerateImages(ctx, req.(*CanGenerateImagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LLM_GenerateImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateImageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LLMServer).GenerateImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LLM_GenerateImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LLMServer).GenerateImage(ctx, req.(*GenerateImageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LLM_ServiceDesc is the grpc.ServiceDesc for LLM service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -214,6 +282,14 @@ var LLM_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetModel",
 			Handler:    _LLM_GetModel_Handler,
+		},
+		{
+			MethodName: "CanGenerateImages",
+			Handler:    _LLM_CanGenerateImages_Handler,
+		},
+		{
+			MethodName: "GenerateImage",
+			Handler:    _LLM_GenerateImage_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

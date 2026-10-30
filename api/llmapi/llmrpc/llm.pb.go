@@ -1844,6 +1844,310 @@ func (x *ContextWindowExceededDetail) GetMax() int32 {
 	return 0
 }
 
+type ImageRequest struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Prompt                string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	TransparentBackground bool                   `protobuf:"varint,2,opt,name=transparent_background,json=transparentBackground,proto3" json:"transparent_background,omitempty"`
+	Images                [][]byte               `protobuf:"bytes,3,rep,name=images,proto3" json:"images,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ImageRequest) Reset() {
+	*x = ImageRequest{}
+	mi := &file_llmrpc_llm_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageRequest) ProtoMessage() {}
+
+func (x *ImageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageRequest.ProtoReflect.Descriptor instead.
+func (*ImageRequest) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ImageRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *ImageRequest) GetTransparentBackground() bool {
+	if x != nil {
+		return x.TransparentBackground
+	}
+	return false
+}
+
+func (x *ImageRequest) GetImages() [][]byte {
+	if x != nil {
+		return x.Images
+	}
+	return nil
+}
+
+type Image struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Png           []byte                 `protobuf:"bytes,1,opt,name=png,proto3" json:"png,omitempty"`
+	GenerationId  string                 `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
+	RequestId     string                 `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Image) Reset() {
+	*x = Image{}
+	mi := &file_llmrpc_llm_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Image) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Image) ProtoMessage() {}
+
+func (x *Image) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Image.ProtoReflect.Descriptor instead.
+func (*Image) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *Image) GetPng() []byte {
+	if x != nil {
+		return x.Png
+	}
+	return nil
+}
+
+func (x *Image) GetGenerationId() string {
+	if x != nil {
+		return x.GenerationId
+	}
+	return ""
+}
+
+func (x *Image) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+type CanGenerateImagesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *ModelEntry            `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CanGenerateImagesRequest) Reset() {
+	*x = CanGenerateImagesRequest{}
+	mi := &file_llmrpc_llm_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CanGenerateImagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CanGenerateImagesRequest) ProtoMessage() {}
+
+func (x *CanGenerateImagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CanGenerateImagesRequest.ProtoReflect.Descriptor instead.
+func (*CanGenerateImagesRequest) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *CanGenerateImagesRequest) GetModel() *ModelEntry {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type CanGenerateImagesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Available     bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CanGenerateImagesResponse) Reset() {
+	*x = CanGenerateImagesResponse{}
+	mi := &file_llmrpc_llm_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CanGenerateImagesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CanGenerateImagesResponse) ProtoMessage() {}
+
+func (x *CanGenerateImagesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CanGenerateImagesResponse.ProtoReflect.Descriptor instead.
+func (*CanGenerateImagesResponse) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *CanGenerateImagesResponse) GetAvailable() bool {
+	if x != nil {
+		return x.Available
+	}
+	return false
+}
+
+type GenerateImageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *ModelEntry            `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	Request       *ImageRequest          `protobuf:"bytes,2,opt,name=request,proto3" json:"request,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateImageRequest) Reset() {
+	*x = GenerateImageRequest{}
+	mi := &file_llmrpc_llm_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateImageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateImageRequest) ProtoMessage() {}
+
+func (x *GenerateImageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateImageRequest.ProtoReflect.Descriptor instead.
+func (*GenerateImageRequest) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *GenerateImageRequest) GetModel() *ModelEntry {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+func (x *GenerateImageRequest) GetRequest() *ImageRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+type GenerateImageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Image         *Image                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateImageResponse) Reset() {
+	*x = GenerateImageResponse{}
+	mi := &file_llmrpc_llm_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateImageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateImageResponse) ProtoMessage() {}
+
+func (x *GenerateImageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_llmrpc_llm_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateImageResponse.ProtoReflect.Descriptor instead.
+func (*GenerateImageResponse) Descriptor() ([]byte, []int) {
+	return file_llmrpc_llm_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GenerateImageResponse) GetImage() *Image {
+	if x != nil {
+		return x.Image
+	}
+	return nil
+}
+
 var File_llmrpc_llm_proto protoreflect.FileDescriptor
 
 const file_llmrpc_llm_proto_rawDesc = "" +
@@ -1970,7 +2274,26 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x05found\x18\x02 \x01(\bR\x05found\"E\n" +
 	"\x1bContextWindowExceededDetail\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\x05R\x05count\x12\x10\n" +
-	"\x03max\x18\x02 \x01(\x05R\x03max*_\n" +
+	"\x03max\x18\x02 \x01(\x05R\x03max\"u\n" +
+	"\fImageRequest\x12\x16\n" +
+	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x125\n" +
+	"\x16transparent_background\x18\x02 \x01(\bR\x15transparentBackground\x12\x16\n" +
+	"\x06images\x18\x03 \x03(\fR\x06images\"]\n" +
+	"\x05Image\x12\x10\n" +
+	"\x03png\x18\x01 \x01(\fR\x03png\x12#\n" +
+	"\rgeneration_id\x18\x02 \x01(\tR\fgenerationId\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x03 \x01(\tR\trequestId\"A\n" +
+	"\x18CanGenerateImagesRequest\x12%\n" +
+	"\x05model\x18\x01 \x01(\v2\x0f.llm.ModelEntryR\x05model\"9\n" +
+	"\x19CanGenerateImagesResponse\x12\x1c\n" +
+	"\tavailable\x18\x01 \x01(\bR\tavailable\"j\n" +
+	"\x14GenerateImageRequest\x12%\n" +
+	"\x05model\x18\x01 \x01(\v2\x0f.llm.ModelEntryR\x05model\x12+\n" +
+	"\arequest\x18\x02 \x01(\v2\x11.llm.ImageRequestR\arequest\"9\n" +
+	"\x15GenerateImageResponse\x12 \n" +
+	"\x05image\x18\x01 \x01(\v2\n" +
+	".llm.ImageR\x05image*_\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eROLE_ASSISTANT\x10\x01\x12\r\n" +
@@ -1990,12 +2313,14 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x16EVENT_TYPE_STREAM_DONE\x10\x03\x12\x1b\n" +
 	"\x17EVENT_TYPE_STREAM_ERROR\x10\x04\x12\x1b\n" +
 	"\x17EVENT_TYPE_STREAM_RESET\x10\x05\x12!\n" +
-	"\x1dEVENT_TYPE_RATE_LIMIT_WARNING\x10\x062\x94\x02\n" +
+	"\x1dEVENT_TYPE_RATE_LIMIT_WARNING\x10\x062\xb0\x03\n" +
 	"\x03LLM\x12]\n" +
 	"\x10CreateCompletion\x12!.llm.CreateCompletionRequestChunk\x1a\".llm.CreateCompletionResponseChunk(\x010\x01\x12@\n" +
 	"\vCountTokens\x12\x17.llm.CountTokensRequest\x1a\x18.llm.CountTokensResponse\x123\n" +
 	"\x06Models\x12\x12.llm.ModelsRequest\x1a\x13.llm.ModelsResponse0\x01\x127\n" +
-	"\bGetModel\x12\x14.llm.GetModelRequest\x1a\x15.llm.GetModelResponseB8Z6github.com/unstablebuild/rune-go-sdk/api/llmapi/llmrpcb\x06proto3"
+	"\bGetModel\x12\x14.llm.GetModelRequest\x1a\x15.llm.GetModelResponse\x12R\n" +
+	"\x11CanGenerateImages\x12\x1d.llm.CanGenerateImagesRequest\x1a\x1e.llm.CanGenerateImagesResponse\x12F\n" +
+	"\rGenerateImage\x12\x19.llm.GenerateImageRequest\x1a\x1a.llm.GenerateImageResponseB8Z6github.com/unstablebuild/rune-go-sdk/api/llmapi/llmrpcb\x06proto3"
 
 var (
 	file_llmrpc_llm_proto_rawDescOnce sync.Once
@@ -2010,7 +2335,7 @@ func file_llmrpc_llm_proto_rawDescGZIP() []byte {
 }
 
 var file_llmrpc_llm_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_llmrpc_llm_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_llmrpc_llm_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_llmrpc_llm_proto_goTypes = []any{
 	(Role)(0),                             // 0: llm.Role
 	(ToolType)(0),                         // 1: llm.ToolType
@@ -2041,6 +2366,12 @@ var file_llmrpc_llm_proto_goTypes = []any{
 	(*GetModelRequest)(nil),               // 26: llm.GetModelRequest
 	(*GetModelResponse)(nil),              // 27: llm.GetModelResponse
 	(*ContextWindowExceededDetail)(nil),   // 28: llm.ContextWindowExceededDetail
+	(*ImageRequest)(nil),                  // 29: llm.ImageRequest
+	(*Image)(nil),                         // 30: llm.Image
+	(*CanGenerateImagesRequest)(nil),      // 31: llm.CanGenerateImagesRequest
+	(*CanGenerateImagesResponse)(nil),     // 32: llm.CanGenerateImagesResponse
+	(*GenerateImageRequest)(nil),          // 33: llm.GenerateImageRequest
+	(*GenerateImageResponse)(nil),         // 34: llm.GenerateImageResponse
 }
 var file_llmrpc_llm_proto_depIdxs = []int32{
 	2,  // 0: llm.ContentPart.type:type_name -> llm.ContentPartType
@@ -2073,19 +2404,27 @@ var file_llmrpc_llm_proto_depIdxs = []int32{
 	18, // 27: llm.ModelsResponse.model:type_name -> llm.ModelEntry
 	18, // 28: llm.GetModelRequest.model:type_name -> llm.ModelEntry
 	18, // 29: llm.GetModelResponse.model:type_name -> llm.ModelEntry
-	20, // 30: llm.LLM.CreateCompletion:input_type -> llm.CreateCompletionRequestChunk
-	22, // 31: llm.LLM.CountTokens:input_type -> llm.CountTokensRequest
-	24, // 32: llm.LLM.Models:input_type -> llm.ModelsRequest
-	26, // 33: llm.LLM.GetModel:input_type -> llm.GetModelRequest
-	21, // 34: llm.LLM.CreateCompletion:output_type -> llm.CreateCompletionResponseChunk
-	23, // 35: llm.LLM.CountTokens:output_type -> llm.CountTokensResponse
-	25, // 36: llm.LLM.Models:output_type -> llm.ModelsResponse
-	27, // 37: llm.LLM.GetModel:output_type -> llm.GetModelResponse
-	34, // [34:38] is the sub-list for method output_type
-	30, // [30:34] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	18, // 30: llm.CanGenerateImagesRequest.model:type_name -> llm.ModelEntry
+	18, // 31: llm.GenerateImageRequest.model:type_name -> llm.ModelEntry
+	29, // 32: llm.GenerateImageRequest.request:type_name -> llm.ImageRequest
+	30, // 33: llm.GenerateImageResponse.image:type_name -> llm.Image
+	20, // 34: llm.LLM.CreateCompletion:input_type -> llm.CreateCompletionRequestChunk
+	22, // 35: llm.LLM.CountTokens:input_type -> llm.CountTokensRequest
+	24, // 36: llm.LLM.Models:input_type -> llm.ModelsRequest
+	26, // 37: llm.LLM.GetModel:input_type -> llm.GetModelRequest
+	31, // 38: llm.LLM.CanGenerateImages:input_type -> llm.CanGenerateImagesRequest
+	33, // 39: llm.LLM.GenerateImage:input_type -> llm.GenerateImageRequest
+	21, // 40: llm.LLM.CreateCompletion:output_type -> llm.CreateCompletionResponseChunk
+	23, // 41: llm.LLM.CountTokens:output_type -> llm.CountTokensResponse
+	25, // 42: llm.LLM.Models:output_type -> llm.ModelsResponse
+	27, // 43: llm.LLM.GetModel:output_type -> llm.GetModelResponse
+	32, // 44: llm.LLM.CanGenerateImages:output_type -> llm.CanGenerateImagesResponse
+	34, // 45: llm.LLM.GenerateImage:output_type -> llm.GenerateImageResponse
+	40, // [40:46] is the sub-list for method output_type
+	34, // [34:40] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_llmrpc_llm_proto_init() }
@@ -2103,7 +2442,7 @@ func file_llmrpc_llm_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llmrpc_llm_proto_rawDesc), len(file_llmrpc_llm_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   25,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -23,9 +23,19 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/api/llmapi"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 var _ llmapi.Service = (*Client)(nil)
+
+// MaxImageMessageSize is the encoded protobuf budget for image generation
+// requests and responses, including metadata and envelopes. It leaves 1 MiB of
+// headroom below Rune's 16 MiB RPC transport limit.
+const MaxImageMessageSize = 15 << 20
+
+const imageRPCMessageLimit = 16 << 20
 
 // Client satisfies llmapi.Service via gRPC.
 type Client struct {
@@ -141,6 +151,39 @@ func (c *Client) GetModel(
 		return llmapi.ModelEntry{}, llmapi.ErrModelNotFound
 	}
 	return FromProtoModelEntry(resp.GetModel()), nil
+}
+
+// CanGenerateImages reports false for hosts predating image generation.
+func (c *Client) CanGenerateImages(ctx context.Context, model llmapi.ModelEntry) (bool, error) {
+	req := &CanGenerateImagesRequest{Model: ToProtoModelEntry(model)}
+	if size := proto.Size(req); size > MaxImageMessageSize {
+		return false, status.Errorf(codes.ResourceExhausted, "llm: image availability request is %d bytes; maximum is %d bytes (15 MiB budget below 16 MiB RPC limit)", size, MaxImageMessageSize)
+	}
+	resp, err := c.pb.CanGenerateImages(ctx, req)
+	if status.Code(err) == codes.Unimplemented {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("llm: image generation availability: %w", err)
+	}
+	return resp.GetAvailable(), nil
+}
+
+// GenerateImage rejects oversized encoded requests before invoking the host.
+// Requests and responses must fit MaxImageMessageSize, including metadata.
+func (c *Client) GenerateImage(ctx context.Context, model llmapi.ModelEntry, request llmapi.ImageRequest) (llmapi.Image, error) {
+	req := &GenerateImageRequest{Model: ToProtoModelEntry(model), Request: ToProtoImageRequest(request)}
+	if size := proto.Size(req); size > MaxImageMessageSize {
+		return llmapi.Image{}, status.Errorf(codes.ResourceExhausted, "llm: image generation request is %d bytes; maximum is %d bytes (15 MiB budget below 16 MiB RPC limit); reduce prompt or reference images", size, MaxImageMessageSize)
+	}
+	resp, err := c.pb.GenerateImage(ctx, req, grpc.MaxCallSendMsgSize(imageRPCMessageLimit), grpc.MaxCallRecvMsgSize(imageRPCMessageLimit))
+	if err != nil {
+		return llmapi.Image{}, fmt.Errorf("llm: generate image (16 MiB RPC limit): %w", err)
+	}
+	if size := proto.Size(resp); size > MaxImageMessageSize {
+		return llmapi.Image{}, status.Errorf(codes.ResourceExhausted, "llm: generated image response is %d bytes; maximum is %d bytes (15 MiB budget below 16 MiB RPC limit)", size, MaxImageMessageSize)
+	}
+	return FromProtoImage(resp.GetImage()), nil
 }
 
 type modelsIterator struct {

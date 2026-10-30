@@ -23,6 +23,10 @@ import (
 // model is not known to the service. Callers can detect it with errors.Is.
 var ErrModelNotFound = errors.New("llm: model not found")
 
+// ErrImageGenerationUnsupported is returned by providers that cannot generate
+// images for the selected model. Callers can detect it with errors.Is.
+var ErrImageGenerationUnsupported = errors.New("llm: image generation unsupported")
+
 // ErrContextWindowExceeded is returned when the number of tokens in a request
 // exceeds the context window of a model. Users are encouraged to retry
 // with a reduced number of messages.
