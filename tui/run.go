@@ -44,18 +44,19 @@ import (
 // Run returns nil on a clean exit, or the first error encountered while
 // drawing, flushing, or polling events. To run against a caller-owned
 // Screen/writer, use RunWriter instead.
-func Run(root Handler, opts ...Option) (err error) {
-	if err != nil {
-		return fmt.Errorf("initialize term: %w", err)
-	}
+func Run(root Handler, opts ...Option) error {
 	cfg := defaultConfig()
 	for _, o := range opts {
 		o(&cfg)
 	}
 	writer, err := term.NewDefaultWriter()
+	if err != nil {
+		return fmt.Errorf("initialize term: %w", err)
+	}
+	defer term.Close()
+
 	term.SetAttr(cfg.defAttr)
 	term.SetInputMode(cfg.inputMode)
-	defer term.Close()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
