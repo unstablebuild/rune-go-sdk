@@ -522,6 +522,227 @@ func TestPromptMouseWheelScrollsTheMessage(t *testing.T) {
 	}
 }
 
+func TestPromptMouseOnTheMessage(t *testing.T) {
+	// A message four rows tall over "Yes" and "No", with "Yes" at
+	// x=5..7 on the bottom row at a width of 20. A height of 3 leaves
+	// the message two rows, scrolled a row down.
+	tests := []struct {
+		name        string
+		height      int
+		scrolled    bool
+		key         term.Key
+		x, y        int
+		want        []term.Coordinates
+		wantHandled bool
+	}{
+		{name: "a motion over the message", height: 5, x: 3, y: 1,
+			want: []term.Coordinates{{X: 3, Y: 1}}, wantHandled: true},
+		{name: "a press on the message", height: 5, key: term.MouseLeft, x: 3, y: 1,
+			want: []term.Coordinates{{X: 3, Y: 1}}, wantHandled: true},
+		{name: "a release on the message", height: 5, key: term.MouseRelease, x: 3, y: 1,
+			want: []term.Coordinates{{X: 3, Y: 1}}, wantHandled: true},
+		{name: "a press on a scrolled message", height: 3, scrolled: true,
+			key: term.MouseLeft, x: 3, y: 1,
+			want: []term.Coordinates{{X: 3, Y: 2}}, wantHandled: true},
+		{name: "a press on an option", height: 5, key: term.MouseLeft, x: 5, y: 4,
+			wantHandled: true},
+		{name: "a press beside the options", height: 5, key: term.MouseLeft, x: 0, y: 4},
+		{name: "a press on the options over a scrolled message", height: 3, scrolled: true,
+			key: term.MouseLeft, x: 0, y: 2},
+		{name: "the wheel over the message", height: 3, key: term.MouseWheelDown, x: 3, y: 1,
+			wantHandled: true},
+		{name: "beyond the prompt", height: 5, key: term.MouseLeft, x: 40, y: 9},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []term.Coordinates
+			msg := NewTestFloating(20, 4)
+			msg.HandleOverride = func(ev term.Event) (bool, bool) {
+				got = append(got, term.Coordinates{X: ev.MouseX, Y: ev.MouseY})
+				term.SetPointerShape(ev, term.PointerText)
+				return false, true
+			}
+			ph := new(testPromptHandler)
+			p := NewPrompt(PromptConfig{
+				PromptConfig: component.PromptConfig{
+					Message: "Ok?",
+					Options: []string{"Yes", "No"},
+					NewMessage: func(string) component.Floating {
+						return msg
+					},
+				},
+				PromptHandler: ph,
+			})
+			p.Resize(20, tt.height)
+			if tt.scrolled {
+				require.True(t, p.SeekDown())
+			}
+
+			pointer := new(term.Pointer)
+			exit, handled := p.Handle(term.Event{
+				Type: term.EventMouse, Key: tt.key, MouseX: tt.x, MouseY: tt.y,
+				Context: term.ContextWithPointer(context.Background(), pointer),
+			})
+			assert.False(t, exit)
+			assert.Equal(t, tt.wantHandled, handled)
+			assert.Equal(t, tt.want, got)
+			if len(tt.want) > 0 {
+				shape, _ := pointer.Shape()
+				assert.Equal(t, term.PointerText, shape, "the message sets the pointer shape")
+			}
+			assert.False(t, ph.onSelectCalled)
+		})
+	}
+}
+
+func TestPromptMessageTakesThePressUntilItsRelease(t *testing.T) {
+	type event struct {
+		key  term.Key
+		x, y int
+	}
+	// A message four rows tall over "Yes" and "No" in a prompt five rows
+	// tall: the options on row 4, "Yes" at x=5..7.
+	tests := []struct {
+		name   string
+		events []event
+		want   []event
+	}{
+		{"a release on an option after a press on the message",
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseRelease, 5, 4}},
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseRelease, 5, 3}}},
+		{"a drag off the message and back",
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseLeft, 0, 4}, {term.MouseLeft, 2, 2},
+				{term.MouseRelease, 2, 2}},
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseLeft, 0, 3}, {term.MouseLeft, 2, 2},
+				{term.MouseRelease, 2, 2}}},
+		{"a drag beyond the prompt",
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseLeft, 40, -9}, {term.MouseRelease, 40, 9}},
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseLeft, 19, 0}, {term.MouseRelease, 19, 3}}},
+		{"a release off the message after a right press on it",
+			[]event{{term.MouseRight, 3, 1}, {term.MouseRelease, 5, 4}},
+			[]event{{term.MouseRight, 3, 1}, {term.MouseRelease, 5, 3}}},
+		{"a motion off the message while it is pressed",
+			[]event{{term.MouseLeft, 3, 1}, {0, 0, 4}},
+			[]event{{term.MouseLeft, 3, 1}}},
+		{"the wheel while the message is pressed",
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseWheelDown, 0, 4}},
+			[]event{{term.MouseLeft, 3, 1}}},
+		{"a press off the message after the release",
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseRelease, 5, 4}, {term.MouseLeft, 0, 4},
+				{term.MouseRelease, 0, 4}},
+			[]event{{term.MouseLeft, 3, 1}, {term.MouseRelease, 5, 3}}},
+		{"a release on the message after a press off it",
+			[]event{{term.MouseLeft, 0, 4}, {term.MouseRelease, 3, 1}},
+			[]event{{term.MouseRelease, 3, 1}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []event
+			msg := NewTestFloating(20, 4)
+			msg.HandleOverride = func(ev term.Event) (bool, bool) {
+				got = append(got, event{ev.Key, ev.MouseX, ev.MouseY})
+				return false, true
+			}
+			ph := new(testPromptHandler)
+			p := NewPrompt(PromptConfig{
+				PromptConfig: component.PromptConfig{
+					Message: "Ok?",
+					Options: []string{"Yes", "No"},
+					NewMessage: func(string) component.Floating {
+						return msg
+					},
+				},
+				PromptHandler: ph,
+			})
+			p.Resize(20, 5)
+
+			for _, ev := range tt.events {
+				p.Handle(term.Event{Type: term.EventMouse, Key: ev.key, MouseX: ev.x, MouseY: ev.y})
+			}
+			assert.Equal(t, tt.want, got)
+			assert.False(t, ph.onSelectCalled)
+		})
+	}
+}
+
+func TestPromptMessageMouseStaysWithinTheMessage(t *testing.T) {
+	keys := []term.Key{0, term.MouseLeft, term.MouseRelease, term.MouseRight,
+		term.MouseMiddle, term.MouseWheelDown, term.MouseWheelUp}
+	// A message four rows tall over "Yes" and "No", as in
+	// TestPromptMouseWheelScrollsTheMessage.
+	tests := []struct {
+		name          string
+		width, height int
+		unsized       bool
+		seeks         int
+		wantForwarded bool
+	}{
+		{name: "a message with room to spare", width: 20, height: 10, wantForwarded: true},
+		{name: "a message with exactly the room it asks for", width: 20, height: 5,
+			wantForwarded: true},
+		{name: "a scrolled message", width: 20, height: 3, seeks: 1, wantForwarded: true},
+		{name: "a message scrolled to its last row", width: 20, height: 3, seeks: 2,
+			wantForwarded: true},
+		{name: "a message over packed wrapped options", width: 8, height: 4, seeks: 2,
+			wantForwarded: true},
+		{name: "a message the options leave no row", width: 20, height: 1},
+		{name: "a prompt with no rows", width: 20},
+		{name: "a prompt with no columns", height: 5},
+		{name: "before any Resize", unsized: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := &boundsMessage{TestFloating: NewTestFloating(20, 4)}
+			p := NewPrompt(PromptConfig{PromptConfig: component.PromptConfig{
+				Message: "Ok?",
+				Options: []string{"Yes", "No"},
+				NewMessage: func(string) component.Floating {
+					return msg
+				},
+			}})
+			if !tt.unsized {
+				p.Resize(tt.width, tt.height)
+			}
+			for range tt.seeks {
+				require.True(t, p.SeekDown())
+			}
+
+			for _, key := range keys {
+				for y := -3; y < tt.height+3; y++ {
+					for x := -3; x < tt.width+3; x++ {
+						p.Handle(term.Event{Type: term.EventMouse, Key: key, MouseX: x, MouseY: y})
+					}
+				}
+			}
+			assert.Empty(t, msg.outside, "events outside the message's last Resize to %dx%d",
+				msg.width, msg.height)
+			assert.Equal(t, tt.wantForwarded, msg.forwarded > 0)
+		})
+	}
+}
+
+// boundsMessage counts the mouse events it is handed, and keeps where
+// those outside its last Resize fell.
+type boundsMessage struct {
+	*TestFloating
+	width, height int
+	forwarded     int
+	outside       []term.Coordinates
+}
+
+func (m *boundsMessage) Resize(width, height int) {
+	m.width, m.height = width, height
+	m.TestFloating.Resize(width, height)
+}
+
+func (m *boundsMessage) Handle(ev term.Event) (bool, bool) {
+	m.forwarded++
+	if ev.MouseX < 0 || ev.MouseY < 0 || ev.MouseX >= m.width || ev.MouseY >= m.height {
+		m.outside = append(m.outside, term.Coordinates{X: ev.MouseX, Y: ev.MouseY})
+	}
+	return false, true
+}
+
 func TestPromptHover(t *testing.T) {
 	tests := []struct {
 		name        string

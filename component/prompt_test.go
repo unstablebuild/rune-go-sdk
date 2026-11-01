@@ -827,6 +827,54 @@ func TestPromptOptionAt(t *testing.T) {
 	}
 }
 
+func TestPromptMessageAt(t *testing.T) {
+	four := linesPrompt(fourLines, "Yes", "No")
+	at := func(width, height int) func(*Prompt) {
+		return func(p *Prompt) { p.Resize(width, height) }
+	}
+	scrolled := func(p *Prompt) {
+		p.Resize(12, 3)
+		p.SeekDown()
+	}
+	tests := []struct {
+		name    string
+		prepare func(*Prompt)
+		x, y    int
+		want    term.Coordinates
+		wantOK  bool
+	}{
+		// A message four rows tall over a row of options.
+		{"the first cell of the message", at(12, 5), 0, 0, term.Coordinates{}, true},
+		{"the last cell of the message", at(12, 5), 11, 3, term.Coordinates{X: 11, Y: 3}, true},
+		{"the row of options", at(12, 5), 2, 4, term.Coordinates{X: 2, Y: 3}, true},
+		{"right of the prompt", at(12, 5), 12, 1, term.Coordinates{X: 11, Y: 1}, true},
+		{"below and right of the prompt", at(12, 5), 40, 9, term.Coordinates{X: 11, Y: 3}, true},
+		{"a negative column", at(12, 5), -1, 2, term.Coordinates{Y: 2}, true},
+		{"a negative row", at(12, 5), 2, -1, term.Coordinates{X: 2}, true},
+		// Two rows of the message shown, scrolled a row down.
+		{"the top row of a scrolled message", scrolled, 3, 0, term.Coordinates{X: 3, Y: 1}, true},
+		{"the bottom row of a scrolled message", scrolled, 3, 1, term.Coordinates{X: 3, Y: 2}, true},
+		{"the row of options over a scrolled message", scrolled, 3, 2, term.Coordinates{X: 3, Y: 2}, true},
+		{"above a scrolled message", scrolled, 3, -1, term.Coordinates{X: 3, Y: 1}, true},
+		{"a message the options leave no row", at(12, 1), 0, 0, term.Coordinates{}, false},
+		{"a prompt with no columns", at(0, 5), 0, 0, term.Coordinates{}, false},
+		{"before any Resize", func(*Prompt) {}, 0, 0, term.Coordinates{}, false},
+		{"where the message was before Init", func(p *Prompt) {
+			p.Resize(12, 5)
+			p.Init(four)
+		}, 0, 0, term.Coordinates{}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(four)
+			tt.prepare(p)
+			pos, ok := p.MessageAt(tt.x, tt.y)
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.want, pos)
+		})
+	}
+}
+
 func TestPromptInitForgetsTheLastLayout(t *testing.T) {
 	four := linesPrompt(fourLines, "Yes", "No")
 	tests := []struct {

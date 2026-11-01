@@ -442,6 +442,21 @@ func (p *Prompt) OptionAt(x, y int) int {
 	return -1
 }
 
+// MessageAt returns the cell of the message, scrolled SeekOffset rows
+// down, shown nearest to the given coordinates of the last Resize: the
+// cell at them when they fall on the rows of it shown above the options.
+// It returns false when the last Resize left no cell of the message
+// shown.
+func (p *Prompt) MessageAt(x, y int) (term.Coordinates, bool) {
+	if p.width <= 0 || p.msgHeight <= 0 {
+		return term.Coordinates{}, false
+	}
+	return term.Coordinates{
+		X: max(min(x, p.width-1), 0),
+		Y: max(min(y, p.msgHeight-1), 0) + p.msgOffset,
+	}, true
+}
+
 func (p *Prompt) initOptions(cfg PromptConfig) {
 	if len(cfg.Options) == 0 {
 		panic("Options should be greater than zero")

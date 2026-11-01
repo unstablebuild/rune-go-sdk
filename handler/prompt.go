@@ -26,6 +26,7 @@ package handler
 import (
 	"github.com/unstablebuild/rune-go-sdk/component"
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"github.com/unstablebuild/rune-go-sdk/tui"
 )
 
 // PromptHandler provides hooks to be called upon Prompt actions.
@@ -70,17 +71,26 @@ var _ Scrollable = (*Prompt)(nil)
 
 // Prompt wraps a component.Prompt to satisfy tui.Handler. The mouse
 // wheel scrolls a message the prompt was given too little room for.
+// When NewMessage builds a tui.Handler, the other mouse events on the
+// rows of the message shown go to it, at their coordinates on the
+// message, after the prompt sets the pointer shape. Once a button is
+// pressed on the message, the presses and the release that follow go
+// to it wherever they fall, at the cell of the message nearest them.
 // It keeps the colors and images it is built with; an extension asking
 // the user a question opens it with browserapi.Prompter instead, for the
 // host to draw it in its theme.
 type Prompt struct {
 	component.Prompt
 
-	hi       int
-	pressed  int
-	hover    int
-	cfg      PromptConfig
-	bindings map[term.KeyComb]int
+	message tui.Handler
+	// messageHeld is whether the message took a press it has not yet
+	// been sent the release of.
+	messageHeld bool
+	hi          int
+	pressed     int
+	hover       int
+	cfg         PromptConfig
+	bindings    map[term.KeyComb]int
 }
 
 // NewPrompt allocates storage for a new Prompt and initializes it.
@@ -95,7 +105,17 @@ func NewPrompt(cfg PromptConfig) (f *Prompt) {
 // Note that if OptionBindings is defined, it should be of the same
 // length as Options.
 func (f *Prompt) Init(cfg PromptConfig) {
-	f.Prompt.Init(cfg.PromptConfig)
+	f.message = nil
+	f.messageHeld = false
+	pcfg := cfg.PromptConfig
+	if newMessage := pcfg.NewMessage; newMessage != nil {
+		pcfg.NewMessage = func(msg string) component.Floating {
+			m := newMessage(msg)
+			f.message, _ = m.(tui.Handler)
+			return m
+		}
+	}
+	f.Prompt.Init(pcfg)
 	f.hi = 0       // allow for Init to be used as reset
 	f.pressed = -1 // no button pressed
 	f.hover = -1
@@ -243,12 +263,35 @@ func (f *Prompt) handleMouse(
 		}
 		f.pressed = -1
 	}
+	if ev.Key != term.MouseWheelUp && ev.Key != term.MouseWheelDown {
+		handled = f.handleMessageMouse(ev) || handled
+	}
 	f.highlightOption()
 	if selected >= 0 {
 		f.cfg.OnSelect(selected, f.cfg.Options[selected])
 		exit = true
 	}
 	return
+}
+
+// handleMessageMouse passes ev on to the message when it falls on it, or
+// when the message holds a press that ev moves or releases. Motions off
+// the message are not passed on, which would hover the cell nearest
+// them. The message cannot close the prompt.
+func (f *Prompt) handleMessageMouse(ev term.Event) (handled bool) {
+	if f.message == nil {
+		return false
+	}
+	pos, ok := f.MessageAt(ev.MouseX, ev.MouseY)
+	on := ok && pos == term.Coordinates{X: ev.MouseX, Y: ev.MouseY + f.SeekOffset()}
+	if !ok || !on && (!f.messageHeld || ev.Key == 0) {
+		return false
+	}
+	f.messageHeld = ev.Key == term.MouseLeft || ev.Key == term.MouseMiddle ||
+		ev.Key == term.MouseRight
+	ev.MouseX, ev.MouseY = pos.X, pos.Y
+	_, handled = f.message.Handle(ev)
+	return handled
 }
 
 func (f *Prompt) optionRight() (handled bool) {
