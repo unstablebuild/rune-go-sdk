@@ -206,6 +206,15 @@ func (s *Span) ContentOffset() term.Coordinates {
 	return offset
 }
 
+// ContentSize returns the size the content was given in the last
+// Resize, that of the innermost Span's content as ContentOffset does.
+func (s *Span) ContentSize() (width, height int) {
+	if inner, ok := s.content.C.(*Span); ok {
+		return inner.ContentSize()
+	}
+	return s.content.Width(), s.content.Height()
+}
+
 // Height satisfies Responsive by returning the underlying component's Height
 // with added padding, or panics if the underlying component does
 // not satisfy Responsive.

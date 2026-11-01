@@ -58,18 +58,20 @@ func (s *Span) Resize(width, height int) {
 // Handle satisfies tui.Handler by delegating events to the underlying
 // handler. Mouse events have their coordinates adjusted to account for
 // the span's content offset, and those on the padding are clamped onto
-// the content's edge. A motion beyond the span's top or left edge is not
-// clamped: that is how a parent says the pointer left, and clamping it
-// would make it a hover on the content's edge.
+// the content's edge. A motion beyond the span's edges is not clamped:
+// that is how a parent says the pointer left, and clamping it would make
+// it a hover on the content's edge.
 func (s *Span) Handle(ev term.Event) (bool, bool) {
 	if ev.Type == term.EventMouse {
-		beyond := ev.Key == 0 && (ev.MouseX < 0 || ev.MouseY < 0)
+		beyond := ev.Key == 0 && (ev.MouseX < 0 || ev.MouseY < 0 ||
+			ev.MouseX >= s.width || ev.MouseY >= s.height)
 		offset := s.ContentOffset()
 		ev.MouseX -= offset.X
 		ev.MouseY -= offset.Y
 		if !beyond {
-			ev.MouseX = max(ev.MouseX, 0)
-			ev.MouseY = max(ev.MouseY, 0)
+			width, height := s.ContentSize()
+			ev.MouseX = clampToContent(ev.MouseX, width)
+			ev.MouseY = clampToContent(ev.MouseY, height)
 		}
 	}
 	exit, handled := s.handler.Handle(ev)
@@ -80,6 +82,12 @@ func (s *Span) Handle(ev term.Event) (bool, bool) {
 		}
 	}
 	return exit, handled
+}
+
+// clampToContent clamps v to the cells of content size long, or to its
+// first cell when it has none.
+func clampToContent(v, size int) int {
+	return max(min(v, size-1), 0)
 }
 
 // Cursor satisfies tui.Handler by returning the underlying handler's
