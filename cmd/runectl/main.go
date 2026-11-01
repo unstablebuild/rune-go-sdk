@@ -161,6 +161,7 @@ func newRootCmd() *cobra.Command {
 		newSearchCmd(a),
 		newMCPCmd(a),
 		newStatusCmd(),
+		newScreenshotCmd(),
 	)
 
 	return cmd
