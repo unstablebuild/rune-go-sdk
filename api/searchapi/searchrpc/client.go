@@ -63,23 +63,38 @@ func (c *Client) RegexpSearch(
 	}, nil
 }
 
-// SemanticSearch satisfies searchapi.Searcher.
+// SemanticSearch satisfies searchapi.Searcher. It waits for the first
+// response, which carries the status.
 func (c *Client) SemanticSearch(
 	ctx context.Context, req searchapi.SemanticRequest,
-) (iterator.Iterator[searchapi.SemanticResult], error) {
+) (iterator.Iterator[searchapi.SemanticResult], searchapi.SemanticStatus, error) {
 	callCtx, cancel := context.WithCancel(ctx)
 	stream, err := c.pb.SemanticSearch(callCtx, ToProtoSemanticRequest(req))
 	if err != nil {
 		cancel()
-		return nil, fromStatus(err)
+		return nil, searchapi.SemanticStatus{}, fromStatus(err)
 	}
-	return &streamIterator[SemanticResponse, searchapi.SemanticResult]{
+	it := &streamIterator[SemanticResponse, searchapi.SemanticResult]{
 		stream: stream,
 		cancel: cancel,
 		unpack: func(resp *SemanticResponse) []searchapi.SemanticResult {
+			if resp.GetResult() == nil {
+				return nil
+			}
 			return []searchapi.SemanticResult{FromProtoSemanticResult(resp.GetResult())}
 		},
-	}, nil
+	}
+	first, err := stream.Recv()
+	switch {
+	case errors.Is(err, io.EOF):
+		it.done = true
+	case err != nil:
+		cancel()
+		return nil, searchapi.SemanticStatus{}, fromStatus(err)
+	default:
+		it.batch = it.unpack(first)
+	}
+	return it, FromProtoSemanticStatus(first.GetStatus()), nil
 }
 
 type streamIterator[R any, T any] struct {

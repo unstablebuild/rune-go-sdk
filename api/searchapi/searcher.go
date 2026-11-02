@@ -44,11 +44,11 @@ type Searcher interface {
 		iterator.Iterator[RegexpResult], error,
 	)
 	// SemanticSearch streams the files that best answer req, best first, ranked by
-	// meaning and by words. It reports llmapi.ErrModelNotFound when req.Model is not
-	// known, and ErrUnsupported when it cannot encode the query with it or a root is
-	// outside the workspace.
+	// meaning and by words, with the status of the index that answered it. It reports
+	// llmapi.ErrModelNotFound when req.Model is not known, and ErrUnsupported when it
+	// cannot encode the query with it or a root is outside the workspace.
 	SemanticSearch(ctx context.Context, req SemanticRequest) (
-		iterator.Iterator[SemanticResult], error,
+		iterator.Iterator[SemanticResult], SemanticStatus, error,
 	)
 }
 
@@ -105,6 +105,22 @@ type SemanticRequest struct {
 	// PrefixLast marks the last query word as still being typed, so it
 	// also matches as a prefix.
 	PrefixLast bool
+}
+
+// SemanticStatus says why the results of a SemanticSearch may be fewer or
+// ranked worse than those of a finished index. The zero value means they
+// are not.
+type SemanticStatus struct {
+	// Indexing reports that the index had not read every file yet, so
+	// files it has not reached may be missing from the results.
+	Indexing bool
+	// WordsOnly reports that results asked to be ranked by meaning were
+	// ranked by words alone, because the model could not encode the query.
+	WordsOnly bool
+	// Message explains Indexing and WordsOnly in a sentence fit to show a
+	// person or an agent, such as "1204 files left to index". It is empty
+	// when both are false.
+	Message string
 }
 
 // SemanticResult is a result for a SemanticRequest.

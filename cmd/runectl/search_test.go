@@ -165,14 +165,16 @@ func TestSearchSemantic(t *testing.T) {
 		return searchapi.SemanticRequest{Query: query, Model: alias, Meaning: true}
 	}
 	tests := []struct {
-		name      string
-		args      []string
-		serverErr error
-		wantReq   searchapi.SemanticRequest
-		wantOut   string
-		check     func(t *testing.T, out string)
-		wantErr   string
-		wantIs    error
+		name       string
+		args       []string
+		status     searchapi.SemanticStatus
+		serverErr  error
+		wantReq    searchapi.SemanticRequest
+		wantOut    string
+		wantStderr string
+		check      func(t *testing.T, out string)
+		wantErr    string
+		wantIs     error
 	}{
 		{
 			name:    "query",
@@ -187,6 +189,28 @@ func TestSearchSemantic(t *testing.T) {
 			name:    "quoted",
 			args:    []string{"where is the invoice rounded"},
 			wantReq: defaults("where is the invoice rounded"),
+		},
+		{
+			name:    "status",
+			args:    []string{"invoice"},
+			status:  searchapi.SemanticStatus{Indexing: true, Message: "12 files left to index"},
+			wantReq: defaults("invoice"),
+			wantOut: "billing/invoice.go:42:   3.14  2.50  return roundInvoiceTotal(lines)\n" +
+				"geo/route.go:7:          0.75  0.00  func shortestRoute(a, b Place) []Place {\n" +
+				"notebooks/fit.ipynb:1:   1.50  1.25  [cell 3] fit the model\n" +
+				"docs/invoice.md:1:       0.50  0.00\n",
+			wantStderr: "runectl: 12 files left to index\n",
+		},
+		{
+			name:       "status json",
+			args:       []string{"-F", "json", "invoice"},
+			status:     searchapi.SemanticStatus{WordsOnly: true, Message: "matched by words only"},
+			wantReq:    defaults("invoice"),
+			wantStderr: "runectl: matched by words only\n",
+			check: func(t *testing.T, out string) {
+				lines := strings.Split(strings.TrimSpace(out), "\n")
+				assert.Len(t, lines, len(cannedSemanticResults))
+			},
 		},
 		{
 			name: "flags",
@@ -317,8 +341,10 @@ func TestSearchSemantic(t *testing.T) {
 			env := newTestEnv(t)
 			defer env.cleanup()
 			env.search.err = tc.serverErr
+			env.search.status = tc.status
 
 			out, err := env.run(append([]string{"search", "semantic"}, tc.args...)...)
+			assert.Equal(t, tc.wantStderr, env.stderr.String())
 			switch {
 			case tc.wantErr != "":
 				require.ErrorContains(t, err, tc.wantErr)

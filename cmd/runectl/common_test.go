@@ -63,6 +63,8 @@ type testEnv struct {
 	lsp      *mockLSP
 	search   *mockSearch
 	cleanup  func()
+	// stderr is what the last run wrote to the command's stderr.
+	stderr bytes.Buffer
 }
 
 func newTestEnv(t *testing.T) *testEnv {
@@ -131,6 +133,8 @@ func (e *testEnv) run(args ...string) (string, error) {
 
 	root := newRootCmd()
 	root.SetArgs(args)
+	e.stderr.Reset()
+	root.SetErr(&e.stderr)
 
 	old := os.Stdout
 	r, ww, err := os.Pipe()
@@ -259,11 +263,13 @@ var cannedSemanticResults = []searchapi.SemanticResult{
 }
 
 // mockSearch implements searchrpc.SearcherServer. Each search streams
-// its canned results, then ends the stream with err.
+// its canned results, the semantic ones after status, then ends the
+// stream with err.
 type mockSearch struct {
 	searchrpc.UnimplementedSearcherServer
 	regexp   []searchapi.RegexpResult
 	semantic []searchapi.SemanticResult
+	status   searchapi.SemanticStatus
 	err      error
 
 	mu           sync.Mutex
@@ -295,6 +301,9 @@ func (m *mockSearch) SemanticSearch(
 	m.mu.Lock()
 	m.lastSemantic = &got
 	m.mu.Unlock()
+	if err := stream.Send(&searchrpc.SemanticResponse{Status: searchrpc.ToProtoSemanticStatus(m.status)}); err != nil {
+		return err
+	}
 	for _, r := range m.semantic {
 		if err := stream.Send(&searchrpc.SemanticResponse{Result: searchrpc.ToProtoSemanticResult(r)}); err != nil {
 			return err

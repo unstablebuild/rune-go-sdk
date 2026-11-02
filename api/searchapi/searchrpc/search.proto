@@ -80,6 +80,15 @@ message SemanticResult {
   string text = 14;
 }
 
+message SemanticStatus {
+  bool indexing = 1;
+  bool words_only = 2;
+  string message = 3;
+}
+
+// SemanticResponse carries one result. The first response also carries
+// the status of the search, alone when the search found nothing.
 message SemanticResponse {
   SemanticResult result = 1;
+  SemanticStatus status = 2;
 }

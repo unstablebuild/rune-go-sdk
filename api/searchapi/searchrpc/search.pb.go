@@ -525,16 +525,79 @@ func (x *SemanticResult) GetText() string {
 	return ""
 }
 
+type SemanticStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Indexing      bool                   `protobuf:"varint,1,opt,name=indexing,proto3" json:"indexing,omitempty"`
+	WordsOnly     bool                   `protobuf:"varint,2,opt,name=words_only,json=wordsOnly,proto3" json:"words_only,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SemanticStatus) Reset() {
+	*x = SemanticStatus{}
+	mi := &file_searchrpc_search_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SemanticStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SemanticStatus) ProtoMessage() {}
+
+func (x *SemanticStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_searchrpc_search_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SemanticStatus.ProtoReflect.Descriptor instead.
+func (*SemanticStatus) Descriptor() ([]byte, []int) {
+	return file_searchrpc_search_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SemanticStatus) GetIndexing() bool {
+	if x != nil {
+		return x.Indexing
+	}
+	return false
+}
+
+func (x *SemanticStatus) GetWordsOnly() bool {
+	if x != nil {
+		return x.WordsOnly
+	}
+	return false
+}
+
+func (x *SemanticStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// SemanticResponse carries one result. The first response also carries
+// the status of the search, alone when the search found nothing.
 type SemanticResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *SemanticResult        `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	Status        *SemanticStatus        `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SemanticResponse) Reset() {
 	*x = SemanticResponse{}
-	mi := &file_searchrpc_search_proto_msgTypes[6]
+	mi := &file_searchrpc_search_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -546,7 +609,7 @@ func (x *SemanticResponse) String() string {
 func (*SemanticResponse) ProtoMessage() {}
 
 func (x *SemanticResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_searchrpc_search_proto_msgTypes[6]
+	mi := &file_searchrpc_search_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -559,12 +622,19 @@ func (x *SemanticResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SemanticResponse.ProtoReflect.Descriptor instead.
 func (*SemanticResponse) Descriptor() ([]byte, []int) {
-	return file_searchrpc_search_proto_rawDescGZIP(), []int{6}
+	return file_searchrpc_search_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SemanticResponse) GetResult() *SemanticResult {
 	if x != nil {
 		return x.Result
+	}
+	return nil
+}
+
+func (x *SemanticResponse) GetStatus() *SemanticStatus {
+	if x != nil {
+		return x.Status
 	}
 	return nil
 }
@@ -618,9 +688,15 @@ const file_searchrpc_search_proto_rawDesc = "" +
 	"\aexcerpt\x18\v \x01(\tR\aexcerpt\x12\x1a\n" +
 	"\bmodified\x18\f \x01(\x03R\bmodified\x12\x12\n" +
 	"\x04size\x18\r \x01(\x03R\x04size\x12\x12\n" +
-	"\x04text\x18\x0e \x01(\tR\x04text\"B\n" +
+	"\x04text\x18\x0e \x01(\tR\x04text\"e\n" +
+	"\x0eSemanticStatus\x12\x1a\n" +
+	"\bindexing\x18\x01 \x01(\bR\bindexing\x12\x1d\n" +
+	"\n" +
+	"words_only\x18\x02 \x01(\bR\twordsOnly\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"r\n" +
 	"\x10SemanticResponse\x12.\n" +
-	"\x06result\x18\x01 \x01(\v2\x16.search.SemanticResultR\x06result2\x92\x01\n" +
+	"\x06result\x18\x01 \x01(\v2\x16.search.SemanticResultR\x06result\x12.\n" +
+	"\x06status\x18\x02 \x01(\v2\x16.search.SemanticStatusR\x06status2\x92\x01\n" +
 	"\bSearcher\x12?\n" +
 	"\fRegexpSearch\x12\x15.search.RegexpRequest\x1a\x16.search.RegexpResponse0\x01\x12E\n" +
 	"\x0eSemanticSearch\x12\x17.search.SemanticRequest\x1a\x18.search.SemanticResponse0\x01B>Z<github.com/unstablebuild/rune-go-sdk/api/searchapi/searchrpcb\x06proto3"
@@ -637,7 +713,7 @@ func file_searchrpc_search_proto_rawDescGZIP() []byte {
 	return file_searchrpc_search_proto_rawDescData
 }
 
-var file_searchrpc_search_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_searchrpc_search_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_searchrpc_search_proto_goTypes = []any{
 	(*RegexpRequest)(nil),    // 0: search.RegexpRequest
 	(*Span)(nil),             // 1: search.Span
@@ -645,21 +721,23 @@ var file_searchrpc_search_proto_goTypes = []any{
 	(*RegexpResponse)(nil),   // 3: search.RegexpResponse
 	(*SemanticRequest)(nil),  // 4: search.SemanticRequest
 	(*SemanticResult)(nil),   // 5: search.SemanticResult
-	(*SemanticResponse)(nil), // 6: search.SemanticResponse
+	(*SemanticStatus)(nil),   // 6: search.SemanticStatus
+	(*SemanticResponse)(nil), // 7: search.SemanticResponse
 }
 var file_searchrpc_search_proto_depIdxs = []int32{
 	1, // 0: search.RegexpResult.spans:type_name -> search.Span
 	2, // 1: search.RegexpResponse.results:type_name -> search.RegexpResult
 	5, // 2: search.SemanticResponse.result:type_name -> search.SemanticResult
-	0, // 3: search.Searcher.RegexpSearch:input_type -> search.RegexpRequest
-	4, // 4: search.Searcher.SemanticSearch:input_type -> search.SemanticRequest
-	3, // 5: search.Searcher.RegexpSearch:output_type -> search.RegexpResponse
-	6, // 6: search.Searcher.SemanticSearch:output_type -> search.SemanticResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 3: search.SemanticResponse.status:type_name -> search.SemanticStatus
+	0, // 4: search.Searcher.RegexpSearch:input_type -> search.RegexpRequest
+	4, // 5: search.Searcher.SemanticSearch:input_type -> search.SemanticRequest
+	3, // 6: search.Searcher.RegexpSearch:output_type -> search.RegexpResponse
+	7, // 7: search.Searcher.SemanticSearch:output_type -> search.SemanticResponse
+	6, // [6:8] is the sub-list for method output_type
+	4, // [4:6] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_searchrpc_search_proto_init() }
@@ -673,7 +751,7 @@ func file_searchrpc_search_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_searchrpc_search_proto_rawDesc), len(file_searchrpc_search_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

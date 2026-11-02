@@ -220,7 +220,10 @@ A notebook cell or a file matched by its name opens at line 1 and shows
 its excerpt instead. -F takes a Go template over the fields of -F json;
 .Text is the line as written, so this prints exactly what grep -n would:
 
-  runectl search semantic -F '{{.Path}}:{{.Line}}:{{.Text}}' retry backoff`,
+  runectl search semantic -F '{{.Path}}:{{.Line}}:{{.Text}}' retry backoff
+
+While the workspace is still being indexed, or the model cannot rank by
+meaning, results may be missing or worse; why is printed to stderr.`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
@@ -239,7 +242,7 @@ its excerpt instead. -F takes a Go template over the fields of -F json;
 			if err != nil {
 				return err
 			}
-			it, err := w.Search(cmd.Context()).SemanticSearch(cmd.Context(),
+			it, status, err := w.Search(cmd.Context()).SemanticSearch(cmd.Context(),
 				searchapi.SemanticRequest{
 					Query:      query,
 					Model:      entry,
@@ -250,6 +253,9 @@ its excerpt instead. -F takes a Go template over the fields of -F json;
 				})
 			if err != nil {
 				return err
+			}
+			if status.Message != "" {
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "runectl: %s\n", status.Message)
 			}
 			return printSemanticResults(cmd.Context(), format, it)
 		},

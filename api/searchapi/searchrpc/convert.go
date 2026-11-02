@@ -142,3 +142,19 @@ func FromProtoSemanticResult(p *SemanticResult) searchapi.SemanticResult {
 		Text:        p.GetText(),
 	}
 }
+
+// ToProtoSemanticStatus converts a searchapi.SemanticStatus to its wire
+// form.
+func ToProtoSemanticStatus(s searchapi.SemanticStatus) *SemanticStatus {
+	return &SemanticStatus{Indexing: s.Indexing, WordsOnly: s.WordsOnly, Message: s.Message}
+}
+
+// FromProtoSemanticStatus converts a wire SemanticStatus to
+// searchapi.SemanticStatus; nil is the zero status.
+func FromProtoSemanticStatus(p *SemanticStatus) searchapi.SemanticStatus {
+	return searchapi.SemanticStatus{
+		Indexing:  p.GetIndexing(),
+		WordsOnly: p.GetWordsOnly(),
+		Message:   p.GetMessage(),
+	}
+}

@@ -19,6 +19,7 @@ import (
 	"errors"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,15 +34,20 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-// stubServer streams its results, regexp lines in the messages given,
-// then ends the stream with err. With block set, each search hands its
-// context over and waits for it to end.
+// stubServer streams its results, regexp lines in the messages given and
+// semantic results after a status message unless noStatus, then ends the
+// stream with err. With block set, each search hands its context over and
+// waits for it to end instead of streaming results.
 type stubServer struct {
 	searchrpc.UnimplementedSearcherServer
 	regexp   [][]searchapi.RegexpResult
 	semantic []searchapi.SemanticResult
+	status   searchapi.SemanticStatus
+	noStatus bool
+	combined bool
 	err      error
 	block    chan context.Context
+	onWait   func()
 
 	gotRegexp   searchapi.RegexpRequest
 	gotSemantic searchapi.SemanticRequest
@@ -70,10 +76,21 @@ func (s *stubServer) SemanticSearch(
 	req *searchrpc.SemanticRequest, stream grpc.ServerStreamingServer[searchrpc.SemanticResponse],
 ) error {
 	s.gotSemantic = searchrpc.FromProtoSemanticRequest(req)
+	results := s.semantic
+	if !s.noStatus {
+		resp := &searchrpc.SemanticResponse{Status: searchrpc.ToProtoSemanticStatus(s.status)}
+		if s.combined && len(results) > 0 {
+			resp.Result = searchrpc.ToProtoSemanticResult(results[0])
+			results = results[1:]
+		}
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+	}
 	if s.block != nil {
 		return s.wait(stream.Context())
 	}
-	for _, r := range s.semantic {
+	for _, r := range results {
 		if err := stream.Send(&searchrpc.SemanticResponse{Result: searchrpc.ToProtoSemanticResult(r)}); err != nil {
 			return err
 		}
@@ -83,6 +100,9 @@ func (s *stubServer) SemanticSearch(
 
 func (s *stubServer) wait(ctx context.Context) error {
 	s.block <- ctx
+	if s.onWait != nil {
+		s.onWait()
+	}
 	<-ctx.Done()
 	return ctx.Err()
 }
@@ -187,16 +207,52 @@ func TestSemanticSearch(t *testing.T) {
 		Query: "retry backoff", Model: llmapi.ModelEntry{Provider: "llamacpp", Name: "gemma"},
 		Roots: []string{"internal"}, Limit: 5, Meaning: true, PrefixLast: true,
 	}
+	indexing := searchapi.SemanticStatus{Indexing: true, WordsOnly: true, Message: "12 files left to index"}
 	tests := []struct {
-		name    string
-		s       *stubServer
-		want    []searchapi.SemanticResult
-		wantErr error
+		name       string
+		s          *stubServer
+		want       []searchapi.SemanticResult
+		wantStatus searchapi.SemanticStatus
+		wantErr    error
 	}{
 		{name: "results round-trip", s: &stubServer{semantic: results}, want: results},
+		{name: "no results", s: &stubServer{}, want: []searchapi.SemanticResult{}},
+		{
+			name:       "status round-trips",
+			s:          &stubServer{semantic: results, status: indexing},
+			want:       results,
+			wantStatus: indexing,
+		},
+		{
+			name:       "status with first result",
+			s:          &stubServer{semantic: results, status: indexing, combined: true},
+			want:       results,
+			wantStatus: indexing,
+		},
+		{
+			name:       "status without results",
+			s:          &stubServer{status: indexing},
+			want:       []searchapi.SemanticResult{},
+			wantStatus: indexing,
+		},
+		{
+			name: "results without a status",
+			s:    &stubServer{semantic: results, noStatus: true},
+			want: results,
+		},
+		{
+			name: "neither results nor status",
+			s:    &stubServer{noStatus: true},
+			want: []searchapi.SemanticResult{},
+		},
 		{
 			name:    "unimplemented is unsupported",
 			s:       &stubServer{err: status.Error(codes.Unimplemented, "openai")},
+			wantErr: searchapi.ErrUnsupported,
+		},
+		{
+			name:    "unimplemented before the status",
+			s:       &stubServer{noStatus: true, err: status.Error(codes.Unimplemented, "no index")},
 			wantErr: searchapi.ErrUnsupported,
 		},
 		{
@@ -214,15 +270,119 @@ func TestSemanticSearch(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			c := dial(t, tc.s)
+			var st searchapi.SemanticStatus
 			got, err := search(t, func() (iterator.Iterator[searchapi.SemanticResult], error) {
-				return c.SemanticSearch(t.Context(), req)
+				it, s, err := c.SemanticSearch(t.Context(), req)
+				st = s
+				return it, err
 			})
 			checkErr(t, tc.wantErr, err)
 			if tc.wantErr == nil {
 				assert.Equal(t, tc.want, got)
+				assert.Equal(t, tc.wantStatus, st)
 			}
 			assert.Equal(t, req, tc.s.gotSemantic)
 		})
+	}
+}
+
+func TestSemanticSearchCancellationWaitingForFirstResponse(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	s := &stubServer{noStatus: true, block: make(chan context.Context, 1), onWait: cancel}
+	c := dial(t, s)
+	it, st, err := c.SemanticSearch(ctx, searchapi.SemanticRequest{Query: "x"})
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, it)
+	assert.Equal(t, searchapi.SemanticStatus{}, st)
+	select {
+	case srvCtx := <-s.block:
+		select {
+		case <-srvCtx.Done():
+		case <-time.After(5 * time.Second):
+			t.Fatal("server stream was not canceled")
+		}
+	default:
+		t.Fatal("search did not reach the server")
+	}
+}
+
+func TestSemanticSearchCloseBeforeResults(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	s := &stubServer{block: make(chan context.Context, 1), status: searchapi.SemanticStatus{Indexing: true}}
+	it, st, err := dial(t, s).SemanticSearch(ctx, searchapi.SemanticRequest{Query: "x"})
+	require.NoError(t, err)
+	assert.Equal(t, s.status, st)
+	t.Cleanup(func() { assert.NoError(t, it.Close()) })
+	require.NoError(t, it.Close())
+	require.NoError(t, it.Close())
+	_, ok := it.Next(ctx)
+	assert.False(t, ok)
+	require.ErrorIs(t, it.Err(), context.Canceled)
+	select {
+	case srvCtx := <-s.block:
+		select {
+		case <-srvCtx.Done():
+		case <-ctx.Done():
+			t.Fatal("server stream was not canceled by Close")
+		}
+	case <-ctx.Done():
+		t.Fatal("server did not enter its wait")
+	}
+}
+
+func TestSemanticSearchErrors(t *testing.T) {
+	for _, tc := range []struct {
+		code codes.Code
+		want error
+	}{
+		{codes.Unimplemented, searchapi.ErrUnsupported},
+		{codes.NotFound, llmapi.ErrModelNotFound},
+		{codes.Canceled, context.Canceled},
+		{codes.DeadlineExceeded, context.DeadlineExceeded},
+		{codes.Internal, errAny},
+	} {
+		for _, phase := range []string{"before response", "after status", "after result"} {
+			t.Run(tc.code.String()+"/"+phase, func(t *testing.T) {
+				st := searchapi.SemanticStatus{Indexing: true, WordsOnly: true, Message: "indexing"}
+				s := &stubServer{status: st, noStatus: phase == "before response", err: status.Error(tc.code, "search failed")}
+				result := searchapi.SemanticResult{Path: "a.go", Score: 1}
+				if phase == "after result" {
+					s.semantic = []searchapi.SemanticResult{result}
+					s.combined = true
+				}
+				it, gotStatus, err := dial(t, s).SemanticSearch(t.Context(), searchapi.SemanticRequest{Query: "x"})
+				if phase == "before response" {
+					checkErr(t, tc.want, err)
+					assert.Nil(t, it)
+					assert.Equal(t, searchapi.SemanticStatus{}, gotStatus)
+					return
+				}
+				require.NoError(t, err)
+				t.Cleanup(func() { assert.NoError(t, it.Close()) })
+				assert.Equal(t, st, gotStatus)
+				require.NoError(t, it.Err())
+				if phase == "after result" {
+					got, ok := it.Next(t.Context())
+					require.True(t, ok)
+					assert.Equal(t, result, got)
+					require.NoError(t, it.Err())
+				}
+				for range 2 {
+					got, ok := it.Next(t.Context())
+					assert.False(t, ok)
+					assert.Equal(t, searchapi.SemanticResult{}, got)
+					checkErr(t, tc.want, it.Err())
+					assert.Contains(t, it.Err().Error(), "search failed")
+					if tc.want == errAny {
+						assert.Equal(t, tc.code, status.Code(it.Err()))
+					}
+				}
+				require.NoError(t, it.Close())
+				checkErr(t, tc.want, it.Err())
+			})
+		}
 	}
 }
 
@@ -230,10 +390,11 @@ func TestSemanticSearchModelTravelsByProviderAndName(t *testing.T) {
 	s := &stubServer{}
 	c := dial(t, s)
 	_, err := search(t, func() (iterator.Iterator[searchapi.SemanticResult], error) {
-		return c.SemanticSearch(t.Context(), searchapi.SemanticRequest{
+		it, _, err := c.SemanticSearch(t.Context(), searchapi.SemanticRequest{
 			Query: "q",
 			Model: llmapi.ModelEntry{Provider: "llamacpp", Name: "gemma", ContextWindow: 2048, BaseURL: "http://x"},
 		})
+		return it, err
 	})
 	require.NoError(t, err)
 	assert.Equal(t, llmapi.ModelEntry{Provider: "llamacpp", Name: "gemma"}, s.gotSemantic.Model)
@@ -252,7 +413,7 @@ func TestCloseCancelsTheStream(t *testing.T) {
 			return it.Close, nil
 		}},
 		{"semantic", func(ctx context.Context, c *searchrpc.Client) (func() error, error) {
-			it, err := c.SemanticSearch(ctx, searchapi.SemanticRequest{Query: "x"})
+			it, _, err := c.SemanticSearch(ctx, searchapi.SemanticRequest{Query: "x"})
 			if err != nil {
 				return nil, err
 			}
