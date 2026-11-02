@@ -193,7 +193,11 @@ func TestIntegrationCallEveryTool(t *testing.T) {
 					require.NoError(t, err)
 					require.False(t, res.IsError, resultText(t, *res))
 					require.JSONEq(t, tc.want, resultText(t, *res))
-					require.Nil(t, res.StructuredContent)
+					if tc.tool == "semantic_search" {
+						requireSemanticStructure(t, *res, tc.want)
+					} else {
+						require.Nil(t, res.StructuredContent)
+					}
 				})
 			}
 			require.Len(t, s.lsp.called("Hover"), 1)

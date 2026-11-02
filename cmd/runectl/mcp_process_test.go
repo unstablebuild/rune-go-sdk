@@ -201,6 +201,8 @@ var mcpTools = []string{
 	"lsp_type_supertypes",
 	"lsp_workspace_diagnostics",
 	"lsp_workspace_symbols",
+	"regexp_search",
+	"semantic_search",
 	"syntax_query",
 	"syntax_query_node",
 	"syntax_search",
@@ -526,6 +528,29 @@ func processCases() []processCase {
 				`"start_line":20,"start_char":5},` +
 				`{"name":"MyStruct.MyMethod","kind":"Method",` +
 				`"uri":"file:///src/types.go","start_line":30,"start_char":0}]`,
+		},
+		{
+			tool: "regexp_search",
+			args: map[string]any{"pattern": "invoice", "roots": []any{"billing"},
+				"include": []any{"*.go"}},
+			rpcs: []string{"Searcher/RegexpSearch"},
+			req:  `{"pattern":"invoice","roots":["billing"],"include":["*.go"],"limit":201}`,
+			want: `[{"path":"billing/invoice.go","line":42,"text":"\treturn invoice(invoice)"},` +
+				`{"path":".github/ci.yml","line":3,"text":"runs-on: invoice"}]`,
+		},
+		{
+			tool: "semantic_search",
+			args: map[string]any{"query": "where is the invoice rounded", "limit": 5},
+			rpcs: []string{"Searcher/SemanticSearch"},
+			req:  `{"query":"where is the invoice rounded","limit":5,"meaning":true}`,
+			want: `[{"path":"billing/invoice.go","line":42,"segment":"lines","start":40,` +
+				`"end":58,"excerpt":"rounds the «invoice» total",` +
+				`"text":"\treturn roundInvoiceTotal(lines)"},` +
+				`{"path":"geo/route.go","line":7,"segment":"lines","start":7,"end":19,` +
+				`"excerpt":"shortest route","text":"func shortestRoute(a, b Place) []Place {"},` +
+				`{"path":"notebooks/fit.ipynb","line":1,"segment":"cells","start":3,"end":3,` +
+				`"excerpt":"fit the model"},` +
+				`{"path":"docs/invoice.md","line":1,"segment":"name"}]`,
 		},
 		{
 			tool: "syntax_query",

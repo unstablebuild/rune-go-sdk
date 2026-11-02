@@ -27,6 +27,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/stretchr/testify/require"
+	"github.com/unstablebuild/rune-go-sdk/api/searchapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
 )
@@ -59,7 +60,7 @@ func TestAllThemes(t *testing.T) {
 	s := newTestServer(WithAllThemes())
 	names := toolNames(listTools(t, s.MCPServer))
 	require.Equal(t, allTools(), names)
-	require.Len(t, names, 33)
+	require.Len(t, names, 35)
 }
 
 func TestUnknownThemeAddsNothing(t *testing.T) {
@@ -104,12 +105,18 @@ func TestRegisterSeparately(t *testing.T) {
 			},
 			toolNames(listTools(t, s)))
 	})
+	t.Run("search", func(t *testing.T) {
+		s := server.NewMCPServer("t", "1")
+		RegisterSearchTools(context.Background(), s, newFakeSearcher())
+		require.Equal(t, []string{"regexp_search", "semantic_search"}, toolNames(listTools(t, s)))
+	})
 	t.Run("options are per call", func(t *testing.T) {
 		s := server.NewMCPServer("t", "1")
 		RegisterSyntaxTools(context.Background(), s, &fakeParser{},
 			WithAlwaysLoad("syntax_search"))
 		RegisterLSPTools(context.Background(), s, newFakeLSP(), nil,
 			WithThemes(ThemeRename))
+		RegisterSearchTools(context.Background(), s, newFakeSearcher())
 		tools := listTools(t, s)
 		want := slices.Concat(coreTools, themeTools[ThemeRename])
 		slices.Sort(want)
@@ -195,6 +202,8 @@ var paramTypes = map[string]string{
 	"end_line": "number", "end_character": "number",
 	"include_declaration": "boolean", "insert_spaces": "boolean",
 	"captures": "array", "languages": "array",
+	"pattern": "string", "ignore_case": "boolean", "roots": "array",
+	"include": "array", "limit": "number", "max_per_file": "number",
 }
 
 func TestToolSchemas(t *testing.T) {
@@ -231,7 +240,7 @@ func TestToolSchemas(t *testing.T) {
 	}
 }
 
-var toolRef = regexp.MustCompile(`\b(?:lsp|syntax)_[a-z_]+\b`)
+var toolRef = regexp.MustCompile(`\b(?:lsp_[a-z_]+|syntax_[a-z_]+|[a-z]+_search)\b`)
 
 // Descriptions steer the model to other tools by name; each name must be one it can call.
 func TestDescriptionsReferenceRegisteredTools(t *testing.T) {
@@ -250,10 +259,17 @@ func TestEveryToolCall(t *testing.T) {
 			res := callTool(t, s.MCPServer, c.tool, c.args)
 			require.False(t, res.IsError, resultText(t, res))
 			require.JSONEq(t, c.want, resultText(t, res))
-			require.Nil(t, res.StructuredContent)
+			if c.tool == "semantic_search" {
+				requireSemanticStructure(t, res, c.want)
+			} else {
+				require.Nil(t, res.StructuredContent)
+			}
 			backend := &s.lsp.recorder
-			if isSyntaxTool(c.tool) {
+			switch {
+			case isSyntaxTool(c.tool):
 				backend = &s.parser.recorder
+			case isSearchTool(c.tool):
+				backend = &s.searcher.recorder
 			}
 			require.Len(t, backend.called(c.method), 1)
 		})
@@ -270,6 +286,7 @@ func TestMissingRequiredArgument(t *testing.T) {
 				require.Contains(t, resultText(t, res), fmt.Sprintf("%q", arg))
 				require.Empty(t, s.lsp.methods(), "no backend call")
 				require.Empty(t, s.parser.methods(), "no backend call")
+				require.Empty(t, s.searcher.methods(), "no backend call")
 			})
 		}
 	}
@@ -597,6 +614,29 @@ func TestArgumentsReachBackend(t *testing.T) {
 			require.Equal(t, searchParams{nodeTypes: nodeTypes, uri: mainGo},
 				only(t, &s.parser.recorder, "QueryNode"))
 		}},
+		{"regexp_search", nil, func(t *testing.T, s *testServer) {
+			require.Equal(t, searchapi.RegexpRequest{
+				Pattern: `func \w+`, IgnoreCase: true, Roots: []string{"src"},
+				Include: []string{"*.go"}, Limit: 11, MaxPerFile: 1,
+			}, only(t, &s.searcher.recorder, "RegexpSearch"))
+		}},
+		{"regexp_search", map[string]any{"pattern": "x"}, func(t *testing.T, s *testServer) {
+			require.Equal(t, searchapi.RegexpRequest{Pattern: "x", Limit: 201},
+				only(t, &s.searcher.recorder, "RegexpSearch"))
+		}},
+		{"regexp_search", map[string]any{"pattern": "x", "limit": 0}, func(t *testing.T, s *testServer) {
+			require.Equal(t, searchapi.RegexpRequest{Pattern: "x"},
+				only(t, &s.searcher.recorder, "RegexpSearch"))
+		}},
+		{"semantic_search", nil, func(t *testing.T, s *testServer) {
+			require.Equal(t, searchapi.SemanticRequest{
+				Query: "where is MyFunc", Roots: []string{"src"}, Limit: 5, Meaning: true,
+			}, only(t, &s.searcher.recorder, "SemanticSearch"))
+		}},
+		{"semantic_search", map[string]any{"query": "q"}, func(t *testing.T, s *testServer) {
+			require.Equal(t, searchapi.SemanticRequest{Query: "q", Limit: 20, Meaning: true},
+				only(t, &s.searcher.recorder, "SemanticSearch"))
+		}},
 	}
 	cases := make(map[string]toolCase)
 	for _, c := range toolCases() {
@@ -623,6 +663,7 @@ func TestBackendErrors(t *testing.T) {
 			err := fmt.Errorf("%s: server crashed", c.method)
 			s.lsp.failOn(c.method, err)
 			s.parser.failOn(c.method, err)
+			s.searcher.failOn(c.method, err)
 			res := callTool(t, s.MCPServer, c.tool, c.args)
 			require.True(t, res.IsError)
 			require.Equal(t, err.Error(), resultText(t, res))
@@ -871,6 +912,7 @@ func TestEmptyResults(t *testing.T) {
 		t.Run(c.tool, func(t *testing.T) {
 			s := newTestServer(WithAllThemes())
 			s.lsp.empty, s.parser.empty = true, true
+			s.searcher.regexp, s.searcher.semantic = nil, nil
 			if c.tool == "lsp_workspace_symbols" {
 				s.lsp.symbols = nil
 			}
@@ -1002,7 +1044,7 @@ func TestRegistrationContext(t *testing.T) {
 		require.False(t, res.IsError, "%s: %s", c.tool, resultText(t, res))
 	}
 	var seen int
-	for _, r := range []*recorder{&s.lsp.recorder, &s.parser.recorder} {
+	for _, r := range []*recorder{&s.lsp.recorder, &s.parser.recorder, &s.searcher.recorder} {
 		for _, c := range r.calls {
 			if c.ctx == nil {
 				// Parser methods take no context; their iterators are read with it

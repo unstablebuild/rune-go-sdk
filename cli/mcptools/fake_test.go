@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/unstablebuild/rune-go-sdk/api/searchapi"
 	"github.com/unstablebuild/rune-go-sdk/api/semanticapi"
 	"github.com/unstablebuild/rune-go-sdk/api/syntaxapi"
 	"github.com/unstablebuild/rune-go-sdk/api/workspaceapi"
@@ -707,3 +708,78 @@ func (f *fakeParser) results(
 		f.close,
 	)
 }
+
+// fakeSearcher implements searchapi.Searcher over canned results. RegexpSearch honors the
+// request's Limit; SemanticSearch answers status along with its results.
+type fakeSearcher struct {
+	recorder
+
+	regexp     []searchapi.RegexpResult
+	semantic   []searchapi.SemanticResult
+	status     searchapi.SemanticStatus
+	regexpIter iterator.Iterator[searchapi.RegexpResult]
+	onContext  func(context.Context)
+}
+
+func newFakeSearcher() *fakeSearcher {
+	return &fakeSearcher{
+		regexp: []searchapi.RegexpResult{
+			{Path: "src/main.go", Line: 6, Text: "func MyFunc() {", Spans: [][2]int{{0, 11}}},
+			{Path: "src/types.go", Line: 31, Text: "func (s MyStruct) MyMethod() {",
+				Spans: [][2]int{{0, 26}}},
+		},
+		semantic: []searchapi.SemanticResult{
+			{Path: "src/main.go", Kind: "code", Score: 2.5, Z: 1.5, Cosine: 0.6,
+				Segment: "lines", Loc: 4, LocEnd: 12, Focus: 6,
+				Excerpt: "func «MyFunc»()", Text: "func MyFunc() {"},
+			{Path: "notebooks/fit.ipynb", Kind: "notebook", Score: 1, Segment: "cells",
+				Loc: 3, LocEnd: 3, Excerpt: "fit the model"},
+			{Path: "docs/myfunc.md", Kind: "doc", Score: 0.5, Segment: "name"},
+		},
+	}
+}
+
+func (f *fakeSearcher) RegexpSearch(
+	ctx context.Context, req searchapi.RegexpRequest,
+) (iterator.Iterator[searchapi.RegexpResult], error) {
+	if f.onContext != nil {
+		f.onContext(ctx)
+	}
+	if f.regexpIter != nil {
+		return f.regexpIter, nil
+	}
+	if err := f.record(ctx, "RegexpSearch", req); err != nil {
+		return nil, err
+	}
+	results := f.regexp
+	if req.Limit > 0 && len(results) > req.Limit {
+		results = results[:req.Limit]
+	}
+	return iterator.FromSlice(results), nil
+}
+
+func (f *fakeSearcher) SemanticSearch(
+	ctx context.Context, req searchapi.SemanticRequest,
+) (iterator.Iterator[searchapi.SemanticResult], searchapi.SemanticStatus, error) {
+	if f.onContext != nil {
+		f.onContext(ctx)
+	}
+	if err := f.record(ctx, "SemanticSearch", req); err != nil {
+		return nil, searchapi.SemanticStatus{}, err
+	}
+	return iterator.FromSlice(f.semantic), f.status, nil
+}
+
+type searchIterator struct {
+	next     int
+	closed   int
+	err      error
+	closeErr error
+}
+
+func (i *searchIterator) Next(context.Context) (searchapi.RegexpResult, bool) {
+	i.next++
+	return searchapi.RegexpResult{}, i.next <= 5 && i.err == nil
+}
+func (i *searchIterator) Err() error   { return i.err }
+func (i *searchIterator) Close() error { i.closed++; return i.closeErr }

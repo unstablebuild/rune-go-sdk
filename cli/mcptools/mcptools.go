@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mcptools exposes Rune's language servers and syntax trees as MCP tools.
+// Package mcptools exposes Rune's language servers, syntax trees and search indexes as MCP
+// tools.
 //
 // Tools are grouped into a core set, which is always registered, and optional themes that
 // are opted into with [WithThemes] or [WithAllThemes].

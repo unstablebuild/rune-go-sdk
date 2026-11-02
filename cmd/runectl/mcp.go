@@ -41,7 +41,7 @@ func newMCPCmd(a *app) *cobra.Command {
 	return cmd
 }
 
-// registerMCPTools registers every syntax and LSP tool.
+// registerMCPTools registers every syntax, LSP and search tool.
 func registerMCPTools(
 	ctx context.Context,
 	s *server.MCPServer,
@@ -50,4 +50,5 @@ func registerMCPTools(
 	parser := w.Parser(ctx)
 	mcptools.RegisterSyntaxTools(ctx, s, parser, mcptools.WithAllThemes())
 	mcptools.RegisterLSPTools(ctx, s, w.LSP(ctx), parser, mcptools.WithAllThemes())
+	mcptools.RegisterSearchTools(ctx, s, w.Search(ctx), mcptools.WithAllThemes())
 }

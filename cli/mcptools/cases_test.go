@@ -36,6 +36,8 @@ var coreTools = []string{
 	"lsp_implementation",
 	"lsp_references",
 	"lsp_workspace_symbols",
+	"regexp_search",
+	"semantic_search",
 	"syntax_query",
 	"syntax_query_node",
 	"syntax_search",
@@ -376,6 +378,26 @@ func toolCases() []toolCase {
 				`{"file":"file:///src/main.go","text":"main","from_x":2,"from_y":9,` +
 				`"to_x":6,"to_y":9,"capture_name":"definition.namespace"}]`,
 		},
+		{
+			tool: "regexp_search", args: map[string]any{
+				"pattern": `func \w+`, "ignore_case": true, "roots": []any{"src"},
+				"include": []any{"*.go"}, "limit": 10, "max_per_file": 1,
+			},
+			required: []string{"pattern"}, method: "RegexpSearch",
+			want: `[{"path":"src/main.go","line":6,"text":"func MyFunc() {"},` +
+				`{"path":"src/types.go","line":31,"text":"func (s MyStruct) MyMethod() {"}]`,
+		},
+		{
+			tool: "semantic_search", args: map[string]any{
+				"query": "where is MyFunc", "roots": []any{"src"}, "limit": 5,
+			},
+			required: []string{"query"}, method: "SemanticSearch",
+			want: `[{"path":"src/main.go","line":6,"segment":"lines","start":4,"end":12,` +
+				`"excerpt":"func «MyFunc»()","text":"func MyFunc() {"},` +
+				`{"path":"notebooks/fit.ipynb","line":1,"segment":"cells","start":3,` +
+				`"end":3,"excerpt":"fit the model"},` +
+				`{"path":"docs/myfunc.md","line":1,"segment":"name"}]`,
+		},
 	}
 	slices.SortFunc(cases, func(a, b toolCase) int {
 		return strings.Compare(a.tool, b.tool)
@@ -389,6 +411,11 @@ func isSyntaxTool(tool string) bool {
 	return strings.HasPrefix(tool, "syntax_")
 }
 
+// isSearchTool reports whether tool is answered by the searcher.
+func isSearchTool(tool string) bool {
+	return tool == "regexp_search" || tool == "semantic_search"
+}
+
 // without returns a copy of args without key.
 func without(args map[string]any, key string) map[string]any {
 	out := maps.Clone(args)
@@ -399,8 +426,9 @@ func without(args map[string]any, key string) map[string]any {
 // testServer is an MCP server with every tool registered over the fakes it holds.
 type testServer struct {
 	*server.MCPServer
-	lsp    *fakeLSP
-	parser *fakeParser
+	lsp      *fakeLSP
+	parser   *fakeParser
+	searcher *fakeSearcher
 }
 
 func newTestServer(opts ...Option) *testServer {
@@ -412,9 +440,11 @@ func newTestServerContext(ctx context.Context, opts ...Option) *testServer {
 		MCPServer: server.NewMCPServer("mcptools-test", "1.2.3"),
 		lsp:       newFakeLSP(),
 		parser:    &fakeParser{},
+		searcher:  newFakeSearcher(),
 	}
 	RegisterSyntaxTools(ctx, s.MCPServer, s.parser, opts...)
 	RegisterLSPTools(ctx, s.MCPServer, s.lsp, s.parser, opts...)
+	RegisterSearchTools(ctx, s.MCPServer, s.searcher, opts...)
 	return s
 }
 
