@@ -61,7 +61,6 @@ type Workspace struct {
 	installDir string
 	conn       grpc.ClientConnInterface
 	commands   *textrpc.Client
-	config     config.Config
 	meta       Metadata
 }
 
@@ -280,16 +279,14 @@ func (w *Workspace) Interrupter(ctx context.Context) term.Interrupter {
 	return browserrpc.NewClient(ctx, w.conn)
 }
 
-// Config returns a copy of the workspace's global configuration.
+// Config fetches the workspace's global configuration from Rune, so each
+// call returns it as it is at that moment.
 func (w *Workspace) Config(ctx context.Context) config.Config {
-	if w.config == nil {
-		c, err := configrpc.FetchConfig(w.conn)
-		if err != nil {
-			return config.ErrConfig(fmt.Errorf("fetch config: %w", err))
-		}
-		w.config = c
+	c, err := configrpc.FetchConfig(w.conn)
+	if err != nil {
+		return config.ErrConfig(fmt.Errorf("fetch config: %w", err))
 	}
-	return w.config
+	return c
 }
 
 // RawConn returns the underlying raw connection to the extension host.

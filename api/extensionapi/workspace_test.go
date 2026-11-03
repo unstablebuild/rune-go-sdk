@@ -16,14 +16,18 @@ package extensionapi
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unstablebuild/rune-go-sdk/api/config"
+	"github.com/unstablebuild/rune-go-sdk/api/config/configrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -119,6 +123,81 @@ func TestNewWorkspaceDialTargets(t *testing.T) {
 			require.Error(t, err)
 			assert.Equal(t, codes.Unimplemented, status.Code(err),
 				"expected Unimplemented from a reachable server, got: %v", err)
+		})
+	}
+}
+
+// fakeConfigServer serves a config whose theme is set by set, or fails
+// while fail is set.
+type fakeConfigServer struct {
+	configrpc.UnimplementedConfigServer
+	mu    sync.Mutex
+	theme string
+	fail  bool
+}
+
+func (s *fakeConfigServer) Get(
+	context.Context, *configrpc.GetRequest,
+) (*configrpc.GetResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.fail {
+		return nil, errors.New("config unavailable")
+	}
+	cfg := config.JSONFromConfig(config.MapConfig(map[string]any{"theme": s.theme}))
+	data, err := cfg.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	return &configrpc.GetResponse{Data: string(data)}, nil
+}
+
+func (s *fakeConfigServer) set(theme string, fail bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.theme, s.fail = theme, fail
+}
+
+func newConfigTestWorkspace(t *testing.T) (*Workspace, *fakeConfigServer) {
+	t.Helper()
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	srv := grpc.NewServer()
+	fake := &fakeConfigServer{theme: "first"}
+	configrpc.RegisterConfigServer(srv, fake)
+	go func() { _ = srv.Serve(lis) }()
+	t.Cleanup(srv.Stop)
+	w, err := NewWorkspace(Config{Socket: "tcp://" + lis.Addr().String()},
+		Metadata{ExtensionID: "test"})
+	require.NoError(t, err)
+	return w, fake
+}
+
+func TestWorkspaceConfig(t *testing.T) {
+	ctx := context.Background()
+	w, fake := newConfigTestWorkspace(t)
+	steps := []struct {
+		name      string
+		theme     string
+		fail      bool
+		wantTheme string
+		wantErr   string
+	}{
+		{name: "the config Rune serves", theme: "first", wantTheme: "first"},
+		{name: "the config as changed since", theme: "second", wantTheme: "second"},
+		{name: "a failed fetch", theme: "third", fail: true, wantErr: "config unavailable"},
+		{name: "the next fetch after a failure", theme: "third", wantTheme: "third"},
+	}
+	for _, step := range steps {
+		t.Run(step.name, func(t *testing.T) {
+			fake.set(step.theme, step.fail)
+			theme, err := w.Config(ctx).GetString("theme")
+			if step.wantErr != "" {
+				require.ErrorContains(t, err, step.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, step.wantTheme, theme)
 		})
 	}
 }
