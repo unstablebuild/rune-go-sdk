@@ -337,6 +337,10 @@ type mockWindowManager struct {
 	closedID      uint64
 	// floatingErr fails Floating after it receives the request.
 	floatingErr error
+	// promptEvents are streamed by Prompt, which then ends the stream
+	// with promptErr.
+	promptEvents []*browserrpc.PromptEvent
+	promptErr    error
 }
 
 func (m *mockWindowManager) Focus(_ context.Context, _ *browserrpc.FocusRequest) (*browserrpc.FocusResponse, error) {
@@ -398,6 +402,17 @@ func (m *mockWindowManager) Floating(
 		Type:     handlerrpc.MessageType_Response,
 		Response: &handlerrpc.InstallResourceResponse{WindowId: 400},
 	})
+}
+
+func (m *mockWindowManager) Prompt(
+	_ *browserrpc.PromptRequest, stream grpc.ServerStreamingServer[browserrpc.PromptEvent],
+) error {
+	for _, ev := range m.promptEvents {
+		if err := stream.Send(ev); err != nil {
+			return err
+		}
+	}
+	return m.promptErr
 }
 
 // mockResourceOpener implements browserrpc.ResourceOpenerServer.

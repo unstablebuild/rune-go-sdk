@@ -112,6 +112,7 @@ func newWMCmd(a *app) *cobra.Command {
 		newWMFocusCmd(a),
 		newWMSplitCmd(a),
 		newWMFloatingCmd(a),
+		newWMPromptCmd(a),
 		newWMSetContentCmd(a),
 		newWMCloseCmd(a),
 	)
