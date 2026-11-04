@@ -340,12 +340,14 @@ func (c *Client) SetTabStatus(uri workspaceapi.URI, status browserapi.TabStatus)
 func (c *Client) Floating(
 	h browserapi.Floating, cfg browserapi.FloatingConfig,
 ) (browserapi.Window, error) {
-	if _, ok := h.(Token); ok {
-		return nil, errors.New("cannot install a resource handler in a floating window")
-	}
 	stream, err := c.wm.Floating(c.clientCtx)
 	if err != nil {
 		return nil, fmt.Errorf("new floating stream: %w", err)
+	}
+
+	var uri string
+	if token, ok := h.(Token); ok {
+		uri = token.URI
 	}
 
 	var atProto termrpc.Coordinates
@@ -356,6 +358,7 @@ func (c *Client) Floating(
 		Alignment:   uint32(cfg.Alignment),
 		NoWindowBar: cfg.NoWindowBar,
 		Title:       cfg.Title,
+		Uri:         uri,
 	}
 	sendMsg := FloatingWindowMessage{
 		Type:    handlerrpc.MessageType_Request,
@@ -368,6 +371,9 @@ func (c *Client) Floating(
 
 	var recvMsg handlerrpc.ServerMessage
 	if err := stream.RecvMsg(&recvMsg); err != nil {
+		if strings.Contains(err.Error(), browserapi.ErrTabNotFree.Error()) {
+			return nil, browserapi.ErrTabNotFree
+		}
 		return nil, fmt.Errorf("recv floating response: %w", err)
 	}
 
@@ -376,6 +382,10 @@ func (c *Client) Floating(
 	}
 
 	windowID := int(recvMsg.GetResponse().GetWindowId())
+	if uri != "" {
+		return newWindowClient(uint64(windowID)), nil
+	}
+
 	server := handlerrpc.NewServerStream(
 		stream, h, func() *FloatingWindowMessage {
 			return new(FloatingWindowMessage)

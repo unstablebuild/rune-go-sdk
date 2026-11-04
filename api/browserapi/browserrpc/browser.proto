@@ -76,6 +76,9 @@ message FloatingWindowRequest {
 	uint32 alignment = 2;
 	bool no_window_bar = 3;
 	string title = 4;
+	// uri floats the host resource it names instead of the client's
+	// handler, which then serves nothing on the stream.
+	string uri = 5;
 }
 
 message TabRequest {

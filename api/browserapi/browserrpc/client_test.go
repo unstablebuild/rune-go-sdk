@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
+	"github.com/unstablebuild/rune-go-sdk/handler/handlerrpc"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -82,7 +83,7 @@ func TestClientPrompt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv := &promptServer{events: tt.events, err: tt.err}
+			srv := newPromptServer(tt.events, tt.err)
 			c := newTestClient(t, srv)
 			h := newRecordingPromptHandler()
 
@@ -103,9 +104,9 @@ func TestClientPrompt(t *testing.T) {
 }
 
 func TestClientPromptRequest(t *testing.T) {
-	srv := &promptServer{events: []*PromptEvent{{Event: &PromptEvent_Opened_{
+	srv := newPromptServer([]*PromptEvent{{Event: &PromptEvent_Opened_{
 		Opened: &PromptEvent_Opened{WindowId: 1},
-	}}}}
+	}}}, nil)
 	c := newTestClient(t, srv)
 	_, err := c.Prompt(browserapi.PromptConfig{
 		Message:  "Sure?",
@@ -150,12 +151,85 @@ func TestClientPromptValidates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv := &promptServer{}
+			srv := newPromptServer(nil, nil)
 			c := newTestClient(t, srv)
 			_, err := c.Prompt(tt.cfg, nil)
 			require.Error(t, err)
 			assert.Nil(t, srv.request(), "nothing is sent to the host")
 		})
+	}
+}
+
+func TestClientFloatingResource(t *testing.T) {
+	tests := []struct {
+		name    string
+		err     error
+		wantErr error
+	}{
+		{name: "opened"},
+		{
+			name:    "already on screen",
+			err:     status.Error(codes.Unknown, browserapi.ErrTabNotFree.Error()),
+			wantErr: browserapi.ErrTabNotFree,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &floatingServer{err: tt.err, reqs: make(chan *FloatingWindowRequest, 1)}
+			c := newTestClient(t, srv)
+
+			win, err := c.Floating(Token{URI: "file:///tmp/a.go"}, browserapi.FloatingConfig{
+				Title: "a.go",
+			})
+			req := srv.request()
+			assert.Equal(t, "file:///tmp/a.go", req.GetUri())
+			assert.Equal(t, "a.go", req.GetTitle())
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				assert.Nil(t, win)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, uint64(9), win.WindowID())
+		})
+	}
+}
+
+// floatingServer opens floating window 9 unless err is set, and asks
+// nothing of its content.
+type floatingServer struct {
+	UnimplementedWindowManagerServer
+	err  error
+	reqs chan *FloatingWindowRequest
+}
+
+func (s *floatingServer) Floating(
+	srv grpc.BidiStreamingServer[FloatingWindowMessage, handlerrpc.ServerMessage],
+) error {
+	msg, err := srv.Recv()
+	if err != nil {
+		return err
+	}
+	s.reqs <- msg.GetRequest()
+	if s.err != nil {
+		return s.err
+	}
+	if err := srv.Send(&handlerrpc.ServerMessage{
+		Type:     handlerrpc.MessageType_Response,
+		Response: &handlerrpc.InstallResourceResponse{WindowId: 9},
+	}); err != nil {
+		return err
+	}
+	<-srv.Context().Done()
+	return nil
+}
+
+func (s *floatingServer) request() *FloatingWindowRequest {
+	select {
+	case req := <-s.reqs:
+		return req
+	default:
+		return nil
 	}
 }
 
@@ -166,6 +240,10 @@ type promptServer struct {
 	events []*PromptEvent
 	err    error
 	reqs   chan *PromptRequest
+}
+
+func newPromptServer(events []*PromptEvent, err error) *promptServer {
+	return &promptServer{events: events, err: err, reqs: make(chan *PromptRequest, 1)}
 }
 
 func (s *promptServer) Prompt(
@@ -189,9 +267,8 @@ func (s *promptServer) request() *PromptRequest {
 	}
 }
 
-func newTestClient(t *testing.T, srv *promptServer) *Client {
+func newTestClient(t *testing.T, srv WindowManagerServer) *Client {
 	t.Helper()
-	srv.reqs = make(chan *PromptRequest, 1)
 	lis := bufconn.Listen(1 << 16)
 	gs := grpc.NewServer()
 	RegisterWindowManagerServer(gs, srv)

@@ -335,6 +335,8 @@ type mockWindowManager struct {
 	browserrpc.UnimplementedWindowManagerServer
 	focusWindowID uint64
 	closedID      uint64
+	// floatingErr fails Floating after it receives the request.
+	floatingErr error
 }
 
 func (m *mockWindowManager) Focus(_ context.Context, _ *browserrpc.FocusRequest) (*browserrpc.FocusResponse, error) {
@@ -381,6 +383,21 @@ func (m *mockWindowManager) SetContent(
 		},
 	}
 	return stream.Send(resp)
+}
+
+func (m *mockWindowManager) Floating(
+	stream grpc.BidiStreamingServer[browserrpc.FloatingWindowMessage, handlerrpc.ServerMessage],
+) error {
+	if _, err := stream.Recv(); err != nil {
+		return err
+	}
+	if m.floatingErr != nil {
+		return m.floatingErr
+	}
+	return stream.Send(&handlerrpc.ServerMessage{
+		Type:     handlerrpc.MessageType_Response,
+		Response: &handlerrpc.InstallResourceResponse{WindowId: 400},
+	})
 }
 
 // mockResourceOpener implements browserrpc.ResourceOpenerServer.

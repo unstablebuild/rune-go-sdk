@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -206,13 +207,16 @@ func newWMSplitCmd(a *app) *cobra.Command {
 func newWMFloatingCmd(a *app) *cobra.Command {
 	var format string
 	var align string
+	var title string
 	var offsetX int
 	var offsetY int
 
 	cmd := &cobra.Command{
 		Use:   "floating <handler-uri>",
-		Short: "Create a floating window",
-		Args:  cobra.ExactArgs(1),
+		Short: "Show a resource in a floating window",
+		Long: "Show a resource in a floating window sized by Rune, and print its window ID.\n" +
+			"A resource already shown in another window cannot float.",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			defer func() { retErr = formatError(format, retErr) }()
 			h, err := resolveHandler(cmd.Context(), a, args[0])
@@ -234,12 +238,16 @@ func newWMFloatingCmd(a *app) *cobra.Command {
 				Offset: term.Coordinates{
 					X: offsetX, Y: offsetY,
 				},
+				Title: title,
 			}
 			w, err := a.getWorkspace()
 			if err != nil {
 				return err
 			}
 			win, err := w.WindowManager(cmd.Context()).Floating(fh, cfg)
+			if errors.Is(err, browserapi.ErrTabNotFree) {
+				return fmt.Errorf("%s is already shown in a window: %w", args[0], err)
+			}
 			if err != nil {
 				return err
 			}
@@ -259,6 +267,7 @@ func newWMFloatingCmd(a *app) *cobra.Command {
 		&align, "alignment", "a", "",
 		"Alignment: default|left|right|top|bottom|centered",
 	)
+	cmd.Flags().StringVarP(&title, "title", "t", "", "Title of the window bar")
 	cmd.Flags().IntVarP(&offsetX, "offset-x", "x", 0, "X offset")
 	cmd.Flags().IntVarP(&offsetY, "offset-y", "y", 0, "Y offset")
 

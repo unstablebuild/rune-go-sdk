@@ -96,6 +96,9 @@ type WindowManager interface {
 
 	// Floating creates a new floating window at coordinates,
 	// with static width and height.
+	// If h is a resource handle such as the one Open returns, the window
+	// shows that resource at a size the WindowManager chooses, and fails
+	// with ErrTabNotFree if the resource is already shown in a window.
 	Floating(h Floating, cfg FloatingConfig) (Window, error)
 
 	// Bar creates a status bar with Orientation and Handler.

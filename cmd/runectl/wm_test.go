@@ -18,15 +18,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestWM(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    []string
+		setup   func(*testEnv)
 		wantErr string
 		wantOut string
-		check   func(*testing.T, *testEnv)
+		// req is the protojson of the last RPC's request.
+		req   string
+		check func(*testing.T, *testEnv)
 	}{
 		// focus
 		{
@@ -108,12 +114,44 @@ func TestWM(t *testing.T) {
 			args:    []string{"wm", "set-content", "abc", "file:///tmp/test.txt"},
 			wantErr: "invalid window ID",
 		},
+
+		// floating
+		{
+			name:    "floating",
+			args:    []string{"wm", "floating", "--title", "Preview", "file:///tmp/test.txt"},
+			wantOut: "400\n",
+			req: `{"type":"Request","request":{"offset":{},"title":"Preview",` +
+				`"uri":"file:///tmp/test.txt"}}`,
+		},
+		{
+			name:    "floating/path",
+			args:    []string{"wm", "floating", "/tmp/test.txt"},
+			wantOut: "400\n",
+			req:     `{"type":"Request","request":{"offset":{},"uri":"file:///tmp/test.txt"}}`,
+		},
+		{
+			name:    "floating/j",
+			args:    []string{"wm", "floating", "-F", "json", "file:///tmp/test.txt"},
+			wantOut: "{\"WindowID\":400,\"success\":true}\n",
+		},
+		{
+			name: "floating/shown",
+			args: []string{"wm", "floating", "file:///tmp/test.txt"},
+			setup: func(env *testEnv) {
+				env.wm.floatingErr = status.Error(codes.Unknown,
+					"new floating window: tab already rendered in Window")
+			},
+			wantErr: "file:///tmp/test.txt is already shown in a window",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			env := newTestEnv(t)
 			defer env.cleanup()
+			if tt.setup != nil {
+				tt.setup(env)
+			}
 
 			out, err := env.run(tt.args...)
 
@@ -124,6 +162,13 @@ func TestWM(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantOut, out)
+			if tt.req != "" {
+				rpcs := env.rpcs.take()
+				require.NotEmpty(t, rpcs)
+				req, err := protojson.Marshal(rpcs[len(rpcs)-1].req)
+				require.NoError(t, err)
+				require.JSONEq(t, tt.req, string(req))
+			}
 			if tt.check != nil {
 				tt.check(t, env)
 			}
