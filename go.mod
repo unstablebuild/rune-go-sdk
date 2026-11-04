@@ -2,6 +2,11 @@ module github.com/unstablebuild/rune-go-sdk
 
 go 1.25.6
 
+retract (
+	v1.2.3 // Contains only this retraction.
+	v1.2.2 // Published by mistake from an unmerged branch.
+)
+
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/atotto/clipboard v0.1.4
