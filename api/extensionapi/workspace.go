@@ -24,6 +24,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/unstablebuild/rune-go-sdk/api/acpapi"
+	"github.com/unstablebuild/rune-go-sdk/api/acpapi/acprpc"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi/browserrpc"
 	"github.com/unstablebuild/rune-go-sdk/api/config"
@@ -188,6 +190,14 @@ func (w *Workspace) LSP(ctx context.Context) semanticapi.LSP {
 // returns PermissionDenied at request time.
 func (w *Workspace) LLM(ctx context.Context) llmapi.Service {
 	return llmrpc.NewClient(ctx, w.conn)
+}
+
+// ACP returns the workspace's configured Agent Client Protocol agents and
+// their running sessions, the same ones the acp command shows. ctx bounds
+// the event streams of the sessions it returns. Extensions must have
+// PermissionACP to access it.
+func (w *Workspace) ACP(ctx context.Context) acpapi.Service {
+	return acprpc.NewClient(ctx, w.conn)
 }
 
 // Debugger returns the workspace's Debugger client, which can be used to interact

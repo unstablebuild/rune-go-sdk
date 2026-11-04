@@ -157,6 +157,12 @@ func TestPermissionForResource(t *testing.T) {
 			wantOK:   true,
 		},
 		{
+			name:     "ACP maps to acp",
+			resource: "/acp.ACP/NewSession",
+			wantPerm: PermissionACP,
+			wantOK:   true,
+		},
+		{
 			name:     "unknown service returns false",
 			resource: "/unknown.Service/Method",
 			wantPerm: "",

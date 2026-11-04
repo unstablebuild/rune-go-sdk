@@ -1,0 +1,116 @@
+// Copyright 2026 Unstable Build, LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/unstablebuild/rune-go-sdk/api/acpapi/acprpc";
+
+package acp;
+
+// ACP serves the workspace's configured Agent Client Protocol agents and
+// their running sessions. Sessions are addressed by name. ACP payloads are
+// JSON so their _meta fields and unions survive unchanged.
+service ACP {
+  // Agents streams the configured agents.
+  rpc Agents(AgentsRequest) returns (stream AgentInfo);
+  // Sessions streams the running sessions.
+  rpc Sessions(SessionsRequest) returns (stream SessionInfo);
+  // NewSession starts the agent if needed and opens a session on it. It
+  // fails with NOT_FOUND for unknown agents and ALREADY_EXISTS for a taken
+  // name.
+  rpc NewSession(NewSessionRequest) returns (SessionInfo);
+  // OpenSession returns a running session, or NOT_FOUND.
+  rpc OpenSession(OpenSessionRequest) returns (SessionInfo);
+  // Events streams every event of a session from the first, then follows
+  // live. It ends with OK when the session was closed and UNAVAILABLE,
+  // carrying the cause, when it ended otherwise.
+  rpc Events(EventsRequest) returns (stream Event);
+  rpc Prompt(PromptRequest) returns (PromptResponse);
+  rpc Cancel(CancelRequest) returns (CancelResponse);
+  rpc Respond(RespondRequest) returns (RespondResponse);
+  rpc SetConfigOption(SetConfigOptionRequest) returns (SetConfigOptionResponse);
+  rpc CloseSession(CloseSessionRequest) returns (CloseSessionResponse);
+}
+
+message AgentsRequest {}
+
+message AgentInfo {
+  string name = 1;
+  bool running = 2;
+}
+
+message SessionsRequest {}
+
+message SessionInfo {
+  string name = 1;
+  string agent = 2;
+  string id = 3;
+}
+
+message NewSessionRequest {
+  string agent = 1;
+  string name = 2;
+  // JSON acp.NewSessionRequest.
+  bytes session = 3;
+}
+
+message OpenSessionRequest {
+  string name = 1;
+}
+
+message EventsRequest {
+  string session = 1;
+}
+
+message Event {
+  // JSON acpapi.Event.
+  bytes event = 1;
+}
+
+message PromptRequest {
+  string session = 1;
+  // JSON []acp.ContentBlock.
+  bytes content = 2;
+}
+
+message PromptResponse {}
+
+message CancelRequest {
+  string session = 1;
+}
+
+message CancelResponse {}
+
+message RespondRequest {
+  string session = 1;
+  int64 permission_id = 2;
+  // JSON acp.RequestPermissionOutcome.
+  bytes outcome = 3;
+}
+
+message RespondResponse {}
+
+message SetConfigOptionRequest {
+  string session = 1;
+  // JSON acp.SetSessionConfigOptionRequest.
+  bytes request = 2;
+}
+
+message SetConfigOptionResponse {}
+
+message CloseSessionRequest {
+  string session = 1;
+}
+
+message CloseSessionResponse {}

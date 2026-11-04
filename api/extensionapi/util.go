@@ -70,6 +70,8 @@ func PermissionForResource(resource string) (Permission, bool) {
 		return PermissionPackages, true
 	case "search.Searcher":
 		return PermissionSearch, true
+	case "acp.ACP":
+		return PermissionACP, true
 	default:
 		return "", false
 	}

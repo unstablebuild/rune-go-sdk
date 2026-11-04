@@ -10,6 +10,7 @@ retract (
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/atotto/clipboard v0.1.4
+	github.com/coder/acp-go-sdk v0.13.5
 	github.com/ernestrc/go-multierror v1.1.2
 	github.com/google/go-dap v0.12.0
 	github.com/google/uuid v1.6.0

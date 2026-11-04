@@ -59,6 +59,10 @@ const (
 	// PermissionSearch requests access to search the workspace's files
 	// through the indexes the host keeps of them.
 	PermissionSearch Permission = "permsearch"
+	// PermissionACP requests access to the workspace's configured Agent
+	// Client Protocol agents: starting them, and opening, prompting and
+	// closing their sessions. Agents run unsandboxed and can run commands.
+	PermissionACP Permission = "permacp"
 )
 
 // Permissions is a set of Permission.
@@ -93,5 +97,6 @@ func AllPermissions() Permissions {
 		PermissionLLM:                   nil,
 		PermissionPackages:              nil,
 		PermissionSearch:                nil,
+		PermissionACP:                   nil,
 	}
 }
