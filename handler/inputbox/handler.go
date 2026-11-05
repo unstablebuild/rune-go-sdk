@@ -66,6 +66,7 @@ type Handler struct {
 	compHead               string
 	compTail               string
 	compOriginal           string
+	tabFocus               bool
 
 	m *mouse.Mouse
 
@@ -542,10 +543,12 @@ func (ib *Handler) handleNormal(ev term.Event) (exit, handled bool) {
 		return true, true
 
 	case ev.Key == term.KeyTab && ev.Mod == 0:
-		ib.handleTab(false)
-		return false, true
+		return false, ib.handleTab(false) || !ib.tabFocus
 
 	case ev.Key == term.KeyTab && ev.Mod == term.ModShift:
+		if ib.tabFocus && !ib.completionOn {
+			return false, false
+		}
 		ib.handleTab(true)
 		return false, true
 

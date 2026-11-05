@@ -100,6 +100,11 @@ func (r *Row) Resize(width, height int) {
 	r.dirty = false
 }
 
+// Size returns the width and height of the last Resize.
+func (r *Row) Size() (width, height int) {
+	return r.width, r.height
+}
+
 // Height satisfies component.Responsive.
 func (r *Row) Height(width int) (ret int) {
 	colWidth := rowColWidth(width)

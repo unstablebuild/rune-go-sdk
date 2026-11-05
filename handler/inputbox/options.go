@@ -95,6 +95,17 @@ func WithWordCompleter(c WordCompleter) Option {
 	}
 }
 
+// WithTabFocus leaves Tab and Shift-Tab unhandled, so the handler that
+// contains the input box can move the focus with them. With a
+// completer, Tab still completes, and only moves the focus when there
+// is nothing to complete, and Shift-Tab goes back through the
+// candidates while they show.
+func WithTabFocus() Option {
+	return func(h *Handler) {
+		h.tabFocus = true
+	}
+}
+
 // WithTabStyle sets the tab completion style.
 func WithTabStyle(style TabStyle) Option {
 	return func(h *Handler) {

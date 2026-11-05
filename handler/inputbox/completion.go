@@ -14,26 +14,28 @@
 
 package inputbox
 
-func (ib *Handler) handleTab(reverse bool) {
+// handleTab completes the line, or goes on to the next or previous
+// candidate, and reports whether there was anything to complete.
+func (ib *Handler) handleTab(reverse bool) bool {
 	if ib.completer == nil {
-		return
+		return false
 	}
 
 	if ib.completionOn {
 		if ib.completionPrintPending {
 			// TabPrints second tab: apply common prefix.
 			ib.handleTabPrintsPrefix()
-			return
+			return true
 		}
 		ib.cycleCompletion(reverse)
-		return
+		return true
 	}
 
 	line := string(ib.text)
 	pos := ib.cursor
 	head, candidates, tail := ib.completer(line, pos)
 	if len(candidates) == 0 {
-		return
+		return false
 	}
 
 	ib.compHead = head
@@ -42,12 +44,12 @@ func (ib *Handler) handleTab(reverse bool) {
 
 	if len(candidates) == 1 {
 		ib.applyCompletion(candidates[0])
-		return
+		return true
 	}
 
 	if ib.tabStyle == TabPrints {
 		ib.handleTabPrints(candidates)
-		return
+		return true
 	}
 
 	ib.completions = candidates
@@ -57,6 +59,7 @@ func (ib *Handler) handleTab(reverse bool) {
 	}
 	ib.completionOn = true
 	ib.applyCompletion(ib.completions[ib.completionIdx])
+	return true
 }
 
 func (ib *Handler) handleTabPrints(candidates []string) {

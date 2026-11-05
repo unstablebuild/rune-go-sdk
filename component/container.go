@@ -45,6 +45,17 @@ func (c *Container) AddRow() *Row {
 	return row
 }
 
+// AppendRow appends row, which no other Container may hold, to this
+// Container.
+func (c *Container) AppendRow(row *Row) {
+	c.rows = append(c.rows, row)
+}
+
+// Size returns the width and height of the last Resize.
+func (c *Container) Size() (width, height int) {
+	return c.width, c.height
+}
+
 // Resize satisfies tui.Component.
 func (c *Container) Resize(width, height int) {
 	c.width, c.height = width, height
@@ -108,6 +119,18 @@ func (c *Container) ScrollDown() bool {
 // to the bottom.
 func (c *Container) ScrollToBottom() {
 	c.offset = c.maxOffset()
+}
+
+// Offset returns how many rows the contents of this container are
+// scrolled down.
+func (c *Container) Offset() int {
+	return c.offset
+}
+
+// ScrollTo scrolls the contents of this container offset rows down,
+// as far as there is content to scroll.
+func (c *Container) ScrollTo(offset int) {
+	c.offset = max(0, min(offset, c.maxOffset()))
 }
 
 // Height satisfies component.Responsive.

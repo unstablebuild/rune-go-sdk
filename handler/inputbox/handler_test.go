@@ -79,6 +79,41 @@ func TestHandler(t *testing.T) {
 	})
 }
 
+func TestHandlerTabFocus(t *testing.T) {
+	tabs := []term.Event{
+		{Type: term.EventKey, Key: term.KeyTab},
+		{Type: term.EventKey, Key: term.KeyTab, Mod: term.ModShift},
+	}
+	for _, ev := range tabs {
+		_, handled := New().Handle(ev)
+		assert.True(t, handled, "Tab is consumed by default")
+		_, handled = New(WithTabFocus()).Handle(ev)
+		assert.False(t, handled, "WithTabFocus leaves Tab to move the focus")
+		complete := func(string) (string, []string, string) { return "", nil, "" }
+		_, handled = New(WithTabFocus(), WithCompleter(complete)).Handle(ev)
+		assert.False(t, handled, "when there is nothing to complete")
+		_, handled = New(WithCompleter(complete)).Handle(ev)
+		assert.True(t, handled, "a completer consumes Tab without WithTabFocus")
+	}
+
+	// Tab completes and cycles; Shift-Tab goes back while the candidates
+	// show, and moves the focus once they don't.
+	complete := func(string) (string, []string, string) { return "", []string{"alpha", "alps"}, "" }
+	ib := New(WithTabFocus(), WithCompleter(complete))
+	_, handled := ib.Handle(tabs[0])
+	assert.True(t, handled)
+	assert.Equal(t, "alpha", ib.Text())
+	_, handled = ib.Handle(tabs[0])
+	assert.True(t, handled)
+	assert.Equal(t, "alps", ib.Text())
+	_, handled = ib.Handle(tabs[1])
+	assert.True(t, handled)
+	assert.Equal(t, "alpha", ib.Text())
+	ib.Handle(term.Event{Type: term.EventKey, Ch: 'x'})
+	_, handled = ib.Handle(tabs[1])
+	assert.False(t, handled, "Shift-Tab moves the focus once no candidates show")
+}
+
 func TestHandlerRedact(t *testing.T) {
 	t.Run("renders default '*' glyphs in place of buffer characters", func(t *testing.T) {
 		ib := New(WithRedact(true))
