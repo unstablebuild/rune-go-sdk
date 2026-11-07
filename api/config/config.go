@@ -38,12 +38,12 @@ type Config interface {
 	GetString(string) (string, error)
 	GetBool(string) (bool, error)
 	GetConfig(string) (Config, error)
-	GetMap(string) (map[string]interface{}, error)
+	GetMap(string) (map[string]any, error)
 	GetAttribute(string) (term.AttrMask, error)
 	GetColor(string) (term.Color, error)
 	GetRune(string) (rune, error)
-	GetSlice(string) ([]interface{}, error)
-	Iterate(fn func(k string, value interface{}))
+	GetSlice(string) ([]any, error)
+	Iterate(fn func(k string, value any))
 }
 
 // JSON satisfies Config, encoding.TextMarshaler
@@ -52,35 +52,35 @@ type JSON struct {
 	mapConfig
 }
 
-type mapConfig map[string]interface{}
+type mapConfig map[string]any
 
 // JSONFromMap returns a JSON Config from the given map of key
 // value pairs.
-func JSONFromMap(m map[string]interface{}) JSON {
+func JSONFromMap(m map[string]any) JSON {
 	return JSON{mapConfig: MapConfig(m).(mapConfig)}
 }
 
 // JSONFromConfig returns a JSON Config from the given Config.
 func JSONFromConfig(c Config) JSON {
-	m := make(map[string]interface{})
-	c.Iterate(func(k string, v interface{}) {
+	m := make(map[string]any)
+	c.Iterate(func(k string, v any) {
 		m[k] = v
 	})
 	return JSONFromMap(m)
 }
 
 // MapConfig returns a Config that wraps m.
-func MapConfig(m map[string]interface{}) Config {
+func MapConfig(m map[string]any) Config {
 	if m == nil {
 		panic("invalid argument: map cannot be nil")
 	}
 	return mapConfig(m)
 }
 
-func clone(m map[string]interface{}) map[string]interface{} {
-	ret := make(map[string]interface{})
+func clone(m map[string]any) map[string]any {
+	ret := make(map[string]any)
 	for k, v := range m {
-		if ifc, ok := v.(map[string]interface{}); ok {
+		if ifc, ok := v.(map[string]any); ok {
 			ret[k] = clone(ifc)
 		} else {
 			ret[k] = v
@@ -89,10 +89,10 @@ func clone(m map[string]interface{}) map[string]interface{} {
 	return ret
 }
 
-func cloneSlice(s []interface{}) []interface{} {
-	ret := make([]interface{}, len(s))
+func cloneSlice(s []any) []any {
+	ret := make([]any, len(s))
 	for i, v := range s {
-		if vslice, ok := v.([]interface{}); ok {
+		if vslice, ok := v.([]any); ok {
 			ret[i] = cloneSlice(vslice)
 		} else {
 			ret[i] = v
@@ -103,11 +103,11 @@ func cloneSlice(s []interface{}) []interface{} {
 
 // Clone returns a deep clone of the given config.
 func Clone(cfg Config) Config {
-	ret := make(map[string]interface{})
-	cfg.Iterate(func(k string, v interface{}) {
-		if vmap, ok := v.(map[string]interface{}); ok {
+	ret := make(map[string]any)
+	cfg.Iterate(func(k string, v any) {
+		if vmap, ok := v.(map[string]any); ok {
 			ret[k] = clone(vmap)
-		} else if vslice, ok := v.([]interface{}); ok {
+		} else if vslice, ok := v.([]any); ok {
 			ret[k] = cloneSlice(vslice)
 		} else {
 			ret[k] = v
@@ -202,7 +202,7 @@ func (c *JSON) MarshalText() ([]byte, error) {
 
 // UnmarshalText satisfies encoding.TextUnmarshaler.
 func (c *JSON) UnmarshalText(text []byte) error {
-	c.mapConfig = make(map[string]interface{})
+	c.mapConfig = make(map[string]any)
 	err := json.Unmarshal(text, &c.mapConfig)
 	return err
 }
@@ -292,12 +292,12 @@ func (c mapConfig) GetConfig(key string) (Config, error) {
 	return mapConfig(m), nil
 }
 
-func (c mapConfig) GetMap(key string) (map[string]interface{}, error) {
+func (c mapConfig) GetMap(key string) (map[string]any, error) {
 	v, ok := c[key]
 	if !ok {
 		return nil, ErrNotFound
 	}
-	vt, ok := v.(map[string]interface{})
+	vt, ok := v.(map[string]any)
 	if !ok {
 		return nil, ErrInvalidType
 	}
@@ -305,12 +305,12 @@ func (c mapConfig) GetMap(key string) (map[string]interface{}, error) {
 	return vt, nil
 }
 
-func (c mapConfig) GetSlice(key string) ([]interface{}, error) {
+func (c mapConfig) GetSlice(key string) ([]any, error) {
 	v, ok := c[key]
 	if !ok {
 		return nil, ErrNotFound
 	}
-	vt, ok := v.([]interface{})
+	vt, ok := v.([]any)
 	if !ok {
 		return nil, ErrInvalidType
 	}
@@ -358,7 +358,7 @@ func (c mapConfig) GetAttribute(key string) (term.AttrMask, error) {
 		return term.AttrMask(i), nil
 	}
 
-	avt, ok := v.([]interface{})
+	avt, ok := v.([]any)
 	if !ok {
 		return 0, ErrInvalidType
 	}
@@ -406,7 +406,10 @@ func (c mapConfig) GetRune(key string) (rune, error) {
 	}
 	vt, ok := v.(string)
 	if ok {
-		return []rune(vt)[0], nil
+		for _, r := range vt {
+			return r, nil
+		}
+		return 0, ErrNotFound
 	}
 
 	vtr, ok := v.(rune)
@@ -427,7 +430,7 @@ func (c mapConfig) GetRune(key string) (rune, error) {
 	return rune(i), nil
 }
 
-func (c mapConfig) Iterate(fn func(string, interface{})) {
+func (c mapConfig) Iterate(fn func(string, any)) {
 	for k, v := range c {
 		fn(k, v)
 	}

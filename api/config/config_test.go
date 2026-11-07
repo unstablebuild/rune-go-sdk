@@ -55,6 +55,31 @@ func TestConfigOk(t *testing.T) {
 	assert.Equal(t, ErrNotFound, err)
 }
 
+func TestConfigGetRune(t *testing.T) {
+	c := MapConfig(map[string]interface{}{
+		"empty": "",
+		"char":  "🭽",
+		"chars": "ab",
+		"rune":  'x',
+	})
+	for _, tc := range []struct {
+		key     string
+		want    rune
+		wantErr error
+	}{
+		{key: "empty", wantErr: ErrNotFound},
+		{key: "char", want: '🭽'},
+		{key: "chars", want: 'a'},
+		{key: "rune", want: 'x'},
+	} {
+		t.Run(tc.key, func(t *testing.T) {
+			got, err := c.GetRune(tc.key)
+			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func TestConfigTypes(t *testing.T) {
 	m := map[string]interface{}{
 		"a1":     rune('a'),
