@@ -24,6 +24,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -51,11 +52,12 @@ type WorkspaceExtension interface {
 }
 
 // ServeWorkspaceExtension serves the given workspace extension with the given
-// developer and extension metadata. This function blocks until a signal is received
-// for the extension to shutdown, in which case the returned error is nil,
-// or another error occurs.
+// developer and extension metadata. This function blocks until a signal is
+// received for the extension to shutdown or the Rune process that started it
+// is gone, in which case the returned error is nil, or another error occurs.
 func ServeWorkspaceExtension(extension WorkspaceExtension, meta Metadata) error {
-	return serveWorkspaceExtension(extension, meta, os.Stdin, os.Stdout)
+	setupExtensionLogging(getLogLevelEnv())
+	return serveWorkspaceExtension(extension, meta, os.Stdin, os.Stdout, watchHost())
 }
 
 // Config is sent by the host to the extension over stdin.
@@ -90,15 +92,12 @@ func FuncWorkspaceExtension(
 
 func serveWorkspaceExtension(
 	extension WorkspaceExtension, meta Metadata,
-	in io.ReadCloser, out io.Writer,
+	in io.ReadCloser, out io.Writer, hostGone <-chan struct{},
 ) error {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 	signal.Ignore(syscall.SIGPIPE)
 	defer signal.Stop(sigchan)
-
-	level := getLogLevelEnv()
-	setupExtensionLogging(level)
 
 	data, err := json.Marshal(meta)
 	if err != nil {
@@ -162,11 +161,57 @@ func serveWorkspaceExtension(
 			return err
 		}
 		slog.Debug("extension was setup correctly", "duration", time.Since(start))
-		<-sigchan
-		return nil
 	case <-sigchan:
 		return nil
+	case <-hostGone:
+		slog.Info("host process is gone, shutting down")
+		return nil
 	}
+	select {
+	case <-sigchan:
+	case <-hostGone:
+		slog.Info("host process is gone, shutting down")
+	}
+	return nil
+}
+
+// hostPollInterval bounds how long an extension outlives a host that died
+// without stopping it.
+const hostPollInterval = 30 * time.Second
+
+// watchHost returns a channel that is closed once the Rune process that
+// started this extension is gone. Extensions always run next to the IDE,
+// so the PID the host names in RUNE_PID is one this process can observe.
+// Without RUNE_PID there is nothing to watch and the returned channel
+// never fires.
+func watchHost() <-chan struct{} {
+	pid, err := strconv.Atoi(os.Getenv("RUNE_PID"))
+	if err != nil || pid <= 0 {
+		return nil
+	}
+	return watchProcess(pid, hostPollInterval, processAlive)
+}
+
+func watchProcess(pid int, interval time.Duration, alive func(int) bool) <-chan struct{} {
+	gone := make(chan struct{})
+	go debug.CapturePanicReport(func() {
+		for alive(pid) {
+			time.Sleep(interval)
+		}
+		close(gone)
+	})
+	return gone
+}
+
+// processAlive reports whether pid names a running process. A process that
+// exists but may not be signalled counts as alive.
+func processAlive(pid int) bool {
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	defer func() { _ = proc.Release() }()
+	return !errors.Is(proc.Signal(syscall.Signal(0)), os.ErrProcessDone)
 }
 
 type fnWorkspaceExtension struct {
