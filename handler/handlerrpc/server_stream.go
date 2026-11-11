@@ -258,9 +258,12 @@ func (c *ServerStream[T]) ReceiveMessages() {
 				c.log.Error("stream", "error", err.Error())
 			} else if errors.Is(err, io.EOF) {
 				// io.EOF indicates that stream status should be discovered
-				// through RecvMsg. See SendMsg documentation.
+				// through RecvMsg. See SendMsg documentation. RecvMsg
+				// returns what the host sent before the stream ended
+				// first, with a nil error: grpc queues a canceled
+				// stream's error behind the messages it buffered.
 				err = c.stream.RecvMsg(&recvMsg)
-				if !strings.Contains(err.Error(), "context canceled") {
+				if err != nil && !strings.Contains(err.Error(), "context canceled") {
 					c.log.Error("stream EOF", "error", err)
 				} else {
 					c.log.Debug("stream EOF", "error", err)

@@ -38,6 +38,7 @@ type scriptedStream struct {
 	t       *testing.T
 	dir     string
 	script  []*handlerrpc.ServerMessage
+	sendErr error
 	draws   []*handlerrpc.DrawStreamResponse
 	handles []*handlerrpc.HandleStreamResponse
 	files   []map[string][]byte
@@ -49,6 +50,9 @@ func (s *scriptedStream) CloseSend() error             { return nil }
 func (s *scriptedStream) Context() context.Context     { return context.Background() }
 
 func (s *scriptedStream) SendMsg(m any) error {
+	if s.sendErr != nil {
+		return s.sendErr
+	}
 	if handle := m.(*browserrpc.SplitWindowMessage).GetHandle(); handle != nil {
 		s.handles = append(s.handles, proto.Clone(handle).(*handlerrpc.HandleStreamResponse))
 	}
@@ -170,6 +174,25 @@ func TestServerStreamHandleReportsThePointerShape(t *testing.T) {
 	assert.Equal(t, int32(term.PointerColResize), stream.handles[0].GetPointerShape())
 	assert.Nil(t, stream.handles[1].PointerShape, "a handler that sets no shape reports none")
 	assert.Nil(t, stream.handles[2].PointerShape, "key events carry no Pointer")
+}
+
+func TestServerStreamEndsWhenASendFindsTheStreamEnded(t *testing.T) {
+	// A send returns io.EOF once the stream ended, and RecvMsg tells why.
+	// It returns what the host sent before the end first, with a nil
+	// error, as grpc does when the extension cancels the stream's context.
+	draw := &handlerrpc.ServerMessage{
+		Type: handlerrpc.MessageType_Draw,
+		Draw: &handlerrpc.DrawStreamRequest{PackedOk: true},
+	}
+	stream := &scriptedStream{
+		t: t, sendErr: io.EOF, script: []*handlerrpc.ServerMessage{draw, draw},
+	}
+	h := &rasterHandler{versions: make([]uint64, 2)}
+	handlerrpc.NewServerStream(stream, h, func() *browserrpc.SplitWindowMessage {
+		return new(browserrpc.SplitWindowMessage)
+	}).ReceiveMessages()
+
+	assert.Equal(t, []string{"draw"}, h.calls, "the stream must stop at the failed send")
 }
 
 func TestServerStreamImages(t *testing.T) {
