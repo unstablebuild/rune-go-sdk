@@ -26,9 +26,11 @@ type Component interface {
 	// When a component is initialized, its width and height is 0 until Resize is
 	// called to set the appropriate dimensions.
 	Resize(width, height int)
-	// Draw draws this component to the underlying Writer. It returns non-nil error
-	// if something went wrong in the process of writing or the writer returned
-	// an error.
+	// Draw draws this component to the underlying Writer. The runtime
+	// clears the writer before every Draw, so a frame holds only what
+	// this call writes, and anything the writer may still be reading
+	// from the previous frame, such as the pixels behind a term.Image,
+	// is free for the component to reuse when Draw is called again.
 	Draw(term.Writer)
 }
 

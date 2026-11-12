@@ -185,6 +185,8 @@ func TestDrawBackgroundImages(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			src := image.NewRGBA(image.Rect(0, 0, 1, 1))
+			test.img.Src = src
 			content := &imageComponent{img: test.img}
 			b := NewBackground(content, test.cell)
 			b.Resize(width, height)
@@ -198,6 +200,7 @@ func TestDrawBackgroundImages(t *testing.T) {
 			var visible []image.Rectangle
 			for _, img := range rec.images {
 				visible = append(visible, img.Visible())
+				assert.Same(t, src, img.Src, "the pixels must reach the writer untouched")
 			}
 			assert.Equal(t, test.expectedVis, visible)
 		})

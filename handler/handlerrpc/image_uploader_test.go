@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"google.golang.org/protobuf/proto"
 )
 
 func gradient(w, h int, seed byte) *image.RGBA {
@@ -600,6 +601,77 @@ func TestImageUploaderConfigureReleasesOnTransportChange(t *testing.T) {
 	assert.Equal(t, uint64(16), u.bytes, "only the streamed upload must be accounted")
 	u.ackUploads(1)
 	assert.Empty(t, arenaFiles(t, dir), "the arena's files must go once acked")
+}
+
+func TestImageUploaderDoesNotRetainSourcePixels(t *testing.T) {
+	const width, height = 10, 5
+	tests := []struct {
+		name   string
+		arena  bool
+		pixels func(t *testing.T, u *imageUploader, sent [][]byte) []byte
+	}{
+		{
+			name: "streamed pixels are encoded before DrawImage returns",
+			pixels: func(t *testing.T, _ *imageUploader, sent [][]byte) []byte {
+				t.Helper()
+				var pix []byte
+				for _, wire := range sent {
+					var resp DrawStreamResponse
+					require.NoError(t, proto.Unmarshal(wire, &resp))
+					require.Len(t, resp.GetUploads(), 1)
+					pix = append(pix, resp.GetUploads()[0].GetData()...)
+				}
+				return pix
+			},
+		},
+		{
+			name:  "arena pixels are written before DrawImage returns",
+			arena: true,
+			pixels: func(t *testing.T, u *imageUploader, _ [][]byte) []byte {
+				t.Helper()
+				files := arenaFiles(t, u.dir)
+				require.Len(t, files, 1)
+				pix, err := os.ReadFile(filepath.Join(u.dir, files[0]))
+				require.NoError(t, err)
+				return pix
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// The stream's send marshals the response the way grpc's SendMsg
+			// does, so a record that aliases the source is caught.
+			var sent [][]byte
+			u := imageUploader{log: slog.Default()}
+			u.send = func(resp *DrawStreamResponse) error {
+				wire, err := proto.Marshal(resp)
+				if err != nil {
+					return err
+				}
+				sent = append(sent, wire)
+				return nil
+			}
+			dir := ""
+			if tt.arena {
+				dir = t.TempDir()
+			}
+			u.configure(true, dir, 0)
+			defer u.close()
+
+			src := gradient(4, 3, 1)
+			want := append([]byte(nil), src.Pix...)
+			img := term.Image{ID: 1, Version: 1, Src: src, Width: 2, Height: 1}
+			require.True(t, u.place(img, width, height))
+			for i := range src.Pix {
+				src.Pix[i] = ^src.Pix[i]
+			}
+			var resp DrawStreamResponse
+			u.finish(&resp)
+
+			assert.Equal(t, want, tt.pixels(t, &u, sent),
+				"the host must see the pixels as they were when placed")
+		})
+	}
 }
 
 func arenaFiles(t *testing.T, dir string) []string {

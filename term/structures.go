@@ -227,5 +227,10 @@ type Writer interface {
 	// Placements are discarded on the writer's next Clear, so an image
 	// is re-placed on every Draw like any other content. Fully clipped
 	// placements are dropped and still report true.
+	// The pixels behind img.Src are the caller's: a writer that owns a
+	// surface reads or copies them before Flush returns and never past
+	// its next Clear, and a writer that forwards placements passes Src
+	// through unchanged, so the caller may reuse the memory once its
+	// Draw is next called.
 	DrawImage(Image) bool
 }

@@ -214,6 +214,8 @@ func TestVirtualWriterDrawImage(t *testing.T) {
 				Offset: test.offset,
 				Width:  4, Height: 4,
 			}
+			src := image.NewRGBA(image.Rect(0, 0, 1, 1))
+			test.img.Src = src
 
 			if got := w.DrawImage(test.img); got != test.expectedOK {
 				t.Fatalf("DrawImage() = %v; expected %v", got, test.expectedOK)
@@ -228,6 +230,9 @@ func TestVirtualWriterDrawImage(t *testing.T) {
 				t.Fatalf("forwarded %d placements; expected 1", len(rec.images))
 			}
 			got := rec.images[0]
+			if got.Src != image.Image(src) {
+				t.Fatalf("Src = %p; expected the caller's %p", got.Src, src)
+			}
 			if got.Pos != test.expectedPos {
 				t.Fatalf("Pos = %v; expected %v", got.Pos, test.expectedPos)
 			}

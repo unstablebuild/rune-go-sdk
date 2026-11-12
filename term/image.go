@@ -60,9 +60,12 @@ const (
 
 // Image is a raster placed over a rectangle of cells.
 type Image struct {
-	// Src holds the pixels. It is only read between DrawImage and the
-	// writer's next Clear. An *image.RGBA with a zero Min and a tight
-	// stride is the zero-copy upload path.
+	// Src holds the pixels. A writer finishes reading Src, or copies what it still needs,
+	// before it returns from Flush, and never retains it past its next Clear. Writers
+	// that forward placements pass Src through unchanged. Every runtime clears before
+	// each Draw, so the component that placed an image may reuse the memory behind Src
+	// once its Draw is next called. An *image.RGBA with a zero Min and a tight stride is
+	// the zero-copy upload path.
 	Src image.Image
 	// ID identifies the retained pixel state for this picture.
 	ID ImageID

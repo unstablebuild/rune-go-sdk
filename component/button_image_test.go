@@ -215,6 +215,8 @@ func TestButtonImagesDraw(t *testing.T) {
 			assert.Equal(t, tt.want, describeImages(rec.images))
 			for _, img := range rec.images {
 				assert.Equal(t, term.ImageLayerBelowText, img.Layer)
+				assert.Same(t, testImageSrc, img.Src,
+					"the pixels must reach the writer untouched")
 			}
 		})
 	}
@@ -239,6 +241,10 @@ func testButtonImage(name string) ButtonImage {
 
 var testImageNames = map[term.ImageID]string{}
 
+// testImageSrc backs every testImage, so a test can tell that a writer
+// forwarded the pixels rather than a copy.
+var testImageSrc = image.NewRGBA(image.Rect(0, 0, 1, 1))
+
 func newTestImage(name string) *testImage {
 	img := &testImage{name: name, id: term.NewImageID()}
 	testImageNames[img.id] = name
@@ -262,7 +268,8 @@ func (c *testImage) Draw(w term.Writer) {
 		return
 	}
 	w.DrawImage(term.Image{
-		ID: c.id, Width: c.width, Height: c.height, Layer: term.ImageLayerAboveText,
+		ID: c.id, Src: testImageSrc, Width: c.width, Height: c.height,
+		Layer: term.ImageLayerAboveText,
 	})
 }
 

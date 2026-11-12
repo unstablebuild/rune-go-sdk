@@ -99,6 +99,9 @@ func redraw(
 	root Handler, lock sync.Locker, termw *term.ScreenWriter,
 	prevCursor term.CursorStyle, defAttr term.Attributes,
 ) (term.CursorStyle, error) {
+	// Component.Draw promises that the writer is cleared before every
+	// Draw; components rely on it to reuse the pixels of images they
+	// placed on the previous frame.
 	if err := termw.Clear(defAttr); err != nil {
 		return 0, err
 	}
