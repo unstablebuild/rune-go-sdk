@@ -76,3 +76,21 @@ func TestImagePlacementRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+func TestImageFitMatchesWire(t *testing.T) {
+	tests := []struct {
+		fit  term.ImageFit
+		wire ImageFit
+	}{
+		{fit: term.ImageFitFill, wire: ImageFit_ImageFitFill},
+		{fit: term.ImageFitContain, wire: ImageFit_ImageFitContain},
+		{fit: term.ImageFitTile, wire: ImageFit_ImageFitTile},
+	}
+	for _, tt := range tests {
+		t.Run(tt.wire.String(), func(t *testing.T) {
+			p := NewImagePlacement(term.Image{Fit: tt.fit})
+			assert.Equal(t, tt.wire, p.GetFit())
+			assert.Equal(t, tt.fit, p.ToModel().Fit)
+		})
+	}
+}

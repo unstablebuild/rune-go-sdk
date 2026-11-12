@@ -94,6 +94,7 @@ type ImageFit int32
 const (
 	ImageFit_ImageFitFill    ImageFit = 0
 	ImageFit_ImageFitContain ImageFit = 1
+	ImageFit_ImageFitTile    ImageFit = 2
 )
 
 // Enum value maps for ImageFit.
@@ -101,10 +102,12 @@ var (
 	ImageFit_name = map[int32]string{
 		0: "ImageFitFill",
 		1: "ImageFitContain",
+		2: "ImageFitTile",
 	}
 	ImageFit_value = map[string]int32{
 		"ImageFitFill":    0,
 		"ImageFitContain": 1,
+		"ImageFitTile":    2,
 	}
 )
 
@@ -1615,10 +1618,11 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"\n" +
 	"\x06Resize\x10\x06\x12\v\n" +
 	"\aRequest\x10\a\x12\f\n" +
-	"\bResponse\x10\t*1\n" +
+	"\bResponse\x10\t*C\n" +
 	"\bImageFit\x12\x10\n" +
 	"\fImageFitFill\x10\x00\x12\x13\n" +
-	"\x0fImageFitContain\x10\x01*]\n" +
+	"\x0fImageFitContain\x10\x01\x12\x10\n" +
+	"\fImageFitTile\x10\x02*]\n" +
 	"\n" +
 	"ImageLayer\x12\x17\n" +
 	"\x13ImageLayerAboveText\x10\x00\x12\x17\n" +

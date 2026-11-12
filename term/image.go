@@ -31,7 +31,7 @@ func NewImageID() ImageID {
 	return ImageID(lastImageID.Add(1))
 }
 
-// ImageFit selects how a raster is scaled into its cell rectangle.
+// ImageFit selects how a raster covers its cell rectangle.
 type ImageFit uint8
 
 const (
@@ -40,6 +40,13 @@ const (
 	// ImageFitContain scales the raster uniformly and centres it in the
 	// cell rectangle.
 	ImageFitContain
+	// ImageFitTile repeats the raster unscaled, one pixel to a device
+	// pixel, across the cell rectangle. The first tile starts at the
+	// rectangle's top-left corner, so Clip cuts the tiles without moving
+	// them: placements of the same rectangle clipped to adjacent cells
+	// join seamlessly. Tiles are cut at the rectangle's right and bottom
+	// edges.
+	ImageFitTile
 )
 
 // ImageLayer selects where a placement is composited relative to the
@@ -91,7 +98,7 @@ type Image struct {
 	RasterOffset image.Point
 	// Width and Height are the placement size in cells.
 	Width, Height int
-	// Fit selects how Src is scaled into the cell rectangle.
+	// Fit selects how Src covers the cell rectangle.
 	Fit ImageFit
 	// Layer selects where the placement is composited relative to the
 	// cells it covers.

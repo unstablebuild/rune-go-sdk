@@ -110,6 +110,7 @@ message ImageUpload {
 enum ImageFit {
 	ImageFitFill = 0;
 	ImageFitContain = 1;
+	ImageFitTile = 2;
 }
 
 enum ImageLayer {
