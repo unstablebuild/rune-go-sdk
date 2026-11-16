@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Terminal_NewPty_FullMethodName     = "/workspace.Terminal/NewPty"
-	Terminal_SetPtySize_FullMethodName = "/workspace.Terminal/SetPtySize"
+	Terminal_NewPty_FullMethodName                 = "/workspace.Terminal/NewPty"
+	Terminal_SetPtySize_FullMethodName             = "/workspace.Terminal/SetPtySize"
+	Terminal_ForegroundProcessGroup_FullMethodName = "/workspace.Terminal/ForegroundProcessGroup"
 )
 
 // TerminalClient is the client API for Terminal service.
@@ -29,6 +30,7 @@ const (
 type TerminalClient interface {
 	NewPty(ctx context.Context, in *NewPtyRequest, opts ...grpc.CallOption) (*NewPtyResponse, error)
 	SetPtySize(ctx context.Context, in *SetPtySizeRequest, opts ...grpc.CallOption) (*SetPtySizeResponse, error)
+	ForegroundProcessGroup(ctx context.Context, in *ForegroundProcessGroupRequest, opts ...grpc.CallOption) (*ForegroundProcessGroupResponse, error)
 }
 
 type terminalClient struct {
@@ -59,12 +61,23 @@ func (c *terminalClient) SetPtySize(ctx context.Context, in *SetPtySizeRequest, 
 	return out, nil
 }
 
+func (c *terminalClient) ForegroundProcessGroup(ctx context.Context, in *ForegroundProcessGroupRequest, opts ...grpc.CallOption) (*ForegroundProcessGroupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ForegroundProcessGroupResponse)
+	err := c.cc.Invoke(ctx, Terminal_ForegroundProcessGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TerminalServer is the server API for Terminal service.
 // All implementations must embed UnimplementedTerminalServer
 // for forward compatibility.
 type TerminalServer interface {
 	NewPty(context.Context, *NewPtyRequest) (*NewPtyResponse, error)
 	SetPtySize(context.Context, *SetPtySizeRequest) (*SetPtySizeResponse, error)
+	ForegroundProcessGroup(context.Context, *ForegroundProcessGroupRequest) (*ForegroundProcessGroupResponse, error)
 	mustEmbedUnimplementedTerminalServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedTerminalServer) NewPty(context.Context, *NewPtyRequest) (*New
 }
 func (UnimplementedTerminalServer) SetPtySize(context.Context, *SetPtySizeRequest) (*SetPtySizeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetPtySize not implemented")
+}
+func (UnimplementedTerminalServer) ForegroundProcessGroup(context.Context, *ForegroundProcessGroupRequest) (*ForegroundProcessGroupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ForegroundProcessGroup not implemented")
 }
 func (UnimplementedTerminalServer) mustEmbedUnimplementedTerminalServer() {}
 func (UnimplementedTerminalServer) testEmbeddedByValue()                  {}
@@ -138,6 +154,24 @@ func _Terminal_SetPtySize_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Terminal_ForegroundProcessGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForegroundProcessGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerminalServer).ForegroundProcessGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Terminal_ForegroundProcessGroup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerminalServer).ForegroundProcessGroup(ctx, req.(*ForegroundProcessGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Terminal_ServiceDesc is the grpc.ServiceDesc for Terminal service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var Terminal_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetPtySize",
 			Handler:    _Terminal_SetPtySize_Handler,
+		},
+		{
+			MethodName: "ForegroundProcessGroup",
+			Handler:    _Terminal_ForegroundProcessGroup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

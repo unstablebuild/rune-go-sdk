@@ -433,6 +433,26 @@ func (c *Client) SetPtySize(p workspaceapi.Pty, size workspaceapi.PtySize) error
 	return err
 }
 
+// ForegroundProcessGroup satisfies schemeapi.Terminal. A server too old
+// to answer reports errors.ErrUnsupported.
+func (c *Client) ForegroundProcessGroup(p workspaceapi.Pty) (int, error) {
+	req := ForegroundProcessGroupRequest{
+		Master:   p.Master.Name(),
+		MasterFd: uint32(p.Master.Fd()),
+	}
+	resp, err := c.term.ForegroundProcessGroup(c.ctx, &req)
+	if status.Code(err) == codes.Unimplemented {
+		return 0, fmt.Errorf("foreground process group: %w", errors.ErrUnsupported)
+	}
+	if err != nil {
+		return 0, err
+	}
+	if resp.GetIsUnsupportedErr() {
+		return 0, fmt.Errorf("foreground process group: %w", errors.ErrUnsupported)
+	}
+	return int(resp.GetPgrp()), nil
+}
+
 // NewFile satisfies schemeapi.Scheme.
 func (c *Client) NewFile(fd uintptr, filename string) workspaceapi.File {
 	return newFileClient(c.root, c.ctx, c, c.cc, filename, fd)

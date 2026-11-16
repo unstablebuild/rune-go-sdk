@@ -234,6 +234,16 @@ message SetPtySizeRequest {
 message SetPtySizeResponse {
 }
 
+message ForegroundProcessGroupRequest {
+	string master = 1;
+	uint32 master_fd = 2;
+}
+
+message ForegroundProcessGroupResponse {
+	int64 pgrp = 1;
+	bool is_unsupported_err = 2;
+}
+
 message ReadDirRequest {
 	string dir = 1;
 	string root = 2;
@@ -373,6 +383,7 @@ message JoinResponse {
 service Terminal {
 	rpc NewPty(NewPtyRequest) returns (NewPtyResponse);
 	rpc SetPtySize(SetPtySizeRequest) returns (SetPtySizeResponse);
+	rpc ForegroundProcessGroup(ForegroundProcessGroupRequest) returns (ForegroundProcessGroupResponse);
 }
 
 service Scheme {

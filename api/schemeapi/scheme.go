@@ -160,6 +160,14 @@ type Terminal interface {
 
 	// SetPtySize sets the size of a pseudoterminal.
 	SetPtySize(p workspaceapi.Pty, size workspaceapi.PtySize) error
+
+	// ForegroundProcessGroup returns the id of the foreground process
+	// group of the pseudoterminal p, the one its terminal sends input
+	// and signals to. A shell with job control leads that group while it
+	// waits at its prompt and hands it to the job it runs. It returns an
+	// error wrapping errors.ErrUnsupported when the Terminal's host
+	// cannot tell, as on Windows.
+	ForegroundProcessGroup(p workspaceapi.Pty) (int, error)
 }
 
 // Executor is the public facing API of a workspace's command execution.
