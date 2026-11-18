@@ -110,6 +110,17 @@ func WithProgressBarCharSet(chars component.ProgressBarCharSet) Option {
 	}
 }
 
+// WithRunTitleAttributes sets the attributes of the
+// command line shown in the row of each running command.
+// Zero attributes draw it in the terminal's default
+// colors. Default: gray foreground.
+func WithRunTitleAttributes(attr term.Attributes) Option {
+	return func(h *Handler) {
+		h.runTitleAttr = attr
+		h.hasRunTitleAttr = true
+	}
+}
+
 // WithExitError configures an error that, when
 // returned by HandleCommand (detected via errors.Is),
 // causes the REPL to exit on the next call to Handle.
@@ -136,4 +147,10 @@ func defaultValidCmdAttr() term.Attributes {
 		Fg:    term.ColorGreen,
 		Attrs: term.AttrBold,
 	}
+}
+
+// defaultRunTitleAttr returns the default attributes of
+// a running command's title.
+func defaultRunTitleAttr() term.Attributes {
+	return term.Attributes{Fg: term.ColorGray}
 }

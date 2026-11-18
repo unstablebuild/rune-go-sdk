@@ -23,11 +23,13 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/storageapi/storagestub"
 	"github.com/unstablebuild/rune-go-sdk/component"
+	"github.com/unstablebuild/rune-go-sdk/component/comptest"
 	"github.com/unstablebuild/rune-go-sdk/handler/handlertest"
 	"github.com/unstablebuild/rune-go-sdk/iterator"
 	"github.com/unstablebuild/rune-go-sdk/term"
@@ -123,6 +125,119 @@ func (s *queuedScheduler) Flush() {
 	}
 }
 
+// settle runs the callbacks command goroutines schedule,
+// as the event loop would, until cond holds.
+func settle(t *testing.T, s *queuedScheduler, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		s.Flush()
+		if cond() {
+			return
+		}
+		require.True(t, time.Now().Before(deadline), "condition never held")
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// submit enters line and lets its command end.
+func submit(t *testing.T, h *Handler, s *queuedScheduler, line string) {
+	t.Helper()
+	sendKeys(t, h, line+"<enter>")
+	h.Wait()
+	s.Flush()
+}
+
+// blockingCommands runs every command until its context
+// is cancelled or finish releases it, in which case it
+// prints "<name> done". A command named sync reports
+// 25/100 files first.
+type blockingCommands struct {
+	started chan string
+
+	mu      sync.Mutex
+	ctxs    map[string]context.Context
+	release map[string]chan struct{}
+}
+
+func newBlockingCommands() *blockingCommands {
+	return &blockingCommands{
+		started: make(chan string, 16),
+		ctxs:    map[string]context.Context{},
+		release: map[string]chan struct{}{},
+	}
+}
+
+func (b *blockingCommands) HandleCommand(
+	ctx context.Context, cmd Command, pw ProgressWriter,
+) (iterator.Iterator[component.Responsive], error) {
+	b.mu.Lock()
+	b.ctxs[cmd.Name] = ctx
+	release := b.releaseLocked(cmd.Name)
+	b.mu.Unlock()
+	if cmd.Name == "sync" {
+		pw.Progress(25, 100, "files")
+	}
+	b.started <- cmd.Name
+	select {
+	case <-release:
+		return iterator.FromSlice([]component.Responsive{
+			component.NewResponsiveString(
+				cmd.Name+" done",
+				component.StringResponsiveConfig{},
+			),
+		}), nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+func (b *blockingCommands) Complete(
+	context.Context, string, []string,
+) (iterator.Iterator[string], error) {
+	return iterator.Empty[string](), nil
+}
+
+func (b *blockingCommands) releaseLocked(name string) chan struct{} {
+	ch, ok := b.release[name]
+	if !ok {
+		ch = make(chan struct{})
+		b.release[name] = ch
+	}
+	return ch
+}
+
+func (b *blockingCommands) waitStarted(n int) {
+	for range n {
+		<-b.started
+	}
+}
+
+func (b *blockingCommands) ctx(name string) context.Context {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.ctxs[name]
+}
+
+func (b *blockingCommands) finish(name string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	close(b.releaseLocked(name))
+}
+
+// newBlockingREPL returns a Handler running cmds whose
+// spinner is a static "*".
+func newBlockingREPL(t *testing.T, cmds *blockingCommands, s *queuedScheduler) *Handler {
+	t.Helper()
+	h := New(
+		cmds, s.ScheduleNextTick, term.NopInterrupter(),
+		WithPrompt("$ "),
+		WithRunningAnimationFrames([]string{"*"}, []int{0}),
+	)
+	t.Cleanup(func() { _ = h.Close() })
+	return h
+}
+
 func sendKeys(t *testing.T, h *Handler, seq string) {
 	t.Helper()
 	keys, err := term.ParseKeys(seq)
@@ -208,6 +323,45 @@ func TestCtrlCClearsAndShowsCaret(t *testing.T) {
 	got := drawHandler(h, 20, 5)
 	assert.Contains(t, got, "^C")
 	assert.Contains(t, got, "$ ")
+}
+
+func TestCtrlCCancelsNewestCommand(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
+	h.Resize(40, 10)
+
+	sendKeys(t, h, "a<enter>b<enter>")
+	cmds.waitStarted(2)
+
+	sendKeys(t, h, "<c-c>")
+	settle(t, scheduler, func() bool { return len(h.runs) == 1 })
+	assert.ErrorIs(t, cmds.ctx("b").Err(), context.Canceled)
+	assert.NoError(t, cmds.ctx("a").Err())
+
+	sendKeys(t, h, "<c-c>")
+	settle(t, scheduler, func() bool { return len(h.runs) == 0 })
+	assert.ErrorIs(t, cmds.ctx("a").Err(), context.Canceled)
+
+	sendKeys(t, h, "<c-c>")
+	assert.Equal(t, 3, strings.Count(drawHandler(h, 40, 10), "^C"))
+}
+
+func TestCtrlCWithInputOnlyClears(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
+	h.Resize(40, 10)
+
+	sendKeys(t, h, "a<enter>")
+	cmds.waitStarted(1)
+
+	sendKeys(t, h, "typed<c-c>")
+	scheduler.Flush()
+	assert.NoError(t, cmds.ctx("a").Err())
+	assert.Len(t, h.runs, 1)
+	assert.Empty(t, h.Text())
+	assert.Contains(t, drawHandler(h, 40, 10), "^C")
 }
 
 func TestEmptyInput(t *testing.T) {
@@ -564,54 +718,23 @@ func TestTabCompletion(t *testing.T) {
 }
 
 func TestCtrlCCancelsContext(t *testing.T) {
-	var mu sync.Mutex
-	var capturedCtx context.Context
-	th := &testHandler{
-		handleFn: func(
-			ctx context.Context, _ Command, _ ProgressWriter,
-		) (
-			iterator.Iterator[component.Responsive],
-			error,
-		) {
-			mu.Lock()
-			capturedCtx = ctx
-			mu.Unlock()
-			return iterator.FromSlice[component.Responsive](nil), nil
-		},
-	}
-	h := New(th, nopSchedule, term.NopInterrupter(), WithPrompt("$ "))
+	scheduler := &queuedScheduler{}
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
 	h.Resize(40, 10)
 
-	// Capture the context before dispatch so
-	// we can check it was cancelled.
-	preCtx := h.cmdCtx
+	sendKeys(t, h, "cmd<enter>")
+	cmds.waitStarted(1)
 
-	sendKeys(t, h, "cmd")
-	h.Handle(term.Event{
-		Type: term.EventKey,
-		Key:  term.KeyEnter,
-	})
-
-	// Ctrl+C should cancel the context
-	h.Handle(term.Event{
-		Type: term.EventKey,
-		Ch:   'c',
-		Mod:  term.ModCtrl,
-	})
-
-	// Wait for the dispatch goroutine to complete
-	// before inspecting capturedCtx.
+	sendKeys(t, h, "<c-c>")
 	h.Wait()
+	scheduler.Flush()
+	assert.ErrorIs(t, cmds.ctx("cmd").Err(), context.Canceled)
+	assert.Empty(t, h.runs)
 
-	assert.Error(t, preCtx.Err())
-
-	// New context should be alive
-	assert.NoError(t, h.cmdCtx.Err())
-
-	// Just verify handler got called
-	mu.Lock()
-	assert.NotNil(t, capturedCtx)
-	mu.Unlock()
+	sendKeys(t, h, "next<enter>")
+	cmds.waitStarted(1)
+	assert.NoError(t, cmds.ctx("next").Err())
 }
 
 func TestSelection(t *testing.T) {
@@ -623,16 +746,55 @@ func TestSelection(t *testing.T) {
 }
 
 func TestLayout(t *testing.T) {
-	h := New(
-		&testHandler{},
-		nopSchedule, term.NopInterrupter(),
-		WithPrompt("$ "),
-	)
-	h.Resize(20, 5)
-	pos, _, show := h.Cursor()
-	assert.True(t, show)
-	assert.Equal(t, 4, pos.Y)
-	assert.Equal(t, 2, pos.X)
+	cases := []struct {
+		name     string
+		running  string
+		expected string
+	}{
+		{
+			name: "idle",
+			expected: "                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"                    \n" +
+				"$ ▐                 ",
+		},
+		{
+			name:    "rows above the input, oldest first",
+			running: "a<enter>b<enter>",
+			expected: "$ a                 \n" +
+				"$ b                 \n" +
+				"a                 * \n" +
+				"b                 * \n" +
+				"$ ▐                 ",
+		},
+		{
+			name:    "newest rows that fit keep one output row",
+			running: "a<enter>b<enter>c<enter>d<enter>",
+			expected: "$ d                 \n" +
+				"b                 * \n" +
+				"c                 * \n" +
+				"d                 * \n" +
+				"$ ▐                 ",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			scheduler := &queuedScheduler{}
+			cmds := newBlockingCommands()
+			h := newBlockingREPL(t, cmds, scheduler)
+			h.Resize(20, 5)
+
+			sendKeys(t, h, tc.running)
+			cmds.waitStarted(strings.Count(tc.running, "<enter>"))
+			scheduler.Flush()
+
+			pos, _, show := h.Cursor()
+			assert.True(t, show)
+			assert.Equal(t, term.Coordinates{X: 2, Y: 4}, pos)
+			assert.Equal(t, tc.expected, drawHandler(h, 20, 5))
+		})
+	}
 }
 
 func TestHandleCommandError(t *testing.T) {
@@ -683,123 +845,283 @@ func TestCompletionErrorSurfacesInline(t *testing.T) {
 
 func TestProgressBarRendersWhileCommandRunning(t *testing.T) {
 	scheduler := &queuedScheduler{}
-	progressSent := make(chan struct{})
-	release := make(chan struct{})
-	th := &testHandler{
-		handleFn: func(
-			ctx context.Context, _ Command, pw ProgressWriter,
-		) (
-			iterator.Iterator[component.Responsive],
-			error,
-		) {
-			pw.Progress(25, 100, "files")
-			close(progressSent)
-			select {
-			case <-release:
-				return iterator.Empty[component.Responsive](), nil
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		},
-	}
-	h := New(
-		th, scheduler.ScheduleNextTick, term.NopInterrupter(),
-		WithPrompt("$ "),
-		WithRunningAnimationFrames([]string{}, []int{}),
-	)
-	t.Cleanup(func() {
-		select {
-		case <-release:
-		default:
-			close(release)
-		}
-		_ = h.Close()
-	})
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
 	h.Resize(30, 5)
 
-	sendKeys(t, h, "sync")
-	h.Handle(term.Event{
-		Type: term.EventKey,
-		Key:  term.KeyEnter,
-	})
-
-	<-progressSent
-	scheduler.Flush()
-
-	got := drawHandler(h, 30, 5)
-	expected := "                              \n" +
-		"                              \n" +
-		"                              \n" +
-		"╢░░_________╟ 25% 25/100 files\n" +
-		"$ ▐                           "
-	assert.Equal(t, expected, got)
-
-	close(release)
-	h.Wait()
-	scheduler.Flush()
-}
-
-func TestProgressBarClearsAfterCommandCompletes(t *testing.T) {
-	scheduler := &queuedScheduler{}
-	progressSent := make(chan struct{})
-	release := make(chan struct{})
-	th := &testHandler{
-		handleFn: func(
-			ctx context.Context, _ Command, pw ProgressWriter,
-		) (
-			iterator.Iterator[component.Responsive],
-			error,
-		) {
-			pw.Progress(25, 100, "files")
-			close(progressSent)
-			select {
-			case <-release:
-				return iterator.FromSlice([]component.Responsive{
-					component.NewResponsiveString(
-						"done",
-						component.StringResponsiveConfig{},
-					),
-				}), nil
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		},
-	}
-	h := New(
-		th, scheduler.ScheduleNextTick, term.NopInterrupter(),
-		WithPrompt("$ "),
-		WithRunningAnimationFrames([]string{}, []int{}),
-	)
-	t.Cleanup(func() {
-		select {
-		case <-release:
-		default:
-			close(release)
-		}
-		_ = h.Close()
-	})
-	h.Resize(30, 5)
-
-	sendKeys(t, h, "sync")
-	h.Handle(term.Event{
-		Type: term.EventKey,
-		Key:  term.KeyEnter,
-	})
-
-	<-progressSent
-	scheduler.Flush()
-	close(release)
-	h.Wait()
+	sendKeys(t, h, "sync<enter>")
+	cmds.waitStarted(1)
 	scheduler.Flush()
 
 	got := drawHandler(h, 30, 5)
 	expected := "                              \n" +
 		"                              \n" +
 		"$ sync                        \n" +
-		"done                          \n" +
+		"sync ╢░_____╟ 25% 25/100 files\n" +
 		"$ ▐                           "
 	assert.Equal(t, expected, got)
-	assert.NotContains(t, got, "25% 25/100 files")
+}
+
+func TestProgressBarClearsAfterCommandCompletes(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
+	h.Resize(30, 5)
+
+	sendKeys(t, h, "sync<enter>")
+	cmds.waitStarted(1)
+	scheduler.Flush()
+	r := h.runs[0]
+	cmds.finish("sync")
+	h.Wait()
+	scheduler.Flush()
+	h.updateProgress(r, 50, 100, "files")
+
+	got := drawHandler(h, 30, 5)
+	expected := "                              \n" +
+		"                              \n" +
+		"$ sync                        \n" +
+		"sync done                     \n" +
+		"$ ▐                           "
+	assert.Equal(t, expected, got)
+}
+
+func TestRunRowsPerCommand(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
+	h.Resize(30, 5)
+
+	sendKeys(t, h, "sync<enter>b<enter>")
+	cmds.waitStarted(2)
+	scheduler.Flush()
+
+	got := drawHandler(h, 30, 5)
+	expected := "$ sync                        \n" +
+		"$ b                           \n" +
+		"sync ╢░_____╟ 25% 25/100 files\n" +
+		"b                           * \n" +
+		"$ ▐                           "
+	assert.Equal(t, expected, got)
+
+	cmds.finish("sync")
+	settle(t, scheduler, func() bool { return len(h.runs) == 1 })
+
+	got = drawHandler(h, 30, 5)
+	expected = "$ sync                        \n" +
+		"$ b                           \n" +
+		"sync done                     \n" +
+		"b                           * \n" +
+		"$ ▐                           "
+	assert.Equal(t, expected, got)
+}
+
+func TestRunRow(t *testing.T) {
+	cases := []struct {
+		name     string
+		title    string
+		progress bool
+		width    int
+		expected string
+	}{
+		{
+			name:     "spinner",
+			title:    "index",
+			width:    12,
+			expected: "index     * ",
+		},
+		{
+			name:     "spinner truncates title",
+			title:    "search reindex",
+			width:    12,
+			expected: "search r… * ",
+		},
+		{
+			name:     "bar",
+			title:    "sync",
+			progress: true,
+			width:    30,
+			expected: "sync ╢░_____╟ 25% 25/100 files",
+		},
+		{
+			name:     "bar truncates title to half the width",
+			title:    "search reindex defs",
+			progress: true,
+			width:    20,
+			expected: "search re… ╢░______╟",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := &run{
+				title:   tc.title,
+				spinner: component.NewAnimation(term.NopInterrupter(), []string{"*"}, []int{0}, 10),
+			}
+			t.Cleanup(func() { _ = r.spinner.Close() })
+			if tc.progress {
+				r.bar = component.NewProgressBar(component.DefaultProgressBarCharSet(), term.Attributes{})
+				r.bar.SetProgress(25, 100, "files")
+			}
+			row := &runRow{r: r}
+			comptest.TestComponent(t, row, term.NewStringWriter(tc.width, 1), []comptest.TestCase{
+				{
+					Action:   func() { row.Resize(tc.width, 1) },
+					Expected: tc.expected,
+				},
+			})
+		})
+	}
+}
+
+func TestRunTitleAttributes(t *testing.T) {
+	cases := []struct {
+		name   string
+		opts   []Option
+		wantFg term.Color
+	}{
+		{
+			name:   "default gray",
+			wantFg: term.ColorGray,
+		},
+		{
+			name:   "configured",
+			opts:   []Option{WithRunTitleAttributes(term.Attributes{Fg: term.ColorTeal})},
+			wantFg: term.ColorTeal,
+		},
+		{
+			name:   "zero draws default colors",
+			opts:   []Option{WithRunTitleAttributes(term.Attributes{})},
+			wantFg: term.ColorDefault,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmds := newBlockingCommands()
+			opts := append([]Option{
+				WithPrompt("$ "),
+				WithRunningAnimationFrames([]string{"*"}, []int{0}),
+			}, tc.opts...)
+			h := New(cmds, (&queuedScheduler{}).ScheduleNextTick, term.NopInterrupter(), opts...)
+			t.Cleanup(func() { _ = h.Close() })
+			h.Resize(10, 3)
+
+			sendKeys(t, h, "ab<enter>")
+			cmds.waitStarted(1)
+
+			w := term.NewStringWriter(10, 3)
+			h.Draw(w)
+			row := w.Cells()[10 : 2*10]
+			assert.Equal(t, 'a', row[0].Ch)
+			assert.Equal(t, tc.wantFg, row[0].Fg)
+			assert.Equal(t, tc.wantFg, row[1].Fg)
+			assert.Equal(t, '*', row[8].Ch)
+			assert.Equal(t, term.ColorDefault, row[8].Fg)
+		})
+	}
+}
+
+func TestDispatchLeavesInputAndHistory(t *testing.T) {
+	cases := []struct {
+		name     string
+		err      error
+		wantAttr term.Attributes
+		wantOut  string
+	}{
+		{
+			name:     "success",
+			wantAttr: defaultSuccessAttr(),
+		},
+		{
+			name:     "error",
+			err:      errors.New("boom"),
+			wantAttr: defaultErrorAttr(),
+			wantOut:  "boom",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			scheduler := &queuedScheduler{}
+			ran := make(chan Command, 1)
+			th := &testHandler{
+				handleFn: func(
+					_ context.Context, cmd Command, _ ProgressWriter,
+				) (iterator.Iterator[component.Responsive], error) {
+					ran <- cmd
+					if tc.err != nil {
+						return nil, tc.err
+					}
+					return iterator.Empty[component.Responsive](), nil
+				},
+			}
+			h := New(th, scheduler.ScheduleNextTick, term.NopInterrupter(), WithPrompt("$ "))
+			t.Cleanup(func() { _ = h.Close() })
+			h.Resize(40, 10)
+
+			sendKeys(t, h, "typed")
+			h.Dispatch("cmd arg")
+			assert.Equal(t, Command{Name: "cmd", Args: []string{"arg"}}, <-ran)
+			h.Wait()
+			scheduler.Flush()
+
+			assert.Equal(t, "typed", h.Text())
+			assert.Empty(t, h.history)
+			assert.Empty(t, h.runs)
+			assert.Equal(t, tc.wantAttr, h.lastPromptLine.promptAttr)
+			got := drawHandler(h, 40, 10)
+			assert.Contains(t, got, "$ cmd arg")
+			assert.Contains(t, got, "$ typed")
+			assert.Contains(t, got, tc.wantOut)
+		})
+	}
+}
+
+func TestClearKeepsRunningCommands(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
+	h.Resize(20, 4)
+
+	cmds.finish("old")
+	submit(t, h, scheduler, "old")
+	sendKeys(t, h, "a<enter>")
+	cmds.waitStarted(2)
+
+	h.Clear()
+	got := drawHandler(h, 20, 4)
+	expected := "                    \n" +
+		"                    \n" +
+		"a                 * \n" +
+		"$ ▐                 "
+	assert.Equal(t, expected, got)
+	assert.NoError(t, cmds.ctx("a").Err())
+
+	cmds.finish("a")
+	settle(t, scheduler, func() bool { return len(h.runs) == 0 })
+	got = drawHandler(h, 20, 4)
+	expected = "                    \n" +
+		"                    \n" +
+		"a done              \n" +
+		"$ ▐                 "
+	assert.Equal(t, expected, got)
+}
+
+func TestCancelAll(t *testing.T) {
+	scheduler := &queuedScheduler{}
+	cmds := newBlockingCommands()
+	h := newBlockingREPL(t, cmds, scheduler)
+	h.Resize(40, 10)
+
+	sendKeys(t, h, "a<enter>b<enter>")
+	cmds.waitStarted(2)
+
+	h.CancelAll()
+	settle(t, scheduler, func() bool { return len(h.runs) == 0 })
+	assert.ErrorIs(t, cmds.ctx("a").Err(), context.Canceled)
+	assert.ErrorIs(t, cmds.ctx("b").Err(), context.Canceled)
+
+	sendKeys(t, h, "c<enter>")
+	cmds.waitStarted(1)
+	assert.NoError(t, cmds.ctx("c").Err())
 }
 
 func TestMultipleCommands(t *testing.T) {
@@ -997,20 +1319,17 @@ func TestResultEOF(t *testing.T) {
 }
 
 func TestLayoutShortContent(t *testing.T) {
+	scheduler := &queuedScheduler{}
 	h := New(
 		&testHandler{},
-		nopSchedule, term.NopInterrupter(),
+		scheduler.ScheduleNextTick, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 5)
 
 	// Submit one command — one output line sits just
 	// above the prompt, not at the top.
-	sendKeys(t, h, "cmd1")
-	h.Handle(term.Event{
-		Type: term.EventKey,
-		Key:  term.KeyEnter,
-	})
+	submit(t, h, scheduler, "cmd1")
 
 	got := drawHandler(h, 20, 5)
 	expected := "                    \n" +
@@ -1022,9 +1341,10 @@ func TestLayoutShortContent(t *testing.T) {
 }
 
 func TestLayoutOverflowContent(t *testing.T) {
+	scheduler := &queuedScheduler{}
 	h := New(
 		&testHandler{},
-		nopSchedule, term.NopInterrupter(),
+		scheduler.ScheduleNextTick, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	// Small viewport: 3 rows total (2 output + 1
@@ -1033,11 +1353,7 @@ func TestLayoutOverflowContent(t *testing.T) {
 
 	// Submit 4 commands to overflow the output area.
 	for _, cmd := range []string{"a", "b", "c", "d"} {
-		sendKeys(t, h, cmd)
-		h.Handle(term.Event{
-			Type: term.EventKey,
-			Key:  term.KeyEnter,
-		})
+		submit(t, h, scheduler, cmd)
 	}
 
 	got := drawHandler(h, 20, 3)
@@ -1051,19 +1367,16 @@ func TestLayoutOverflowContent(t *testing.T) {
 }
 
 func TestMouseWheelScrollsOutputPane(t *testing.T) {
+	scheduler := &queuedScheduler{}
 	h := New(
 		&testHandler{},
-		nopSchedule, term.NopInterrupter(),
+		scheduler.ScheduleNextTick, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 3)
 
 	for _, cmd := range []string{"a", "b", "c", "d"} {
-		sendKeys(t, h, cmd)
-		h.Handle(term.Event{
-			Type: term.EventKey,
-			Key:  term.KeyEnter,
-		})
+		submit(t, h, scheduler, cmd)
 	}
 
 	exit, handled := wheelUpAt(h, 0, 1)
@@ -1078,19 +1391,16 @@ func TestMouseWheelScrollsOutputPane(t *testing.T) {
 }
 
 func TestMouseWheelInInputRegionDoesNotScrollOutput(t *testing.T) {
+	scheduler := &queuedScheduler{}
 	h := New(
 		&testHandler{},
-		nopSchedule, term.NopInterrupter(),
+		scheduler.ScheduleNextTick, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
 	h.Resize(20, 5)
 
 	for _, cmd := range []string{"a", "b", "c", "d", "e"} {
-		sendKeys(t, h, cmd)
-		h.Handle(term.Event{
-			Type: term.EventKey,
-			Key:  term.KeyEnter,
-		})
+		submit(t, h, scheduler, cmd)
 	}
 	sendKeys(t, h, "abcdefghijklmnopqrst")
 
@@ -1106,18 +1416,15 @@ func TestMouseWheelInInputRegionDoesNotScrollOutput(t *testing.T) {
 
 func TestMouseWheelAtPaneBoundaryTargetsCorrectPane(t *testing.T) {
 	newHandler := func() *Handler {
+		scheduler := &queuedScheduler{}
 		h := New(
 			&testHandler{},
-			nopSchedule, term.NopInterrupter(),
+			scheduler.ScheduleNextTick, term.NopInterrupter(),
 			WithPrompt("$ "),
 		)
 		h.Resize(20, 5)
 		for _, cmd := range []string{"a", "b", "c", "d", "e"} {
-			sendKeys(t, h, cmd)
-			h.Handle(term.Event{
-				Type: term.EventKey,
-				Key:  term.KeyEnter,
-			})
+			submit(t, h, scheduler, cmd)
 		}
 		sendKeys(t, h, "abcdefghijklmnopqrst")
 		return h
@@ -1147,14 +1454,19 @@ func TestMouseWheelAtPaneBoundaryTargetsCorrectPane(t *testing.T) {
 }
 
 func TestMouseWheelScrollsOutputViaHandleSequence(t *testing.T) {
+	scheduler := &queuedScheduler{}
 	h := New(
 		&testHandler{},
-		nopSchedule, term.NopInterrupter(),
+		scheduler.ScheduleNextTick, term.NopInterrupter(),
 		WithPrompt("$ "),
 	)
+	h.Resize(20, 3)
+	for _, cmd := range []string{"a", "b", "c", "d"} {
+		submit(t, h, scheduler, cmd)
+	}
 	cases := []handlertest.SequenceTestCase{
 		{
-			InputSequence: "a<enter>b<enter>c<enter>d<enter>",
+			InputSequence: "",
 			Expected: "$ c                 \n" +
 				"$ d                 \n" +
 				"$ ▐                 ",
@@ -1220,13 +1532,9 @@ func TestNewOutputSnapsToBottomAfterManualScroll(t *testing.T) {
 		closeItems.Do(func() { close(items) })
 		_ = h.Close()
 	})
-	h.Resize(20, 3)
+	h.Resize(20, 4)
 
-	sendKeys(t, h, "prev")
-	h.Handle(term.Event{
-		Type: term.EventKey,
-		Key:  term.KeyEnter,
-	})
+	submit(t, h, scheduler, "prev")
 
 	items <- component.NewResponsiveString(
 		"first",
@@ -1239,15 +1547,17 @@ func TestNewOutputSnapsToBottomAfterManualScroll(t *testing.T) {
 	})
 
 	<-stream.started
-	scheduler.Flush()
+	settle(t, scheduler, func() bool {
+		return strings.Contains(drawHandler(h, 20, 4), "first")
+	})
 
-	got := drawHandler(h, 20, 3)
+	got := drawHandler(h, 20, 4)
 	assert.Contains(t, got, "$ stream")
 	assert.Contains(t, got, "first")
 
 	_, handled := wheelUpAt(h, 0, 1)
 	assert.True(t, handled)
-	got = drawHandler(h, 20, 3)
+	got = drawHandler(h, 20, 4)
 	assert.Contains(t, got, "$ prev")
 	assert.Contains(t, got, "$ stream")
 	assert.NotContains(t, got, "second")
@@ -1260,11 +1570,12 @@ func TestNewOutputSnapsToBottomAfterManualScroll(t *testing.T) {
 	h.Wait()
 	scheduler.Flush()
 
-	got = drawHandler(h, 20, 3)
-	assert.Contains(t, got, "first")
-	assert.Contains(t, got, "second")
-	assert.NotContains(t, got, "$ prev")
-	assert.NotContains(t, got, "$ stream")
+	got = drawHandler(h, 20, 4)
+	expected := "$ stream            \n" +
+		"first               \n" +
+		"second              \n" +
+		"$ ▐                 "
+	assert.Equal(t, expected, got)
 }
 
 func TestHistoryPersistence(t *testing.T) {
@@ -1408,17 +1719,17 @@ func TestExitErrorNotConfigured(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	t.Run("cancels command context", func(t *testing.T) {
-		h := New(
-			&testHandler{},
-			nopSchedule, term.NopInterrupter(),
-		)
+	t.Run("cancels every running command", func(t *testing.T) {
+		cmds := newBlockingCommands()
+		h := newBlockingREPL(t, cmds, &queuedScheduler{})
 		h.Resize(20, 5)
 
-		assert.NoError(t, h.cmdCtx.Err())
-		err := h.Close()
-		assert.NoError(t, err)
-		assert.Error(t, h.cmdCtx.Err())
+		sendKeys(t, h, "a<enter>b<enter>")
+		cmds.waitStarted(2)
+
+		assert.NoError(t, h.Close())
+		assert.ErrorIs(t, cmds.ctx("a").Err(), context.Canceled)
+		assert.ErrorIs(t, cmds.ctx("b").Err(), context.Canceled)
 	})
 
 	t.Run("stops blocking command", func(t *testing.T) {

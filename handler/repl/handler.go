@@ -35,6 +35,7 @@ import (
 	"github.com/unstablebuild/rune-go-sdk/mouse"
 	"github.com/unstablebuild/rune-go-sdk/retry"
 	"github.com/unstablebuild/rune-go-sdk/term"
+	"github.com/unstablebuild/rune-go-sdk/tui"
 )
 
 var historyRetryStrategy = retry.SequentialStrategy(30 * time.Millisecond)
@@ -46,6 +47,17 @@ const defaultMaxHistory = 2000
 // (bottom). It dispatches commands asynchronously via
 // a CommandHandler and streams output into the
 // container.
+//
+// Commands run concurrently, each under its own
+// context. Every running command has one row between
+// the output and the input, oldest at the top, showing
+// the command line and its progress bar, or a spinner
+// until it reports progress. The row goes away when
+// the command ends.
+//
+// Ctrl-C with text in the input clears it. With an
+// empty input it cancels the newest running command.
+// Either way it prints ^C.
 type Handler struct {
 	output *component.Virtual[*component.Container]
 	rl     *handler.Virtual[*inputbox.Handler]
@@ -76,22 +88,21 @@ type Handler struct {
 	lastCheckedCmd  string
 	lastCmdValid    bool
 
-	// Spinner animation.
-	spinner      *component.Animation
-	spinnerVirt  component.Virtual[*component.Animation]
-	animFrames   []string
-	animSequence []int
+	animFrames    []string
+	animSequence  []int
+	progressChars component.ProgressBarCharSet
 
-	// Progress bar.
-	progressBar     *component.ProgressBar
-	progressBarVirt component.Virtual[*component.ProgressBar]
-	progressChars   component.ProgressBarCharSet
+	runTitleAttr    term.Attributes
+	hasRunTitleAttr bool
+
+	// runs are the commands that have not ended yet,
+	// oldest first, and rows draw the newest of them
+	// that fit. Only the event loop touches them.
+	runs []*run
+	rows []component.Virtual[*runRow]
 
 	ctx    context.Context
 	cancel context.CancelFunc
-
-	cmdCtx    context.Context
-	cmdCancel context.CancelFunc
 
 	// exitError, when non-nil, is compared with
 	// errors.Is against errors returned by
@@ -192,6 +203,9 @@ func New(
 	if !h.hasValidCmdAttr {
 		h.validCmdAttr = defaultValidCmdAttr()
 	}
+	if !h.hasRunTitleAttr {
+		h.runTitleAttr = defaultRunTitleAttr()
+	}
 	if h.animFrames == nil {
 		h.animFrames, h.animSequence = component.ProgressAnimationFrames()
 	}
@@ -200,7 +214,6 @@ func New(
 	}
 	h.ctx, h.cancel = context.WithCancel(context.Background())
 	h.loadHistory()
-	h.cmdCtx, h.cmdCancel = context.WithCancel(h.ctx)
 	h.rl = h.newInputBox()
 	h.m = mouse.New(&outputMouseDelegate{h: h})
 	return h
@@ -216,10 +229,8 @@ func (h *Handler) Resize(width, height int) {
 // Draw satisfies tui.Component.
 func (h *Handler) Draw(w term.Writer) {
 	h.output.Draw(w)
-	if h.progressBar != nil {
-		h.progressBarVirt.Draw(w)
-	} else if h.spinner != nil {
-		h.spinnerVirt.Draw(w)
+	for i := range h.rows {
+		h.rows[i].Draw(w)
 	}
 	h.rl.Draw(w)
 }
@@ -232,6 +243,7 @@ func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 	if ev.Type == term.EventMouse {
 		return h.handleMouse(ev)
 	}
+	hadText := h.rl.C.Text() != ""
 	exit, handled = h.rl.Handle(ev)
 	if !exit {
 		h.updateInputStyle()
@@ -244,27 +256,60 @@ func (h *Handler) Handle(ev term.Event) (exit, handled bool) {
 	case errors.Is(err, io.EOF):
 		return true, true
 	case errors.Is(err, inputbox.ErrAborted):
-		h.cmdCancel()
-		h.cmdCtx, h.cmdCancel = context.WithCancel(h.ctx)
+		if !hadText && len(h.runs) > 0 {
+			h.runs[len(h.runs)-1].cancel()
+		}
 		h.addLine("^C")
 		h.output.C.ScrollToBottom()
 		h.resetInputBox()
 		return false, true
 	}
 
-	if strings.TrimSpace(text) == "" {
-		h.addPromptLine("")
-		h.output.C.ScrollToBottom()
-		h.resetInputBox()
-		return false, true
+	if strings.TrimSpace(text) != "" {
+		h.history = append(h.history, text)
+		h.saveHistory(text)
 	}
-	h.history = append(h.history, text)
-	h.saveHistory(text)
-	h.addPromptLine(text)
-	h.output.C.ScrollToBottom()
-	h.dispatchCommand(text)
+	h.start(text)
 	h.resetInputBox()
 	return false, true
+}
+
+// Dispatch runs line as if the user had typed it and
+// pressed Enter: it echoes the prompt line, streams the
+// command's output and colours the prompt by the
+// outcome. Unlike Enter, it leaves the input line as it
+// is and does not add line to the history. Dispatch must
+// be called on the event loop.
+func (h *Handler) Dispatch(line string) {
+	h.start(line)
+}
+
+// Clear empties the output. Running commands keep their
+// rows, and the output they produce after Clear lands in
+// the emptied output. Clear must be called on the event
+// loop.
+func (h *Handler) Clear() {
+	h.output.C = component.NewContainer()
+	h.m.Init(&outputMouseDelegate{h: h})
+	h.layout()
+}
+
+// CancelAll cancels the context of every running
+// command. Their rows go away once their commands
+// return. CancelAll must be called on the event loop.
+func (h *Handler) CancelAll() {
+	for _, r := range h.runs {
+		r.cancel()
+	}
+}
+
+func (h *Handler) start(text string) {
+	h.addPromptLine(text)
+	if strings.TrimSpace(text) != "" {
+		h.dispatchCommand(text)
+	}
+	h.output.C.ScrollToBottom()
+	h.layout()
 }
 
 func (h *Handler) handleMouse(ev term.Event) (exit, handled bool) {
@@ -300,7 +345,9 @@ func (h *Handler) Text() string {
 // then waits for goroutines to finish.
 func (h *Handler) Close() error {
 	h.cancel()
-	h.stopSpinner()
+	for _, r := range h.runs {
+		_ = r.spinner.Close()
+	}
 	h.wg.Wait()
 	return nil
 }
@@ -434,35 +481,33 @@ func (h *Handler) layout() {
 		return
 	}
 	rlH, outH := h.layoutHeights()
+	n := h.visibleRuns(outH)
+	outputH := outH - n
 
 	contentH := h.output.C.Height(h.width)
-	if contentH < outH {
+	if contentH < outputH {
 		h.output.Resize(h.width, contentH)
-		h.output.Move(term.Coordinates{Y: outH - contentH})
+		h.output.Move(term.Coordinates{Y: outputH - contentH})
 	} else {
-		h.output.Resize(h.width, outH)
+		h.output.Resize(h.width, outputH)
 		h.output.Move(term.Coordinates{})
 	}
 
-	if h.spinner != nil {
-		h.spinnerVirt.Resize(1, 1)
-		h.spinnerVirt.Move(term.Coordinates{
-			X: h.width - 2,
-			Y: outH - 1,
-		})
-	}
-	if h.progressBar != nil {
-		h.progressBarVirt.Resize(h.width, 1)
-		h.progressBarVirt.Move(term.Coordinates{
-			X: 0,
-			Y: outH - 1,
-		})
+	h.rows = h.rows[:0]
+	for i, r := range h.runs[len(h.runs)-n:] {
+		row := component.Virtual[*runRow]{C: &runRow{r: r, attr: h.runTitleAttr}}
+		row.Resize(h.width, 1)
+		row.Move(term.Coordinates{Y: outputH + i})
+		h.rows = append(h.rows, row)
 	}
 
 	h.rl.Resize(h.width, rlH)
 	h.rl.Move(term.Coordinates{Y: outH})
 }
 
+// layoutHeights returns the height of the input and of
+// everything above it, which holds the output and the
+// rows of running commands.
 func (h *Handler) layoutHeights() (rlH, outH int) {
 	if h.width == 0 || h.height == 0 {
 		return 0, 0
@@ -472,70 +517,128 @@ func (h *Handler) layoutHeights() (rlH, outH int) {
 	return rlH, outH
 }
 
+// visibleRuns returns how many of the newest runs get a
+// row above the input, leaving at least one row to the
+// output.
+func (h *Handler) visibleRuns(outH int) int {
+	return max(min(len(h.runs), outH-1), 0)
+}
+
 // LayoutHeights computes the inputbox and output layout heights The first return value is
 // the height allocated to the inputbox (rl), and the second is the height allocated to
-// previous command output.
+// previous command output and the rows of running commands, which sit at its bottom.
 func (h *Handler) LayoutHeights() (rlH, outH int) {
 	return h.layoutHeights()
 }
 
-func (h *Handler) startSpinner() {
-	h.spinner = component.NewAnimation(
-		h.interrupter,
-		h.animFrames, h.animSequence, 10,
-	)
-	h.spinnerVirt.C = h.spinner
-	h.layout()
+// run is a dispatched command that has not ended yet.
+type run struct {
+	title   string
+	cancel  context.CancelFunc
+	spinner *component.Animation
+	bar     *component.ProgressBar
 }
 
-func (h *Handler) stopSpinner() {
-	if h.spinner != nil {
-		_ = h.spinner.Close()
-		h.spinner = nil
-		h.spinnerVirt.C = nil
+// spinnerCols is the width a run's spinner takes at the
+// end of its row.
+const spinnerCols = 2
+
+// runRow draws a run on one row: its command line on the
+// left, truncated to fit, and either its progress bar in
+// the remaining width or its spinner in the last columns.
+type runRow struct {
+	r      *run
+	attr   term.Attributes
+	title  []rune
+	status component.Virtual[tui.Component]
+}
+
+// Resize satisfies tui.Component.
+func (rr *runRow) Resize(width, height int) {
+	if rr.r.bar != nil {
+		rr.title = truncate([]rune(rr.r.title), width/2)
+		x := len(rr.title) + 1
+		rr.status.C = rr.r.bar
+		rr.status.Resize(max(width-x, 0), height)
+		rr.status.Move(term.Coordinates{X: x})
+		return
 	}
-	if h.progressBar != nil {
-		h.progressBar = nil
-		h.progressBarVirt.C = nil
+	rr.title = truncate([]rune(rr.r.title), width-spinnerCols-1)
+	rr.status.C = rr.r.spinner
+	rr.status.Resize(1, height)
+	rr.status.Move(term.Coordinates{X: width - spinnerCols})
+}
+
+// Draw satisfies tui.Component.
+func (rr *runRow) Draw(w term.Writer) {
+	for x, c := range rr.title {
+		w.SetCell(term.Coordinates{X: x}, term.NewCell(c, 1, rr.attr))
 	}
+	rr.status.Draw(w)
+}
+
+// truncate shortens s to at most n runes, marking a cut
+// with an ellipsis.
+func truncate(s []rune, n int) []rune {
+	switch {
+	case len(s) <= n:
+		return s
+	case n <= 0:
+		return nil
+	}
+	return append(s[:n-1:n-1], '…')
+}
+
+// endRun removes r once its command has returned.
+func (h *Handler) endRun(r *run) {
+	h.runs = slices.DeleteFunc(h.runs, func(x *run) bool { return x == r })
+	r.cancel()
+	_ = r.spinner.Close()
 }
 
 type progressWriter struct {
 	h *Handler
+	r *run
 }
 
 func (pw *progressWriter) Progress(
 	progress, total int64, units string,
 ) {
 	pw.h.scheduleNextTick(func() {
-		pw.h.updateProgress(progress, total, units)
+		pw.h.updateProgress(pw.r, progress, total, units)
 	})
 }
 
 func (h *Handler) updateProgress(
-	progress, total int64, units string,
+	r *run, progress, total int64, units string,
 ) {
-	if h.progressBar == nil {
-		h.progressBar = component.NewProgressBar(
-			h.progressChars, term.Attributes{},
-		)
-		h.progressBarVirt.C = h.progressBar
+	if !slices.Contains(h.runs, r) {
+		return
 	}
-	h.progressBar.SetProgress(progress, total, units)
+	if r.bar == nil {
+		r.bar = component.NewProgressBar(h.progressChars, term.Attributes{})
+	}
+	r.bar.SetProgress(progress, total, units)
 	h.layout()
 }
 
 func (h *Handler) dispatchCommand(text string) {
 	cmd := parseCommand(text)
-	ctx := h.cmdCtx
+	ctx, cancel := context.WithCancel(h.ctx)
+	r := &run{
+		title:  text,
+		cancel: cancel,
+		spinner: component.NewAnimation(
+			h.interrupter,
+			h.animFrames, h.animSequence, 10,
+		),
+	}
+	h.runs = append(h.runs, r)
 	promptLine := h.lastPromptLine
 	h.wg.Add(1)
 	go debug.CapturePanicReport(func() {
 		defer h.wg.Done()
-		h.scheduleNextTick(func() {
-			h.startSpinner()
-		})
-		pw := &progressWriter{h: h}
+		pw := &progressWriter{h: h, r: r}
 		iter, err := h.cmd.HandleCommand(ctx, cmd, pw)
 		if err != nil {
 			isExit := h.exitError != nil && errors.Is(err, h.exitError)
@@ -543,7 +646,7 @@ func (h *Handler) dispatchCommand(text string) {
 				h.exitPending.Store(true)
 			}
 			h.scheduleNextTick(func() {
-				h.stopSpinner()
+				h.endRun(r)
 				if !isExit {
 					promptLine.setPromptAttr(h.errorAttr)
 					h.addErrorLine(err.Error())
@@ -620,7 +723,7 @@ func (h *Handler) dispatchCommand(text string) {
 				row.AddComponent(it, component.MaxCols)
 			}
 
-			h.stopSpinner()
+			h.endRun(r)
 			if iterErr != nil && !isExit {
 				promptLine.setPromptAttr(h.errorAttr)
 				h.addErrorLine(iterErr.Error())
@@ -693,13 +796,13 @@ func (h *Handler) makeCompleter() inputbox.WordCompleter {
 		} else {
 			head = ""
 		}
-		iter, err := h.cmd.Complete(h.cmdCtx, cmd, args)
+		iter, err := h.cmd.Complete(h.ctx, cmd, args)
 		if err != nil {
 			h.showCompletionError(err)
 			return line[:pos], nil, tail
 		}
 		defer func() { _ = iter.Close() }()
-		candidates, err := iterator.ToSlice(h.cmdCtx, iter)
+		candidates, err := iterator.ToSlice(h.ctx, iter)
 		if err != nil {
 			h.showCompletionError(err)
 			return line[:pos], nil, tail
