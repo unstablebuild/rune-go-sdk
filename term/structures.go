@@ -214,6 +214,9 @@ type Writer interface {
 	Context() context.Context
 	// SetCell sets the contents of the given cell location.  If
 	// the coordinates are out of range, then the operation is ignored.
+	// A cell flagged AttrKeepBackground keeps the background colour of
+	// the cell it replaces where the writer can read that cell back;
+	// see AttrKeepBackground.
 	SetCell(Coordinates, Cell)
 	// UnionAttributes computes the set union between a and b,
 	// that is overrides a set of attributes at the given coordinates

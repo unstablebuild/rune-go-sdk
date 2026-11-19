@@ -76,6 +76,10 @@ func (w *StringWriter) SetCell(pos Coordinates, cell Cell) {
 			pos.X, pos.Y, w.width, w.height))
 	}
 	idx := pos.Y*w.width + pos.X
+	if cell.Attrs&AttrKeepBackground != 0 {
+		cell.Bg = w.cellbuf[idx].Bg
+		cell.Attrs &^= AttrKeepBackground
+	}
 	w.cellbuf[idx] = cell
 }
 
@@ -86,6 +90,7 @@ func (w *StringWriter) UnionAttributes(pos Coordinates, attr Attributes) {
 			pos.X, pos.Y, w.width, w.height))
 	}
 	idx := pos.Y*w.width + pos.X
+	attr.Attrs &^= AttrKeepBackground
 	w.cellbuf[idx].SetAttributes(AttributesUnion(w.cellbuf[idx].Attributes(), attr))
 }
 

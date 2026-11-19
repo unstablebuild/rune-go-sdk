@@ -48,3 +48,46 @@ func TestStringWriter(t *testing.T) {
 	expected := "A    \nBB   \nCCC  \nDDDD \nEEEEE\n     "
 	assert.Equal(t, expected, writer.String())
 }
+
+func TestStringWriterSetCellKeepsBackground(t *testing.T) {
+	teal := NewRGBColor(0, 128, 128)
+	plum := NewRGBColor(128, 0, 128)
+	white := NewRGBColor(255, 255, 255)
+	pos := Coordinates{X: 1, Y: 1}
+	keep := NewCell('x', 1, Attributes{Fg: white, Bg: plum, Attrs: AttrBold | AttrKeepBackground})
+
+	for _, tc := range []struct {
+		name     string
+		existing Cell
+		expected Cell
+	}{
+		{
+			name:     "coloured background underneath",
+			existing: NewCell('C', 1, Attributes{Fg: plum, Bg: teal, Attrs: AttrItalic}),
+			expected: NewCell('x', 1, Attributes{Fg: white, Bg: teal, Attrs: AttrBold}),
+		},
+		{
+			name:     "default background underneath",
+			existing: NewCell('C', 1, Attributes{Fg: plum}),
+			expected: NewCell('x', 1, Attributes{Fg: white, Attrs: AttrBold}),
+		},
+		{
+			name:     "blank cell underneath",
+			expected: NewCell('x', 1, Attributes{Fg: white, Attrs: AttrBold}),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			writer := NewStringWriter(3, 3)
+			writer.SetCell(pos, tc.existing)
+			writer.SetCell(pos, keep)
+			assert.Equal(t, tc.expected, writer.Cells()[pos.Y*3+pos.X])
+		})
+	}
+
+	t.Run("union keeps its own background semantics", func(t *testing.T) {
+		writer := NewStringWriter(3, 3)
+		writer.SetCell(pos, NewCell('C', 1, Attributes{Bg: teal}))
+		writer.UnionAttributes(pos, Attributes{Fg: white, Attrs: AttrKeepBackground})
+		assert.Equal(t, NewCell('C', 1, Attributes{Fg: white, Bg: teal}), writer.Cells()[pos.Y*3+pos.X])
+	})
+}

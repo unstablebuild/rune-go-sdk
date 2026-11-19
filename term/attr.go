@@ -43,6 +43,15 @@ const (
 	// AttrNegativeVerticalRenderOffset instructs the renderer to render
 	// the cell offset by -height/2.
 	AttrNegativeVerticalRenderOffset AttrMask = AttrInvalid << 2 // bit 9
+
+	// AttrKeepBackground makes Writer.SetCell keep the background colour
+	// of the cell it replaces instead of the written cell's. Writers that
+	// hold their cells store the result without the flag, and writers
+	// that forward cells pass it on. A writer that cannot read back the
+	// cell it replaces, such as ScreenWriter, draws the written cell's
+	// background. UnionAttributes ignores the flag, since a default
+	// colour there already keeps the existing one.
+	AttrKeepBackground AttrMask = AttrInvalid << 3 // bit 10
 )
 
 // Style is a foreground/background color pair plus an attribute mask.
