@@ -57,6 +57,15 @@ type wantUpload struct {
 type wantPlacement struct {
 	ID, Version uint64
 	Crop        image.Rectangle
+	FillColor   term.Color
+	Fill        bool
+}
+
+func placed(p *ImagePlacement) wantPlacement {
+	return wantPlacement{
+		ID: p.GetId(), Version: p.GetVersion(), Crop: p.GetCrop().ToModel(),
+		Fill: p.GetFill(), FillColor: term.Color(p.GetFillColor()),
+	}
 }
 
 type uploadStep struct {
@@ -312,6 +321,27 @@ func TestImageUploader(t *testing.T) {
 				files: []string{"1-0"},
 			}},
 		},
+		{
+			name: "a fill without pixels is placed without an upload",
+			steps: []uploadStep{{
+				place:  []term.Image{{Fill: true, FillColor: term.ColorNavy, Width: 2, Height: 1}},
+				shown:  []bool{true},
+				images: []wantPlacement{{Fill: true, FillColor: term.ColorNavy}},
+			}},
+		},
+		{
+			name: "a fill with a mask uploads the mask",
+			steps: []uploadStep{{
+				place: []term.Image{{
+					ID: 1, Version: 1, Src: a1, Width: 2, Height: 1,
+					Fill: true, FillColor: term.ColorNavy,
+				}},
+				shown:   []bool{true},
+				uploads: []wantUpload{{1, 1, 1, "1-0"}},
+				images:  []wantPlacement{{ID: 1, Version: 1, Fill: true, FillColor: term.ColorNavy}},
+				files:   []string{"1-0"},
+			}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -340,9 +370,7 @@ func TestImageUploader(t *testing.T) {
 				assert.Equal(t, step.uploads, uploads, "step %d: uploads", i)
 				var images []wantPlacement
 				for _, p := range resp.GetImages() {
-					images = append(images, wantPlacement{
-						p.GetId(), p.GetVersion(), p.GetCrop().ToModel(),
-					})
+					images = append(images, placed(p))
 				}
 				assert.Equal(t, step.images, images, "step %d: images", i)
 				assert.Equal(t, step.released, resp.GetReleased(), "step %d: released", i)
@@ -532,9 +560,7 @@ func TestImageUploaderStreamsPixels(t *testing.T) {
 				assert.False(t, resp.GetRedraw(), "step %d: streaming never waits for the host", i)
 				var images []wantPlacement
 				for _, p := range resp.GetImages() {
-					images = append(images, wantPlacement{
-						p.GetId(), p.GetVersion(), p.GetCrop().ToModel(),
-					})
+					images = append(images, placed(p))
 				}
 				assert.Equal(t, step.images, images, "step %d: images", i)
 				assert.Equal(t, step.released, resp.GetReleased(), "step %d: released", i)

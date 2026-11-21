@@ -782,7 +782,8 @@ func (x *ImageUpload) GetOffset() uint64 {
 }
 
 // ImagePlacement is a term.Image whose pixels are the last upload of id,
-// shown only if it is version. crop is relative to the upload.
+// shown only if it is version. crop is relative to the upload. A fill
+// without pixels has id 0 and no upload.
 type ImagePlacement struct {
 	state                        protoimpl.MessageState `protogen:"open.v1"`
 	Id                           uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -799,6 +800,8 @@ type ImagePlacement struct {
 	Overflow                     bool                   `protobuf:"varint,12,opt,name=overflow,proto3" json:"overflow,omitempty"`
 	VerticalRenderOffset         bool                   `protobuf:"varint,13,opt,name=vertical_render_offset,json=verticalRenderOffset,proto3" json:"vertical_render_offset,omitempty"`
 	NegativeVerticalRenderOffset bool                   `protobuf:"varint,14,opt,name=negative_vertical_render_offset,json=negativeVerticalRenderOffset,proto3" json:"negative_vertical_render_offset,omitempty"`
+	Fill                         bool                   `protobuf:"varint,15,opt,name=fill,proto3" json:"fill,omitempty"`
+	FillColor                    uint32                 `protobuf:"varint,16,opt,name=fill_color,json=fillColor,proto3" json:"fill_color,omitempty"`
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
 }
@@ -929,6 +932,20 @@ func (x *ImagePlacement) GetNegativeVerticalRenderOffset() bool {
 		return x.NegativeVerticalRenderOffset
 	}
 	return false
+}
+
+func (x *ImagePlacement) GetFill() bool {
+	if x != nil {
+		return x.Fill
+	}
+	return false
+}
+
+func (x *ImagePlacement) GetFillColor() uint32 {
+	if x != nil {
+		return x.FillColor
+	}
+	return 0
 }
 
 type HandleStreamRequest struct {
@@ -1621,7 +1638,7 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"\x05width\x18\x05 \x01(\x05R\x05width\x12\x16\n" +
 	"\x06height\x18\x06 \x01(\x05R\x06height\x12\x12\n" +
 	"\x04data\x18\a \x01(\fR\x04data\x12\x16\n" +
-	"\x06offset\x18\b \x01(\x04R\x06offset\"\x8d\x04\n" +
+	"\x06offset\x18\b \x01(\x04R\x06offset\"\xc0\x04\n" +
 	"\x0eImagePlacement\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x04R\aversion\x12\x1e\n" +
@@ -1639,7 +1656,10 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	".term.RectR\x04clip\x12\x1a\n" +
 	"\boverflow\x18\f \x01(\bR\boverflow\x124\n" +
 	"\x16vertical_render_offset\x18\r \x01(\bR\x14verticalRenderOffset\x12E\n" +
-	"\x1fnegative_vertical_render_offset\x18\x0e \x01(\bR\x1cnegativeVerticalRenderOffset\"8\n" +
+	"\x1fnegative_vertical_render_offset\x18\x0e \x01(\bR\x1cnegativeVerticalRenderOffset\x12\x12\n" +
+	"\x04fill\x18\x0f \x01(\bR\x04fill\x12\x1d\n" +
+	"\n" +
+	"fill_color\x18\x10 \x01(\rR\tfillColor\"8\n" +
 	"\x13HandleStreamRequest\x12!\n" +
 	"\x05event\x18\x01 \x01(\v2\v.term.EventR\x05event\"\xa7\x01\n" +
 	"\x14HandleStreamResponse\x12\x18\n" +

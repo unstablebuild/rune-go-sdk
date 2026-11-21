@@ -116,6 +116,11 @@ func (u *imageUploader) place(img term.Image, width, height int) bool {
 			return true
 		}
 	}
+	if img.Fill && img.Src == nil {
+		img.ID, img.Version, img.Crop = 0, 0, image.Rectangle{}
+		u.placements = append(u.placements, NewImagePlacement(img))
+		return true
+	}
 	if img.Src == nil {
 		return true
 	}

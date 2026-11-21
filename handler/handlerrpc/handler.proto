@@ -131,7 +131,8 @@ enum ImageLayer {
 }
 
 // ImagePlacement is a term.Image whose pixels are the last upload of id,
-// shown only if it is version. crop is relative to the upload.
+// shown only if it is version. crop is relative to the upload. A fill
+// without pixels has id 0 and no upload.
 message ImagePlacement {
 	uint64 id = 1;
 	uint64 version = 2;
@@ -147,6 +148,8 @@ message ImagePlacement {
 	bool overflow = 12;
 	bool vertical_render_offset = 13;
 	bool negative_vertical_render_offset = 14;
+	bool fill = 15;
+	uint32 fill_color = 16;
 }
 
 message HandleStreamRequest {

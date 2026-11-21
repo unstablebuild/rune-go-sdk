@@ -34,6 +34,8 @@ func NewImagePlacement(img term.Image) *ImagePlacement {
 		Overflow:                     img.Overflow,
 		VerticalRenderOffset:         img.VerticalRenderOffset,
 		NegativeVerticalRenderOffset: img.NegativeVerticalRenderOffset,
+		Fill:                         img.Fill,
+		FillColor:                    uint32(img.FillColor),
 	}
 	if img.Crop != (image.Rectangle{}) {
 		p.Crop = termrpc.NewRect(img.Crop)
@@ -71,5 +73,7 @@ func (p *ImagePlacement) ToModel() term.Image {
 		Overflow:                     p.GetOverflow(),
 		VerticalRenderOffset:         p.GetVerticalRenderOffset(),
 		NegativeVerticalRenderOffset: p.GetNegativeVerticalRenderOffset(),
+		Fill:                         p.GetFill(),
+		FillColor:                    term.Color(p.GetFillColor()),
 	}
 }

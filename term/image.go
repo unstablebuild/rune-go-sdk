@@ -124,6 +124,16 @@ type Image struct {
 	// attribute is for a cell that carries both. Writers that do not
 	// move those cells ignore it.
 	NegativeVerticalRenderOffset bool
+	// Fill paints the placement in FillColor rather than in Src's
+	// colours, for a colour that only the writer can resolve, such as a
+	// palette colour or the default background. Without Src it covers
+	// the whole placement. With Src, Src is a mask: each of its pixels
+	// is painted in FillColor at that pixel's alpha, and its colours are
+	// ignored. Writers that cannot paint a fill draw nothing for it.
+	Fill bool
+	// FillColor is the colour of a Fill placement. ColorDefault is the
+	// writer's default background.
+	FillColor Color
 }
 
 // Bounds returns the placement's cell rectangle, ignoring Clip.
