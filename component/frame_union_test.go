@@ -760,6 +760,42 @@ func TestDrawFrameUnionWithFrameBottomOnly(t *testing.T) {
 	comptest.TestComponent(t, f, w, tests)
 }
 
+func TestFrameUnionJunctionCellsKeepTheBackground(t *testing.T) {
+	bg := term.NewRGBColor(0x1b, 0x1f, 0x2a)
+	red := term.NewRGBColor(0xff, 0, 0)
+	tests := []struct {
+		name       string
+		unionAttr  term.Attributes
+		expectedBg term.Color
+	}{
+		{name: "default background keeps the frame's", expectedBg: bg},
+		{name: "explicit background wins", unionAttr: term.Attributes{Bg: red}, expectedBg: red},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bottom := NewFrame(&TestComponent{Ch: 'X'})
+			main := NewFrame(&TestComponent{Ch: 'A'})
+			bottom.Bg = bg
+			main.Bg = bg
+			f := NewFrameUnion(main)
+			f.Attributes = tt.unionAttr
+			f.UnionBottom(bottom, 3)
+			f.Resize(6, 8)
+			w := term.NewStringWriter(6, 8)
+			f.Draw(w)
+
+			cells := w.Cells()
+			for _, pos := range []term.Coordinates{{X: 0, Y: 5}, {X: 5, Y: 5}} {
+				cell := cells[pos.Y*6+pos.X]
+				assert.NotEqual(t, '│', cell.Ch, "a junction must be drawn at %v", pos)
+				assert.Equal(t, tt.expectedBg, cell.Bg, "junction background at %v", pos)
+				assert.Zero(t, cell.Attrs&term.AttrKeepBackground,
+					"the flag must not be stored with the cell")
+			}
+		})
+	}
+}
+
 func TestFrameUnionResizeNegative(t *testing.T) {
 	suite := []struct {
 		description   string

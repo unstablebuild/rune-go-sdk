@@ -59,7 +59,9 @@ type FrameUnion struct {
 	// Default is true.
 	Frame bool
 
-	// Attributes to be set to FrameUnionCharSet.
+	// Attributes to be set to FrameUnionCharSet. With the default
+	// background, junction cells keep the background of the frame cells
+	// they replace, so a window's background colour is not cut by them.
 	term.Attributes
 
 	FrameUnionCharSet
@@ -264,6 +266,14 @@ type frameVirtual struct {
 	frame bool
 }
 
+func (u *FrameUnion) unionCell(ch rune) term.Cell {
+	attr := u.Attributes
+	if attr.Bg == term.ColorDefault {
+		attr.Attrs |= term.AttrKeepBackground
+	}
+	return term.NewCell(ch, 1, attr)
+}
+
 func (u *FrameUnion) drawUnionCells(w term.Writer) {
 	var prevStamp bool
 	for i, left := range u.left {
@@ -337,11 +347,9 @@ func (u *FrameUnion) setVerticalUnionFrameCells(
 	if v.Height() == 0 || v.Width() == 0 {
 		return
 	}
-	w.SetCell(term.Coordinates{Y: y},
-		term.NewCell(left, 1, u.Attributes))
+	w.SetCell(term.Coordinates{Y: y}, u.unionCell(left))
 	if u.width > 0 {
-		w.SetCell(term.Coordinates{X: u.width - 1, Y: y},
-			term.NewCell(right, 1, u.Attributes))
+		w.SetCell(term.Coordinates{X: u.width - 1, Y: y}, u.unionCell(right))
 	}
 }
 
@@ -365,11 +373,9 @@ func (u *FrameUnion) setHorizontalUnionFrameCells(
 	if v.Height() == 0 || v.Width() == 0 {
 		return
 	}
-	w.SetCell(term.Coordinates{X: x, Y: y},
-		term.NewCell(top, 1, u.Attributes))
+	w.SetCell(term.Coordinates{X: x, Y: y}, u.unionCell(top))
 	if height > 0 {
-		w.SetCell(term.Coordinates{X: x, Y: y + height - 1},
-			term.NewCell(bottom, 1, u.Attributes))
+		w.SetCell(term.Coordinates{X: x, Y: y + height - 1}, u.unionCell(bottom))
 	}
 }
 
