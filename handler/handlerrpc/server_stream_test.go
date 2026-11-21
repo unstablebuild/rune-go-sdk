@@ -151,6 +151,44 @@ func (h *pointerHandler) Handle(ev term.Event) (bool, bool) {
 	return false, true
 }
 
+type focusHandler struct {
+	rasterHandler
+	focus []string
+}
+
+func (h *focusHandler) Draw(w term.Writer) {
+	switch focused, ok := term.WindowFocusFromContext(w.Context()); {
+	case !ok:
+		h.focus = append(h.focus, "none")
+	case focused:
+		h.focus = append(h.focus, "focused")
+	default:
+		h.focus = append(h.focus, "unfocused")
+	}
+}
+
+func TestServerStreamDrawsCarryTheWindowFocus(t *testing.T) {
+	draw := func(focus handlerrpc.WindowFocus) *handlerrpc.ServerMessage {
+		return &handlerrpc.ServerMessage{
+			Type: handlerrpc.MessageType_Draw,
+			Draw: &handlerrpc.DrawStreamRequest{PackedOk: true, WindowFocus: focus},
+		}
+	}
+	stream := &scriptedStream{t: t, script: []*handlerrpc.ServerMessage{
+		draw(handlerrpc.WindowFocus_WindowFocusUnspecified),
+		draw(handlerrpc.WindowFocus_WindowFocusFocused),
+		draw(handlerrpc.WindowFocus_WindowFocusUnfocused),
+		draw(handlerrpc.WindowFocus_WindowFocusUnspecified),
+	}}
+	h := &focusHandler{}
+	handlerrpc.NewServerStream(stream, h, func() *browserrpc.SplitWindowMessage {
+		return new(browserrpc.SplitWindowMessage)
+	}).ReceiveMessages()
+
+	assert.Equal(t, []string{"none", "focused", "unfocused", "none"}, h.focus,
+		"each draw must see only the focus its own request carries")
+}
+
 func TestServerStreamHandleReportsThePointerShape(t *testing.T) {
 	handle := func(ev term.Event) *handlerrpc.ServerMessage {
 		var rpcEv termrpc.Event

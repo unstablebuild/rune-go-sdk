@@ -29,6 +29,7 @@ const (
 	pKey ctxKey = iota
 	cellPixelSizeKey
 	pointerKey
+	windowFocusKey
 )
 
 type cellPixelSize struct {
@@ -67,4 +68,23 @@ func CellPixelSizeFromContext(ctx context.Context) (width, height float64, ok bo
 		return 0, 0, false
 	}
 	return size.width, size.height, true
+}
+
+// ContextWithWindowFocus returns ctx telling content drawn with it
+// whether its window holds the window manager's focus style.
+func ContextWithWindowFocus(ctx context.Context, focused bool) context.Context {
+	return context.WithValue(ctx, windowFocusKey, focused)
+}
+
+// WindowFocusFromContext reports whether the window being drawn holds the
+// window manager's focus style, which only one window does at a time and
+// none does while it is the only window. It is valid during Draw. ok is
+// false if ctx does not say, as when the content is not drawn in a
+// window or the host predates it; content then draws its normal style.
+func WindowFocusFromContext(ctx context.Context) (focused, ok bool) {
+	if ctx == nil {
+		return false, false
+	}
+	focused, ok = ctx.Value(windowFocusKey).(bool)
+	return focused, ok
 }

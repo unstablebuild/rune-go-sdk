@@ -60,3 +60,41 @@ func TestCellPixelSizeFromContext(t *testing.T) {
 		})
 	}
 }
+
+func TestWindowFocusFromContext(t *testing.T) {
+	focused := ContextWithWindowFocus(context.Background(), true)
+	tests := []struct {
+		name            string
+		ctx             context.Context
+		expectedFocused bool
+		expectedOK      bool
+	}{
+		{name: "nil", ctx: nil},
+		{name: "none", ctx: context.Background()},
+		{name: "focused", ctx: focused, expectedFocused: true, expectedOK: true},
+		{
+			name:       "unfocused",
+			ctx:        ContextWithWindowFocus(context.Background(), false),
+			expectedOK: true,
+		},
+		{
+			name:       "the innermost focus",
+			ctx:        ContextWithWindowFocus(focused, false),
+			expectedOK: true,
+		},
+		{
+			name:            "kept by contexts derived for other values",
+			ctx:             ContextWithCellPixelSize(focused, 8, 16),
+			expectedFocused: true, expectedOK: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := WindowFocusFromContext(tt.ctx)
+			if got != tt.expectedFocused || ok != tt.expectedOK {
+				t.Fatalf("WindowFocusFromContext() = %v, %v; expected %v, %v",
+					got, ok, tt.expectedFocused, tt.expectedOK)
+			}
+		})
+	}
+}

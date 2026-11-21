@@ -45,6 +45,17 @@ message DrawStreamRequest {
 	// to it may be rewritten or deleted.
 	uint64 image_ack = 4;
 	bool cells_unchanged_ok = 5;
+	// window_focus says whether the content's window holds the focus
+	// style; unspecified leaves term.WindowFocusFromContext without one.
+	WindowFocus window_focus = 6;
+}
+
+// WindowFocus is an enum rather than a bool so that a host predating it,
+// which sends the zero value, is not read as an unfocused window.
+enum WindowFocus {
+	WindowFocusUnspecified = 0;
+	WindowFocusFocused = 1;
+	WindowFocusUnfocused = 2;
 }
 
 message DrawStreamResponse {

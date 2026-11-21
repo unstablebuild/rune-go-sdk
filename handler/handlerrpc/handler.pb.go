@@ -89,6 +89,57 @@ func (MessageType) EnumDescriptor() ([]byte, []int) {
 	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{0}
 }
 
+// WindowFocus is an enum rather than a bool so that a host predating it,
+// which sends the zero value, is not read as an unfocused window.
+type WindowFocus int32
+
+const (
+	WindowFocus_WindowFocusUnspecified WindowFocus = 0
+	WindowFocus_WindowFocusFocused     WindowFocus = 1
+	WindowFocus_WindowFocusUnfocused   WindowFocus = 2
+)
+
+// Enum value maps for WindowFocus.
+var (
+	WindowFocus_name = map[int32]string{
+		0: "WindowFocusUnspecified",
+		1: "WindowFocusFocused",
+		2: "WindowFocusUnfocused",
+	}
+	WindowFocus_value = map[string]int32{
+		"WindowFocusUnspecified": 0,
+		"WindowFocusFocused":     1,
+		"WindowFocusUnfocused":   2,
+	}
+)
+
+func (x WindowFocus) Enum() *WindowFocus {
+	p := new(WindowFocus)
+	*p = x
+	return p
+}
+
+func (x WindowFocus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WindowFocus) Descriptor() protoreflect.EnumDescriptor {
+	return file_handlerrpc_handler_proto_enumTypes[1].Descriptor()
+}
+
+func (WindowFocus) Type() protoreflect.EnumType {
+	return &file_handlerrpc_handler_proto_enumTypes[1]
+}
+
+func (x WindowFocus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WindowFocus.Descriptor instead.
+func (WindowFocus) EnumDescriptor() ([]byte, []int) {
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{1}
+}
+
 type ImageFit int32
 
 const (
@@ -122,11 +173,11 @@ func (x ImageFit) String() string {
 }
 
 func (ImageFit) Descriptor() protoreflect.EnumDescriptor {
-	return file_handlerrpc_handler_proto_enumTypes[1].Descriptor()
+	return file_handlerrpc_handler_proto_enumTypes[2].Descriptor()
 }
 
 func (ImageFit) Type() protoreflect.EnumType {
-	return &file_handlerrpc_handler_proto_enumTypes[1]
+	return &file_handlerrpc_handler_proto_enumTypes[2]
 }
 
 func (x ImageFit) Number() protoreflect.EnumNumber {
@@ -135,7 +186,7 @@ func (x ImageFit) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ImageFit.Descriptor instead.
 func (ImageFit) EnumDescriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{1}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{2}
 }
 
 type ImageLayer int32
@@ -171,11 +222,11 @@ func (x ImageLayer) String() string {
 }
 
 func (ImageLayer) Descriptor() protoreflect.EnumDescriptor {
-	return file_handlerrpc_handler_proto_enumTypes[2].Descriptor()
+	return file_handlerrpc_handler_proto_enumTypes[3].Descriptor()
 }
 
 func (ImageLayer) Type() protoreflect.EnumType {
-	return &file_handlerrpc_handler_proto_enumTypes[2]
+	return &file_handlerrpc_handler_proto_enumTypes[3]
 }
 
 func (x ImageLayer) Number() protoreflect.EnumNumber {
@@ -184,7 +235,7 @@ func (x ImageLayer) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ImageLayer.Descriptor instead.
 func (ImageLayer) EnumDescriptor() ([]byte, []int) {
-	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{2}
+	return file_handlerrpc_handler_proto_rawDescGZIP(), []int{3}
 }
 
 type InstallResourceResponse struct {
@@ -349,8 +400,11 @@ type DrawStreamRequest struct {
 	// to it may be rewritten or deleted.
 	ImageAck         uint64 `protobuf:"varint,4,opt,name=image_ack,json=imageAck,proto3" json:"image_ack,omitempty"`
 	CellsUnchangedOk bool   `protobuf:"varint,5,opt,name=cells_unchanged_ok,json=cellsUnchangedOk,proto3" json:"cells_unchanged_ok,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// window_focus says whether the content's window holds the focus
+	// style; unspecified leaves term.WindowFocusFromContext without one.
+	WindowFocus   WindowFocus `protobuf:"varint,6,opt,name=window_focus,json=windowFocus,proto3,enum=handler.WindowFocus" json:"window_focus,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DrawStreamRequest) Reset() {
@@ -416,6 +470,13 @@ func (x *DrawStreamRequest) GetCellsUnchangedOk() bool {
 		return x.CellsUnchangedOk
 	}
 	return false
+}
+
+func (x *DrawStreamRequest) GetWindowFocus() WindowFocus {
+	if x != nil {
+		return x.WindowFocus
+	}
+	return WindowFocus_WindowFocusUnspecified
 }
 
 type DrawStreamResponse struct {
@@ -1518,13 +1579,14 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"dimensions\x18\a \x01(\v2 .handler.DimensionsStreamRequestR\n" +
 	"dimensions\x124\n" +
 	"\x06resize\x18\b \x01(\v2\x1c.handler.ResizeStreamRequestR\x06resize\x12<\n" +
-	"\bresponse\x18\t \x01(\v2 .handler.InstallResourceResponseR\bresponse\"\xa9\x01\n" +
+	"\bresponse\x18\t \x01(\v2 .handler.InstallResourceResponseR\bresponse\"\xe2\x01\n" +
 	"\x11DrawStreamRequest\x12\x14\n" +
 	"\x05width\x18\x01 \x01(\x05R\x05width\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x05R\x06height\x12\x1b\n" +
 	"\tpacked_ok\x18\x03 \x01(\bR\bpackedOk\x12\x1b\n" +
 	"\timage_ack\x18\x04 \x01(\x04R\bimageAck\x12,\n" +
-	"\x12cells_unchanged_ok\x18\x05 \x01(\bR\x10cellsUnchangedOk\"\xc9\x04\n" +
+	"\x12cells_unchanged_ok\x18\x05 \x01(\bR\x10cellsUnchangedOk\x127\n" +
+	"\fwindow_focus\x18\x06 \x01(\x0e2\x14.handler.WindowFocusR\vwindowFocus\"\xc9\x04\n" +
 	"\x12DrawStreamResponse\x12!\n" +
 	"\x04rows\x18\x01 \x03(\v2\r.term.CellRowR\x04rows\x12:\n" +
 	"\x06cursor\x18\x02 \x01(\v2\".handler.DrawStreamResponse.CursorR\x06cursor\x12C\n" +
@@ -1618,7 +1680,11 @@ const file_handlerrpc_handler_proto_rawDesc = "" +
 	"\n" +
 	"\x06Resize\x10\x06\x12\v\n" +
 	"\aRequest\x10\a\x12\f\n" +
-	"\bResponse\x10\t*C\n" +
+	"\bResponse\x10\t*[\n" +
+	"\vWindowFocus\x12\x1a\n" +
+	"\x16WindowFocusUnspecified\x10\x00\x12\x16\n" +
+	"\x12WindowFocusFocused\x10\x01\x12\x18\n" +
+	"\x14WindowFocusUnfocused\x10\x02*C\n" +
 	"\bImageFit\x12\x10\n" +
 	"\fImageFitFill\x10\x00\x12\x13\n" +
 	"\x0fImageFitContain\x10\x01\x12\x10\n" +
@@ -1641,72 +1707,74 @@ func file_handlerrpc_handler_proto_rawDescGZIP() []byte {
 	return file_handlerrpc_handler_proto_rawDescData
 }
 
-var file_handlerrpc_handler_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_handlerrpc_handler_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_handlerrpc_handler_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_handlerrpc_handler_proto_goTypes = []any{
 	(MessageType)(0),                     // 0: handler.MessageType
-	(ImageFit)(0),                        // 1: handler.ImageFit
-	(ImageLayer)(0),                      // 2: handler.ImageLayer
-	(*InstallResourceResponse)(nil),      // 3: handler.InstallResourceResponse
-	(*ServerMessage)(nil),                // 4: handler.ServerMessage
-	(*DrawStreamRequest)(nil),            // 5: handler.DrawStreamRequest
-	(*DrawStreamResponse)(nil),           // 6: handler.DrawStreamResponse
-	(*Graphics)(nil),                     // 7: handler.Graphics
-	(*ImageUpload)(nil),                  // 8: handler.ImageUpload
-	(*ImagePlacement)(nil),               // 9: handler.ImagePlacement
-	(*HandleStreamRequest)(nil),          // 10: handler.HandleStreamRequest
-	(*HandleStreamResponse)(nil),         // 11: handler.HandleStreamResponse
-	(*CursorStreamRequest)(nil),          // 12: handler.CursorStreamRequest
-	(*CursorStreamResponse)(nil),         // 13: handler.CursorStreamResponse
-	(*SelectionStreamRequest)(nil),       // 14: handler.SelectionStreamRequest
-	(*SelectionStreamResponse)(nil),      // 15: handler.SelectionStreamResponse
-	(*DimensionsStreamRequest)(nil),      // 16: handler.DimensionsStreamRequest
-	(*DimensionsStreamResponse)(nil),     // 17: handler.DimensionsStreamResponse
-	(*ResizeStreamRequest)(nil),          // 18: handler.ResizeStreamRequest
-	(*CloseStreamRequest)(nil),           // 19: handler.CloseStreamRequest
-	(*CloseStreamResponse)(nil),          // 20: handler.CloseStreamResponse
-	(*DrawStreamResponse_Cursor)(nil),    // 21: handler.DrawStreamResponse.Cursor
-	(*DrawStreamResponse_Selection)(nil), // 22: handler.DrawStreamResponse.Selection
-	(*termrpc.CellRow)(nil),              // 23: term.CellRow
-	(*termrpc.PackedCells)(nil),          // 24: term.PackedCells
-	(*termrpc.Rect)(nil),                 // 25: term.Rect
-	(*termrpc.Coordinates)(nil),          // 26: term.Coordinates
-	(*termrpc.Point)(nil),                // 27: term.Point
-	(*termrpc.Event)(nil),                // 28: term.Event
+	(WindowFocus)(0),                     // 1: handler.WindowFocus
+	(ImageFit)(0),                        // 2: handler.ImageFit
+	(ImageLayer)(0),                      // 3: handler.ImageLayer
+	(*InstallResourceResponse)(nil),      // 4: handler.InstallResourceResponse
+	(*ServerMessage)(nil),                // 5: handler.ServerMessage
+	(*DrawStreamRequest)(nil),            // 6: handler.DrawStreamRequest
+	(*DrawStreamResponse)(nil),           // 7: handler.DrawStreamResponse
+	(*Graphics)(nil),                     // 8: handler.Graphics
+	(*ImageUpload)(nil),                  // 9: handler.ImageUpload
+	(*ImagePlacement)(nil),               // 10: handler.ImagePlacement
+	(*HandleStreamRequest)(nil),          // 11: handler.HandleStreamRequest
+	(*HandleStreamResponse)(nil),         // 12: handler.HandleStreamResponse
+	(*CursorStreamRequest)(nil),          // 13: handler.CursorStreamRequest
+	(*CursorStreamResponse)(nil),         // 14: handler.CursorStreamResponse
+	(*SelectionStreamRequest)(nil),       // 15: handler.SelectionStreamRequest
+	(*SelectionStreamResponse)(nil),      // 16: handler.SelectionStreamResponse
+	(*DimensionsStreamRequest)(nil),      // 17: handler.DimensionsStreamRequest
+	(*DimensionsStreamResponse)(nil),     // 18: handler.DimensionsStreamResponse
+	(*ResizeStreamRequest)(nil),          // 19: handler.ResizeStreamRequest
+	(*CloseStreamRequest)(nil),           // 20: handler.CloseStreamRequest
+	(*CloseStreamResponse)(nil),          // 21: handler.CloseStreamResponse
+	(*DrawStreamResponse_Cursor)(nil),    // 22: handler.DrawStreamResponse.Cursor
+	(*DrawStreamResponse_Selection)(nil), // 23: handler.DrawStreamResponse.Selection
+	(*termrpc.CellRow)(nil),              // 24: term.CellRow
+	(*termrpc.PackedCells)(nil),          // 25: term.PackedCells
+	(*termrpc.Rect)(nil),                 // 26: term.Rect
+	(*termrpc.Coordinates)(nil),          // 27: term.Coordinates
+	(*termrpc.Point)(nil),                // 28: term.Point
+	(*termrpc.Event)(nil),                // 29: term.Event
 }
 var file_handlerrpc_handler_proto_depIdxs = []int32{
 	0,  // 0: handler.ServerMessage.type:type_name -> handler.MessageType
-	5,  // 1: handler.ServerMessage.draw:type_name -> handler.DrawStreamRequest
-	10, // 2: handler.ServerMessage.handle:type_name -> handler.HandleStreamRequest
-	19, // 3: handler.ServerMessage.close:type_name -> handler.CloseStreamRequest
-	12, // 4: handler.ServerMessage.cursor:type_name -> handler.CursorStreamRequest
-	14, // 5: handler.ServerMessage.selection:type_name -> handler.SelectionStreamRequest
-	16, // 6: handler.ServerMessage.dimensions:type_name -> handler.DimensionsStreamRequest
-	18, // 7: handler.ServerMessage.resize:type_name -> handler.ResizeStreamRequest
-	3,  // 8: handler.ServerMessage.response:type_name -> handler.InstallResourceResponse
-	23, // 9: handler.DrawStreamResponse.rows:type_name -> term.CellRow
-	21, // 10: handler.DrawStreamResponse.cursor:type_name -> handler.DrawStreamResponse.Cursor
-	22, // 11: handler.DrawStreamResponse.selection:type_name -> handler.DrawStreamResponse.Selection
-	24, // 12: handler.DrawStreamResponse.packed:type_name -> term.PackedCells
-	8,  // 13: handler.DrawStreamResponse.uploads:type_name -> handler.ImageUpload
-	9,  // 14: handler.DrawStreamResponse.images:type_name -> handler.ImagePlacement
-	25, // 15: handler.ImagePlacement.crop:type_name -> term.Rect
-	26, // 16: handler.ImagePlacement.pos:type_name -> term.Coordinates
-	27, // 17: handler.ImagePlacement.offset:type_name -> term.Point
-	27, // 18: handler.ImagePlacement.raster_offset:type_name -> term.Point
-	1,  // 19: handler.ImagePlacement.fit:type_name -> handler.ImageFit
-	2,  // 20: handler.ImagePlacement.layer:type_name -> handler.ImageLayer
-	25, // 21: handler.ImagePlacement.clip:type_name -> term.Rect
-	28, // 22: handler.HandleStreamRequest.event:type_name -> term.Event
-	28, // 23: handler.HandleStreamResponse.request:type_name -> term.Event
-	26, // 24: handler.CursorStreamResponse.position:type_name -> term.Coordinates
-	7,  // 25: handler.ResizeStreamRequest.graphics:type_name -> handler.Graphics
-	26, // 26: handler.DrawStreamResponse.Cursor.position:type_name -> term.Coordinates
-	27, // [27:27] is the sub-list for method output_type
-	27, // [27:27] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	6,  // 1: handler.ServerMessage.draw:type_name -> handler.DrawStreamRequest
+	11, // 2: handler.ServerMessage.handle:type_name -> handler.HandleStreamRequest
+	20, // 3: handler.ServerMessage.close:type_name -> handler.CloseStreamRequest
+	13, // 4: handler.ServerMessage.cursor:type_name -> handler.CursorStreamRequest
+	15, // 5: handler.ServerMessage.selection:type_name -> handler.SelectionStreamRequest
+	17, // 6: handler.ServerMessage.dimensions:type_name -> handler.DimensionsStreamRequest
+	19, // 7: handler.ServerMessage.resize:type_name -> handler.ResizeStreamRequest
+	4,  // 8: handler.ServerMessage.response:type_name -> handler.InstallResourceResponse
+	1,  // 9: handler.DrawStreamRequest.window_focus:type_name -> handler.WindowFocus
+	24, // 10: handler.DrawStreamResponse.rows:type_name -> term.CellRow
+	22, // 11: handler.DrawStreamResponse.cursor:type_name -> handler.DrawStreamResponse.Cursor
+	23, // 12: handler.DrawStreamResponse.selection:type_name -> handler.DrawStreamResponse.Selection
+	25, // 13: handler.DrawStreamResponse.packed:type_name -> term.PackedCells
+	9,  // 14: handler.DrawStreamResponse.uploads:type_name -> handler.ImageUpload
+	10, // 15: handler.DrawStreamResponse.images:type_name -> handler.ImagePlacement
+	26, // 16: handler.ImagePlacement.crop:type_name -> term.Rect
+	27, // 17: handler.ImagePlacement.pos:type_name -> term.Coordinates
+	28, // 18: handler.ImagePlacement.offset:type_name -> term.Point
+	28, // 19: handler.ImagePlacement.raster_offset:type_name -> term.Point
+	2,  // 20: handler.ImagePlacement.fit:type_name -> handler.ImageFit
+	3,  // 21: handler.ImagePlacement.layer:type_name -> handler.ImageLayer
+	26, // 22: handler.ImagePlacement.clip:type_name -> term.Rect
+	29, // 23: handler.HandleStreamRequest.event:type_name -> term.Event
+	29, // 24: handler.HandleStreamResponse.request:type_name -> term.Event
+	27, // 25: handler.CursorStreamResponse.position:type_name -> term.Coordinates
+	8,  // 26: handler.ResizeStreamRequest.graphics:type_name -> handler.Graphics
+	27, // 27: handler.DrawStreamResponse.Cursor.position:type_name -> term.Coordinates
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_handlerrpc_handler_proto_init() }
@@ -1720,7 +1788,7 @@ func file_handlerrpc_handler_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_handlerrpc_handler_proto_rawDesc), len(file_handlerrpc_handler_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   0,

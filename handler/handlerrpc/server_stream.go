@@ -143,6 +143,12 @@ func (c *ServerStream[T]) ReceiveMessages() {
 			if c.cellWidth > 0 {
 				ctx = term.ContextWithCellPixelSize(ctx, c.cellWidth, c.cellHeight)
 			}
+			switch draw.GetWindowFocus() {
+			case WindowFocus_WindowFocusFocused:
+				ctx = term.ContextWithWindowFocus(ctx, true)
+			case WindowFocus_WindowFocusUnfocused:
+				ctx = term.ContextWithWindowFocus(ctx, false)
+			}
 			var resp DrawStreamResponse
 			width := int(c.width.Load())
 			height := int(c.height.Load())
