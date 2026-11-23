@@ -140,6 +140,19 @@ const (
 	ReasoningSummaryDisabled ReasoningSummary = "disabled"
 )
 
+// Speed selects the inference speed of a request. Faster speeds are billed at a
+// premium. The empty value means SpeedStandard.
+type Speed string
+
+const (
+	// SpeedStandard runs the request at the provider's default speed.
+	SpeedStandard Speed = "standard"
+	// SpeedFast requests the provider's fast inference mode.
+	SpeedFast Speed = "fast"
+	// SpeedUltrafast requests the provider's fastest inference mode.
+	SpeedUltrafast Speed = "ultrafast"
+)
+
 // Request is the request type for chat completions.
 type Request struct {
 	Messages          []Message
@@ -148,8 +161,14 @@ type Request struct {
 	ParallelToolCalls *bool
 	ReasoningEffort   ReasoningEffort
 	ReasoningSummary  ReasoningSummary
-	MaxOutputTokens   int
-	ResponseFormat    *ResponseFormat
+
+	// Speed is the requested inference speed; empty means SpeedStandard.
+	// Providers only send a speed the model supports and otherwise run the
+	// request at standard speed.
+	Speed Speed
+
+	MaxOutputTokens int
+	ResponseFormat  *ResponseFormat
 
 	// PromptCacheKey is a stable identifier (typically the dialogue ID)
 	// that the provider uses for server-side prompt caching. Requests

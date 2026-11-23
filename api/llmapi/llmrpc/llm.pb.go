@@ -831,6 +831,7 @@ type Request struct {
 	HasResponseFormat bool                   `protobuf:"varint,7,opt,name=has_response_format,json=hasResponseFormat,proto3" json:"has_response_format,omitempty"`
 	PromptCacheKey    string                 `protobuf:"bytes,8,opt,name=prompt_cache_key,json=promptCacheKey,proto3" json:"prompt_cache_key,omitempty"`
 	TokenCount        int32                  `protobuf:"varint,9,opt,name=token_count,json=tokenCount,proto3" json:"token_count,omitempty"`
+	Speed             string                 `protobuf:"bytes,10,opt,name=speed,proto3" json:"speed,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -926,6 +927,13 @@ func (x *Request) GetTokenCount() int32 {
 		return x.TokenCount
 	}
 	return 0
+}
+
+func (x *Request) GetSpeed() string {
+	if x != nil {
+		return x.Speed
+	}
+	return ""
 }
 
 type Usage struct {
@@ -1289,6 +1297,7 @@ type CompletionHeader struct {
 	HasResponseFormat bool                   `protobuf:"varint,7,opt,name=has_response_format,json=hasResponseFormat,proto3" json:"has_response_format,omitempty"`
 	PromptCacheKey    string                 `protobuf:"bytes,8,opt,name=prompt_cache_key,json=promptCacheKey,proto3" json:"prompt_cache_key,omitempty"`
 	TokenCount        int32                  `protobuf:"varint,9,opt,name=token_count,json=tokenCount,proto3" json:"token_count,omitempty"`
+	Speed             string                 `protobuf:"bytes,10,opt,name=speed,proto3" json:"speed,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1384,6 +1393,13 @@ func (x *CompletionHeader) GetTokenCount() int32 {
 		return x.TokenCount
 	}
 	return 0
+}
+
+func (x *CompletionHeader) GetSpeed() string {
+	if x != nil {
+		return x.Speed
+	}
+	return ""
 }
 
 // CreateCompletionRequestChunk is one frame of a client-streamed
@@ -2199,7 +2215,7 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12>\n" +
 	"\vjson_schema\x18\x02 \x01(\v2\x1d.llm.ResponseFormatJSONSchemaR\n" +
 	"jsonSchema\x12&\n" +
-	"\x0fhas_json_schema\x18\x03 \x01(\bR\rhasJsonSchema\"\x91\x03\n" +
+	"\x0fhas_json_schema\x18\x03 \x01(\bR\rhasJsonSchema\"\xa7\x03\n" +
 	"\aRequest\x12(\n" +
 	"\bmessages\x18\x01 \x03(\v2\f.llm.MessageR\bmessages\x12\x1f\n" +
 	"\x05tools\x18\x02 \x03(\v2\t.llm.ToolR\x05tools\x12)\n" +
@@ -2210,7 +2226,9 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x13has_response_format\x18\a \x01(\bR\x11hasResponseFormat\x12(\n" +
 	"\x10prompt_cache_key\x18\b \x01(\tR\x0epromptCacheKey\x12\x1f\n" +
 	"\vtoken_count\x18\t \x01(\x05R\n" +
-	"tokenCount\"\xd1\x01\n" +
+	"tokenCount\x12\x14\n" +
+	"\x05speed\x18\n" +
+	" \x01(\tR\x05speed\"\xd1\x01\n" +
 	"\x05Usage\x12\x1f\n" +
 	"\vtokens_sent\x18\x01 \x01(\x05R\n" +
 	"tokensSent\x12'\n" +
@@ -2240,7 +2258,7 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12%\n" +
 	"\x0econtext_window\x18\x03 \x01(\x05R\rcontextWindow\x12\x19\n" +
-	"\bbase_url\x18\x04 \x01(\tR\abaseUrl\"\x97\x03\n" +
+	"\bbase_url\x18\x04 \x01(\tR\abaseUrl\"\xad\x03\n" +
 	"\x10CompletionHeader\x12%\n" +
 	"\x05model\x18\x01 \x01(\v2\x0f.llm.ModelEntryR\x05model\x12\x1f\n" +
 	"\x05tools\x18\x02 \x03(\v2\t.llm.ToolR\x05tools\x12)\n" +
@@ -2251,7 +2269,9 @@ const file_llmrpc_llm_proto_rawDesc = "" +
 	"\x13has_response_format\x18\a \x01(\bR\x11hasResponseFormat\x12(\n" +
 	"\x10prompt_cache_key\x18\b \x01(\tR\x0epromptCacheKey\x12\x1f\n" +
 	"\vtoken_count\x18\t \x01(\x05R\n" +
-	"tokenCount\"\x84\x01\n" +
+	"tokenCount\x12\x14\n" +
+	"\x05speed\x18\n" +
+	" \x01(\tR\x05speed\"\x84\x01\n" +
 	"\x1cCreateCompletionRequestChunk\x12/\n" +
 	"\x06header\x18\x01 \x01(\v2\x15.llm.CompletionHeaderH\x00R\x06header\x12(\n" +
 	"\amessage\x18\x02 \x01(\v2\f.llm.MessageH\x00R\amessageB\t\n" +

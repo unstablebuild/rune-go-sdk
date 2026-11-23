@@ -174,6 +174,7 @@ func TestCompletionHeaderRoundTrip(t *testing.T) {
 			req: llmapi.Request{
 				ReasoningEffort:  llmapi.ReasoningEffortHigh,
 				ReasoningSummary: llmapi.ReasoningSummaryDetailed,
+				Speed:            llmapi.SpeedFast,
 				MaxOutputTokens:  256,
 				PromptCacheKey:   "dlg-1",
 				TokenCount:       42,
@@ -210,6 +211,7 @@ func TestCompletionHeaderRoundTrip(t *testing.T) {
 			gotModel, gotReq, err := RequestFromHeaderAndMessages(header, nil)
 			require.NoError(t, err)
 			assert.Equal(t, tt.model, gotModel)
+			assert.Equal(t, tt.req.Speed, gotReq.Speed)
 
 			// FromProtoRequest decodes Parameters/Schema as raw JSON; compare via
 			// a reference reconstruction of the same proto round-trip.

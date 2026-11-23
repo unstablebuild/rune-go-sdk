@@ -105,6 +105,7 @@ message Request {
 	bool has_response_format = 7;
 	string prompt_cache_key = 8;
 	int32 token_count = 9;
+	string speed = 10;
 }
 
 message Usage {
@@ -155,6 +156,7 @@ message CompletionHeader {
 	bool has_response_format = 7;
 	string prompt_cache_key = 8;
 	int32 token_count = 9;
+	string speed = 10;
 }
 
 // CreateCompletionRequestChunk is one frame of a client-streamed

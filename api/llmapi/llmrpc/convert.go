@@ -75,6 +75,7 @@ func ToProtoRequest(req llmapi.Request) (*Request, error) {
 	out := &Request{
 		ReasoningEffort:  string(req.ReasoningEffort),
 		ReasoningSummary: string(req.ReasoningSummary),
+		Speed:            string(req.Speed),
 		MaxOutputTokens:  int32(req.MaxOutputTokens),
 		PromptCacheKey:   req.PromptCacheKey,
 		TokenCount:       int32(req.TokenCount),
@@ -112,6 +113,7 @@ func FromProtoRequest(p *Request) (llmapi.Request, error) {
 	out := llmapi.Request{
 		ReasoningEffort:  llmapi.ReasoningEffort(p.GetReasoningEffort()),
 		ReasoningSummary: llmapi.ReasoningSummary(p.GetReasoningSummary()),
+		Speed:            llmapi.Speed(p.GetSpeed()),
 		MaxOutputTokens:  int(p.GetMaxOutputTokens()),
 		PromptCacheKey:   p.GetPromptCacheKey(),
 		TokenCount:       int(p.GetTokenCount()),
@@ -155,6 +157,7 @@ func ToCompletionHeader(model llmapi.ModelEntry, req llmapi.Request) (*Completio
 		Tools:             preq.GetTools(),
 		ReasoningEffort:   preq.GetReasoningEffort(),
 		ReasoningSummary:  preq.GetReasoningSummary(),
+		Speed:             preq.GetSpeed(),
 		MaxOutputTokens:   preq.GetMaxOutputTokens(),
 		ResponseFormat:    preq.GetResponseFormat(),
 		HasResponseFormat: preq.GetHasResponseFormat(),
@@ -177,6 +180,7 @@ func RequestFromHeaderAndMessages(
 		Tools:             h.GetTools(),
 		ReasoningEffort:   h.GetReasoningEffort(),
 		ReasoningSummary:  h.GetReasoningSummary(),
+		Speed:             h.GetSpeed(),
 		MaxOutputTokens:   h.GetMaxOutputTokens(),
 		ResponseFormat:    h.GetResponseFormat(),
 		HasResponseFormat: h.GetHasResponseFormat(),
