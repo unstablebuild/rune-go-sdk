@@ -24,7 +24,10 @@
 package handler
 
 import (
+	"strings"
+
 	"github.com/unstablebuild/rune-go-sdk/component"
+	"github.com/unstablebuild/rune-go-sdk/handler/inputbox"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
 )
@@ -36,6 +39,16 @@ type PromptHandler interface {
 	// OnClose runs when the user dismisses the prompt (usually by closing the
 	// component that hosts the Prompt).
 	OnClose() error
+}
+
+// AnswerHandler gets the answers of a prompt with fields. A Prompt calls
+// OnAnswer in place of OnSelect for handlers that implement it.
+type AnswerHandler interface {
+	PromptHandler
+	// OnAnswer is run when the user picks option idx, with the answers
+	// in the order of PromptConfig.Fields, or none when the prompt has
+	// no fields.
+	OnAnswer(idx int, option string, answers []string)
 }
 
 // NopPromptHandler won't do anything on selecting prompt choices nor closing.
@@ -51,10 +64,49 @@ func FuncPromptHandler(
 	return funcPromptHandler{selectCb: selectCb, closeCb: closeCb}
 }
 
+// FuncAnswerHandler will run the given callbacks upon answering or
+// closing. Picked through OnSelect, answer gets no answers.
+func FuncAnswerHandler(
+	answer func(idx int, option string, answers []string),
+	closeCb func() error,
+) AnswerHandler {
+	return funcAnswerHandler{answerCb: answer, closeCb: closeCb}
+}
+
+// PromptField is a question of a Prompt the user answers by typing.
+type PromptField struct {
+	// Question labels the answer, see component.PromptField.Question.
+	Question string
+	// Answer is the text the field starts with, which the user edits.
+	Answer string
+	// Placeholder is shown in PromptConfig.PlaceholderAttr while the
+	// answer is empty. It is never an answer.
+	Placeholder string
+	// Secret hides the answer as it is typed, and keeps it out of
+	// Selection.
+	Secret bool
+	// Mandatory keeps any option from being picked while the answer is
+	// empty or blank, see PromptConfig.OnUnanswered.
+	Mandatory bool
+}
+
 // PromptConfig holds configuration for a Prompt.
 type PromptConfig struct {
 	component.PromptConfig
 	PromptHandler
+
+	// Fields are the questions the user answers by typing, between the
+	// message and the options. Init builds the embedded
+	// component.PromptConfig.Fields from them, replacing any set.
+	Fields []PromptField
+	// PlaceholderAttr is how the placeholders of Fields look, on the
+	// background of their inputs unless it sets one. Left zero, they
+	// are gray.
+	PlaceholderAttr term.Attributes
+	// OnUnanswered, when set, is called with the index of the
+	// Mandatory field left empty or blank by a pick, which focuses it
+	// and keeps the prompt open.
+	OnUnanswered func(i int)
 
 	OptionBindings []term.KeyComb
 	HighlightAttr  term.Attributes
@@ -67,7 +119,10 @@ type PromptConfig struct {
 	ClickedAttr term.Attributes
 }
 
-var _ Scrollable = (*Prompt)(nil)
+var (
+	_ Scrollable                       = (*Prompt)(nil)
+	_ WithAttributesResponsiveFloating = (*inputbox.Handler)(nil)
+)
 
 // Prompt wraps a component.Prompt to satisfy tui.Handler. The mouse
 // wheel scrolls a message the prompt was given too little room for.
@@ -79,6 +134,13 @@ var _ Scrollable = (*Prompt)(nil)
 // It keeps the colors and images it is built with; an extension asking
 // the user a question opens it with browserapi.Prompter instead, for the
 // host to draw it in its theme.
+//
+// A prompt with Fields focuses the first. Tab and Shift-Tab, or Down
+// and Up, cycle the focus through the fields and then the row of
+// options. Keys go to the field in focus; the option bindings, Left and
+// Right only work on the row of options. Enter moves to the next field,
+// and picks the highlighted option from the last field or the row of
+// options. Esc and Ctrl+C dismiss it.
 type Prompt struct {
 	component.Prompt
 
@@ -91,6 +153,13 @@ type Prompt struct {
 	hover       int
 	cfg         PromptConfig
 	bindings    map[term.KeyComb]int
+	inputs      []*inputbox.Handler
+	// focus is the field the keys go to, or len(inputs) for the row
+	// of options.
+	focus int
+	// fieldHeld is the field that took a press it has not yet been
+	// sent the release of, or -1.
+	fieldHeld int
 }
 
 // NewPrompt allocates storage for a new Prompt and initializes it.
@@ -115,10 +184,37 @@ func (f *Prompt) Init(cfg PromptConfig) {
 			return m
 		}
 	}
+	f.inputs = make([]*inputbox.Handler, len(cfg.Fields))
+	pcfg.Fields = make([]component.PromptField, len(cfg.Fields))
+	placeholderAttr := cfg.PlaceholderAttr
+	if placeholderAttr == (term.Attributes{}) {
+		placeholderAttr.Fg = term.ColorGray
+	}
+	for i, fld := range cfg.Fields {
+		opts := []inputbox.Option{
+			inputbox.WithText(fld.Answer),
+			inputbox.WithRedact(fld.Secret),
+			inputbox.WithTabFocus(),
+		}
+		if fld.Placeholder != "" {
+			opts = append(opts, inputbox.WithPlaceholder(fld.Placeholder,
+				component.StringResponsiveConfig{
+					NoSplitWords: true,
+					StringConfig: component.StringConfig{Attributes: placeholderAttr},
+				}))
+		}
+		f.inputs[i] = inputbox.New(opts...)
+		pcfg.Fields[i] = component.PromptField{
+			Question:  fld.Question,
+			Mandatory: fld.Mandatory,
+			Input:     f.inputs[i],
+		}
+	}
 	f.Prompt.Init(pcfg)
 	f.hi = 0       // allow for Init to be used as reset
 	f.pressed = -1 // no button pressed
 	f.hover = -1
+	f.fieldHeld = -1
 
 	if len(cfg.OptionBindings) != 0 &&
 		len(cfg.OptionBindings) != len(cfg.Options) {
@@ -149,6 +245,14 @@ func (f *Prompt) Init(cfg PromptConfig) {
 
 	// Prompt guarantees that there's at least one option
 	f.highlightOption()
+	f.focusOn(0)
+}
+
+// focusOn gives field i the keys, or the row of options when i is
+// len(f.inputs).
+func (f *Prompt) focusOn(i int) {
+	f.focus = i
+	f.FocusField(i)
 }
 
 func (f *Prompt) highlightOption() {
@@ -190,12 +294,52 @@ func (f *Prompt) Handle(ev term.Event) (exit, handled bool) {
 	if ev.Type != term.EventKey {
 		return
 	}
+	if len(f.inputs) > 0 {
+		return f.handleFieldsKey(ev)
+	}
+	return f.handleOptionsKey(ev)
+}
 
+// handleFieldsKey moves the focus of a prompt with fields, and passes
+// the other keys to the field in focus or the row of options.
+func (f *Prompt) handleFieldsKey(ev term.Event) (exit, handled bool) {
+	stops := len(f.inputs) + 1
+	switch {
+	case ev.Key == term.KeyEsc && ev.Mod == 0,
+		ev.Ch == 'c' && ev.Mod == term.ModCtrl:
+		return true, true
+	case ev.Key == term.KeyTab && ev.Mod == 0,
+		ev.Key == term.KeyArrowDown && ev.Mod == 0:
+		f.focusOn((f.focus + 1) % stops)
+		return false, true
+	case ev.Key == term.KeyTab && ev.Mod == term.ModShift,
+		ev.Key == term.KeyArrowUp && ev.Mod == 0:
+		f.focusOn((f.focus + stops - 1) % stops)
+		return false, true
+	case ev.Key == term.KeyEnter && ev.Mod == 0:
+		if f.focus < len(f.inputs)-1 {
+			f.focusOn(f.focus + 1)
+			return false, true
+		}
+		return f.pick(f.hi), true
+	}
+	if f.focus == len(f.inputs) {
+		return f.handleOptionsKey(ev)
+	}
+	input := f.inputs[f.focus]
+	if ev.Ch == 'd' && ev.Mod == term.ModCtrl && input.Text() == "" {
+		return false, true
+	}
+	// Enter, Esc and Ctrl+C never reach the input, so whether it
+	// would exit does not matter.
+	_, handled = input.Handle(ev)
+	return false, handled
+}
+
+// handleOptionsKey handles the keys on the row of options.
+func (f *Prompt) handleOptionsKey(ev term.Event) (exit, handled bool) {
 	if i, ok := f.bindings[ev.KeyComb()]; ok {
-		f.cfg.OnSelect(i, f.cfg.Options[i])
-		exit = true
-		handled = true
-		return
+		return f.pick(i), true
 	}
 
 	if ev.Mod == term.ModCtrl {
@@ -220,8 +364,7 @@ func (f *Prompt) Handle(ev term.Event) (exit, handled bool) {
 	case term.KeyArrowRight:
 		handled = f.optionRight()
 	case term.KeyEnter:
-		f.cfg.OnSelect(f.hi, f.cfg.Options[f.hi])
-		exit = true
+		exit = f.pick(f.hi)
 		handled = true
 	case term.KeyEsc:
 		exit = true
@@ -230,13 +373,45 @@ func (f *Prompt) Handle(ev term.Event) (exit, handled bool) {
 	return
 }
 
+// pick answers option i, unless a Mandatory field is left empty or
+// blank, which it focuses instead. It returns whether it answered.
+func (f *Prompt) pick(i int) bool {
+	for j, fld := range f.cfg.Fields {
+		if fld.Mandatory && strings.TrimSpace(f.inputs[j].Text()) == "" {
+			f.focusOn(j)
+			if f.cfg.OnUnanswered != nil {
+				f.cfg.OnUnanswered(j)
+			}
+			return false
+		}
+	}
+	ah, ok := f.cfg.PromptHandler.(AnswerHandler)
+	if !ok {
+		f.cfg.OnSelect(i, f.cfg.Options[i])
+		return true
+	}
+	var answers []string
+	if len(f.inputs) > 0 {
+		answers = make([]string, len(f.inputs))
+		for j, input := range f.inputs {
+			answers[j] = input.Text()
+		}
+	}
+	ah.OnAnswer(i, f.cfg.Options[i], answers)
+	return true
+}
+
 func (f *Prompt) handleMouse(
 	ev term.Event,
 ) (exit, handled bool) {
 	at := f.OptionAt(ev.MouseX, ev.MouseY)
+	field := f.FieldAt(ev.MouseX, ev.MouseY)
 	shape := term.PointerDefault
-	if at >= 0 {
+	switch {
+	case at >= 0:
 		shape = term.PointerLink
+	case field >= 0:
+		shape = term.PointerText
 	}
 	term.SetPointerShape(ev, shape)
 	f.hover = at
@@ -255,6 +430,9 @@ func (f *Prompt) handleMouse(
 		if at >= 0 {
 			f.pressed = at
 			handled = true
+		} else if field >= 0 {
+			f.focusOn(field)
+			handled = true
 		}
 	case term.MouseRelease:
 		handled = f.pressed >= 0
@@ -264,14 +442,39 @@ func (f *Prompt) handleMouse(
 		f.pressed = -1
 	}
 	if ev.Key != term.MouseWheelUp && ev.Key != term.MouseWheelDown {
-		handled = f.handleMessageMouse(ev) || handled
+		onMessage := f.handleMessageMouse(ev)
+		onField := f.handleFieldMouse(ev, field)
+		handled = onMessage || onField || handled
 	}
 	f.highlightOption()
 	if selected >= 0 {
-		f.cfg.OnSelect(selected, f.cfg.Options[selected])
-		exit = true
+		exit = f.pick(selected)
 	}
 	return
+}
+
+// handleFieldMouse passes ev on to the input of the field at it when ev
+// presses, or to the input holding a press that ev moves or releases,
+// at its coordinates on the input.
+func (f *Prompt) handleFieldMouse(ev term.Event, at int) (handled bool) {
+	i := f.fieldHeld
+	switch ev.Key {
+	case term.MouseLeft:
+		i = at
+		f.fieldHeld = at
+	case term.MouseRelease:
+		f.fieldHeld = -1
+	case 0:
+	default:
+		return false
+	}
+	if i < 0 {
+		return false
+	}
+	pos := f.FieldPosition(i)
+	ev.MouseX, ev.MouseY = ev.MouseX-pos.X, ev.MouseY-pos.Y
+	_, handled = f.inputs[i].Handle(ev)
+	return handled
 }
 
 // handleMessageMouse passes ev on to the message when it falls on it, or
@@ -312,9 +515,13 @@ func (f *Prompt) optionLeft() (handled bool) {
 	return
 }
 
-// Selection satisfies tui.Handler but always returns false.
+// Selection satisfies tui.Handler with the text selected in the field in
+// focus, but never in a Secret one.
 func (f *Prompt) Selection() (string, bool) {
-	return "", false
+	if f.focus >= len(f.inputs) || f.cfg.Fields[f.focus].Secret {
+		return "", false
+	}
+	return f.inputs[f.focus].Selection()
 }
 
 // Close satisfies tui.Handler running the configured close callback.
@@ -322,8 +529,19 @@ func (f *Prompt) Close() error {
 	return f.cfg.OnClose()
 }
 
-// Cursor satisfies tui.Handler.
+// Cursor satisfies tui.Handler with the cursor of the field in focus,
+// while the last Resize left its input a cell.
 func (f *Prompt) Cursor() (pos term.Coordinates, style term.CursorStyle, show bool) {
+	if f.focus >= len(f.inputs) {
+		return
+	}
+	origin := f.FieldPosition(f.focus)
+	if f.FieldAt(origin.X, origin.Y) != f.focus {
+		return
+	}
+	pos, style, show = f.inputs[f.focus].Cursor()
+	pos.X += origin.X
+	pos.Y += origin.Y
 	return
 }
 
@@ -345,5 +563,22 @@ func (h funcPromptHandler) OnSelect(idx int, option string) {
 }
 
 func (h funcPromptHandler) OnClose() error {
+	return h.closeCb()
+}
+
+type funcAnswerHandler struct {
+	answerCb func(idx int, option string, answers []string)
+	closeCb  func() error
+}
+
+func (h funcAnswerHandler) OnSelect(idx int, option string) {
+	h.answerCb(idx, option, nil)
+}
+
+func (h funcAnswerHandler) OnAnswer(idx int, option string, answers []string) {
+	h.answerCb(idx, option, answers)
+}
+
+func (h funcAnswerHandler) OnClose() error {
 	return h.closeCb()
 }

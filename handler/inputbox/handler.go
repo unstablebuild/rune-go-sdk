@@ -18,7 +18,6 @@ import (
 	"io"
 
 	"github.com/unstablebuild/rune-go-sdk/component"
-	"github.com/unstablebuild/rune-go-sdk/handler"
 	"github.com/unstablebuild/rune-go-sdk/mouse"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
@@ -36,6 +35,8 @@ type Handler struct {
 	attrs       term.Attributes
 	selAnchor   int // -1 means no selection
 	placeholder *component.ResponsiveString
+	// placeholderAttr is how WithPlaceholder styled the placeholder.
+	placeholderAttr term.Attributes
 
 	// Prompt
 	prompt      []rune
@@ -90,8 +91,6 @@ type Handler struct {
 // defaultRedactRune is the glyph used to mask buffer contents when redact
 // rendering is enabled and no explicit rune has been configured.
 const defaultRedactRune = '*'
-
-var _ handler.WithAttributesResponsiveFloating = (*Handler)(nil)
 
 // New creates and initializes a new input box with default attributes.
 func New(opts ...Option) *Handler {
@@ -1107,7 +1106,12 @@ func (ib *Handler) updateVoffsetNoPrompt() {
 }
 
 func (ib *Handler) updatePlaceholderBackground() {
-	if ib.placeholder != nil {
-		_ = ib.placeholder.SetAttr(term.Attributes{Bg: ib.attrs.Bg})
+	if ib.placeholder == nil {
+		return
 	}
+	attr := ib.placeholderAttr
+	if attr.Bg == term.ColorDefault {
+		attr.Bg = ib.attrs.Bg
+	}
+	_ = ib.placeholder.SetAttr(attr)
 }

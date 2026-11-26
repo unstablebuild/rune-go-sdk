@@ -329,6 +329,10 @@ func TestPromptHeight(t *testing.T) {
 		{"a message that is only Floating takes its ideal height", yesNo(idealPrompt), 12, 2 + 1},
 		{"a message that is only Floating at any width", yesNo(idealPrompt), 2, 2 + 2 + 1},
 		{"a message with no height", yesNo(nopPrompt), 12, 1},
+		{"the box of a field and a blank row between the message and the options",
+			withFields(yesNo(fixed3), field("User", "")), 12, 3 + 3 + 1 + 1},
+		{"boxes a blank row apart", withFields(yesNo(fixed3),
+			field("User", ""), mandatory(field("Password", ""))), 12, 3 + 2*(3+1) + 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -731,6 +735,8 @@ func TestPromptDrawsWithinItsBounds(t *testing.T) {
 		{"lines", linesPrompt(fourLines, "Yes", "No")},
 		{"only Floating message", idealPrompt("Yes", "No")},
 		{"message with no height", nopPrompt("Yes", "No")},
+		{"fields", withFields(linesPrompt(fourLines, "Yes", "No"),
+			field("User", "me"), mandatory(field("Password", "")))},
 	}
 	sizes := [][2]int{
 		{-1, -1}, {0, 0}, {0, 5}, {5, 0}, {1, 1}, {2, 3}, {8, 1},
@@ -947,6 +953,14 @@ func TestPromptDefaults(t *testing.T) {
 		assert.Panics(t, func() {
 			_ = NewPrompt(PromptConfig{
 				Message: "blah", Options: []string{},
+			})
+		})
+	})
+	t.Run("panics on a field without an input", func(t *testing.T) {
+		assert.Panics(t, func() {
+			_ = NewPrompt(PromptConfig{
+				Message: "blah", Options: []string{"a"},
+				Fields: []PromptField{{Question: "Name"}},
 			})
 		})
 	})
@@ -1227,6 +1241,464 @@ func TestPromptDimensions(t *testing.T) {
 		// innerGap=(26-18)/4=2, group=18+4=22, margin=(26-22)/2=2.
 		// left == right == 2. ✓
 	})
+
+	t.Run("follows the width the inputs ask for", func(t *testing.T) {
+		in := textInput("")
+		p := NewPrompt(withFields(linesPrompt(fourLines, "Ok"), PromptField{Question: "Name", Input: in}))
+		width, _ := p.Dimensions()
+		assert.Equal(t, 42, width)
+		in.cells = term.StringToCells(strings.Repeat("x", 40))
+		width, _ = p.Dimensions()
+		assert.Equal(t, 52, width, "grown with the input")
+		in.cells = term.StringToCells("x")
+		width, _ = p.Dimensions()
+		assert.Equal(t, 42, width, "shrunk back to the default")
+	})
+
+	tests := []struct {
+		name       string
+		cfg        PromptConfig
+		wantWidth  int
+		wantHeight int
+	}{
+		{
+			// 2 + "User" 4 + 2 + frame 1 + 30 + frame 1 + 2; message 4 +
+			// a box 3 and a blank row + options 1.
+			name:      "the fields at their ideal width",
+			cfg:       withFields(linesPrompt(fourLines, "Ok"), field("User", "")),
+			wantWidth: 42, wantHeight: 4 + 4 + 1,
+		},
+		{
+			// 2 + "Password *" 10 + 2 + 1 + 30 + 1 + 2.
+			name: "the widest question with its marker",
+			cfg: withFields(linesPrompt(fourLines, "Ok"),
+				field("User", ""), mandatory(field("Password", ""))),
+			wantWidth: 48, wantHeight: 4 + 8 + 1,
+		},
+		{
+			// 2 + "Name" 4 + 2 + 1 + 40 + 1 + 2.
+			name:      "an input wider than the default",
+			cfg:       withFields(linesPrompt(fourLines, "Ok"), field("Name", strings.Repeat("x", 40))),
+			wantWidth: 52, wantHeight: 4 + 4 + 1,
+		},
+		{
+			// 2 + 1 + 30 + 1 + 2: no question, marker nor gap.
+			name:      "a field without a question",
+			cfg:       withFields(linesPrompt(fourLines, "Ok"), mandatory(field("", ""))),
+			wantWidth: 36, wantHeight: 4 + 4 + 1,
+		},
+		{
+			name: "a message wider than the fields",
+			cfg: withFields(PromptConfig{
+				Message: "?", Options: []string{"Ok"},
+				NewMessage: func(string) Floating {
+					return &TestResponsive{WantWidth: 60, WantHeight: 1}
+				},
+			}, field("User", "")),
+			wantWidth: 60, wantHeight: 1 + 4 + 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			width, height := NewPrompt(tt.cfg).Dimensions()
+			assert.Equal(t, tt.wantWidth, width)
+			assert.Equal(t, tt.wantHeight, height)
+		})
+	}
+}
+
+func TestDrawPromptFields(t *testing.T) {
+	login := withFields(linesPrompt([]string{"Login"}, "Ok", "Cancel"),
+		field("User", "me"), mandatory(field("Password", "")))
+	tests := []struct {
+		name          string
+		cfg           PromptConfig
+		width, height int
+		focus         []int
+		down          int
+		expected      string
+	}{
+		{
+			name:  "a box between the message and the options",
+			cfg:   withFields(linesPrompt([]string{"Who?"}, "Ok"), field("User", "me")),
+			width: 20, height: 6,
+			expected: "Who?                \n" +
+				"        ┌────────┐  \n" +
+				"  User  │me      │  \n" +
+				"        └────────┘  \n" +
+				"                    \n" +
+				"         Ok         ",
+		},
+		{
+			name:  "a field without a question is a box as wide as the prompt",
+			cfg:   withFields(linesPrompt([]string{"Rename x to"}, "Ok"), mandatory(field("", "me"))),
+			width: 20, height: 6,
+			expected: "Rename x to         \n" +
+				"  ┌──────────────┐  \n" +
+				"  │me            │  \n" +
+				"  └──────────────┘  \n" +
+				"                    \n" +
+				"         Ok         ",
+		},
+		{
+			name:  "boxes a blank row apart with the marker on mandatory questions",
+			cfg:   login,
+			width: 30, height: 10,
+			expected: "Login                         \n" +
+				"              ┌────────────┐  \n" +
+				"  User        │me          │  \n" +
+				"              └────────────┘  \n" +
+				"                              \n" +
+				"              ┌────────────┐  \n" +
+				"  Password *  │            │  \n" +
+				"              └────────────┘  \n" +
+				"                              \n" +
+				"        Ok        Cancel      ",
+		},
+		{
+			name:  "the box of the field in focus in FocusFieldFrame",
+			cfg:   login,
+			width: 30, height: 10,
+			focus: []int{1},
+			expected: "Login                         \n" +
+				"              ┌────────────┐  \n" +
+				"  User        │me          │  \n" +
+				"              └────────────┘  \n" +
+				"                              \n" +
+				"              ┏━━━━━━━━━━━━┓  \n" +
+				"  Password *  ┃            ┃  \n" +
+				"              ┗━━━━━━━━━━━━┛  \n" +
+				"                              \n" +
+				"        Ok        Cancel      ",
+		},
+		{
+			name: "the frames configured",
+			cfg: func() PromptConfig {
+				cfg := login
+				cfg.FieldFrame = FrameCharSetStack()
+				cfg.FocusFieldFrame = FrameCharSetStackHighlight()
+				return cfg
+			}(),
+			width: 30, height: 10,
+			focus: []int{0},
+			expected: "Login                         \n" +
+				"              ┢━━━━━━━━━━━━┪  \n" +
+				"  User        ┃me          ┃  \n" +
+				"              ┡━━━━━━━━━━━━┩  \n" +
+				"                              \n" +
+				"              ├────────────┤  \n" +
+				"  Password *  │            │  \n" +
+				"              ├────────────┤  \n" +
+				"                              \n" +
+				"        Ok        Cancel      ",
+		},
+		{
+			name:  "packs the boxes with the options when short of room",
+			cfg:   login,
+			width: 30, height: 8,
+			expected: "Login                         \n" +
+				"              ┌────────────┐  \n" +
+				"  User        │me          │  \n" +
+				"              └────────────┘  \n" +
+				"              ┌────────────┐  \n" +
+				"  Password *  │            │  \n" +
+				"              └────────────┘  \n" +
+				"        Ok        Cancel      ",
+		},
+		{
+			name:  "a box over several rows of options",
+			cfg:   withFields(linesPrompt([]string{"Pick?"}, providerOptions...), field("Key", "")),
+			width: 24, height: 10,
+			expected: "Pick?                   \n" +
+				"       ┌─────────────┐  \n" +
+				"  Key  │             │  \n" +
+				"       └─────────────┘  \n" +
+				"                        \n" +
+				"   OpenAI    Anthropic  \n" +
+				"                        \n" +
+				"   Gemini      Codex    \n" +
+				"                        \n" +
+				"        Claude          ",
+		},
+		{
+			name:  "gives the message the rows packed boxes and options leave",
+			cfg:   withFields(linesPrompt([]string{"Pick?"}, providerOptions...), field("Key", "")),
+			width: 24, height: 9,
+			expected: "Pick?                   \n" +
+				"                        \n" +
+				"                        \n" +
+				"       ┌─────────────┐  \n" +
+				"  Key  │             │  \n" +
+				"       └─────────────┘  \n" +
+				"   OpenAI    Anthropic  \n" +
+				"   Gemini      Codex    \n" +
+				"        Claude          ",
+		},
+		{
+			name:  "cuts the questions before the inputs at a narrow width",
+			cfg:   login,
+			width: 16, height: 8,
+			expected: "Login           \n" +
+				"     ┌────────┐ \n" +
+				" Use │me      │ \n" +
+				"     └────────┘ \n" +
+				"     ┌────────┐ \n" +
+				" P * │        │ \n" +
+				"     └────────┘ \n" +
+				"   Ok    Cancel ",
+		},
+		{
+			name:  "scrolls the message and keeps the boxes over the options",
+			cfg:   withFields(linesPrompt(fourLines, "Ok"), field("User", "me")),
+			width: 20, height: 6, down: 1,
+			expected: "two                 \n" +
+				"three               \n" +
+				"        ┌────────┐  \n" +
+				"  User  │me      │  \n" +
+				"        └────────┘  \n" +
+				"         Ok         ",
+		},
+		{
+			name:  "draws a wide question whole or not at all",
+			cfg:   withFields(linesPrompt([]string{"?"}, "Ok"), field("名前です", "x")),
+			width: 18, height: 5,
+			// The StringWriter draws a blank after each wide character.
+			expected: "?                 \n" +
+				"       ┌────────┐ \n" +
+				" 名 前   │x       │ \n" +
+				"       └────────┘ \n" +
+				"        Ok        ",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(tt.cfg)
+			for _, i := range tt.focus {
+				p.FocusField(i)
+			}
+			p.Resize(tt.width, tt.height)
+			for range tt.down {
+				p.SeekDown()
+			}
+			comptest.TestComponent(t, p, term.NewStringWriter(tt.width, tt.height),
+				[]comptest.TestCase{{Expected: tt.expected}})
+		})
+	}
+}
+
+func TestPromptFieldAt(t *testing.T) {
+	login := withFields(linesPrompt([]string{"Login"}, "Ok", "Cancel"),
+		field("User", "me"), mandatory(field("Password", "")))
+	at := func(width, height int) func(*Prompt) {
+		return func(p *Prompt) { p.Resize(width, height) }
+	}
+	tests := []struct {
+		name    string
+		prepare func(*Prompt)
+		x, y    int
+		want    int
+	}{
+		// Spaced at 30x10: the boxes of User on rows 1-3 and Password
+		// on rows 5-7, the questions from x=2 on their middle rows and
+		// the boxes x=14..27.
+		{"the first cell of a question", at(30, 10), 2, 2, 0},
+		{"the input of a field", at(30, 10), 20, 2, 0},
+		{"the top left corner of a box", at(30, 10), 14, 1, 0},
+		{"the bottom right corner of a box", at(30, 10), 27, 3, 0},
+		{"above a question", at(30, 10), 2, 1, 0},
+		{"the edge right of a box", at(30, 10), 28, 2, -1},
+		{"the edge left of a question", at(30, 10), 1, 2, -1},
+		{"the blank row between boxes", at(30, 10), 20, 4, -1},
+		{"the second field", at(30, 10), 20, 6, 1},
+		{"the blank row over the options", at(30, 10), 20, 8, -1},
+		{"the message", at(30, 10), 2, 0, -1},
+		{"the options", at(30, 10), 8, 9, -1},
+		{"a negative column", at(30, 10), -1, 2, -1},
+		{"right of the prompt", at(30, 10), 30, 2, -1},
+		// Packed at 30x8: User on rows 1-3, Password on rows 4-6.
+		{"the top of the second of packed boxes", at(30, 8), 20, 4, 1},
+		{"before any Resize", func(*Prompt) {}, 2, 2, -1},
+		{"where a field was before Init", func(p *Prompt) {
+			p.Resize(30, 10)
+			p.Init(login)
+		}, 20, 2, -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(login)
+			tt.prepare(p)
+			assert.Equal(t, tt.want, p.FieldAt(tt.x, tt.y))
+		})
+	}
+
+	t.Run("FieldPosition is the first cell of the input in its frame", func(t *testing.T) {
+		p := NewPrompt(login)
+		p.Resize(30, 10)
+		assert.Equal(t, term.Coordinates{X: 15, Y: 2}, p.FieldPosition(0))
+		assert.Equal(t, term.Coordinates{X: 15, Y: 6}, p.FieldPosition(1))
+		p.Resize(30, 8)
+		assert.Equal(t, term.Coordinates{X: 15, Y: 5}, p.FieldPosition(1))
+		p.Resize(16, 8)
+		assert.Equal(t, term.Coordinates{X: 6, Y: 5}, p.FieldPosition(1))
+	})
+
+	t.Run("Resize gives the inputs a row the width of their frames", func(t *testing.T) {
+		user, password := textInput("me"), textInput("")
+		p := NewPrompt(withFields(linesPrompt([]string{"Login"}, "Ok"),
+			PromptField{Question: "User", Input: user},
+			PromptField{Question: "Password", Mandatory: true, Input: password}))
+		p.Resize(30, 10)
+		assert.Equal(t, [2]int{12, 1}, [2]int{user.width, user.height})
+		assert.Equal(t, [2]int{12, 1}, [2]int{password.width, password.height})
+	})
+
+	t.Run("a box too narrow for its frame is all input", func(t *testing.T) {
+		user := textInput("me")
+		p := NewPrompt(withFields(linesPrompt([]string{"?"}, "Ok"),
+			PromptField{Question: "User", Input: user}))
+		// edge 1 + question 0 + gap 1 + box 2 + edge 1.
+		p.Resize(5, 5)
+		assert.Equal(t, term.Coordinates{X: 2, Y: 2}, p.FieldPosition(0))
+		assert.Equal(t, [2]int{2, 1}, [2]int{user.width, user.height})
+	})
+}
+
+func TestPromptFocusField(t *testing.T) {
+	bg := term.Attributes{Fg: term.ColorWhite, Bg: term.ColorBlue}
+	fieldAttr := term.Attributes{Bg: term.ColorGray}
+	focusAttr := term.Attributes{Fg: term.ColorYellow, Attrs: term.AttrBold}
+	tests := []struct {
+		name         string
+		field, focus term.Attributes
+		focused      int
+		wantA, wantB term.Attributes
+	}{
+		{
+			name:  "no field focused draws every input in FieldAttr",
+			field: fieldAttr, focus: focusAttr, focused: -1,
+			wantA: term.Attributes{Fg: term.ColorWhite, Bg: term.ColorGray},
+			wantB: term.Attributes{Fg: term.ColorWhite, Bg: term.ColorGray},
+		},
+		{
+			name:  "the focused input in FocusFieldAttr",
+			field: fieldAttr, focus: focusAttr, focused: 1,
+			wantA: term.Attributes{Fg: term.ColorWhite, Bg: term.ColorGray},
+			wantB: term.Attributes{Fg: term.ColorYellow, Bg: term.ColorBlue, Attrs: term.AttrBold},
+		},
+		{
+			name:  "no FocusFieldAttr focuses in FieldAttr",
+			field: fieldAttr, focused: 0,
+			wantA: term.Attributes{Fg: term.ColorWhite, Bg: term.ColorGray},
+			wantB: term.Attributes{Fg: term.ColorWhite, Bg: term.ColorGray},
+		},
+		{
+			name:    "no FieldAttr draws the inputs on the background",
+			focused: 0,
+			wantA:   bg,
+			wantB:   bg,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a, b := textInput("a"), textInput("")
+			cfg := withFields(linesPrompt([]string{"?"}, "Ok"),
+				PromptField{Question: "A", Input: a}, PromptField{Question: "B", Input: b})
+			cfg.BackgroundAttributes = bg
+			cfg.FieldAttr, cfg.FocusFieldAttr = tt.field, tt.focus
+			p := NewPrompt(cfg)
+			p.FocusField(tt.focused)
+			assert.Equal(t, tt.wantA, a.attr)
+			assert.Equal(t, tt.wantB, b.attr)
+
+			p.Resize(40, 10)
+			sw := term.NewStringWriter(40, 10)
+			p.Draw(sw)
+			require.NoError(t, sw.Flush())
+			// The cells right of the text of B are drawn in its attributes.
+			pos := p.FieldPosition(1)
+			assert.Equal(t, tt.wantB, sw.Cells()[pos.Y*40+pos.X+3].Attributes())
+		})
+	}
+}
+
+func TestPromptFieldFrame(t *testing.T) {
+	bg := term.Attributes{Fg: term.ColorWhite, Bg: term.ColorBlue}
+	gray := term.Attributes{Fg: term.ColorGray}
+	red := term.Attributes{Fg: term.ColorRed, Attrs: term.AttrBold}
+	tests := []struct {
+		name                 string
+		configure            func(*PromptConfig)
+		focused              int
+		wantA, wantB         rune
+		wantAttrA, wantAttrB term.Attributes
+	}{
+		{
+			name:    "no field focused frames every box in FieldFrame",
+			focused: -1,
+			wantA:   '┌', wantB: '┌',
+			wantAttrA: bg, wantAttrB: bg,
+		},
+		{
+			name:    "the box in focus in FocusFieldFrame",
+			focused: 1,
+			wantA:   '┌', wantB: '┏',
+			wantAttrA: bg, wantAttrB: bg,
+		},
+		{
+			name: "the charsets configured",
+			configure: func(cfg *PromptConfig) {
+				cfg.FieldFrame = FrameCharSetStack()
+				cfg.FocusFieldFrame = FrameCharSetStackHighlight()
+			},
+			focused: 1,
+			wantA:   '├', wantB: '┢',
+			wantAttrA: bg, wantAttrB: bg,
+		},
+		{
+			name: "the attributes over the colors of the background",
+			configure: func(cfg *PromptConfig) {
+				cfg.FieldFrameAttr, cfg.FocusFieldFrameAttr = gray, red
+			},
+			focused: 1,
+			wantA:   '┌', wantB: '┏',
+			wantAttrA: term.Attributes{Fg: term.ColorGray, Bg: term.ColorBlue},
+			wantAttrB: term.Attributes{Fg: term.ColorRed, Bg: term.ColorBlue, Attrs: term.AttrBold},
+		},
+		{
+			name: "no FocusFieldFrameAttr focuses in FieldFrameAttr",
+			configure: func(cfg *PromptConfig) {
+				cfg.FieldFrameAttr = gray
+			},
+			focused: 1,
+			wantA:   '┌', wantB: '┏',
+			wantAttrA: term.Attributes{Fg: term.ColorGray, Bg: term.ColorBlue},
+			wantAttrB: term.Attributes{Fg: term.ColorGray, Bg: term.ColorBlue},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := withFields(linesPrompt([]string{"?"}, "Ok"), field("A", "a"), field("B", ""))
+			cfg.BackgroundAttributes = bg
+			if tt.configure != nil {
+				tt.configure(&cfg)
+			}
+			p := NewPrompt(cfg)
+			p.FocusField(tt.focused)
+			p.Resize(40, 10)
+			sw := term.NewStringWriter(40, 10)
+			p.Draw(sw)
+			require.NoError(t, sw.Flush())
+			// The top left corner of a box is up and left of its input.
+			corner := func(i int) term.Cell {
+				pos := p.FieldPosition(i)
+				return sw.Cells()[(pos.Y-1)*40+pos.X-1]
+			}
+			assert.Equal(t, tt.wantA, corner(0).Ch)
+			assert.Equal(t, tt.wantB, corner(1).Ch)
+			assert.Equal(t, tt.wantAttrA, corner(0).Attributes())
+			assert.Equal(t, tt.wantAttrB, corner(1).Attributes())
+		})
+	}
 }
 
 var (
@@ -1472,6 +1944,26 @@ func nopPrompt(options ...string) PromptConfig {
 func framed(cfg PromptConfig) PromptConfig {
 	cfg.Frame = FrameCharSetDefault()
 	return cfg
+}
+
+func withFields(cfg PromptConfig, fields ...PromptField) PromptConfig {
+	cfg.Fields = fields
+	return cfg
+}
+
+// field is a question answered in a textInput of answer.
+func field(question, answer string) PromptField {
+	return PromptField{Question: question, Input: textInput(answer)}
+}
+
+func mandatory(f PromptField) PromptField {
+	f.Mandatory = true
+	return f
+}
+
+// textInput is an input showing text, as wide as it.
+func textInput(text string) *stringComp {
+	return &stringComp{cells: term.StringToCells(text)}
 }
 
 // linesMessage is a prompt message drawing a line per row, so a test

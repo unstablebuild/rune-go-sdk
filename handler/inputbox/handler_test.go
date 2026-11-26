@@ -384,6 +384,36 @@ func TestHandlerPlaceholder(t *testing.T) {
 		}
 		handlertest.RunHandlerSequence(t, ib, 10, 1, cases)
 	})
+
+	t.Run("placeholder keeps its colors on the background of the input", func(t *testing.T) {
+		for _, tt := range []struct {
+			name        string
+			placeholder term.Attributes
+			want        term.Attributes
+		}{
+			{
+				name:        "takes the background",
+				placeholder: term.Attributes{Fg: term.ColorGray, Attrs: term.AttrItalic},
+				want:        term.Attributes{Fg: term.ColorGray, Bg: term.ColorBlue, Attrs: term.AttrItalic},
+			},
+			{
+				name:        "keeps its own background",
+				placeholder: term.Attributes{Fg: term.ColorGray, Bg: term.ColorRed},
+				want:        term.Attributes{Fg: term.ColorGray, Bg: term.ColorRed},
+			},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				ib := New(WithPlaceholder("Test", component.StringResponsiveConfig{
+					StringConfig: component.StringConfig{Attributes: tt.placeholder},
+				}))
+				ib.SetAttr(term.Attributes{Fg: term.ColorWhite, Bg: term.ColorBlue})
+				ib.Resize(10, 1)
+				w := term.NewStringWriter(10, 1)
+				ib.Draw(w)
+				assert.Equal(t, tt.want, w.Cells()[1].Attributes())
+			})
+		}
+	})
 }
 
 func TestHandlerBackground(t *testing.T) {

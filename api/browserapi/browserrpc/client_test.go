@@ -16,6 +16,7 @@ package browserrpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/api/browserapi"
+	"github.com/unstablebuild/rune-go-sdk/handler"
 	"github.com/unstablebuild/rune-go-sdk/handler/handlerrpc"
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"google.golang.org/grpc"
@@ -130,6 +132,118 @@ func TestClientPromptRequest(t *testing.T) {
 	assert.Equal(t, []term.KeyComb{{Ch: 'y'}, {Mod: term.ModCtrl, Ch: 'n'}}, keys)
 }
 
+func TestClientPromptFields(t *testing.T) {
+	opened := &PromptEvent{Event: &PromptEvent_Opened_{
+		Opened: &PromptEvent_Opened{WindowId: 7, SupportsFields: true},
+	}}
+	// openedOld is how a host that predates fields opens a prompt,
+	// without them.
+	openedOld := &PromptEvent{Event: &PromptEvent_Opened_{
+		Opened: &PromptEvent_Opened{WindowId: 7},
+	}}
+	answered := &PromptEvent{Event: &PromptEvent_Selected_{
+		Selected: &PromptEvent_Selected{Index: 1, Option: "No", Answers: []string{"me", "pw"}},
+	}}
+	selected := &PromptEvent{Event: &PromptEvent_Selected_{
+		Selected: &PromptEvent_Selected{Index: 1, Option: "No"},
+	}}
+	closed := &PromptEvent{Event: &PromptEvent_Closed_{Closed: &PromptEvent_Closed{}}}
+	fields := []browserapi.Field{
+		{Question: "User", Answer: "me", Placeholder: "you@example.com"},
+		{Question: "Password", Secret: true, Mandatory: true},
+	}
+	wantFields := []*PromptField{
+		{Question: "User", Answer: "me", Placeholder: "you@example.com"},
+		{Question: "Password", Secret: true, Mandatory: true},
+	}
+
+	tests := []struct {
+		name    string
+		fields  []browserapi.Field
+		events  []*PromptEvent
+		answers bool
+		// hold keeps the stream open after the events, until the
+		// client ends it.
+		hold        bool
+		wantFields  []*PromptField
+		wantErr     error
+		wantHandler []string
+	}{
+		{
+			name:        "without fields",
+			events:      []*PromptEvent{opened, selected, closed},
+			wantHandler: []string{"select 1 No", "close"},
+		},
+		{
+			name:        "with fields",
+			fields:      fields,
+			events:      []*PromptEvent{opened, answered, closed},
+			answers:     true,
+			wantFields:  wantFields,
+			wantHandler: []string{"answer 1 No [me pw]", "close"},
+		},
+		{
+			name:        "a PromptHandler gets OnSelect without the answers",
+			fields:      fields,
+			events:      []*PromptEvent{opened, answered, closed},
+			wantFields:  wantFields,
+			wantHandler: []string{"select 1 No", "close"},
+		},
+		{
+			name:    "a host that predates fields is unsupported and the prompt closed",
+			fields:  fields,
+			events:  []*PromptEvent{openedOld},
+			hold:    true,
+			answers: true,
+			wantErr: errors.ErrUnsupported,
+		},
+		{
+			name:        "a host that predates fields still opens prompts without",
+			events:      []*PromptEvent{openedOld, selected, closed},
+			wantHandler: []string{"select 1 No", "close"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := newPromptServer(tt.events, nil)
+			srv.hold = tt.hold
+			c := newTestClient(t, srv)
+			rec := newRecordingPromptHandler()
+			var h handler.PromptHandler = rec
+			if tt.answers {
+				h = recordingAnswerHandler{rec}
+			}
+
+			win, err := c.Prompt(browserapi.PromptConfig{
+				Message: "Sure?", Options: []string{"Yes", "No"}, Fields: tt.fields,
+			}, h)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				assert.Nil(t, win)
+				select {
+				case <-srv.ended:
+				case <-time.After(5 * time.Second):
+					require.FailNow(t, "the client kept the prompt open")
+				}
+				assert.Empty(t, rec.wait(t, 0))
+				return
+			}
+			require.NoError(t, err)
+			req := srv.request()
+			require.Len(t, req.GetFields(), len(tt.wantFields))
+			for i, want := range tt.wantFields {
+				got := req.GetFields()[i]
+				assert.Equal(t, want.GetQuestion(), got.GetQuestion())
+				assert.Equal(t, want.GetAnswer(), got.GetAnswer())
+				assert.Equal(t, want.GetSecret(), got.GetSecret())
+				assert.Equal(t, want.GetMandatory(), got.GetMandatory())
+				assert.Equal(t, want.GetPlaceholder(), got.GetPlaceholder())
+			}
+			assert.Equal(t, tt.wantHandler, rec.wait(t, len(tt.wantHandler)))
+		})
+	}
+}
+
 func TestClientPromptValidates(t *testing.T) {
 	tests := []struct {
 		name string
@@ -234,16 +348,23 @@ func (s *floatingServer) request() *FloatingWindowRequest {
 }
 
 // promptServer opens prompts by streaming events, then ending the
-// stream with err.
+// stream with err. When hold, it keeps the stream open instead, until
+// the client ends it, which closes ended.
 type promptServer struct {
 	UnimplementedWindowManagerServer
 	events []*PromptEvent
 	err    error
+	hold   bool
 	reqs   chan *PromptRequest
+	ended  chan struct{}
 }
 
 func newPromptServer(events []*PromptEvent, err error) *promptServer {
-	return &promptServer{events: events, err: err, reqs: make(chan *PromptRequest, 1)}
+	return &promptServer{
+		events: events, err: err,
+		reqs:  make(chan *PromptRequest, 1),
+		ended: make(chan struct{}),
+	}
 }
 
 func (s *promptServer) Prompt(
@@ -254,6 +375,11 @@ func (s *promptServer) Prompt(
 		if err := srv.Send(ev); err != nil {
 			return err
 		}
+	}
+	if s.hold {
+		<-srv.Context().Done()
+		close(s.ended)
+		return srv.Context().Err()
 	}
 	return s.err
 }
@@ -302,6 +428,13 @@ func (h *recordingPromptHandler) OnSelect(idx int, option string) {
 func (h *recordingPromptHandler) OnClose() error {
 	h.calls <- "close"
 	return nil
+}
+
+// recordingAnswerHandler records the answers too.
+type recordingAnswerHandler struct{ *recordingPromptHandler }
+
+func (h recordingAnswerHandler) OnAnswer(idx int, option string, answers []string) {
+	h.calls <- fmt.Sprintf("answer %d %s %v", idx, option, answers)
 }
 
 // wait returns the n calls h is expected to receive, and any more that

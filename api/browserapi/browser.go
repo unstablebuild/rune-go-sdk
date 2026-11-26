@@ -201,6 +201,10 @@ type PromptConfig struct {
 	// Options are the answers the user picks from. There must be at
 	// least one.
 	Options []string
+	// Fields are questions the user answers by typing, rendered in
+	// order between the message and the options. Their answers go to a
+	// handler.AnswerHandler with the option picked.
+	Fields []Field
 	// Bindings are the keys that pick each option: as many as Options,
 	// or none.
 	Bindings []term.KeyComb
@@ -209,6 +213,24 @@ type PromptConfig struct {
 	// whose lines read badly wrapped, such as code. Zero leaves the size
 	// to the host, which wraps the message to its own proportions.
 	MaxWidth int
+}
+
+// Field is a question the user answers by typing.
+type Field struct {
+	// Question labels the answer. Left empty, the field has no label,
+	// for a Message that asks the question itself.
+	Question string
+	// Answer is the text the field starts with, which the user edits.
+	Answer string
+	// Secret hides the answer as typed; it is never shown, copied or
+	// logged.
+	Secret bool
+	// Mandatory keeps any option from being picked while the answer is
+	// empty or blank. It never keeps the prompt from being dismissed.
+	Mandatory bool
+	// Placeholder hints at the expected answer while the answer is
+	// empty; it is never the answer.
+	Placeholder string
 }
 
 // Validate returns the error a Prompter fails with for cfg.
@@ -229,7 +251,9 @@ func (cfg PromptConfig) Validate() error {
 // Prompter opens a floating window and presents a question to the user with some
 // pre-defined answers. It's a shorthand for creating a floating window via Floating
 // and installing a handler.Prompt, with the browser's default configuration
-// for prompts.
+// for prompts. A handler that implements handler.AnswerHandler gets OnAnswer
+// in place of OnSelect, with the answers to cfg.Fields. A host that cannot
+// render Fields fails with an error that wraps errors.ErrUnsupported.
 type Prompter interface {
 	Prompt(cfg PromptConfig, h handler.PromptHandler) (Window, error)
 }

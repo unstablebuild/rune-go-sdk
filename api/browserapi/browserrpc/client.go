@@ -441,7 +441,9 @@ func (c *Client) Tab(
 // Prompt satisfies browserapi.Prompter. It returns once the host opened
 // the prompt, and calls h from a goroutine of its own. If the connection
 // to the host breaks before the prompt closes, h.OnClose is called as if
-// the user dismissed it.
+// the user dismissed it. A host that predates fields opens a prompt
+// with them without them, so Prompt closes it at once and fails with an
+// error that wraps errors.ErrUnsupported; h is never called.
 func (c *Client) Prompt(
 	cfg browserapi.PromptConfig, h handler.PromptHandler,
 ) (browserapi.Window, error) {
@@ -465,20 +467,41 @@ func (c *Client) Prompt(
 		}
 		req.Bindings = append(req.Bindings, ev)
 	}
+	for _, f := range cfg.Fields {
+		req.Fields = append(req.Fields, &PromptField{
+			Question:    f.Question,
+			Answer:      f.Answer,
+			Secret:      f.Secret,
+			Mandatory:   f.Mandatory,
+			Placeholder: f.Placeholder,
+		})
+	}
 
-	stream, err := c.wm.Prompt(c.clientCtx, &req)
+	// Ending the stream before the prompt closes closes it.
+	ctx, cancel := context.WithCancel(c.clientCtx)
+	stream, err := c.wm.Prompt(ctx, &req)
 	if err != nil {
+		cancel()
 		return nil, fmt.Errorf("new prompt stream: %w", err)
 	}
 	ev, err := stream.Recv()
 	if err != nil {
+		cancel()
 		return nil, fmt.Errorf("recv prompt opened: %w", err)
 	}
 	opened := ev.GetOpened()
 	if opened == nil {
+		cancel()
 		return nil, fmt.Errorf("recv prompt opened: unexpected %v", ev)
 	}
-	go debug.CapturePanicReport(func() { c.promptEvents(stream, h) })
+	if len(req.Fields) > 0 && !opened.GetSupportsFields() {
+		cancel()
+		return nil, fmt.Errorf("prompt fields: %w", errors.ErrUnsupported)
+	}
+	go debug.CapturePanicReport(func() {
+		defer cancel()
+		c.promptEvents(stream, h)
+	})
 	return newWindowClient(opened.GetWindowId()), nil
 }
 
@@ -487,6 +510,7 @@ func (c *Client) Prompt(
 func (c *Client) promptEvents(
 	stream grpc.ServerStreamingClient[PromptEvent], h handler.PromptHandler,
 ) {
+	ah, answers := h.(handler.AnswerHandler)
 	for {
 		ev, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -498,7 +522,11 @@ func (c *Client) promptEvents(
 			return
 		}
 		if sel := ev.GetSelected(); sel != nil {
-			h.OnSelect(int(sel.GetIndex()), sel.GetOption())
+			if answers {
+				ah.OnAnswer(int(sel.GetIndex()), sel.GetOption(), sel.GetAnswers())
+			} else {
+				h.OnSelect(int(sel.GetIndex()), sel.GetOption())
+			}
 		}
 		if ev.GetClosed() != nil {
 			c.closePrompt(h)

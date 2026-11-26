@@ -30,10 +30,12 @@ func WithAttributes(attr term.Attributes) Option {
 }
 
 // WithPlaceholder adds a placeholder when there's no text in the input box.
-// The placeholder uses the provided StringResponsiveConfig for styling.
+// The placeholder uses the provided StringResponsiveConfig for styling, on
+// the background of the input box unless its Attributes set one.
 func WithPlaceholder(text string, cfg component.StringResponsiveConfig) Option {
 	return func(h *Handler) {
 		h.placeholder = component.NewResponsiveString(text, cfg)
+		h.placeholderAttr = cfg.Attributes
 	}
 }
 

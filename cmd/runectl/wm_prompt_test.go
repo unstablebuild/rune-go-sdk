@@ -35,7 +35,27 @@ func TestWMPrompt(t *testing.T) {
 		Closed: &browserrpc.PromptEvent_Closed{},
 	}}
 	answered := []*browserrpc.PromptEvent{opened, selected, closed}
+	openedFields := &browserrpc.PromptEvent{Event: &browserrpc.PromptEvent_Opened_{
+		Opened: &browserrpc.PromptEvent_Opened{WindowId: 7, SupportsFields: true},
+	}}
+	answeredFields := []*browserrpc.PromptEvent{openedFields, {Event: &browserrpc.PromptEvent_Selected_{
+		Selected: &browserrpc.PromptEvent_Selected{
+			Index: 0, Option: "OK", Answers: []string{"me", "pw", ""},
+		},
+	}}, closed}
+	loginFields := []*browserrpc.PromptField{
+		{Question: "User", Answer: "me", Placeholder: "you@example.com"},
+		{Question: "Password", Secret: true, Mandatory: true},
+		{Question: "Note"},
+	}
+	login := []string{
+		"wm", "prompt", "Login", "OK", "Cancel",
+		"--field", "User=me", "--placeholder", "you@example.com",
+		"--secret", "Password", "--mandatory", "--field", "Note",
+	}
 
+	// The names stay short: they make the path of a unix socket, which
+	// macOS caps at 104 bytes.
 	tests := []struct {
 		name      string
 		args      []string
@@ -47,6 +67,8 @@ func TestWMPrompt(t *testing.T) {
 		want *browserrpc.PromptRequest
 		// wantKeys are the bindings of the request the host receives.
 		wantKeys []term.KeyComb
+		// wantFields are the fields of the request.
+		wantFields []*browserrpc.PromptField
 	}{
 		{
 			name:    "answered",
@@ -123,6 +145,52 @@ func TestWMPrompt(t *testing.T) {
 			args:    []string{"wm", "prompt", "Save?"},
 			wantErr: "requires at least 2 arg(s)",
 		},
+		{
+			name:       "fields",
+			args:       login,
+			events:     answeredFields,
+			wantOut:    "OK\nme\npw\n\n",
+			want:       &browserrpc.PromptRequest{Message: "Login", Options: []string{"OK", "Cancel"}},
+			wantFields: loginFields,
+		},
+		{
+			name:    "fields/j",
+			args:    append([]string{"-F", "json"}, login...),
+			events:  answeredFields,
+			wantOut: "{\"Answers\":[\"me\",\"pw\",\"\"],\"Index\":0,\"Option\":\"OK\",\"success\":true}\n",
+		},
+		{
+			name:    "equals in answer",
+			args:    []string{"wm", "prompt", "Set", "OK", "--field", "Env=A=b"},
+			events:  answeredFields,
+			wantOut: "OK\nme\npw\n\n",
+			want:    &browserrpc.PromptRequest{Message: "Set", Options: []string{"OK"}},
+			wantFields: []*browserrpc.PromptField{
+				{Question: "Env", Answer: "A=b"},
+			},
+		},
+		{
+			name:    "mandatory first",
+			args:    []string{"wm", "prompt", "--mandatory", "--field", "User", "Login", "OK"},
+			wantErr: "--mandatory must follow a --field or --secret",
+		},
+		{
+			name:    "placeholder first",
+			args:    []string{"wm", "prompt", "--placeholder", "me", "--field", "User", "Login", "OK"},
+			wantErr: "--placeholder must follow a --field or --secret",
+		},
+		{
+			name:    "empty question",
+			args:    []string{"wm", "prompt", "--field", "=me", "Login", "OK"},
+			wantErr: "the question is empty",
+		},
+		{
+			// A host that predates fields opens the prompt without them.
+			name:    "old host",
+			args:    login,
+			events:  answered,
+			wantErr: "unsupported operation",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -150,6 +218,15 @@ func TestWMPrompt(t *testing.T) {
 			require.Equal(t, tt.want.GetMessage(), req.GetMessage())
 			require.Equal(t, tt.want.GetOptions(), req.GetOptions())
 			require.Equal(t, tt.want.GetMaxWidth(), req.GetMaxWidth())
+			require.Len(t, req.GetFields(), len(tt.wantFields))
+			for i, want := range tt.wantFields {
+				got := req.GetFields()[i]
+				require.Equal(t, want.GetQuestion(), got.GetQuestion(), "field %d", i)
+				require.Equal(t, want.GetAnswer(), got.GetAnswer(), "field %d", i)
+				require.Equal(t, want.GetSecret(), got.GetSecret(), "field %d", i)
+				require.Equal(t, want.GetMandatory(), got.GetMandatory(), "field %d", i)
+				require.Equal(t, want.GetPlaceholder(), got.GetPlaceholder(), "field %d", i)
+			}
 			var keys []term.KeyComb
 			for _, b := range req.GetBindings() {
 				ev, err := b.ToModel()

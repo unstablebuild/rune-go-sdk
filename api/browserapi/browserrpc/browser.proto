@@ -121,6 +121,17 @@ message PromptRequest {
 	// bindings are key events, as many as options or none.
 	repeated term.Event bindings = 3;
 	uint32 max_width = 4;
+	// fields are drawn by a host that sets PromptEvent.Opened's
+	// supports_fields. A host that predates them ignores them.
+	repeated PromptField fields = 5;
+}
+
+message PromptField {
+	string question = 1;
+	string answer = 2;
+	bool secret = 3;
+	bool mandatory = 4;
+	string placeholder = 5;
 }
 
 // PromptEvent is what happens to a prompt: it opens, then the user picks
@@ -129,10 +140,16 @@ message PromptRequest {
 message PromptEvent {
 	message Opened {
 		uint64 window_id = 1;
+		// supports_fields is set by a host that draws
+		// PromptRequest.fields. One that predates them leaves it unset,
+		// having opened the prompt without them.
+		bool supports_fields = 2;
 	}
 	message Selected {
 		uint32 index = 1;
 		string option = 2;
+		// answers are those to the fields, in their order.
+		repeated string answers = 3;
 	}
 	message Closed {
 	}

@@ -25,11 +25,14 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unstablebuild/rune-go-sdk/component"
+	"github.com/unstablebuild/rune-go-sdk/handler/handlertest"
 	"github.com/unstablebuild/rune-go-sdk/term"
 )
 
@@ -247,6 +250,594 @@ func TestPromptHandler(t *testing.T) {
 		assert.False(t, promptHandler.onSelectCalled)
 		assert.True(t, promptHandler.onCloseCalled)
 	})
+
+	t.Run("OnAnswer is called in place of OnSelect", func(t *testing.T) {
+		rec := new(answerRecorder)
+		p := NewPrompt(PromptConfig{
+			PromptConfig: component.PromptConfig{
+				Message: "blah", Options: []string{"a", "b"},
+			},
+			PromptHandler:  rec,
+			OptionBindings: []term.KeyComb{{Ch: 'a'}, {Ch: 'b'}},
+		})
+		exit, handled := p.Handle(term.Event{Type: term.EventKey, Ch: 'b'})
+		assert.True(t, exit)
+		assert.True(t, handled)
+		assert.Equal(t, []answer{{idx: 1, option: "b"}}, rec.answers)
+		assert.Empty(t, rec.selected)
+	})
+
+	t.Run("FuncAnswerHandler picked through OnSelect gets no answers", func(t *testing.T) {
+		var got []answer
+		h := FuncAnswerHandler(func(idx int, option string, answers []string) {
+			got = append(got, answer{idx: idx, option: option, answers: answers})
+		}, func() error { return nil })
+		h.OnSelect(1, "b")
+		h.OnAnswer(0, "a", []string{"x"})
+		assert.Equal(t, []answer{{idx: 1, option: "b"}, {idx: 0, option: "a", answers: []string{"x"}}}, got)
+	})
+}
+
+func TestPromptFields(t *testing.T) {
+	tests := []struct {
+		name     string
+		bindings bool
+		select_  bool
+		input    string
+		want     string
+		// wantExits is how many keys exited the prompt.
+		wantExits      int
+		wantAnswers    []answer
+		wantSelects    []answer
+		wantUnanswered []int
+	}{
+		{
+			name: "focuses the first field with its answer",
+			want: "Login                         \n" +
+				"              ┏━━━━━━━━━━━━┓  \n" +
+				"  User        ┃me▐         ┃  \n" +
+				"              ┗━━━━━━━━━━━━┛  \n" +
+				"                              \n" +
+				"              ┌────────────┐  \n" +
+				"  Password *  │            │  \n" +
+				"              └────────────┘  \n" +
+				"                              \n" +
+				"        Ok        Cancel      ",
+		},
+		{
+			name:  "types into the field in focus",
+			input: "<backspace><backspace>you",
+			want:  loginScreen(0, "you▐", ""),
+		},
+		{
+			name:  "edits text with left and right in a field",
+			input: "<left>X<right>",
+			want:  loginScreen(0, "mXe▐", ""),
+		},
+		{
+			name:  "draws a secret as asterisks",
+			input: "<tab>hunter2",
+			want: "Login                         \n" +
+				"              ┌────────────┐  \n" +
+				"  User        │me          │  \n" +
+				"              └────────────┘  \n" +
+				"                              \n" +
+				"              ┏━━━━━━━━━━━━┓  \n" +
+				"  Password *  ┃*******▐    ┃  \n" +
+				"              ┗━━━━━━━━━━━━┛  \n" +
+				"                              \n" +
+				"        Ok        Cancel      ",
+		},
+		{
+			name:  "tab moves through the fields to the row of options",
+			input: "<tab><tab>",
+			want: "Login                         \n" +
+				"              ┌────────────┐  \n" +
+				"  User        │me          │  \n" +
+				"              └────────────┘  \n" +
+				"                              \n" +
+				"              ┌────────────┐  \n" +
+				"  Password *  │            │  \n" +
+				"              └────────────┘  \n" +
+				"                              \n" +
+				"        Ok        Cancel      ",
+		},
+		{
+			name:  "tab from the row of options cycles to the first field",
+			input: "<tab><tab><tab>",
+			want:  loginScreen(0, "me▐", ""),
+		},
+		{
+			name:  "shift-tab from the first field cycles to the row of options",
+			input: "<s-tab>",
+			want:  loginScreen(2, "me", ""),
+		},
+		{
+			name:  "shift-tab moves back a field",
+			input: "<tab><s-tab>",
+			want:  loginScreen(0, "me▐", ""),
+		},
+		{
+			name:  "down moves to the next field",
+			input: "<down>",
+			want:  loginScreen(1, "me", "▐"),
+		},
+		{
+			name:  "up moves to the field before",
+			input: "<down><up>",
+			want:  loginScreen(0, "me▐", ""),
+		},
+		{
+			name:  "enter moves to the next field",
+			input: "<enter>",
+			want:  loginScreen(1, "me", "▐"),
+		},
+		{
+			name:        "enter in the last field picks the highlighted option",
+			input:       "<enter>pw<enter>",
+			want:        loginScreen(1, "me", "**▐"),
+			wantExits:   1,
+			wantAnswers: []answer{{idx: 0, option: "Ok", answers: []string{"me", "pw"}}},
+		},
+		{
+			name:        "right on the row of options moves the highlight",
+			input:       "<tab>pw<tab><right><enter>",
+			want:        loginScreen(2, "me", "**"),
+			wantExits:   1,
+			wantAnswers: []answer{{idx: 1, option: "Cancel", answers: []string{"me", "pw"}}},
+		},
+		{
+			name:     "a binding typed into a field is text",
+			bindings: true,
+			input:    "<c-u>y",
+			want:     loginScreen(0, "y▐", ""),
+		},
+		{
+			name:        "a binding picks on the row of options",
+			bindings:    true,
+			input:       "<tab>pw<tab>n",
+			want:        loginScreen(2, "me", "**"),
+			wantExits:   1,
+			wantAnswers: []answer{{idx: 1, option: "Cancel", answers: []string{"me", "pw"}}},
+		},
+		{
+			name:           "a blank mandatory field focuses instead of picking",
+			input:          "<tab><space><space><tab><enter>",
+			want:           loginScreen(1, "me", "**▐"),
+			wantUnanswered: []int{1},
+		},
+		{
+			name:           "an empty mandatory field blocks enter in the last field",
+			input:          "<enter><enter>",
+			want:           loginScreen(1, "me", "▐"),
+			wantUnanswered: []int{1},
+		},
+		{
+			name:           "an empty mandatory field blocks a binding",
+			bindings:       true,
+			input:          "<tab><tab>y",
+			want:           loginScreen(1, "me", "▐"),
+			wantUnanswered: []int{1},
+		},
+		{
+			name:      "esc dismisses without answers",
+			input:     "<tab>hun<esc>",
+			want:      loginScreen(1, "me", "***▐"),
+			wantExits: 1,
+		},
+		{
+			name:      "ctrl-c dismisses without answers",
+			input:     "<tab>hun<c-c>",
+			want:      loginScreen(1, "me", "***▐"),
+			wantExits: 1,
+		},
+		{
+			name:  "ctrl-d in an empty field does nothing",
+			input: "<tab><c-d>",
+			want:  loginScreen(1, "me", "▐"),
+		},
+		{
+			name:  "ctrl-d deletes forward in a field with text",
+			input: "<home><c-d>",
+			want:  loginScreen(0, "▐", ""),
+		},
+		{
+			name:        "a PromptHandler gets OnSelect",
+			select_:     true,
+			input:       "<tab>pw<enter>",
+			want:        loginScreen(1, "me", "**▐"),
+			wantExits:   1,
+			wantSelects: []answer{{idx: 0, option: "Ok"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := new(answerRecorder)
+			cfg := loginPromptConfig(rec)
+			if tt.bindings {
+				cfg.OptionBindings = []term.KeyComb{{Ch: 'y'}, {Ch: 'n'}}
+			}
+			if tt.select_ {
+				cfg.PromptHandler = selectOnly{rec}
+			}
+			var unanswered []int
+			cfg.OnUnanswered = func(i int) { unanswered = append(unanswered, i) }
+			p := &exitRecorder{Prompt: NewPrompt(cfg)}
+
+			handlertest.RunHandlerSequence(t, p, 30, 10, []handlertest.SequenceTestCase{
+				{InputSequence: tt.input, Expected: tt.want},
+			})
+			assert.Equal(t, tt.wantExits, p.exits, "exits")
+			assert.Equal(t, tt.wantAnswers, rec.answers, "answers")
+			assert.Equal(t, tt.wantSelects, rec.selected, "selects")
+			assert.Equal(t, tt.wantUnanswered, unanswered, "unanswered")
+			assert.False(t, rec.closed)
+		})
+	}
+}
+
+func TestPromptFieldPlaceholder(t *testing.T) {
+	newPrompt := func(placeholderAttr term.Attributes) *Prompt {
+		return NewPrompt(PromptConfig{
+			PromptConfig: component.PromptConfig{
+				Message: "Sign up",
+				Options: []string{"Ok"},
+				NewMessage: func(msg string) component.Floating {
+					return component.NewResponsiveString(msg, component.StringResponsiveConfig{})
+				},
+			},
+			Fields: []PromptField{
+				{Question: "Email", Placeholder: "you@example.com"},
+				{Question: "Name", Placeholder: "Ada"},
+			},
+			PlaceholderAttr: placeholderAttr,
+		})
+	}
+
+	t.Run("shown while the answer is empty", func(t *testing.T) {
+		handlertest.RunHandlerSequence(t, newPrompt(term.Attributes{}), 30, 9, []handlertest.SequenceTestCase{
+			{
+				Expected: "Sign up                       \n" +
+					"                              \n" +
+					"         ┏━━━━━━━━━━━━━━━━━┓  \n" +
+					"  Email  ┃▐ou@example.com  ┃  \n" +
+					"         ┗━━━━━━━━━━━━━━━━━┛  \n" +
+					"         ┌─────────────────┐  \n" +
+					"  Name   │Ada              │  \n" +
+					"         └─────────────────┘  \n" +
+					"              Ok              ",
+			},
+			{
+				InputSequence: "a",
+				Expected: "Sign up                       \n" +
+					"                              \n" +
+					"         ┏━━━━━━━━━━━━━━━━━┓  \n" +
+					"  Email  ┃a▐               ┃  \n" +
+					"         ┗━━━━━━━━━━━━━━━━━┛  \n" +
+					"         ┌─────────────────┐  \n" +
+					"  Name   │Ada              │  \n" +
+					"         └─────────────────┘  \n" +
+					"              Ok              ",
+			},
+			{
+				InputSequence: "<backspace>",
+				Expected: "Sign up                       \n" +
+					"                              \n" +
+					"         ┏━━━━━━━━━━━━━━━━━┓  \n" +
+					"  Email  ┃▐ou@example.com  ┃  \n" +
+					"         ┗━━━━━━━━━━━━━━━━━┛  \n" +
+					"         ┌─────────────────┐  \n" +
+					"  Name   │Ada              │  \n" +
+					"         └─────────────────┘  \n" +
+					"              Ok              ",
+			},
+		})
+	})
+
+	t.Run("is never an answer", func(t *testing.T) {
+		rec := new(answerRecorder)
+		p := newPrompt(term.Attributes{})
+		p.cfg.PromptHandler = rec
+		p.Resize(30, 9)
+		p.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+		p.Handle(term.Event{Type: term.EventKey, Key: term.KeyEnter})
+		assert.Equal(t, []answer{{idx: 0, option: "Ok", answers: []string{"", ""}}}, rec.answers)
+	})
+
+	for _, tt := range []struct {
+		name string
+		attr term.Attributes
+		want term.Attributes
+	}{
+		{name: "gray by default", want: term.Attributes{Fg: term.ColorGray}},
+		{
+			name: "in PlaceholderAttr",
+			attr: term.Attributes{Fg: term.ColorBlue, Attrs: term.AttrItalic},
+			want: term.Attributes{Fg: term.ColorBlue, Attrs: term.AttrItalic},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			p := newPrompt(tt.attr)
+			p.Resize(30, 9)
+			sw := term.NewStringWriter(30, 9)
+			p.Draw(sw)
+			pos := p.FieldPosition(1)
+			assert.Equal(t, 'A', sw.Cells()[pos.Y*30+pos.X].Ch)
+			assert.Equal(t, tt.want, sw.Cells()[pos.Y*30+pos.X].Attributes())
+		})
+	}
+}
+
+func TestPromptDimensionsFollowTheAnswers(t *testing.T) {
+	p := NewPrompt(PromptConfig{
+		PromptConfig: component.PromptConfig{
+			Message: "Rename old to:",
+			Options: []string{"Rename"},
+			NewMessage: func(msg string) component.Floating {
+				return component.NewResponsiveString(msg, component.StringResponsiveConfig{})
+			},
+		},
+		Fields: []PromptField{{Answer: "old", Mandatory: true}},
+	})
+	type_ := func(text string) {
+		for _, ch := range text {
+			p.Handle(term.Event{Type: term.EventKey, Ch: ch})
+		}
+	}
+
+	// 2 + frame 1 + the default input 30 + frame 1 + 2.
+	width, _ := p.Dimensions()
+	assert.Equal(t, 36, width)
+	type_(strings.Repeat("x", 40))
+	// 2 + 1 + "old" and 40 x 43 with the cursor 1 + 1 + 2.
+	width, _ = p.Dimensions()
+	assert.Equal(t, 50, width)
+	p.Handle(term.Event{Type: term.EventKey, Ch: 'u', Mod: term.ModCtrl})
+	width, _ = p.Dimensions()
+	assert.Equal(t, 36, width)
+}
+
+func TestPromptFieldsMouse(t *testing.T) {
+	press := func(x, y int) term.Event {
+		return term.Event{Type: term.EventMouse, Key: term.MouseLeft, MouseX: x, MouseY: y}
+	}
+	release := func(x, y int) term.Event {
+		return term.Event{Type: term.EventMouse, Key: term.MouseRelease, MouseX: x, MouseY: y}
+	}
+	// At 30x10 the boxes of User are on rows 1-3 and Password on rows
+	// 5-7, from x=14, with their inputs from x=15, and the options on
+	// row 9.
+	tests := []struct {
+		name           string
+		events         []term.Event
+		wantCursor     term.Coordinates
+		wantShow       bool
+		wantAnswers    []answer
+		wantUnanswered []int
+	}{
+		{
+			name:       "a press on a field focuses it",
+			events:     []term.Event{press(20, 6), release(20, 6)},
+			wantCursor: term.Coordinates{X: 15, Y: 6}, wantShow: true,
+		},
+		{
+			name:       "a press on a question focuses its field",
+			events:     []term.Event{press(3, 6), release(3, 6)},
+			wantCursor: term.Coordinates{X: 15, Y: 6}, wantShow: true,
+		},
+		{
+			name:       "a press on the frame of a field focuses it",
+			events:     []term.Event{press(14, 5), release(14, 5)},
+			wantCursor: term.Coordinates{X: 15, Y: 6}, wantShow: true,
+		},
+		{
+			name:       "a press in the text of a field moves its cursor",
+			events:     []term.Event{press(16, 2), release(16, 2)},
+			wantCursor: term.Coordinates{X: 16, Y: 2}, wantShow: true,
+		},
+		{
+			name:           "a click on an option with an empty mandatory field focuses it",
+			events:         []term.Event{press(8, 9), release(8, 9)},
+			wantCursor:     term.Coordinates{X: 15, Y: 6},
+			wantShow:       true,
+			wantUnanswered: []int{1},
+		},
+		{
+			name: "a click on an option answers",
+			events: []term.Event{
+				press(20, 6), release(20, 6),
+				{Type: term.EventKey, Ch: 'x'},
+				press(19, 9), release(19, 9),
+			},
+			wantCursor:  term.Coordinates{X: 16, Y: 6},
+			wantShow:    true,
+			wantAnswers: []answer{{idx: 1, option: "Cancel", answers: []string{"me", "x"}}},
+		},
+		{
+			name:   "the cursor hides on the row of options",
+			events: []term.Event{{Type: term.EventKey, Key: term.KeyTab}, {Type: term.EventKey, Key: term.KeyTab}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := new(answerRecorder)
+			cfg := loginPromptConfig(rec)
+			var unanswered []int
+			cfg.OnUnanswered = func(i int) { unanswered = append(unanswered, i) }
+			p := NewPrompt(cfg)
+			p.Resize(30, 10)
+			for _, ev := range tt.events {
+				p.Handle(ev)
+			}
+			pos, _, show := p.Cursor()
+			assert.Equal(t, tt.wantShow, show)
+			if tt.wantShow {
+				assert.Equal(t, tt.wantCursor, pos)
+			}
+			assert.Equal(t, tt.wantAnswers, rec.answers)
+			assert.Equal(t, tt.wantUnanswered, unanswered)
+		})
+	}
+
+	t.Run("pointer shape", func(t *testing.T) {
+		for _, tc := range []struct {
+			name string
+			x, y int
+			want term.PointerShape
+		}{
+			{"over an input", 20, 2, term.PointerText},
+			{"over a question", 3, 6, term.PointerText},
+			{"over a frame", 14, 1, term.PointerText},
+			{"over an option", 8, 9, term.PointerLink},
+			{"between the fields", 20, 4, term.PointerDefault},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				p := NewPrompt(loginPromptConfig(new(answerRecorder)))
+				p.Resize(30, 10)
+				ptr := new(term.Pointer)
+				p.Handle(term.Event{
+					Type: term.EventMouse, MouseX: tc.x, MouseY: tc.y,
+					Context: term.ContextWithPointer(context.Background(), ptr),
+				})
+				shape, _ := ptr.Shape()
+				assert.Equal(t, tc.want.String(), shape.String())
+			})
+		}
+	})
+}
+
+func TestPromptFieldsSelection(t *testing.T) {
+	selectAll := []term.Event{
+		{Type: term.EventKey, Key: term.KeyEnd},
+		{Type: term.EventKey, Key: term.KeyHome, Mod: term.ModShift},
+	}
+	tests := []struct {
+		name   string
+		events []term.Event
+		want   string
+		wantOK bool
+	}{
+		{"the text selected in the field in focus", selectAll, "me", true},
+		{"nothing selected", nil, "", false},
+		{"never a secret", append([]term.Event{
+			{Type: term.EventKey, Key: term.KeyTab},
+			{Type: term.EventKey, Ch: 'p'},
+		}, selectAll...), "", false},
+		{"nothing on the row of options", []term.Event{
+			{Type: term.EventKey, Key: term.KeyTab}, {Type: term.EventKey, Key: term.KeyTab},
+		}, "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewPrompt(loginPromptConfig(new(answerRecorder)))
+			p.Resize(30, 10)
+			for _, ev := range tt.events {
+				p.Handle(ev)
+			}
+			got, ok := p.Selection()
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// loginPromptConfig asks for a User, answered "me", and a mandatory
+// secret Password, with options Ok and Cancel.
+func loginPromptConfig(h PromptHandler) PromptConfig {
+	return PromptConfig{
+		PromptConfig: component.PromptConfig{
+			Message: "Login",
+			Options: []string{"Ok", "Cancel"},
+			NewMessage: func(msg string) component.Floating {
+				return component.NewResponsiveString(msg, component.StringResponsiveConfig{})
+			},
+		},
+		PromptHandler: h,
+		Fields: []PromptField{
+			{Question: "User", Answer: "me"},
+			{Question: "Password", Secret: true, Mandatory: true},
+		},
+	}
+}
+
+// loginScreen is the prompt of loginPromptConfig at 30x10 with its
+// inputs showing user and password, and the box of the field focus,
+// which is past the fields on the row of options, in the focus frame.
+func loginScreen(focus int, user, password string) string {
+	box := func(i int, question, input string) []string {
+		cs := component.FrameCharSetDefault()
+		if i == focus {
+			cs = component.FrameCharSetHighlight()
+		}
+		edge := func(l, m, r rune) string {
+			return strings.Repeat(" ", 14) + string(l) + strings.Repeat(string(m), 12) + string(r)
+		}
+		return []string{
+			edge(cs.TopLeft, cs.HorizontalTop, cs.TopRight),
+			fmt.Sprintf("  %-12s%c%-12s%c", question, cs.VerticalLeft, input, cs.VerticalRight),
+			edge(cs.BottomLeft, cs.HorizontalBottom, cs.BottomRight),
+		}
+	}
+	rows := []string{"Login"}
+	rows = append(rows, box(0, "User", user)...)
+	rows = append(rows, "")
+	rows = append(rows, box(1, "Password *", password)...)
+	rows = append(rows, "", "        Ok        Cancel")
+	return screen(30, rows...)
+}
+
+// screen is rows padded to width, as a StringWriter draws them.
+func screen(width int, rows ...string) string {
+	for i, row := range rows {
+		rows[i] = row + strings.Repeat(" ", max(0, width-len([]rune(row))))
+	}
+	return strings.Join(rows, "\n")
+}
+
+type answer struct {
+	idx     int
+	option  string
+	answers []string
+}
+
+type answerRecorder struct {
+	answers  []answer
+	selected []answer
+	closed   bool
+}
+
+func (r *answerRecorder) OnSelect(idx int, option string) {
+	r.selected = append(r.selected, answer{idx: idx, option: option})
+}
+
+func (r *answerRecorder) OnAnswer(idx int, option string, answers []string) {
+	r.answers = append(r.answers, answer{idx: idx, option: option, answers: answers})
+}
+
+func (r *answerRecorder) OnClose() error {
+	r.closed = true
+	return nil
+}
+
+// selectOnly hides the OnAnswer of an answerRecorder.
+type selectOnly struct{ r *answerRecorder }
+
+func (s selectOnly) OnSelect(idx int, option string) { s.r.OnSelect(idx, option) }
+
+func (s selectOnly) OnClose() error { return s.r.OnClose() }
+
+// exitRecorder counts the events its Prompt exits on.
+type exitRecorder struct {
+	*Prompt
+	exits int
+}
+
+func (r *exitRecorder) Handle(ev term.Event) (exit, handled bool) {
+	exit, handled = r.Prompt.Handle(ev)
+	if exit {
+		r.exits++
+	}
+	return
 }
 
 func TestPromptMouseClick(t *testing.T) {

@@ -16,6 +16,7 @@ package component
 
 import (
 	"image"
+	"strings"
 
 	"github.com/unstablebuild/rune-go-sdk/term"
 	"github.com/unstablebuild/rune-go-sdk/tui"
@@ -27,6 +28,9 @@ import (
 // apart. They stay pinned to the bottom edge, so a prompt given less
 // room than it needs keeps every option in view: it first packs the
 // rows of options together, then scrolls its message, see Scrollable.
+// Its fields, when it has any, are framed input boxes with their
+// questions left of them, between the message and the options, and
+// stay pinned above the options like them.
 type Prompt struct {
 	optComp      []*promptOption
 	optVirtuals  []Virtual[tui.Component]
@@ -50,6 +54,19 @@ type Prompt struct {
 	msgFull      int
 	msgOffset    int
 	makeOptionFn func(msg string, cfg PromptConfig) floatingOption
+
+	fields []promptField
+	// fieldFocus is the field drawn in FocusFieldAttr inside
+	// FocusFieldFrame, or -1.
+	fieldFocus int
+	// labelWidth is the widest question with its marker.
+	labelWidth int
+	// fieldCols is where the questions and boxes are across the last
+	// Resize, fieldsY the top row of the first field and fieldStep the
+	// rows from a field to the next.
+	fieldCols promptFieldColumns
+	fieldsY   int
+	fieldStep int
 }
 
 // floatingOption is a Floating component that also supports SetAttr.
@@ -125,7 +142,27 @@ func (o *promptOption) labelAttr() term.Attributes {
 type PromptConfig struct {
 	Message string
 	Options []string
-	Frame   FrameCharSet
+	// Fields are drawn in order between the message and the options,
+	// each a box framed in FieldFrame.
+	Fields []PromptField
+	// FieldAttr is how the inputs of Fields look, over the colors of
+	// BackgroundAttributes.
+	FieldAttr term.Attributes
+	// FocusFieldAttr is how the input of the field FocusField picks
+	// looks. Left zero, it is FieldAttr.
+	FocusFieldAttr term.Attributes
+	// FieldFrame is drawn around the inputs of Fields, and
+	// FocusFieldFrame around the input of the field FocusField picks.
+	// Left zero, they are FrameCharSetDefault and FrameCharSetHighlight.
+	// Their Graphics are not drawn.
+	FieldFrame      FrameCharSet
+	FocusFieldFrame FrameCharSet
+	// FieldFrameAttr is how FieldFrame looks, over the colors of
+	// BackgroundAttributes, and FocusFieldFrameAttr how FocusFieldFrame
+	// does. Left zero, FocusFieldFrameAttr is FieldFrameAttr.
+	FieldFrameAttr      term.Attributes
+	FocusFieldFrameAttr term.Attributes
+	Frame               FrameCharSet
 	// AspectRatio of the floating prompt message. By default
 	// DefaultAspectRatio is used. Ignored when NewMessage is set.
 	AspectRatio float64
@@ -139,6 +176,42 @@ type PromptConfig struct {
 	ButtonImages         *ButtonImages
 }
 
+// PromptField is a question of a Prompt that the user answers in Input.
+type PromptField struct {
+	// Question labels the field, followed by an asterisk when
+	// Mandatory. Its whitespace is drawn as single spaces. Left empty,
+	// the field has neither, and when no field has a question the
+	// boxes take the width the questions would.
+	Question  string
+	Mandatory bool
+	// Input is where the answer is typed: a row tall and as wide as
+	// the prompt leaves it inside its frame, right of the questions.
+	// When it is WithAttributes, the prompt sets its attributes, see
+	// FieldAttr. When it is Floating, Dimensions asks for as wide as
+	// its Dimensions at the time, if wider than the default, so the
+	// prompt grows and shrinks with the answer.
+	Input tui.Component
+}
+
+const (
+	// promptFieldEdge is the cells left of the questions and right of
+	// the boxes, and promptFieldGap those between them, both of which
+	// shrink to one when the width is short.
+	promptFieldEdge = 2
+	promptFieldGap  = 2
+	// promptFieldRows is the rows of a field's box: its input between
+	// the top and bottom of its frame.
+	promptFieldRows = 3
+	// promptFieldMinInput is the narrowest an input is cut to before
+	// its question is.
+	promptFieldMinInput = 8
+	// promptFieldInput is the width Dimensions asks for an input.
+	promptFieldInput = 30
+	// promptMandatoryMarker follows the questions of mandatory fields,
+	// and is kept when the question is cut.
+	promptMandatoryMarker = " *"
+)
+
 var (
 	_ Floating   = (*Prompt)(nil)
 	_ Responsive = (*Prompt)(nil)
@@ -146,8 +219,9 @@ var (
 )
 
 // Init initializes this prompt with cfg. Note that PromptConfig.Options
-// must always contain at least one option and PromptConfig.Message must
-// not be empty. If one of these two rules is violated this method panics.
+// must always contain at least one option, PromptConfig.Message must
+// not be empty and every field must have an Input. If one of these
+// rules is violated this method panics.
 func (p *Prompt) Init(cfg PromptConfig) {
 	hasFrame := cfg.Frame != (FrameCharSet{})
 	p.init(func(msg string, cfg PromptConfig) floatingOption {
@@ -206,12 +280,83 @@ func (p *Prompt) Resize(width, height int) {
 	spaced := p.Height(width) <= height
 	p.layoutOptions(width, spaced)
 	optHeight := p.optionsHeight(width, spaced)
-	p.msgHeight = max(0, height-optHeight)
+	fieldsHeight := p.fieldsHeight(spaced)
+	p.msgHeight = max(0, height-optHeight-fieldsHeight)
 	p.msgFull = max(p.msgHeight, p.messageHeight(width))
 	p.msgOffset = min(p.msgOffset, p.MaxSeekOffset())
 	p.message.Resize(width, p.msgFull)
-	p.opts.Move(term.Coordinates{Y: p.msgHeight})
+	p.layoutFields(width, spaced)
+	p.opts.Move(term.Coordinates{Y: p.msgHeight + fieldsHeight})
 	p.opts.Resize(width, optHeight)
+}
+
+// layoutFields puts the boxes of the fields under the message, a blank
+// row apart and a blank row over the options when spaced.
+func (p *Prompt) layoutFields(width int, spaced bool) {
+	p.fieldCols = p.fieldColumns(width)
+	p.fieldsY = p.msgHeight
+	p.fieldStep = promptFieldRows
+	if spaced {
+		p.fieldStep++
+	}
+	for _, f := range p.fields {
+		f.input.Resize(p.fieldCols.inputW, 1)
+	}
+}
+
+// promptFieldColumns is where the questions, the boxes and the inputs
+// in them are across a prompt.
+type promptFieldColumns struct {
+	labelX, labelW int
+	boxX, boxW     int
+	inputX, inputW int
+}
+
+// fieldColumns lays the questions and boxes out across width: the boxes
+// take what the questions leave, and the questions are cut once the
+// inputs are promptFieldMinInput cells. A box too narrow for its frame
+// is all input.
+func (p *Prompt) fieldColumns(width int) promptFieldColumns {
+	edge, gap := promptFieldEdge, p.labelGap()
+	minBox := promptFieldMinInput + 2
+	if width < 2*edge+p.labelWidth+gap+minBox {
+		edge, gap = 1, min(gap, 1)
+	}
+	labelW := min(p.labelWidth, max(0, width-2*edge-gap-minBox))
+	boxX := edge + labelW + gap
+	boxW := max(0, width-edge-boxX)
+	c := promptFieldColumns{
+		labelX: edge, labelW: labelW,
+		boxX: boxX, boxW: boxW,
+		inputX: boxX, inputW: boxW,
+	}
+	if c.framed() {
+		c.inputX, c.inputW = boxX+1, boxW-2
+	}
+	return c
+}
+
+// labelGap is the cells between the questions and the boxes, none
+// when no field has a question.
+func (p *Prompt) labelGap() int {
+	if p.labelWidth == 0 {
+		return 0
+	}
+	return promptFieldGap
+}
+
+// framed reports whether the boxes are wide enough for their frames.
+func (c promptFieldColumns) framed() bool {
+	return c.boxW >= 3
+}
+
+// fieldsHeight is the rows the fields take: a box each, and a blank
+// row after each when spaced.
+func (p *Prompt) fieldsHeight(spaced bool) int {
+	if spaced {
+		return (promptFieldRows + 1) * len(p.fields)
+	}
+	return promptFieldRows * len(p.fields)
 }
 
 // layoutOptions stacks the options in as few rows as width fits,
@@ -294,11 +439,12 @@ func (p *Prompt) optionsHeight(width int, spaced bool) int {
 }
 
 // Height satisfies Responsive: the message's height at width, or its
-// ideal height when it is not Responsive, over the rows the options
-// wrap onto at width, the blank rows between them and the rows their
-// images reach above and below them.
+// ideal height when it is not Responsive, over the boxes of the fields
+// a blank row apart, over the rows the options wrap onto at width, the
+// blank rows between them and the rows their images reach above and
+// below them.
 func (p *Prompt) Height(width int) int {
-	return p.messageHeight(width) + p.optionsHeight(width, true)
+	return p.messageHeight(width) + p.fieldsHeight(true) + p.optionsHeight(width, true)
 }
 
 func (p *Prompt) messageHeight(width int) int {
@@ -363,8 +509,97 @@ func (p *Prompt) Draw(w term.Writer) {
 		Width:  p.width,
 	}
 	p.message.Draw(&scrolled)
+	p.drawFields(&bounds)
 	p.opts.Draw(&bounds)
 	p.drawButtonImages(&bounds)
+}
+
+func (p *Prompt) drawFields(w term.Writer) {
+	c := p.fieldCols
+	for i, f := range p.fields {
+		y := p.fieldsY + i*p.fieldStep
+		f.drawQuestion(&VirtualWriter{
+			Writer: w, Offset: term.Coordinates{X: c.labelX, Y: y + 1}, Width: c.labelW, Height: 1,
+		}, c.labelW, p.cfg.BackgroundAttributes)
+		if c.framed() {
+			charset, attr := p.fieldFrame(i)
+			DrawFrame(&VirtualWriter{
+				Writer: w, Offset: term.Coordinates{X: c.boxX, Y: y},
+				Width: c.boxW, Height: promptFieldRows,
+			}, charset, attr, c.boxW-1, promptFieldRows-1)
+		}
+		input := &VirtualWriter{
+			Writer: w, Offset: term.Coordinates{X: c.inputX, Y: y + 1}, Width: c.inputW, Height: 1,
+		}
+		bg := term.NewCell(0, 1, p.fieldAttr(i))
+		for x := range c.inputW {
+			input.SetCell(term.Coordinates{X: x}, bg)
+		}
+		f.input.Draw(input)
+	}
+}
+
+// FocusField draws the input of field i in FocusFieldAttr inside
+// FocusFieldFrame, and those of the other fields in FieldAttr inside
+// FieldFrame. An i out of range focuses no field.
+func (p *Prompt) FocusField(i int) {
+	p.fieldFocus = i
+	for j, f := range p.fields {
+		if wa, ok := f.input.(WithAttributes); ok {
+			wa.SetAttr(p.fieldAttr(j))
+		}
+	}
+}
+
+func (p *Prompt) fieldAttr(i int) term.Attributes {
+	attr := p.cfg.FieldAttr
+	if i == p.fieldFocus && p.cfg.FocusFieldAttr != (term.Attributes{}) {
+		attr = p.cfg.FocusFieldAttr
+	}
+	bg := p.cfg.BackgroundAttributes
+	return term.AttributesUnion(term.Attributes{Fg: bg.Fg, Bg: bg.Bg}, attr)
+}
+
+// fieldFrame is the frame of field i and how it looks.
+func (p *Prompt) fieldFrame(i int) (FrameCharSet, term.Attributes) {
+	charset, attr := p.cfg.FieldFrame, p.cfg.FieldFrameAttr
+	if charset == (FrameCharSet{}) {
+		charset = FrameCharSetDefault()
+	}
+	if i == p.fieldFocus {
+		charset = p.cfg.FocusFieldFrame
+		if charset == (FrameCharSet{}) {
+			charset = FrameCharSetHighlight()
+		}
+		if p.cfg.FocusFieldFrameAttr != (term.Attributes{}) {
+			attr = p.cfg.FocusFieldFrameAttr
+		}
+	}
+	bg := p.cfg.BackgroundAttributes
+	return charset, term.AttributesUnion(term.Attributes{Fg: bg.Fg, Bg: bg.Bg}, attr)
+}
+
+// FieldAt returns the index of the field whose question or box, frame
+// included, is at the given coordinates of the last Resize, or -1.
+func (p *Prompt) FieldAt(x, y int) int {
+	if x < 0 || y < 0 || x >= p.width || y >= p.height || p.fieldStep == 0 {
+		return -1
+	}
+	c := p.fieldCols
+	dy := y - p.fieldsY
+	if x < c.labelX || x >= c.boxX+c.boxW || dy < 0 || dy%p.fieldStep >= promptFieldRows {
+		return -1
+	}
+	if i := dy / p.fieldStep; i < len(p.fields) {
+		return i
+	}
+	return -1
+}
+
+// FieldPosition returns where the input of field i is in the last
+// Resize: the coordinates of its first cell.
+func (p *Prompt) FieldPosition(i int) term.Coordinates {
+	return term.Coordinates{X: p.fieldCols.inputX, Y: p.fieldsY + i*p.fieldStep + 1}
 }
 
 // drawButtonImages draws the images of every option under it, and
@@ -396,7 +631,7 @@ func (p *Prompt) drawButtonImages(w term.Writer) {
 func (p *Prompt) Dimensions() (int, int) {
 	msgWidth, msgHeight := p.message.(Floating).Dimensions()
 	optWidth, optHeight := p.optsDimensions()
-	width := max(msgWidth, optWidth, p.cfg.MinWidth)
+	width := max(msgWidth, optWidth, p.fieldsWidth(), p.cfg.MinWidth)
 
 	// Ensure symmetric centering: the remainder
 	// (width − n·maxW) mod (n+1) must be even so that
@@ -406,7 +641,23 @@ func (p *Prompt) Dimensions() (int, int) {
 		width++
 	}
 
-	return width, msgHeight + optHeight
+	return width, msgHeight + p.fieldsHeight(true) + optHeight
+}
+
+// fieldsWidth is the width the fields ask for: their questions and
+// inputs at their ideal widths, with the frames and cells around them.
+func (p *Prompt) fieldsWidth() int {
+	if len(p.fields) == 0 {
+		return 0
+	}
+	inputWidth := promptFieldInput
+	for _, f := range p.fields {
+		if fl, ok := f.input.(Floating); ok {
+			w, _ := fl.Dimensions()
+			inputWidth = max(inputWidth, w)
+		}
+	}
+	return 2*promptFieldEdge + p.labelWidth + p.labelGap() + inputWidth + 2
 }
 
 func (p *Prompt) optsDimensions() (int, int) {
@@ -532,6 +783,7 @@ func (p *Prompt) init(
 	p.messageContent = messageComp
 
 	p.initOptions(cfg)
+	p.initFields(cfg)
 
 	// The last layout was of the old message and options, so none
 	// of it holds until the next Resize.
@@ -539,11 +791,83 @@ func (p *Prompt) init(
 	p.msgHeight, p.msgFull, p.msgOffset = 0, 0, 0
 	p.opts = Virtual[*Container]{C: NewContainer()}
 	p.optRows = nil
+	p.fieldCols, p.fieldsY, p.fieldStep = promptFieldColumns{}, 0, 0
+}
+
+func (p *Prompt) initFields(cfg PromptConfig) {
+	p.fields = make([]promptField, len(cfg.Fields))
+	p.labelWidth = 0
+	for i, f := range cfg.Fields {
+		if f.Input == nil {
+			panic("Fields must have an Input")
+		}
+		var question []term.Cell
+		if rows := term.StringToCells(strings.Join(strings.Fields(f.Question), " ")); len(rows) > 0 {
+			question = rows[0]
+		}
+		pf := promptField{
+			question:  question,
+			qWidth:    term.CalculateOptimalWidth([][]term.Cell{question}),
+			mandatory: f.Mandatory,
+			input:     f.Input,
+		}
+		p.fields[i] = pf
+		p.labelWidth = max(p.labelWidth, pf.width())
+	}
+	p.FocusField(-1)
 }
 
 // promptGap is blank rows between two rows of options, or between them
 // and the edges of the rows of options.
 type promptGap struct{ rows int }
+
+// promptField is a field of a Prompt as it draws it.
+type promptField struct {
+	question  []term.Cell
+	qWidth    int
+	mandatory bool
+	input     tui.Component
+}
+
+// width is the cells the question takes with its marker.
+func (f promptField) width() int {
+	if f.marked() {
+		return f.qWidth + len(promptMandatoryMarker)
+	}
+	return f.qWidth
+}
+
+// marked reports whether the question is followed by the marker of a
+// mandatory field; one without a question is not.
+func (f promptField) marked() bool {
+	return f.mandatory && f.qWidth > 0
+}
+
+// drawQuestion draws the question in width cells, cut to leave room for
+// its marker.
+func (f promptField) drawQuestion(w term.Writer, width int, attr term.Attributes) {
+	if !f.marked() {
+		drawPromptCells(w, 0, f.question, width, attr)
+		return
+	}
+	x := drawPromptCells(w, 0, f.question, max(0, width-len(promptMandatoryMarker)), attr)
+	drawPromptCells(w, x, term.StringToCells(promptMandatoryMarker)[0], width, attr)
+}
+
+// drawPromptCells draws cells on the first row of w from x, up to the
+// last that fits whole before width, and returns the column after it.
+func drawPromptCells(w term.Writer, x int, cells []term.Cell, width int, attr term.Attributes) int {
+	for _, c := range cells {
+		cw := max(1, int(c.Width))
+		if x+cw > width {
+			break
+		}
+		c.SetAttributes(attr)
+		w.SetCell(term.Coordinates{X: x}, c)
+		x += cw
+	}
+	return x
+}
 
 func (promptGap) Resize(int, int) {}
 
