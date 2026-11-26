@@ -5,14 +5,15 @@ This file provides guidance to agents when working with code in this repository.
 ## Project Overview
 
 A Go SDK for extending the Rune IDE by building plugins (text-based applications that run inside the Rune IDE's virtual terminal emulator),
-or extensions which are programs that interact with Rune via grpc over a local socket. It also implements runectl
-a CLI to interact with rune, without deeper integration via extension.
+or extensions which are programs that interact with Rune via grpc over a local socket. runectl, the CLI to interact
+with rune without deeper integration via extension, is built on this SDK but lives in the Rune repository under
+`cmd/runectl`.
 
 ## Common Commands
 
 ```bash
 # Build
-make              # Build examples and executables
+make              # Build examples
 make debug        # Build with race detection
 
 # Testing

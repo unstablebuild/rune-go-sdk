@@ -234,41 +234,11 @@ workspace automatically:
 pkg install runectl
 ```
 
-To build it from this repo instead:
-
-```bash
-go install github.com/unstablebuild/rune-go-sdk/cmd/runectl@latest
-runectl --help
-```
-
-To publish a new runectl package version, choose a version independently of
-this SDK's Git tags (for example, `v1.1.3`). From the SDK root, with the local
-`deploy/bluectl/{prod,staging}/{os}-{arch}/config` matrix provisioned and
-`BLUE_PGP_KEY` and `BLUE_PGP_KEYRING` set, run:
-
-```bash
-make runectl-dist-version-test dist-tar-with-src
-RUNECTL_VERSION=v1.1.3 make runectl-staging-dist-linux-amd64
-RUNECTL_VERSION=v1.1.3 make runectl-prod-dist-all
-```
-
-`runectl-prod-dist-all` uploads Linux amd64/arm64 and Darwin amd64/arm64 in
-sequence; it must run on macOS with the configured `CODESIGN_IDENTITY` so the
-Darwin artifacts are signed. To publish only one platform, use the corresponding
-`runectl-prod-dist-{os}-{arch}` target. No notarization is required. The SDK Git
-tag and commit remain source metadata, not the runectl package version. Missing
-`RUNECTL_VERSION` aborts the upload.
-
-Command groups include:
-
-- `wm`: window management (focus, split, floating, set-content, close).
-- `editor`: read/modify editor content, cursors, colors, and locations.
-- `storage`: create/get/set/update/delete/list stored documents.
-- `lsp`: language-server operations (definition, references, hover, rename, diagnostics, completion, and many more).
-- `syntax`: tree-sitter structural search and queries.
-- `llm`: list models, inspect model info, count tokens, send messages.
-- `mcp`: A full MCP server to expose Rune's tools to other agent harnesses like Claude Code or Opencode.
-- `open`, `notify`, `uri`, `datadir`, `signal`, `exec`: miscellaneous host operations.
+`runectl` is developed in the [Rune repository](https://github.com/unstablebuild/rune)
+under `cmd/runectl`. The [runectl guide](https://docs.rune.build/develop/runectl)
+lists every command group, including window management, the editor, storage,
+LSP, search, LLMs, and an MCP server that exposes Rune's tools to agent harnesses
+like Claude Code, and covers building it from source.
 
 `runectl` is also the fastest way to **sample the data Rune returns** for each
 API while you build an extension. Every command wraps the same gRPC services the
@@ -293,7 +263,7 @@ runectl lsp workspace-diagnostics --format json
 Common Make targets:
 
 ```bash
-make              # Build examples and executables
+make              # Build examples
 make debug        # Build with the race detector
 
 make test         # Run all tests with the race detector
