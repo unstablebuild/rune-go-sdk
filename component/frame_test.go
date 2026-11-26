@@ -118,6 +118,7 @@ func TestFrameCharSetGraphicsEmpty(t *testing.T) {
 	}{
 		{"zero", FrameCharSetGraphics{}, true},
 		{"overlay alone", FrameCharSetGraphics{Overlay: true}, true},
+		{"corner size alone", FrameCharSetGraphics{CornerWidth: 3, CornerHeight: 2}, true},
 		{"one image", FrameCharSetGraphics{VerticalRight: "file:///r.png"}, false},
 		{"overlay image", FrameCharSetGraphics{TopLeft: "file:///tl.png", Overlay: true}, false},
 	}

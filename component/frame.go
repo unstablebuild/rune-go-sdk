@@ -62,15 +62,21 @@ type FrameCharSetGraphics struct {
 	HorizontalTop, VerticalLeft     string
 	HorizontalBottom, VerticalRight string
 
+	// CornerWidth and CornerHeight are how many cells each corner's
+	// image covers along the frame's top and bottom rows, and along its
+	// left and right columns.
+	CornerWidth, CornerHeight int
+
 	// Overlay draws each image over its slot's rune, which shows through
 	// the image's transparent pixels and keeps whatever color it is
 	// drawn or shaded in. Otherwise each image replaces its rune.
 	Overlay bool
 }
 
-// Empty reports whether g names no image, whatever its Overlay.
+// Empty reports whether g names no image, whatever its corner size and
+// Overlay.
 func (g FrameCharSetGraphics) Empty() bool {
-	g.Overlay = false
+	g.CornerWidth, g.CornerHeight, g.Overlay = 0, 0, false
 	return g == FrameCharSetGraphics{}
 }
 
